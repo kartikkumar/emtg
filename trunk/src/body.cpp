@@ -73,6 +73,9 @@ namespace EMTG {namespace Astrodynamics {
 			double temp_state[6];
 			double LT_dump;
 			spkez_c (spice_ID, unitim_c(reference_epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
+			if (failed_c())
+				reset_c();
+
 
 			if (fabs(temp_state[0]) > 1.0e-6 && fabs(temp_state[0]) < 1.0e+50)
 			{
@@ -87,7 +90,7 @@ namespace EMTG {namespace Astrodynamics {
 			}
 		}
 
-			J2000_body_equatorial_frame.initialize(ireference_angles[0], ireference_angles[1], ireference_angles[2], ireference_angles[3], ireference_angles[4], ireference_angles[5]);
+		J2000_body_equatorial_frame.initialize(ireference_angles[0], ireference_angles[1], ireference_angles[2], ireference_angles[3], ireference_angles[4], ireference_angles[5]);
 	}
 
 	//function to find the body state vector at epoch

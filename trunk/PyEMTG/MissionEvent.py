@@ -119,7 +119,7 @@ class MissionEvent(object):
                 CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
                 CenterPointState[3:6] *= TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -128,7 +128,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -169,7 +169,7 @@ class MissionEvent(object):
                 ScaledThrust = np.array(self.Thrust) / self.Mass / LU / 1000* TU*TU
                 ScaledMdot = self.MassFlowRate / self.Mass * TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -178,7 +178,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -313,7 +313,7 @@ class MissionEvent(object):
                 CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
                 CenterPointState[3:6] *= TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
 
                 StateHistoryForward = []
@@ -323,7 +323,7 @@ class MissionEvent(object):
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
                     TimeHistoryForward.append(ForwardIntegrateObject.t * TU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
 
                 StateHistoryBackward = []
@@ -361,7 +361,7 @@ class MissionEvent(object):
                 ScaledMdot = self.MassFlowRate / self.Mass * TU
 
                 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 StateHistoryForward = []
@@ -375,7 +375,7 @@ class MissionEvent(object):
                     StateHistoryForward.append(UnscaledState)
                     TimeHistoryForward.append(ForwardIntegrateObject.t * TU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dopri5', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 StateHistoryBackward = []

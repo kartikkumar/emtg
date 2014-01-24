@@ -184,6 +184,7 @@ class Mission(object):
 
             self.DataAxes.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
             self.DataFigure.autofmt_xdate()
+            self.DataAxes.grid(b=True, ls='-')
             leg = self.DataAxes.legend(loc='best', fancybox=True)
             leg.get_frame().set_alpha(0.5)
             leg.draggable(use_blit=True)
