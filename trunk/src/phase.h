@@ -406,6 +406,8 @@ namespace EMTG {
 		vector< vector<int> > G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
+		vector<int> G_index_of_derivative_of_match_point_with_respect_to_BOL_power;
+		double power_range;
 
 		//derivatives of force model
 		vector<double> dTdP;

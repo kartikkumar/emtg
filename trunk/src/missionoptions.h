@@ -9,7 +9,6 @@
 #define MISSIONOPTIONS_H_
 
 #include "boost/ptr_container/ptr_vector.hpp"
-#include "file_utilities.h"
 
 #include <vector>
 #include <string>
@@ -32,6 +31,7 @@ public:
 	int parse_options_file(string filename);
 	int parse_options_line(ifstream& inputfile, string& choice, double& value, char* dump_buffer, int& linenumber);
 	int print_options_file(string filename);
+	void construct_thruster_launch_vehicle_name_arrays();
 
 	//check for success
 	int file_status; //0: successful read, 1: error reading file, 2: no file found with this file name
@@ -74,10 +74,33 @@ public:
 	bool outerloop_useparallel; //whether or not to use the parallel outer-loop
 	int outerloop_warmstart; //if true, read "population.txt" and "solutions.txt"
 
+	//outer loop selectable options settings
+	bool outerloop_vary_power;
+	bool outerloop_vary_launch_epoch;
+	bool outerloop_vary_flight_time_upper_bound;
+	bool outerloop_vary_thruster_type;
+	bool outerloop_vary_number_of_thrusters;
+	bool outerloop_vary_launch_vehicle;
+	vector<bool> outerloop_vary_journey_destination;
+	vector<bool> outerloop_vary_journey_flyby_sequence;
+	vector<double> outerloop_power_choices;
+	vector<double> outerloop_launch_epoch_choices;
+	vector<double> outerloop_flight_time_upper_bound_choices;
+	vector<int> outerloop_thruster_type_choices;
+	vector<int> outerloop_number_of_thrusters_choices;
+	vector<int> outerloop_launch_vehicle_choices;
+	vector< vector<int> > outerloop_journey_destination_choices;
+	vector< vector<int> > outerloop_journey_flyby_sequence_choices;
+	vector<int> outerloop_journey_maximum_number_of_flybys;
+
+	//outerloop objective settings
+	vector<int> outerloop_objective_function_choices;
+
 	//inner loop solver settings
 	int NLP_solver_type;
 	bool NLP_solver_mode; //false: feasible point only, true: optimize
 	bool quiet_NLP;
+	bool ACE_feasible_point_finder;
 	int MBH_max_not_improve;
 	int MBH_max_trials;
 	int MBH_max_run_time;
@@ -259,6 +282,8 @@ public:
 	vector<int> iGfun;
 	vector<int> jGvar;
 	vector<double> X_scale_ranges;
+	vector<string> LV_names;
+	vector<string> thruster_names;
 };
 
 } /* namespace EMTG */

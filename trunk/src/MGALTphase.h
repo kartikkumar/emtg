@@ -64,7 +64,8 @@ namespace EMTG {
 																	double& dydotdu,
 																	double& dzdotdu,
 																	double& dmdu,
-																	double& dtdu);
+																	double& dtdu,
+																	double& dPdu);
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
 		int calculate_match_point_backward_propagation_derivatives(	double* G,
@@ -82,7 +83,8 @@ namespace EMTG {
 																	double& dydotdu,
 																	double& dzdotdu,
 																	double& dmdu,
-																	double& dtdu);
+																	double& dtdu,
+																	double& dPdu);
 
 		//time information
 		vector <double> event_epochs;

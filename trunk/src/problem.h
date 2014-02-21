@@ -56,6 +56,10 @@ public:
 	virtual int output() = 0;
 	virtual vector<double> create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions) = 0;
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess) = 0;
+	
+	//performance characteristics function
+	//used to extract various pieces of mission data for a multi-objective GA
+	virtual void extract_objective_function_values(std::vector<double>& objective_functions) {};
 
 	//fields
 
@@ -79,6 +83,7 @@ public:
 	vector<string> Xdescriptions, Fdescriptions;
 	vector<int> iAfun, jAvar, iGfun, jGvar;
 	vector<string> Adescriptions, Gdescriptions;
+	int number_of_solutions;
 
 	//vector of synodic periods for any periodic variables
 	vector<double> synodic_periods;

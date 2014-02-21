@@ -165,17 +165,22 @@ class Mission(object):
             if self.ActiveJourney <= len(self.Journeys) - 1:
                 self.Journeys[self.ActiveJourney].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, True)
 
-                if PlotOptions.PlotCriticalEvents:
-                    self.Journeys[self.ActiveJourney].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
             else:
                 for j in range(0, len(self.Journeys)):
                     if j == 0:
                         self.Journeys[j].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, True)
-                        if PlotOptions.PlotCriticalEvents:
-                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
+                            
                     else:
                         self.Journeys[j].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, False)
-                        if PlotOptions.PlotCriticalEvents:
+            
+            if PlotOptions.PlotCriticalEvents:
+                if self.ActiveJourney <= len(self.Journeys) - 1:
+                    self.Journeys[self.ActiveJourney].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
+                else:
+                    for j in range(0, len(self.Journeys)):
+                        if j == 0:
+                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
+                        else:
                             self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, False)
 
             self.DataAxes.set_xlabel('Epoch')

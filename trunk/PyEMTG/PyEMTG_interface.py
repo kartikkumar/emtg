@@ -85,6 +85,9 @@ class PyEMTG_interface(wx.Frame):
         
         self.Bind(wx.EVT_MENU, self.OnExit, fexit, id=wx.ID_EXIT)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
+
+        self.Bind(wx.EVT_SIZE, self.OnResize)
+        self.Bind(wx.EVT_MAXIMIZE, self.OnResize)
         
         #Disable various menu options at program start
         self.fileMenu.Enable(wx.ID_SAVE, False)
@@ -100,10 +103,29 @@ class PyEMTG_interface(wx.Frame):
         sizer.Add(self.lblWelcome, 1, flag = wx.CENTER)
         self.SetSizer(sizer)
 
-        self.SetSize((800,600))
+        #self.SetSize((800,600))
         self.SetTitle("EMTG Python Interface")
         
         self.Show()
+
+    def OnResize(self, e):
+        self.Layout()
+        MySize = self.GetClientSize()
+        if self.mode == "options":
+            self.optionsnotebook.SetSize((MySize.x, MySize.y))
+            self.optionsnotebook.Layout()
+
+        elif self.mode == "mission":
+            self.missionpanel.SetSize((MySize.x, MySize.y))
+            self.missionpanel.Layout()
+
+        elif self.mode == "universe":
+            self.universenotebook.SetSize((MySize.x, MySize.y))
+            self.universenotebook.Layout()
+
+        elif self.mode == "archive":
+            self.archivepanel.SetSize((MySize.x, MySize.y))
+            self.archivepanel.Layout()
         
     def OnNewMission(self, e):
         #If the GUI has not yet loaded anything then create a new mission. Otherwise as for permission first.
@@ -367,7 +389,7 @@ class PyEMTG_interface(wx.Frame):
     def InitializeUniverseOptionsEditor(self):
         #create and size a universe notebook object
         self.universenotebook = UniverseNotebook.UniverseNotebook(self, self.universe)
-        self.universenotebook.SetSize(self.GetSize())
+        self.universenotebook.SetSize(self.GetClientSize())
 
     def InitializeArchiveProcessor(self):
         #create and size an Archive panel object
@@ -380,7 +402,7 @@ class PyEMTG_interface(wx.Frame):
         
         #update the latest information from the missionoptions object into the GUI
         self.missionoptions.update_all_panels(self.optionsnotebook)
-        self.optionsnotebook.SetSize(self.GetSize())
+        self.optionsnotebook.SetSize(self.GetClientSize())
         
         #bind the various GUI controls to events which modify the missionoptions object
         
@@ -564,6 +586,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.cmbNLP_solver_type.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_type)
         self.optionsnotebook.tabSolver.cmbNLP_solver_mode.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_mode)
         self.optionsnotebook.tabSolver.chkquiet_NLP.Bind(wx.EVT_CHECKBOX, self.Changequiet_NLP)
+        self.optionsnotebook.tabSolver.chkACE_feasible_point_finder.Bind(wx.EVT_CHECKBOX, self.ChangeACE_feasible_point_finder)
         self.optionsnotebook.tabSolver.txtMBH_max_not_improve.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_not_improve)
         self.optionsnotebook.tabSolver.txtMBH_max_trials.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_trials)
         self.optionsnotebook.tabSolver.txtMBH_max_run_time.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_run_time)
@@ -1391,6 +1414,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changequiet_NLP(self, e):
         self.missionoptions.quiet_NLP = int(self.optionsnotebook.tabSolver.chkquiet_NLP.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def ChangeACE_feasible_point_finder(self, e):
+        self.missionoptions.ACE_feasible_point_finder = int(self.optionsnotebook.tabSolver.chkACE_feasible_point_finder.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def ChangeMBH_max_not_improve(self, e):

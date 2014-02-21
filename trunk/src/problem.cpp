@@ -60,8 +60,6 @@ namespace EMTG {
 		// call the appropriate optimizer, passing along a pointer to the problem object so that it can be evaluated
 		//success, so return 0
 
-		int number_of_solutions;
-
 		switch (options.run_inner_loop)
 		{
 		case 0: //run trialX
@@ -91,11 +89,11 @@ namespace EMTG {
 				if (options.seed_MBH)
 					solver.seed(options.current_trialX);
 
-				number_of_solutions = solver.run();
+				this->number_of_solutions = solver.run();
 			
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 
-				if (number_of_solutions == 0 || solver.fbest > 1.0e+10)
+				if (this->number_of_solutions == 0 || solver.fbest > 1.0e+10)
 				{
 					Xopt = Xlowerbounds;
 					options.outputfile = options.working_directory + "//FAILURE_" + options.mission_name + "_" + options.description + ".emtg";

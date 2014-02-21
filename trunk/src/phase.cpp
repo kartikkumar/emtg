@@ -588,7 +588,9 @@ namespace EMTG {
 			if (options->engine_type == 1)
 			{
 				//constant Isp, efficiency, EMTG computes input power
-				options->power_at_1_AU = X[*Xindex];
+				if (j == 0 && p == 0)
+					options->power_at_1_AU = X[*Xindex];
+
 				for (int step = 0; step < options->num_timesteps; ++step)
 					available_power[step] = options->power_at_1_AU;
 				++(*Xindex);
@@ -596,9 +598,17 @@ namespace EMTG {
 			else if (options->engine_type == 2)
 			{
 				//constant power, EMTG chooses Isp
-				options->IspLT = X[*Xindex];
+				if (j == 0 && p == 0)
+					options->IspLT = X[*Xindex];
+
 				for (int step = 0; step < options->num_timesteps; ++step)
 					available_Isp[step] = options->IspLT;
+				++(*Xindex);
+			}
+			else if (options->objective_type == 13 && j == 0 && p == 0)
+			{
+				//constant Isp, efficiency, EMTG computes input power
+				options->power_at_1_AU = X[*Xindex];
 				++(*Xindex);
 			}
 		}
@@ -623,7 +633,7 @@ namespace EMTG {
 	
 		//Step 5.4: if this is not a terminal rendezvous, extract the terminal velocity increment
 		//otherwise, the terminal state is the body state or the terminal v-infinity
-		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7))
+		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 1 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
 		{
 			dVarrival[0] = X[*Xindex];
 			dVarrival[1] = X[*Xindex+1];
@@ -808,8 +818,8 @@ namespace EMTG {
 					for (int k = 0; k < 3; ++k)
 						this->dVarrival[k] = boundary_state[k+3] - incoming_velocity[k];
 					this->C3_arrival = dVarrival[0]*dVarrival[0] + dVarrival[1]*dVarrival[1] + dVarrival[2]*dVarrival[2];
-					double C3_desired = options->journey_final_velocity[j][1] * options->journey_final_velocity[j][1];
-					F[*Findex] = C3_arrival / C3_desired - 1;
+					double C3_max = options->journey_final_velocity[j][1] * options->journey_final_velocity[j][1];
+					F[*Findex] = C3_arrival / C3_max - 1;
 					++(*Findex);
 
 					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
@@ -2086,19 +2096,26 @@ namespace EMTG {
 
 	void phase::calcbounds_phase_thruster_parameters(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{
-		if (options->engine_type == 1)
+		if (options->engine_type == 1 && (j == 0 && p == 0))
 		{
 			//constant Isp, efficiency, EMTG computes input power
 			Xlowerbounds->push_back(options->engine_input_power_bounds[0]);
 			Xupperbounds->push_back(options->engine_input_power_bounds[1]);
 			Xdescriptions->push_back(prefix + "engine input power (kW)");
 		}
-		else if (options->engine_type == 2)
+		else if (options->engine_type == 2 && (j == 0 && p == 0))
 		{
 			//constant power, EMTG chooses Isp
 			Xlowerbounds->push_back(options->IspLT_minimum);
 			Xupperbounds->push_back(options->IspLT);
 			Xdescriptions->push_back(prefix + "engine Isp (s)");
+		}
+		else if (options->objective_type == 13 && j == 0 && p == 0)
+		{
+			//EMTG varies input power for whatever engine/power model you have
+			Xlowerbounds->push_back(math::SMALL);
+			Xupperbounds->push_back(options->power_at_1_AU);
+			Xdescriptions->push_back(prefix + "engine input power (kW)");
 		}
 	}
 
@@ -2418,7 +2435,7 @@ namespace EMTG {
 		}
 		//if this phase is NOT a terminal rendezvous OR a final velocity match, then encode the terminal velocity increment
 		//also do not encode this if the escape condition (arrival type 6) is set or if the journey ends in a spiral
-		else if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 4) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7))
+		else if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
 		{
 			Xlowerbounds->push_back(-25.0);
 			Xupperbounds->push_back(25.0);
@@ -2532,6 +2549,41 @@ namespace EMTG {
 					}
 				}
 			}
+			//all match point constraints have a dependency on the BOL power if it is a variable
+			if (options->objective_type == 13)
+			{
+				if (state == 0)
+					G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
+
+				for (int Xentry = 0; Xentry < Xdescriptions->size(); ++Xentry)
+				{
+					if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+					{
+						bool duplicateflag = false;
+						for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+						{
+							stringstream tempstream;
+							tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+							{
+								duplicateflag = true;
+								break;
+							}
+						}
+						if (!duplicateflag)
+						{
+							iGfun->push_back(Fdescriptions->size() - 1);
+							jGvar->push_back(Xentry);
+							stringstream EntryNameStream;
+							EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							Gdescriptions->push_back(EntryNameStream.str());
+							G_index_of_derivative_of_match_point_with_respect_to_BOL_power[state] = Gdescriptions->size() - 1;
+							this->power_range = (*Xupperbounds)[Xentry] - math::SMALL;
+							break;
+						}
+					}
+				}
+			}
 			//the mass constraint has a derivative with respect to all previous journey initial mass increment scale factors
 			if (options->journey_variable_mass_increment[j])
 			{
@@ -2614,12 +2666,27 @@ namespace EMTG {
 					{
 						if ( (*Xdescriptions)[Xentry].find("arrival mass") < 1024)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
-							jGvar->push_back(Xentry);
-							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
-							Gdescriptions->push_back(EntryNameStream.str());
-							break;
+							//first check for duplicates
+							bool duplicateflag = false;
+							stringstream entry_tag_stream;
+							entry_tag_stream << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
+							{
+								if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
 						}
 					}
 				}
@@ -2669,7 +2736,38 @@ namespace EMTG {
 							break;
 						}
 					}
-				}	
+				}
+
+				//all spirals have a dependency on the BOL power if it is a variable
+				if (options->objective_type == 13)
+				{
+					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size(); ++Xentry)
+					{
+						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+						{
+							bool duplicateflag = false;
+							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+							{
+								stringstream tempstream;
+								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
+						}
+					}
+				}
 			}
 		}//end loop over journeys
 	}
@@ -2708,12 +2806,27 @@ namespace EMTG {
 					{
 						if ( (*Xdescriptions)[Xentry].find("arrival mass") < 1024)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
-							jGvar->push_back(Xentry);
-							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
-							Gdescriptions->push_back(EntryNameStream.str());
-							break;
+							//first check for duplicates
+							bool duplicateflag = false;
+							stringstream entry_tag_stream;
+							entry_tag_stream << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
+							{
+								if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
 						}
 					}
 				}
@@ -2734,7 +2847,40 @@ namespace EMTG {
 						}
 					}
 				}	
+
+				//all spirals have a dependency on the BOL power if it is a variable
+				if (options->objective_type == 13)
+				{
+					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+					{
+						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+						{
+							bool duplicateflag = false;
+							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+							{
+								stringstream tempstream;
+								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
+						}
+					}
+				}
 			}
+
+			
 		}//end loop over journeys
 	}
 

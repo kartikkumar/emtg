@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <ctime>
 
 #include "boost/random/uniform_int.hpp"
 #include "boost/random/uniform_real.hpp"
@@ -228,7 +229,7 @@ namespace EMTG { namespace Solvers {
 		this->printed_sparsity = false;
 
 		//seed the random number generator based on the node's clock
-		RNG.seed(std::time(0));
+		RNG.seed(time(0));
 
 		return 0;
 	}
@@ -259,7 +260,13 @@ namespace EMTG { namespace Solvers {
 
 		//read a trial point
 		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+		for (int k = 0; k < seed_vector.size(); ++k)
 			Xtrial_scaled[k] = (seed_vector[k] - Problem->Xlowerbounds[k]) / (Problem->Xupperbounds[k] - Problem->Xlowerbounds[k]);
+		if (seed_vector.size() < Problem->total_number_of_NLP_parameters)
+		{
+			for (int k = 0; k < Problem->total_number_of_NLP_parameters - seed_vector.size(); ++k)
+				Xtrial_scaled[k] = DoubleDistribution(RNG);
+		}
 
 		fcurrent = EMTG::math::LARGE;
 
@@ -504,7 +511,8 @@ namespace EMTG { namespace Solvers {
 	int MBH::run()
 	{
 		bool new_point;
-		bool seeded_step = false;;
+		bool seeded_step = false;
+		double best_feasibility = math::LARGE;
 
 		//If we have seeded MBH, start from that seed. Otherwise we will need to generate a new random point.
 		if ( !(Problem->options.seed_MBH) )
@@ -625,6 +633,20 @@ namespace EMTG { namespace Solvers {
 					Problem->output();
 				}
 
+			}
+			else if (this->Problem->options.ACE_feasible_point_finder && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
+			{
+				//if we have not yet found our first feasible point and the ACE feasible point finder is enabled
+				//then we should see if this point is "more feasible" than best one we have so far
+				if (feasibility < best_feasibility)
+				{
+					std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+					fcurrent = F[0];
+					Xcurrent_scaled = Xtrial_scaled;
+					best_feasibility = feasibility;
+					new_point = false;
+				}
+				++number_of_failures_since_last_improvement;
 			}
 			else
 			{

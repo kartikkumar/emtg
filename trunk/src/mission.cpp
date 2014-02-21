@@ -40,40 +40,76 @@ mission::mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astr
 {
 
 	//first make a local copy of the options structure
-	options = *options_in;
+	this->options = *options_in;
 
 	//make a local copy of the Universe vector
-	TheUniverse = TheUniverse_in;
+	this->TheUniverse = TheUniverse_in;
 
 	//next, parse the outer-loop decision vector
-	parse_outer_loop(Xouter);
+	this->parse_outer_loop(Xouter);
 
 	//next, create the journeys
-	number_of_journeys = options.number_of_journeys;
+	this->number_of_journeys = options.number_of_journeys;
 
 	for (int j = 0; j < number_of_journeys; ++j) 
 	{
-		journeys.push_back(new journey(&options, j, TheUniverse[j]));
+		this->journeys.push_back(new journey(&options, j, this->TheUniverse[j]));
 	}
 
 	//calculate the upper and lower bounds on the decision variables and the constraints
-	calcbounds();
+	this->calcbounds();
 
 	//size the local "G storage" vector
-	G.resize(Gdescriptions.size());
+	this->G.resize(this->Gdescriptions.size());
 
 	//store the indices of G in the options structure, for later use
-	options.iGfun = iGfun;
-	options.jGvar = jGvar;
+	this->options.iGfun = this->iGfun;
+	this->options.jGvar = this->jGvar;
 
 	//store the scale ranges for all of the decision variables
-	for (size_t entry = 0; entry < Xupperbounds.size(); ++entry)
-		options.X_scale_ranges.push_back(Xupperbounds[entry] - Xlowerbounds[entry]);
+	for (size_t entry = 0; entry < this->Xupperbounds.size(); ++entry)
+		this->options.X_scale_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 
 	//find the time scale factor
-	max_TU = 0.0;
-	for (int j = 0; j < options.number_of_journeys; ++j)
-		max_TU = max(max_TU, TheUniverse[j].TU);
+	this->max_TU = 0.0;
+	for (int j = 0; j < this->options.number_of_journeys; ++j)
+		this->max_TU = max(this->max_TU, this->TheUniverse[j].TU);
+}
+
+mission::mission(missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in)
+{
+	//first make a local copy of the options structure
+	this->options = *options_in;
+
+	//make a local copy of the Universe vector
+	this->TheUniverse = TheUniverse_in;
+
+	//next, create the journeys
+	this->number_of_journeys = options.number_of_journeys;
+
+	for (int j = 0; j < number_of_journeys; ++j) 
+	{
+		this->journeys.push_back(new journey(&options, j, this->TheUniverse[j]));
+	}
+
+	//calculate the upper and lower bounds on the decision variables and the constraints
+	this->calcbounds();
+
+	//size the local "G storage" vector
+	this->G.resize(this->Gdescriptions.size());
+
+	//store the indices of G in the options structure, for later use
+	this->options.iGfun = this->iGfun;
+	this->options.jGvar = this->jGvar;
+
+	//store the scale ranges for all of the decision variables
+	for (size_t entry = 0; entry < this->Xupperbounds.size(); ++entry)
+		this->options.X_scale_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
+
+	//find the time scale factor
+	this->max_TU = 0.0;
+	for (int j = 0; j < this->options.number_of_journeys; ++j)
+		this->max_TU = max(this->max_TU, this->TheUniverse[j].TU);
 }
 
 mission::~mission()
@@ -354,12 +390,14 @@ int mission::calcbounds()
 		{
 			if (Xdescriptions[entry].find("flight time") < 1024)
 			{
-				iAfun.push_back(0);
-				jAvar.push_back(entry);
+				iGfun.push_back(0);
+				jGvar.push_back(entry);
 				stringstream EntryNameStream;
 				EntryNameStream << "Derivative of objective function F[0] with respect to X[" << entry << "]: " << Xdescriptions[entry];
-                Adescriptions.push_back(EntryNameStream.str());
-				A.push_back((Xupperbounds[entry] - Xlowerbounds[entry]) / TU);
+                Gdescriptions.push_back(EntryNameStream.str());
+				objectivefunction_X_indices.push_back(entry);
+				objectivefunction_G_indices.push_back(iGfun.size() - 1);
+				objectivefunction_X_scale_ranges.push_back(Xupperbounds[entry] - Xlowerbounds[entry]);
 			}
 		}
 
@@ -732,6 +770,23 @@ int mission::calcbounds()
 		//dependencies because of a capture spiral in the final journey
 		this->find_dependencies_due_to_capture_spiral_in_final_journey(&Xupperbounds, &Xlowerbounds, &Flowerbounds, &Fupperbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &Adescriptions, &Gdescriptions, &options, 0);
 	}
+	else if (this->options.objective_type == 13)
+	{
+		for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		{
+			if (Xdescriptions[entry].find("engine input power (kW)") < 1024)
+			{
+				iAfun.push_back(0);
+				jAvar.push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of objective function F[0] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+				Adescriptions.push_back(EntryNameStream.str());
+				A.push_back(1.0);
+				break;
+			}
+		}
+		
+	}
 
 	//mission dry mass constraint
 	if (options.minimum_dry_mass > 0)
@@ -942,6 +997,14 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 		{ //minimum flight time
 			double TU = TheUniverse[options.number_of_journeys - 1].TU;
 			F[0] = (current_epoch - X[0]) * 86400 / TU;
+
+			if (this->options.derivative_type > 0)
+			{
+				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size() - 1; ++ whichderiv)
+				{
+					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] * 86400 / TU;
+				}
+			}
 			break;
 		}
 	case 2:
@@ -1157,6 +1220,8 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 
 			break;
 		}
+	case 13: //minimum power
+		F[0] = this->options.power_at_1_AU;
 	}
 	
 	//test for errors
@@ -1203,6 +1268,9 @@ int mission::output()
 
 	//output dry mass
 	outputfile << "Spacecraft dry mass: " << dry_mass << endl;
+	
+	//output flight time in years
+	outputfile << "Flight time (y): " << (current_epoch - journeys[0].phases[0].phase_start_epoch) / 365.25 << endl;
 
 	//objective-function specific information
 	if (options.objective_type == 12)
@@ -1213,6 +1281,8 @@ int mission::output()
 		double KE = 0.5 * current_state[6] * FinalPhase->C3_arrival;
 		outputfile << "Kinetic energy at impact: " << KE << " kg*km^2/s^2" << endl;
 	}
+	else if (options.objective_type == 13)
+		outputfile << "BOL power at 1 AU: " << options.power_at_1_AU << " kW" << endl;
 
 	//skip 3 lines
 	for (int k = 0; k < 3; ++k)
@@ -1693,7 +1763,38 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 							}
 						}
 					}
-				}	
+				}
+
+				//all spirals have a dependency on the BOL power if it is a variable
+				if (options->objective_type == 13)
+				{
+					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					{
+						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+						{
+							bool duplicateflag = false;
+							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+							{
+								stringstream tempstream;
+								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
+						}
+					}
+				}
 			}
 		}//end loop over journeys
 	}
@@ -1788,6 +1889,37 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 								jGvar->push_back(Xentry);
 								stringstream EntryNameStream;
 								EntryNameStream << "Derivative of " << (*Fdescriptions)[Findex] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								break;
+							}
+						}
+					}
+				}
+
+				//all spirals have a dependency on the BOL power if it is a variable
+				if (options->objective_type == 13)
+				{
+					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+					{
+						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+						{
+							bool duplicateflag = false;
+							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+							{
+								stringstream tempstream;
+								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+								{
+									duplicateflag = true;
+									break;
+								}
+							}
+							if (!duplicateflag)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(Xentry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								break;
 							}
@@ -1893,6 +2025,71 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 						}
 					}
 				}
+			}
+
+			//all spirals have a dependency on the BOL power if it is a variable
+			if (options->objective_type == 13)
+			{
+				for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+				{
+					if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
+					{
+						bool duplicateflag = false;
+						for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+						{
+							stringstream tempstream;
+							tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+							{
+								duplicateflag = true;
+								break;
+							}
+						}
+						if (!duplicateflag)
+						{
+							iGfun->push_back(Fdescriptions->size() - 1);
+							jGvar->push_back(Xentry);
+							stringstream EntryNameStream;
+							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							Gdescriptions->push_back(EntryNameStream.str());
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void mission::extract_objective_function_values(std::vector<double>& objective_functions)
+	{
+		for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+		{
+			switch (options.outerloop_objective_function_choices[objective])
+			{
+			case 0: //BOL power at 1 AU
+				objective_functions[objective] = this->options.power_at_1_AU;
+				break;
+			case 1: //Launch epoch (MJD)
+				objective_functions[objective] = this->Xopt[0];
+				break;
+			case 2: //Flight time (days)
+				objective_functions[objective] = this->current_epoch - this->journeys[0].phases[0].phase_start_epoch;
+				break;
+			case 3: //number of thrusters
+				objective_functions[objective] = this->options.number_of_engines;
+				break;
+			case 4: //Thruster
+				objective_functions[objective] = this->options.engine_type;
+				break;
+			case 5: //Launch vehicle
+				objective_functions[objective] = this->options.LV_type;
+				break;
+			case 6: //Final mass
+				objective_functions[objective] = options.minimum_dry_mass > 0 ? this->dry_mass : this->journeys.back().phases.back().state_at_end_of_phase[6];
+				break;
+			case 7: //Final journey mass increment (for maximizing sample return)
+				objective_functions[objective] = this->journeys.back().phases.back().current_mass_increment * this->journeys.back().phases.back().journey_initial_mass_increment_scale_factor;
+				break;
 			}
 		}
 	}

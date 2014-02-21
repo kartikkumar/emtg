@@ -1,12 +1,13 @@
 import wx
 import wx.calendar
+import wx.lib.scrolledpanel
 import MissionOptions as MO
 
 
-class GlobalOptionsPanel(wx.Panel):
+class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
         globaloptionsgrid = wx.FlexGridSizer(10,2,5,5)
         self.lblMissionName = wx.StaticText(self, -1, "Mission Name")
@@ -23,7 +24,7 @@ class GlobalOptionsPanel(wx.Panel):
                           '4: launch as late as possible in the window','5: launch as early as possible in the window',
                           '6: maximize orbit energy','7: minimize launch mass','8: arrive as early as possible',
                           '9: arrive as late as possible','10: minimum propellant (not the same as 2)','11: maximum dry/wet ratio',
-                          '12: maximum arrival kinetic energy']
+                          '12: maximum arrival kinetic energy', '13: minimum BOL power']
         self.cmbobjective_type = wx.ComboBox(self, -1, choices=objectivetypes, style = wx.CB_READONLY)
 
         self.lblinclude_initial_impulse_in_cost = wx.StaticText(self, -1, "Include initial impulse in cost")
@@ -127,12 +128,13 @@ class GlobalOptionsPanel(wx.Panel):
         self.mainbox.Add(vboxright)
 
         self.SetSizer(self.mainbox)
+        self.SetupScrolling()
 
 
-class SpacecraftOptionsPanel(wx.Panel):
+class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
         
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
         #spacecraft and launch vehicle fields
         spacecraftgrid = wx.FlexGridSizer(10,2,5,5)
@@ -204,7 +206,7 @@ class SpacecraftOptionsPanel(wx.Panel):
 
 
         #terminal constraint/margining fields
-        constraintsgrid = wx.FlexGridSizer(10,2,5,5)
+        constraintsgrid = wx.FlexGridSizer(4,2,5,5)
         constraintsgridtitle = wx.StaticText(self, -1, "Margins")
 
         self.lblpost_mission_Isp = wx.StaticText(self, -1, "Isp for post-mission delta-v (s)")
@@ -228,7 +230,7 @@ class SpacecraftOptionsPanel(wx.Panel):
         constraintsbox.AddMany([constraintsgridtitle, constraintsgrid])
 
         #propulsion
-        propulsiongrid = wx.FlexGridSizer(10,2,5,5)
+        propulsiongrid = wx.FlexGridSizer(13,2,5,5)
         propulsiongridtitle = wx.StaticText(self, -1, "Propulsion options")
 
         self.lblIspChem = wx.StaticText(self, -1, "Chemical Isp (s)")
@@ -369,12 +371,13 @@ class SpacecraftOptionsPanel(wx.Panel):
         propulsiongridtitle.SetFont(font)
 
         self.SetSizer(self.mainbox)
+        self.SetupScrolling()
 
 
-class JourneyOptionsPanel(wx.Panel):
+class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
         
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
 
         self.JourneyList = []
 
@@ -504,7 +507,7 @@ class JourneyOptionsPanel(wx.Panel):
 
         
 
-        JourneyInformationGrid = wx.FlexGridSizer(10,2,0,0)
+        JourneyInformationGrid = wx.FlexGridSizer(20,2,5,5)
         JourneyInformationGrid.AddMany([self.lbljourney_names, self.txtjourney_names,
                                         self.lbljourney_central_body, journey_central_body_box,
                                         self.lbldestination_list, destination_list_box,
@@ -656,20 +659,21 @@ class JourneyOptionsPanel(wx.Panel):
         self.mainbox = wx.BoxSizer(wx.HORIZONTAL)
         self.mainbox.AddMany([JourneyInformationStacker, ElementsStacker])
         self.SetSizer(self.mainbox)
+        self.SetupScrolling()
         
-class SolverOptionsPanel(wx.Panel):
+class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
-        innerloopgrid = wx.GridSizer(10,2,5,5)
+        innerloopgrid = wx.GridSizer(22,2,5,5)
         
         self.lblInnerLoopSolver = wx.StaticText(self, -1, "Inner-loop Solver Mode")
         innerloopsolvertypes = ['Evaluate trialX', 'Evaluate a batch of trialX vectors','Monotonic Basin Hopping',
                                 'Adaptive Constrained Differential Evolution','SNOPT with initial guess']
         self.cmbInnerLoopSolver = wx.ComboBox(self, -1, choices = innerloopsolvertypes, style=wx.CB_READONLY)
 
-        self.lblNLP_solver_type = wx.StaticText(self, -1, "Inner-loop Solver Mode")
+        self.lblNLP_solver_type = wx.StaticText(self, -1, "NLP solver")
         NLP_solver_types = ['SNOPT','WORHP']
         self.cmbNLP_solver_type = wx.ComboBox(self, -1, choices = NLP_solver_types, style=wx.CB_READONLY)
 
@@ -679,6 +683,9 @@ class SolverOptionsPanel(wx.Panel):
 
         self.lblquiet_NLP = wx.StaticText(self, -1, "Quiet NLP solver?")
         self.chkquiet_NLP = wx.CheckBox(self, -1)
+
+        self.lblACE_feasible_point_finder = wx.StaticText(self, -1, "Enable ACE feasible point finder?")
+        self.chkACE_feasible_point_finder = wx.CheckBox(self, -1)
         
         self.lblMBH_max_not_improve = wx.StaticText(self, -1, "MBH Impatience")
         self.txtMBH_max_not_improve = wx.TextCtrl(self, -1, "MBH_max_not_improve")
@@ -738,6 +745,7 @@ class SolverOptionsPanel(wx.Panel):
                                  self.lblNLP_solver_type, self.cmbNLP_solver_type,
                                  self.lblNLP_solver_mode, self.cmbNLP_solver_mode,
                                  self.lblquiet_NLP, self.chkquiet_NLP,
+                                 self.lblACE_feasible_point_finder, self.chkACE_feasible_point_finder,
                                 self.lblMBH_max_not_improve, self.txtMBH_max_not_improve,
                                 self.lblMBH_max_trials, self.txtMBH_max_trials,
                                 self.lblMBH_max_run_time, self.txtMBH_max_run_time,
@@ -756,7 +764,7 @@ class SolverOptionsPanel(wx.Panel):
                                 self.lblinitial_guess_step_size_distribution, self.cmbinitial_guess_step_size_distribution,
                                 self.lblinitial_guess_step_size_stdv_or_scale, self.txtinitial_guess_step_size_stdv_or_scale])
                                 
-        outerloopgrid = wx.GridSizer(10,2,0,0)
+        outerloopgrid = wx.GridSizer(11,2,0,0)
         
         self.lblrun_outerloop = wx.StaticText(self, -1, "Run outer-loop GA?")
         self.chkrun_outerloop = wx.CheckBox(self, -1)
@@ -839,14 +847,15 @@ class SolverOptionsPanel(wx.Panel):
         self.mainbox.AddMany([hbox, trialbox, self.txttrialX])
 
         self.SetSizer(self.mainbox)
+        self.SetupScrolling()
 
-class PhysicsOptionsPanel(wx.Panel):
+class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
         
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
 
-        ephemerisgrid = wx.GridSizer(10,2,5,5)
-        perturbgrid = wx.GridSizer(10,2,5,5)
+        ephemerisgrid = wx.GridSizer(4,2,5,5)
+        perturbgrid = wx.GridSizer(4,2,5,5)
         
         self.lblephemeris_source = wx.StaticText(self, -1, "Ephemeris Source")
         ephemeris_source_typestypes = ['Static','SPICE']
@@ -925,11 +934,12 @@ class PhysicsOptionsPanel(wx.Panel):
         self.mainvbox.Add(vboxbottom)
 
         self.SetSizer(self.mainvbox)
+        self.SetupScrolling()
 
-class OutputOptionsPanel(wx.Panel):
+class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent):
         
-        wx.Panel.__init__(self, parent)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
 
         self.mainbox = wx.FlexGridSizer(10,2,5,5)
 
@@ -944,13 +954,14 @@ class OutputOptionsPanel(wx.Panel):
                            self.lbloutput_units, self.cmboutput_units])
 
         self.SetSizer(self.mainbox)
+        self.SetupScrolling()
 
         
 class OptionsBook(wx.Notebook):
     #class for Options notebook
     def __init__(self, parent):
         wx.Notebook.__init__(self, parent=parent, id=wx.ID_ANY, style=
-                             wx.BK_DEFAULT, size=(800,600)
+                             wx.BK_DEFAULT
                              #wx.BK_TOP 
                              #wx.BK_BOTTOM
                              #wx.BK_LEFT

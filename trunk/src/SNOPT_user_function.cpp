@@ -3,6 +3,7 @@
 #include "snoptProblem.h"
 #include "problem.h"
 
+#include <ctime>
 #include <iostream>
 
 using namespace std;

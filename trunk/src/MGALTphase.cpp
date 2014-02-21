@@ -80,6 +80,9 @@ namespace EMTG {
 		if (options->journey_variable_mass_increment[j])
 			G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier.resize(7);
 
+		if (options->objective_type == 13)
+			G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
+
 		dTdP.resize(options->num_timesteps);
 		dmdotdP.resize(options->num_timesteps);
 		dTdIsp.resize(options->num_timesteps);
@@ -1283,7 +1286,83 @@ namespace EMTG {
 															missionoptions* options, 
 															EMTG::Astrodynamics::universe* Universe)
 	{
-		double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu;
+		double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu, dPdu;
+
+		//compute and store the derivatives of the match-point constraint with respect to forward and backward propagation for variable initial power
+		//this will require passing in "dPdu"
+		if (options->objective_type == 13)
+		{
+			dxdu = 0.0;
+			dydu = 0.0;
+			dzdu = 0.0;
+			dzdotdu = 0.0;
+			dydotdu = 0.0;
+			dzdotdu = 0.0;
+			dtdu = 0.0;
+			dmdu = 0.0;
+			dPdu = 1.0;
+
+			//loop over forward steps
+			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
+			{
+				calculate_match_point_forward_propagation_derivatives(	G,
+																		Gindex,
+																		j, 
+																		p,
+																		options, 
+																		Universe,
+																		0,
+																		stepnext,
+																		dxdu,
+																		dydu,
+																		dzdu,
+																		dxdotdu,
+																		dydotdu,
+																		dzdotdu,
+																		dmdu,
+																		dtdu,
+																		dPdu);
+			} //end loop over forward steps
+
+			double dxdu_F = dxdu;
+			double dydu_F = dydu;
+			double dzdu_F = dzdu;
+			double dxdotdu_F = dxdotdu;
+			double dydotdu_F = dydotdu;
+			double dzdotdu_F = dzdotdu;
+			double dmdu_F = dmdu;
+
+			//loop over backward steps
+			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
+			{
+				calculate_match_point_backward_propagation_derivatives(	G,
+																		Gindex,
+																		j, 
+																		p,
+																		options, 
+																		Universe,
+																		options->num_timesteps - 1,
+																		stepnext,
+																		dxdu,
+																		dydu,
+																		dzdu,
+																		dxdotdu,
+																		dydotdu,
+																		dzdotdu,
+																		dmdu,
+																		dtdu,
+																		dPdu);
+			} //end loop over backward steps
+
+			//place the derivatives in the Jacobian
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[0]] = power_range * (dxdu - dxdu_F) / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[1]] = power_range * (dydu - dydu_F) / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[2]] = power_range * (dzdu - dzdu_F) / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[3]] = power_range * (dxdotdu - dxdotdu_F) / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[4]] = power_range * (dydotdu - dydotdu_F) / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[5]] = power_range * (dzdotdu - dzdotdu_F) / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_BOL_power[6]] = power_range * (dmdu - dmdu_F) / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+		}
 
 		//compute and store the forward derivatives of the match point constraints with respect to the control unit vector
 		//and (if applicable) variable Isp
@@ -1308,6 +1387,7 @@ namespace EMTG {
 
 				dmdu = -(available_mass_flow_rate[step-1] * deltat * options->engine_duty_cycle) * ( (control[step-1][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
+				dPdu = 0.0; //there is no defendence of power on thrust control
 
 				//loop over later steps
 				for (int stepnext = step + 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1327,7 +1407,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1364,6 +1445,7 @@ namespace EMTG {
 
 				dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[step-1];
 				dtdu = 0.0; //there is no dependence of time on Isp
+				dPdu = 0.0; //there is no dependence of power on Isp
 
 				//loop over later steps
 				for (int stepnext = step + 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1383,7 +1465,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1410,6 +1493,7 @@ namespace EMTG {
 
 				dmdu = unscaled_phase_initial_mass;
 				dtdu = 0.0; //there is no dependence of time on mass
+				dPdu = 0.0; //there is no dependence of power on mass
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1429,7 +1513,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1452,6 +1537,7 @@ namespace EMTG {
 
 				dmdu = options->journey_starting_mass_increment[j];
 				dtdu = 0.0; //there is no dependence of time on mass
+				dPdu = 0.0; //there is no dependence of power on mass
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1471,7 +1557,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1502,6 +1589,7 @@ namespace EMTG {
 				dzdotdu = Forward_STM[0](5,3) * (cRA*cDEC) + Forward_STM[0](5,4) * (sRA*cDEC) + Forward_STM[0](5,5) * sDEC;
 
 				dmdu = this->dmdvinf;
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1521,7 +1609,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1542,6 +1631,7 @@ namespace EMTG {
 				dzdotdu = v_infinity * ( Forward_STM[0](5,3) * (-sRA*cDEC) + Forward_STM[0](5,4) * (cRA*cDEC) );
 
 				dmdu = 0.0;
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1561,7 +1651,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1582,6 +1673,7 @@ namespace EMTG {
 				dzdotdu = v_infinity * ( Forward_STM[0](5,3) * (-cRA*sDEC) + Forward_STM[0](5,4) * (-sRA*sDEC) + Forward_STM[0](5,5) * (cDEC) );
 
 				dmdu = 0.0;
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1601,7 +1693,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1629,6 +1722,7 @@ namespace EMTG {
 
 				dmdu = 0.0;
 				dtdu = 0.0; //there is no dependence of time on initial velocity
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1648,7 +1742,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1672,6 +1767,7 @@ namespace EMTG {
 
 				dmdu = -1.0;
 				dtdu = 0.0; //there is no dependence of time on initial mass
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1691,7 +1787,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1741,6 +1838,7 @@ namespace EMTG {
 				+ next_step_acceleration_coefficient * this->spacecraft_state[0][2] * dtdu;
 
 			dmdu = 0.0;
+			dPdu = 0.0;
 
 			//loop over later steps
 			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1760,7 +1858,8 @@ namespace EMTG {
 																		dydotdu,
 																		dzdotdu,
 																		dmdu,
-																		dtdu);
+																		dtdu,
+																		dPdu);
 			} //end loop over later steps
 
 			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
@@ -1800,6 +1899,7 @@ namespace EMTG {
 
 				dmdu = (available_mass_flow_rate[backstep] * deltat * options->engine_duty_cycle) * ( (control[backstep][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = step + 1; stepnext < options->num_timesteps / 2; ++stepnext)
@@ -1819,7 +1919,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1858,6 +1959,7 @@ namespace EMTG {
 
 				dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[backstep];
 				dtdu = 0.0; //there is no dependence of time on Isp
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = step + 1; stepnext < options->num_timesteps / 2; ++stepnext)
@@ -1877,7 +1979,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -1904,6 +2007,7 @@ namespace EMTG {
 
 			dmdu = 1.0;
 			dtdu = 0.0; //there is no dependence of time on arrival mass
+			dPdu = 0.0;
 
 			//loop over later steps
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
@@ -1923,7 +2027,8 @@ namespace EMTG {
 																		dydotdu,
 																		dzdotdu,
 																		dmdu,
-																		dtdu);
+																		dtdu,
+																		dPdu);
 			} //end loop over later steps
 
 			//place the derivatives in the Jacobian
@@ -1972,7 +2077,7 @@ namespace EMTG {
 				+ next_backstep_acceleration_coefficient * this->spacecraft_state[options->num_timesteps-1][2] * dtdu;
 
 			dmdu = 0.0;
-			
+			dPdu = 0.0;
 
 			//loop over later steps
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
@@ -1992,7 +2097,8 @@ namespace EMTG {
 																		dydotdu,
 																		dzdotdu,
 																		dmdu,
-																		dtdu);
+																		dtdu,
+																		dPdu);
 			} //end loop over later steps
 
 			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
@@ -2025,6 +2131,7 @@ namespace EMTG {
 
 				dmdu = 0.0;
 				dtdu = 0.0; //there is no dependence of time on initial velocity
+				dPdu = 0.0;
 
 				//loop over later steps
 				for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
@@ -2044,7 +2151,8 @@ namespace EMTG {
 																			dydotdu,
 																			dzdotdu,
 																			dmdu,
-																			dtdu);
+																			dtdu,
+																			dPdu);
 				} //end loop over later steps
 
 				//place the derivatives in the Jacobian
@@ -2077,7 +2185,8 @@ namespace EMTG {
 																			double& dydotdu,
 																			double& dzdotdu,
 																			double& dmdu,
-																			double& dtdu)
+																			double& dtdu,
+																			double& dPdu)
 	{
 		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next, deltat;
 		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt, dmdt;
@@ -2122,7 +2231,7 @@ namespace EMTG {
 		}
 
 		double ddVmaxdu = (options->engine_duty_cycle * deltat) *
-							(dTdP[stepnext-1]/1000*dPdr[stepnext-1]/Universe->LU*drdu / mold
+							(dTdP[stepnext-1]/1000*(dPdr[stepnext-1]/Universe->LU*drdu + dPdu)/ mold
 							- available_thrust[stepnext-1]/1000.0 / (mold*mold) * dmdu);
 
 		double dVxplusdu = (dxdotdu + ddVmaxdu * control[stepnext-1][0] + dagravdRvec[stepnext - 1][0]*dxdu);
@@ -2148,7 +2257,7 @@ namespace EMTG {
 					+ Forward_STM[stepnext](5,3) * dVxplusdu + Forward_STM[stepnext](5,4) * dVyplusdu + Forward_STM[stepnext](5,5) * dVzplusdu
 					+ dzdotdt * dtdu;
 		dmdu_next = dmdu - (deltat * options->engine_duty_cycle)
-							* (umag * dmdotdP[stepnext-1] * dPdr[stepnext-1]/Universe->LU * drdu) - dmdt * dtdu;
+							* (umag * dmdotdP[stepnext-1] * (dPdr[stepnext-1]/Universe->LU * drdu + dPdu)) - dmdt * dtdu;
 
 		dxdu = dxdu_next;
 		dydu = dydu_next;
@@ -2177,7 +2286,8 @@ namespace EMTG {
 																				double& dydotdu,
 																				double& dzdotdu,
 																				double& dmdu,
-																				double& dtdu)
+																				double& dtdu,
+																				double& dPdu)
 	{
 		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next, deltat;
 		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt, dmdt;
@@ -2224,7 +2334,7 @@ namespace EMTG {
 		}
 
 		double ddVmaxdu = (options->engine_duty_cycle * deltat) * 
-							( 1.0 / mold * dTdP[backstepnext-1]/1000*dPdr[backstepnext - 1]/Universe->LU*drdu
+							( 1.0 / mold * dTdP[backstepnext-1]/1000*(dPdr[backstepnext - 1]/Universe->LU*drdu + dPdu)
 							+ available_thrust[backstepnext-1]/1000 * (-1.0 / (mold*mold) * dmdu));
 
 		double dVxplusdu = (dxdotdu - ddVmaxdu * control[backstepnext - 1][0] + dagravdRvec[backstepnext - 1][0]*dxdu);
@@ -2250,7 +2360,7 @@ namespace EMTG {
 					+ Backward_STM[stepnext+1](5,3) * dVxplusdu + Backward_STM[stepnext+1](5,4) * dVyplusdu + Backward_STM[stepnext+1](5,5) * dVzplusdu
 					+ dzdotdt * dtdu;
 		dmdu_next = dmdu - (deltat * options->engine_duty_cycle)
-							* (umag * dmdotdP[backstepnext-1] * dPdr[backstepnext-1]/Universe->LU  * drdu) - dmdt * dtdu;
+							* (umag * dmdotdP[backstepnext-1] * (dPdr[backstepnext-1]/Universe->LU  * drdu + dPdu)) - dmdt * dtdu;
 
 		dxdu = dxdu_next;
 		dydu = dydu_next;

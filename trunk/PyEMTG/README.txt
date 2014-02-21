@@ -15,3 +15,5 @@ PyEMTG may be used to:
 2. Plot trajectories and other post-processing data of interest (.emtg)
 
 3. New in PyEMTG: modify EMTG Universe files and define new bodies (.emtg_universe)
+
+Note: the is strange behavior when using PyEMTG with WxPython version 3.0.0 or newer. I recommend sticking to 2.9.5

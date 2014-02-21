@@ -34,6 +34,13 @@ class JourneyOptions(object):
     destination_list = [1, 1]
     phase_type = []
 
+    #outer loop selectable options settings
+    outerloop_vary_journey_destination = 0
+    outerloop_vary_journey_flyby_sequence = 0
+    outerloop_journey_destination_choices = [1]
+    outerloop_journey_flyby_sequence_choices = [1]
+    outerloop_journey_maximum_number_of_flybys = 8
+
     #************************************************************************************constructor
     def __init__(self, mission_type):
         self.sequence = []

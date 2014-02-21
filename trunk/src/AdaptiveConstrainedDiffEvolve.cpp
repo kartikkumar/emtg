@@ -7,6 +7,8 @@
 #include "AdaptiveConstrainedDiffEvolve.h"
 #include "EMTG_math.h"
 
+#include <ctime>
+
 namespace EMTG { namespace Solvers {
 
 	//default constructor (never called)
@@ -81,7 +83,7 @@ namespace EMTG { namespace Solvers {
 		IntegerDistributionnX = boost::uniform_int<> (0, nX - 1);
 
 		//seed the random number generator based on the node's clock
-		RNG.seed(std::time(0));
+		RNG.seed(time(0));
 
 		//finally, generate the population
 		GenerateNewPopulation();

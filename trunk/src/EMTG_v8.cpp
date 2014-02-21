@@ -10,6 +10,7 @@
 #include "missionoptions.h"
 #include "mission.h"
 #include "integerGA.h"
+#include "outerloop_NSGAII.h"
 
 
 #include "universe.h"
@@ -27,6 +28,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#ifdef EMTG_MPI
+#include <boost/mpi/environment.hpp>
+#include <boost/mpi/communicator.hpp>
+#endif
 
 using namespace std;
 using namespace boost::filesystem;
@@ -132,7 +138,13 @@ int main(int argc, char* argv[])
 
 
 	//next, it is time to start the outer-loop
-	if (options.run_outerloop)
+	//if we are running in parallel, start MPI
+#ifdef EMTG_MPI
+	boost::mpi::environment MPIEnvironment;
+	boost::mpi::communicator MPIWorld;
+#endif
+
+	if (options.run_outerloop && options.outerloop_objective_function_choices.size() == 0)
 	{
 		// TODO call to outer-loop GA
 
@@ -153,6 +165,29 @@ int main(int argc, char* argv[])
 
 		//Step 4: run the GA
 		outerloop.evolve(&options, TheUniverse);
+	}
+	else if (options.run_outerloop && options.outerloop_objective_function_choices.size() > 0)
+	{
+		//Step 1: instantiate an NSGA-II object
+#ifdef EMTG_MPI
+		GeneticAlgorithm::outerloop_NSGAII NSGAII(options, &MPIEnvironment, &MPIWorld);
+#else
+		GeneticAlgorithm::outerloop_NSGAII NSGAII(options);
+#endif
+
+		//Step 2: generate a random population
+		NSGAII.set_populationsize(options.outerloop_popsize);
+		NSGAII.generatepop();
+
+		//Step 3: evaluate the population, in this case meaning just get the names of the files
+		NSGAII.startclock();
+		NSGAII.evaluatepop(options, TheUniverse);
+
+		//Step 4: write out the population
+		NSGAII.writepop(options.working_directory + "//NSGAII_population.csv");
+
+		//Step 5: write out the archive
+		NSGAII.writepop(options.working_directory + "//NSGAII_archive.csv");
 	}
 	else
 	{

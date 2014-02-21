@@ -7,7 +7,6 @@
 
 #include "missionoptions.h"
 #include "EMTG_math.h"
-#include "file_utilities.h"
 
 #include "SpiceUsr.h"
 
@@ -24,6 +23,14 @@ namespace EMTG {
 
 missionoptions::missionoptions() {
 	this->outerloop_warmstart = 0;
+
+	this->outerloop_vary_power = false;
+	this->outerloop_vary_launch_epoch = false;
+	this->outerloop_vary_flight_time_upper_bound = false;
+	this->outerloop_vary_thruster_type = false;
+	this->outerloop_vary_number_of_thrusters = false;
+	this->outerloop_vary_launch_vehicle = false;
+
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
 	this->IspLT_minimum = 3000;
@@ -31,6 +38,7 @@ missionoptions::missionoptions() {
 	this->NLP_solver_type = 0;
 	this->NLP_solver_mode = true;
 	this->quiet_NLP = false;
+	this->ACE_feasible_point_finder = false;
 	this->MBH_hop_distribution = 1;
 	this->MBH_Pareto_alpha = 3.0;
 	this->MBH_time_hop_probability = 0.2;
@@ -48,12 +56,23 @@ missionoptions::missionoptions() {
 	this->forced_flyby_coast = 0.0;
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
+	this->number_of_journeys = 1;
 
-	this->file_status = parse_options_file("options.txt");
+	this->file_status = parse_options_file("options.emtgopt");
+
+	this->construct_thruster_launch_vehicle_name_arrays();
 }
 
 missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_warmstart = 0;
+
+	this->outerloop_vary_power = false;
+	this->outerloop_vary_launch_epoch = false;
+	this->outerloop_vary_flight_time_upper_bound = false;
+	this->outerloop_vary_thruster_type = false;
+	this->outerloop_vary_number_of_thrusters = false;
+	this->outerloop_vary_launch_vehicle = false;
+
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
 	this->IspLT_minimum = 3000;
@@ -61,6 +80,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->NLP_solver_type = 0;
 	this->NLP_solver_mode = true;
 	this->quiet_NLP = false;
+	this->ACE_feasible_point_finder = false;
 	this->MBH_hop_distribution = 1;
 	this->MBH_Pareto_alpha = 3.0;
 	this->MBH_time_hop_probability = 0.1;
@@ -79,7 +99,11 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 
+
+
 	this->file_status = parse_options_file(optionsfile);
+
+	this->construct_thruster_launch_vehicle_name_arrays();
 }
 
 missionoptions::~missionoptions() {
@@ -94,7 +118,7 @@ int missionoptions::parse_options_file(string optionsfile) {
 	string peek;
 	double value;
 	char dump_buffer[1024];
-
+	
 	if (!inputfile.is_open())
 	{
 		this->error_message = "Cannot find options file: " + optionsfile;
@@ -298,6 +322,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "NLP_solver_mode") {
 		this->NLP_solver_mode = (bool) value;
+		return 0;
+	}
+	if (choice == "ACE_feasible_point_finder") {
+		this->ACE_feasible_point_finder = (bool) value;
 		return 0;
 	}
 	if (choice == "quiet_NLP") {
@@ -597,6 +625,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 				temp_perturbation_list.push_back((int) value);
 			}
 			this->journey_perturbation_bodies.push_back(temp_perturbation_list);
+			++linenumber;
 		}
 
 		return 0;
@@ -607,6 +636,244 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "coefficient_of_reflectivity") {
 		this->coefficient_of_reflectivity = value;
+		return 0;
+	}
+
+	//outer loop selectable options settings
+	if (choice == "outerloop_vary_power") {
+		this->outerloop_vary_power = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_launch_epoch") {
+		this->outerloop_vary_launch_epoch = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_flight_time_upper_bound") {
+		this->outerloop_vary_flight_time_upper_bound = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_thruster_type") {
+		this->outerloop_vary_thruster_type = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_number_of_thrusters") {
+		this->outerloop_vary_number_of_thrusters = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_launch_vehicle") {
+		this->outerloop_vary_launch_vehicle = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_journey_destination") {
+		this->outerloop_vary_journey_destination.push_back((bool) value);
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			inputfile >> value;
+			this->outerloop_vary_journey_destination.push_back((bool) value);
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_vary_journey_flyby_sequence") {
+		this->outerloop_vary_journey_flyby_sequence.push_back((bool) value);
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			inputfile >> value;
+			this->outerloop_vary_journey_flyby_sequence.push_back((bool) value);
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_power_choices") {
+		this->outerloop_power_choices.push_back(value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_power_choices.push_back(value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_launch_epoch_choices") {
+		this->outerloop_launch_epoch_choices.push_back(value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_launch_epoch_choices.push_back(value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_flight_time_upper_bound_choices") {
+		this->outerloop_flight_time_upper_bound_choices.push_back(value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_flight_time_upper_bound_choices.push_back(value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_thruster_type_choices") {
+		this->outerloop_thruster_type_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_thruster_type_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_number_of_thrusters_choices") {
+		this->outerloop_number_of_thrusters_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_number_of_thrusters_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_launch_vehicle_choices") {
+		this->outerloop_launch_vehicle_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_launch_vehicle_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_journey_destination_choices") 
+	{
+		vector<int> temp;
+		temp.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			temp.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+		this->outerloop_journey_destination_choices.push_back(temp);
+		++linenumber;
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			temp.clear();
+			inputfile >> value;
+			temp.push_back((int) value);
+			peek = inputfile.peek();
+			while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+			{
+				inputfile >> value;
+				temp.push_back((int) value);
+
+				peek = inputfile.peek();
+			}
+			this->outerloop_journey_destination_choices.push_back(temp);
+			++linenumber;
+		}
+		
+		return 0;
+	}
+	if (choice == "outerloop_journey_flyby_sequence_choices") 
+	{
+		vector<int> temp;
+		temp.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			temp.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+		this->outerloop_journey_flyby_sequence_choices.push_back(temp);
+		++linenumber;
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			temp.clear();
+			inputfile >> value;
+			temp.push_back((int) value);
+			peek = inputfile.peek();
+			while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+			{
+				inputfile >> value;
+				temp.push_back((int) value);
+
+				peek = inputfile.peek();
+			}
+			this->outerloop_journey_flyby_sequence_choices.push_back(temp);
+			++linenumber;
+		}
+		
+		return 0;
+	}
+	if (choice == "outerloop_journey_maximum_number_of_flybys") {
+		this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			inputfile >> value;
+			this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+		}
+
+		return 0;
+	}
+
+	//outerloop objective settings
+	if (choice == "outerloop_objective_function_choices") {
+		this->outerloop_objective_function_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_objective_function_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
 		return 0;
 	}
 
@@ -746,15 +1013,18 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "journey_initial_impulse_bounds") {
-		vector<double> temp(2);
-		temp[0] = value > 1.0e-6 ? value : 1.0e-6;
-		inputfile >> temp[1];
+		vector<double> temp;
+		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+		inputfile >> value;
+		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
 		this->journey_initial_impulse_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
-			inputfile >> temp[0];
-			temp[0] = value > 1.0e-6 ? value : 1.0e-6;
-			inputfile >> temp[1];
+			temp.clear();
+			inputfile >> value;
+			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+			inputfile >> value;
+			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
 			this->journey_initial_impulse_bounds.push_back(temp);
 		}
 		return 0;
@@ -1364,6 +1634,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "NLP_solver_mode " << this->NLP_solver_mode << endl;
 		outputfile << "#Quiet NLP solver?" << endl;
 		outputfile << "quiet_NLP " << this->quiet_NLP << endl;
+		outputfile << "#Enable ACE feasible point finder?" << endl;
+		outputfile << "ACE_feasible_point_finder " << this->ACE_feasible_point_finder << endl;
 		outputfile << "#quantity 'Max_not_improve' for MBH" << endl;
 		outputfile << "MBH_max_not_improve " << this->MBH_max_not_improve << endl;
 		outputfile << "#maximum number of trials for MBH" << endl;
@@ -1647,6 +1919,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#10: minimum propellant (not the same as #2)" << endl;
 		outputfile << "#11: maximum dry/wet ratio" << endl;
 		outputfile << "#12: maximum arrival kinetic energy" << endl;
+		outputfile << "#13: minimum BOL power" << endl;
 		outputfile << "objective_type " << this->objective_type << endl;
 		outputfile << "#bounds on the DLA, in degrees (typically set to declination of your launch site)" << endl;
 		outputfile << "DLA_bounds " << this->DLA_bounds[0] << " " << this->DLA_bounds[1] << endl;
@@ -1767,6 +2040,7 @@ int missionoptions::print_options_file(string filename) {
                 outputfile << " " << this->journey_departure_elements_bounds[j][k][0] << " " << this->journey_departure_elements_bounds[j][k][1];
 		}
 		outputfile << endl;
+		outputfile << "#type of orbit elements specified at end of journey(0: inertial, 1: COE)" << endl;
 		outputfile << "journey_arrival_elements_type";
 		for (int j = 0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_arrival_elements_type[j];
@@ -1874,6 +2148,98 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 		outputfile << endl;
 
+		outputfile << "##Outer-loop selectable options settings" << endl;
+		outputfile << "#Allow outer-loop to vary power level?" << endl;
+		outputfile << "outerloop_vary_power " << this->outerloop_vary_power << endl;
+		outputfile << "#Allow outer-loop to vary launch epoch?" << endl;
+		outputfile << "outerloop_vary_launch_epoch " << this->outerloop_vary_launch_epoch << endl;
+		outputfile << "#Allow outer-loop to vary flight time upper bound?" << endl;
+		outputfile << "outerloop_vary_flight_time_upper_bound " << this->outerloop_vary_flight_time_upper_bound << endl;
+		outputfile << "#Allow outer-loop to vary thruster type?" << endl;
+		outputfile << "outerloop_vary_thruster_type " << this->outerloop_vary_thruster_type << endl;
+		outputfile << "#Allow outer-loop to vary number of thrusters?" << endl;
+		outputfile << "outerloop_vary_number_of_thrusters " << this->outerloop_vary_number_of_thrusters << endl;
+		outputfile << "#Allow outer-loop to vary launch vehicle?" << endl;
+		outputfile << "outerloop_vary_launch_vehicle " << this->outerloop_vary_launch_vehicle << endl;
+		outputfile << "#Allow outer-loop to vary journey destination? (one value per journey)" << endl;
+		outputfile << "outerloop_vary_journey_destination";
+		for (int j = 0; j < this->number_of_journeys; ++j)
+			outputfile << " " << this->outerloop_vary_journey_destination[j];
+		outputfile << endl;
+		outputfile << "#Allow outer-loop to vary journey flyby sequence? (one value per journey)" << endl;
+		outputfile << "outerloop_vary_journey_flyby_sequence";
+		for (int j = 0; j < this->number_of_journeys; ++j)
+			outputfile << " " << this->outerloop_vary_journey_flyby_sequence[j];
+		outputfile << endl;
+		outputfile << "#Outer-loop power at 1 AU choices (in kW)" << endl;
+		outputfile << "outerloop_power_choices";
+		for (int entry = 0; entry < this->outerloop_power_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_power_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop launch window open epoch choices (in MJD)" << endl;
+		outputfile << "outerloop_launch_epoch_choices";
+		for (int entry = 0; entry < this->outerloop_launch_epoch_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_launch_epoch_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop flight time upper bound choices (in days)" << endl;
+		outputfile << "outerloop_flight_time_upper_bound_choices";
+		for (int entry = 0; entry < this->outerloop_flight_time_upper_bound_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_flight_time_upper_bound_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop thruster type choices (in order of most to least preferable)" << endl;
+		outputfile << "outerloop_thruster_type_choices";
+		for (int entry = 0; entry < this->outerloop_thruster_type_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_thruster_type_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop number of thruster choices" << endl;
+		outputfile << "outerloop_number_of_thrusters_choices";
+		for (int entry = 0; entry < this->outerloop_number_of_thrusters_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_number_of_thrusters_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop launch vehicle choices (in order of most to least preferable)" << endl;
+		outputfile << "outerloop_launch_vehicle_choices";
+		for (int entry = 0; entry < this->outerloop_launch_vehicle_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_launch_vehicle_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop maximum number of flybys (one value for each journey)" << endl;
+		outputfile << "outerloop_journey_maximum_number_of_flybys";
+		for (int j = 0; j < this->number_of_journeys; ++j)
+			outputfile << " " << this->outerloop_journey_maximum_number_of_flybys[j];
+		outputfile << endl;
+		outputfile << "#Outer-loop journey destination choices (one line for each journey)" << endl;
+		outputfile << "outerloop_journey_destination_choices" << endl;
+		for (int j = 0; j < this->number_of_journeys; ++j)
+		{
+			for (int entry = 0; entry < this->outerloop_journey_destination_choices[j].size(); ++entry)
+				outputfile << " " << this->outerloop_journey_destination_choices[j][entry];
+			outputfile << endl;
+		}
+		outputfile << "#Outer-loop flyby sequence choices (one line for each journey)" << endl;
+		outputfile << "outerloop_journey_flyby_sequence_choices" << endl;
+		for (int j = 0; j < this->number_of_journeys; ++j)
+		{
+			for (int entry = 0; entry < this->outerloop_journey_flyby_sequence_choices[j].size(); ++entry)
+				outputfile << " " << this->outerloop_journey_flyby_sequence_choices[j][entry];
+			outputfile << endl;
+		}
+		outputfile << endl;
+
+		outputfile << "##Outer-loop objective function settings" << endl;
+		outputfile << "#Pick as many as you want. The Pareto surface will be generated in these dimensions" << endl;
+		outputfile << "#0: BOL power at 1 AU (kW)" << endl;
+		outputfile << "#1: Launch epoch (MJD)" << endl;
+		outputfile << "#2: Flight time (days)" << endl;
+		outputfile << "#3: Thruster preference" << endl;
+		outputfile << "#4: Number of thrusters" << endl;
+		outputfile << "#5: Launch vehicle preference" << endl;
+		outputfile << "#6: Delivered mass to final target" << endl;
+		outputfile << "#7: Final journey mass increment (for maximizing sample return)" << endl;
+		outputfile << "outerloop_objective_function_choices";
+		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_objective_function_choices[entry];
+		outputfile << endl;
+		outputfile << endl;
+
 		outputfile << "##output format settings" << endl;
 		outputfile << "#output units, 0: km and km/s, 1: LU and LU/day" << endl;
 		outputfile << "output_units " << this->output_units << endl;
@@ -1958,6 +2324,49 @@ int missionoptions::print_options_file(string filename) {
 
 	else cout << "Unable to write to output file " << filename << endl;
 	return 1;
+}
+
+void missionoptions::construct_thruster_launch_vehicle_name_arrays()
+{
+	this->LV_names.push_back("fm");
+	this->LV_names.push_back("AV401");
+	this->LV_names.push_back("AV411");
+	this->LV_names.push_back("AV421");
+	this->LV_names.push_back("AV431");
+	this->LV_names.push_back("AV501");
+	this->LV_names.push_back("AV511");
+	this->LV_names.push_back("AV521");
+	this->LV_names.push_back("AV531");
+	this->LV_names.push_back("AV541");
+	this->LV_names.push_back("AV551");
+	this->LV_names.push_back("F910");
+	this->LV_names.push_back("F911");
+	this->LV_names.push_back("AV551s48");
+	this->LV_names.push_back("F9H");
+	this->LV_names.push_back("D4H");
+	this->LV_names.push_back("SLSb1");
+
+	this->thruster_names.push_back("fixedthruster");
+	this->thruster_names.push_back("constIspEffPickPower");
+	this->thruster_names.push_back("ChooseIsp");
+	this->thruster_names.push_back("fixedIsp");
+	this->thruster_names.push_back("VSI");
+	this->thruster_names.push_back("customthruster");
+	this->thruster_names.push_back("NSTAR");
+	this->thruster_names.push_back("XIPS25");
+	this->thruster_names.push_back("BPT4000HIsp");
+	this->thruster_names.push_back("BPT4000Hthrust");
+	this->thruster_names.push_back("BPT4000XHIsp");
+	this->thruster_names.push_back("NEXTHIspv9");
+	this->thruster_names.push_back("VASIMRargon");
+	this->thruster_names.push_back("VSIxenonhall");
+	this->thruster_names.push_back("NEXTHIspv10");
+	this->thruster_names.push_back("NEXTHthrustv10");
+	this->thruster_names.push_back("BPT4000MALTO");
+	this->thruster_names.push_back("NEXIS");
+	this->thruster_names.push_back("H6MS");
+	this->thruster_names.push_back("BHT20K");
+	this->thruster_names.push_back("HiVHAc");
 }
 
 } /* namespace EMTG */

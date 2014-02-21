@@ -24,6 +24,7 @@ public:
 	//constructor
 	mission();
 	mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in, int thread_ID_assigned, int problem_ID_assigned);
+	mission(missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in);
 
 	//destructor
 	virtual ~mission();
@@ -36,6 +37,10 @@ public:
 	//output function
 	//return 0 if successful, 1 if failure
 	virtual int output();
+
+	//performance characteristics function
+	//used to extract various pieces of mission data for a multi-objective GA
+	void extract_objective_function_values(std::vector<double>& objective_functions);
 
 	//output mission structure
 	virtual int output_mission_tree(string filename);

@@ -28,10 +28,28 @@ class MissionOptions(object):
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
     outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
 
+    #outer loop selectable options settings
+    outerloop_vary_power = 0
+    outerloop_vary_launch_epoch = 0
+    outerloop_vary_flight_time_upper_bound = 0
+    outerloop_vary_thruster_type = 0
+    outerloop_vary_number_of_thrusters = 0
+    outerloop_vary_launch_vehicle = 0
+    outerloop_power_choices = [10.0]
+    outerloop_launch_epoch_choices = [51544.5]
+    outerloop_flight_time_upper_bound_choices = [365.25]
+    outerloop_thruster_type_choices = [8]
+    outerloop_number_of_thrusters_choices = [1]
+    outerloop_launch_vehicle_choices = [1]
+    
+    #outerloop objective settings
+    outerloop_objective_function_choices = [2, 6]
+
     #inner loop solver settings
     NLP_solver_type = 0
     NLP_solver_mode = 1
     quiet_NLP = 0
+    ACE_feasible_point_finder = 0
     MBH_max_not_improve = 50
     MBH_max_trials = 100000
     MBH_max_run_time = 600
@@ -182,6 +200,8 @@ class MissionOptions(object):
         perturb_line_flag = 0
         sequence_line_flag = 0
         trialX_line_flag = 0
+        flyby_choice_line_flag = 0
+        destination_choice_line_flag = 0
 
 
         #Step 2: scan through the file
@@ -225,6 +245,18 @@ class MissionOptions(object):
                             self.Journeys[j].number_of_phases.append(sum(1 for x in seq if x > 0))
                         sequence_line_flag = sequence_line_flag + 1
 
+                    elif flyby_choice_line_flag > 0:
+                        self.Journeys[flyby_choice_line_flag - 1].outerloop_journey_flyby_sequence_choices = []
+                        for entry in linecell[1:]:
+                            self.Journeys[flyby_choice_line_flag - 1].outerloop_journey_flyby_sequence_choices.append(int(entry))
+                        flyby_choice_line_flag = flyby_choice_line_flag + 1
+
+                    elif destination_choice_line_flag > 0:
+                        self.Journeys[destination_choice_line_flag - 1].outerloop_journey_destination_choices = []
+                        for entry in linecell[1:]:
+                            self.Journeys[destination_choice_line_flag - 1].outerloop_journey_destination_choices.append(int(entry))
+                        destination_choice_line_flag = destination_choice_line_flag + 1
+
                     elif choice == "problem_type":
                         self.problem_type = int(linecell[1])
 
@@ -260,12 +292,71 @@ class MissionOptions(object):
                     elif choice == "outerloop_warmstart":
                         self.outerloop_warmstart = int(linecell[1])
 
+                    #outer loop selectable options settings
+                    elif choice == "outerloop_vary_power":
+                        self.outerloop_vary_power = int(linecell[1])
+                    elif choice == "outerloop_vary_launch_epoch":
+                        self.outerloop_vary_launch_epoch = int(linecell[1])
+                    elif choice == "outerloop_vary_flight_time_upper_bound":
+                        self.outerloop_vary_flight_time_upper_bound = int(linecell[1])
+                    elif choice == "outerloop_vary_thruster_type":
+                        self.outerloop_vary_thruster_type = int(linecell[1])
+                    elif choice == "outerloop_vary_number_of_thrusters":
+                        self.outerloop_vary_number_of_thrusters = int(linecell[1])
+                    elif choice == "outerloop_vary_launch_vehicle":
+                        self.outerloop_vary_launch_vehicle = int(linecell[1])
+                    elif choice == "outerloop_vary_journey_destination":
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].outerloop_vary_journey_destination = int(linecell[j+1])
+                    elif choice == "outerloop_vary_journey_flyby_sequence":
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].outerloop_vary_journey_flyby_sequence = int(linecell[j+1])
+                    elif choice == "outerloop_power_choices":
+                        self.outerloop_power_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_power_choices.append(float(x))
+                    elif choice == "outerloop_launch_epoch_choices":
+                        self.outerloop_launch_epoch_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_launch_epoch_choices.append(float(x))
+                    elif choice == "outerloop_flight_time_upper_bound_choices":
+                        self.outerloop_flight_time_upper_bound_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_flight_time_upper_bound_choices.append(float(x))
+                    elif choice == "outerloop_thruster_type_choices":
+                        self.outerloop_thruster_type_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_thruster_type_choices.append(float(x))
+                    elif choice == "outerloop_number_of_thrusters_choices":
+                        self.outerloop_number_of_thrusters_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_number_of_thrusters_choices.append(float(x))
+                    elif choice == "outerloop_launch_vehicle_choices":
+                        self.outerloop_launch_vehicle_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_launch_vehicle_choices.append(float(x))
+                    elif choice == "outerloop_journey_flyby_sequence_choices":
+                        flyby_choice_line_flag = 1
+                    elif choice == "outerloop_journey_destination_choices":
+                        destination_choice_line_flag = 1
+                    elif choice == "outerloop_journey_maximum_number_of_flybys":
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].outerloop_journey_maximum_number_of_flybys = linecell[j+1]
+
+                    #outerloop objective settings
+                    elif choice == "outerloop_objective_function_choices":
+                        self.outerloop_objective_function_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_objective_function_choices.append(int(x))
+
                     
                     #inner loop solver settings
                     elif choice == "NLP_solver_type":
                         self.NLP_solver_type = int(linecell[1])
                     elif choice == "NLP_solver_mode":
                         self.NLP_solver_mode = int(linecell[1])
+                    elif choice == "ACE_feasible_point_finder":
+                        self.ACE_feasible_point_finder = int(linecell[1])
                     elif choice == "quiet_NLP":
                         self.quiet_NLP = int(linecell[1])
                     elif choice ==  "MBH_max_not_improve":
@@ -596,10 +687,14 @@ class MissionOptions(object):
                     perturb_line_flag = 0
                     sequence_line_flag = 0
                     trialX_line_flag = 0
+                    flyby_choice_line_flag = 0
+                    destination_choice_line_flag = 0
             else:
                 perturb_line_flag = 0
                 sequence_line_flag = 0
                 trialX_line_flag = 0
+                flyby_choice_line_flag = 0
+                destination_choice_line_flag = 0
         inputfile.close()
 
     def write_options_file(self, output_file_name):
@@ -663,6 +758,8 @@ class MissionOptions(object):
         outputfile.write("NLP_solver_mode " + str(self.NLP_solver_mode) + "\n")
         outputfile.write("#Quiet NLP solver?\n")
         outputfile.write("quiet_NLP " + str(self.quiet_NLP) + "\n")
+        outputfile.write("#Enable ACE feasible point finder?\n")
+        outputfile.write("ACE_feasible_point_finder " + str(self.ACE_feasible_point_finder) + "\n")
         outputfile.write("#quantity Max_not_improve for MBH\n")
         outputfile.write("MBH_max_not_improve " + str(self.MBH_max_not_improve) + "\n")
         outputfile.write("#maximum number of trials for MBH\n")
@@ -690,7 +787,7 @@ class MissionOptions(object):
         outputfile.write("#method of specifying derivatives\n")
         outputfile.write("#0: finite difference\n")
         outputfile.write("#1: analytical flybys and objective function but finite difference the patch points\n")
-        outputfile.write("#2: all but time derivatives")
+        outputfile.write("#2: all but time derivatives\n")
         outputfile.write("#3: fully analytical\n")
         outputfile.write("derivative_type " + str(self.derivative_type) + "\n")
         outputfile.write("#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.\n")
@@ -946,6 +1043,7 @@ class MissionOptions(object):
         outputfile.write("#10: minimum propellant (not the same as #2)\n")
         outputfile.write("#11: maximum dry/wet ratio\n")
         outputfile.write("#12: maximum arrival kinetic energy\n")
+        outputfile.write("#13: minimum BOL power\n")
         outputfile.write("objective_type " + str(self.objective_type) + "\n")
         outputfile.write("#bounds on the DLA, in degrees (typically set to declination of your launch site)\n")	
         outputfile.write("DLA_bounds " + str(self.DLA_bounds[0]) + " " + str(self.DLA_bounds[1]) + "\n")
@@ -1147,6 +1245,94 @@ class MissionOptions(object):
         outputfile.write("#1.0: perfectly absorbing\n")
         outputfile.write("#2.0: perfectly reflecting\n")
         outputfile.write("coefficient_of_reflectivity " + str(self.coefficient_of_reflectivity) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##Outer-loop selectable options settings\n")
+        outputfile.write("#Allow outer-loop to vary power level?\n")
+        outputfile.write("outerloop_vary_power " + str(self.outerloop_vary_power) + "\n")
+        outputfile.write("#Allow outer-loop to vary launch epoch?\n")
+        outputfile.write("outerloop_vary_launch_epoch " + str(self.outerloop_vary_launch_epoch) + "\n")
+        outputfile.write("#Allow outer-loop to vary flight time upper bound?\n")
+        outputfile.write("outerloop_vary_flight_time_upper_bound " + str(self.outerloop_vary_flight_time_upper_bound) + "\n")
+        outputfile.write("#Allow outer-loop to vary thruster type?\n")
+        outputfile.write("outerloop_vary_thruster_type " + str(self.outerloop_vary_thruster_type) + "\n")
+        outputfile.write("#Allow outer-loop to vary number of thrusters?\n")
+        outputfile.write("outerloop_vary_number_of_thrusters " + str(self.outerloop_vary_number_of_thrusters) + "\n")
+        outputfile.write("#Allow outer-loop to vary launch vehicle?\n")
+        outputfile.write("outerloop_vary_launch_vehicle " + str(self.outerloop_vary_launch_vehicle) + "\n")
+        outputfile.write("#Allow outer-loop to vary journey destination? (one value per journey)\n")
+        outputfile.write("outerloop_vary_journey_destination")
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].outerloop_vary_journey_destination))
+        outputfile.write("\n")
+        outputfile.write("#Allow outer-loop to vary journey flyby sequence? (one value per journey)\n")
+        outputfile.write("outerloop_vary_journey_flyby_sequence")
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].outerloop_vary_journey_flyby_sequence))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop power at 1 AU choices (in kW)\n")
+        outputfile.write("outerloop_power_choices")
+        for entry in self.outerloop_power_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop launch window open epoch choices (in MJD)\n")
+        outputfile.write("outerloop_launch_epoch_choices")
+        for entry in self.outerloop_launch_epoch_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop flight time upper bound choices (in days)\n")
+        outputfile.write("outerloop_flight_time_upper_bound_choices")
+        for entry in self.outerloop_flight_time_upper_bound_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop thruster type choices (in order of most to least preferable)\n")
+        outputfile.write("outerloop_thruster_type_choices")
+        for entry in self.outerloop_thruster_type_choices:
+            outputfile.write(" " + str(int(entry)))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop number of thruster choices\n")
+        outputfile.write("outerloop_number_of_thrusters_choices")
+        for entry in self.outerloop_number_of_thrusters_choices:
+            outputfile.write(" " + str(int(entry)))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop launch vehicle choices (in order of most to least preferable)\n")
+        outputfile.write("outerloop_launch_vehicle_choices")
+        for entry in self.outerloop_launch_vehicle_choices:
+            outputfile.write(" " + str(int(entry)))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop maximum number of flybys (one value for each journey)\n")
+        outputfile.write("outerloop_journey_maximum_number_of_flybys")
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].outerloop_journey_maximum_number_of_flybys))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop journey destination choices (one line for each journey)\n")
+        outputfile.write("outerloop_journey_destination_choices\n")
+        for j in range(0, self.number_of_journeys):
+            for entry in self.Journeys[j].outerloop_journey_destination_choices:
+                outputfile.write(" " + str(int(entry)))
+            outputfile.write("\n")
+        outputfile.write("#Outer-loop flyby sequence choices (one line for each journey)\n")
+        outputfile.write("outerloop_journey_flyby_sequence_choices\n")
+        for j in range(0, self.number_of_journeys):
+            for entry in self.Journeys[j].outerloop_journey_flyby_sequence_choices:
+                outputfile.write(" " + str(int(entry)))
+            outputfile.write("\n")
+        outputfile.write("\n")
+
+        outputfile.write("##Outer-loop objective function settings\n")
+        outputfile.write("#Pick as many as you want. The Pareto surface will be generated in these dimensions\n")
+        outputfile.write("#0: BOL power at 1 AU (kW)\n")
+        outputfile.write("#1: Launch epoch (MJD)\n")
+        outputfile.write("#2: Flight time (days)\n")
+        outputfile.write("#3: Thruster preference\n")
+        outputfile.write("#4: Number of thrusters\n")
+        outputfile.write("#5: Launch vehicle preference\n")
+        outputfile.write("#6: Delivered mass to final target\n")
+        outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
+        outputfile.write("outerloop_objective_function_choices")
+        for entry in self.outerloop_objective_function_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
         outputfile.write("\n")
             
         outputfile.write("##output format settings\n")
@@ -2257,8 +2443,8 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
-                    optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
-                    optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
                     optionsnotebook.tabSpacecraft.cmbthrottle_logic_mode.Show(False)
                     optionsnotebook.tabSpacecraft.lblthrottle_sharpness.Show(False)
@@ -2344,6 +2530,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbNLP_solver_type.SetSelection(self.NLP_solver_type)
         optionsnotebook.tabSolver.cmbNLP_solver_mode.SetSelection(self.NLP_solver_mode)
         optionsnotebook.tabSolver.chkquiet_NLP.SetValue(self.quiet_NLP)
+        optionsnotebook.tabSolver.chkACE_feasible_point_finder.SetValue(self.ACE_feasible_point_finder)
         optionsnotebook.tabSolver.txtMBH_max_not_improve.SetValue(str(self.MBH_max_not_improve))
         optionsnotebook.tabSolver.txtMBH_max_trials.SetValue(str(self.MBH_max_trials))
         optionsnotebook.tabSolver.txtMBH_max_run_time.SetValue(str(self.MBH_max_run_time))
@@ -2379,6 +2566,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.lblNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.lblquiet_NLP.Show(False)
+            optionsnotebook.tabSolver.lblACE_feasible_point_finder.Show(False)
             
             optionsnotebook.tabSolver.txtMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.txtMBH_max_trials.Show(False)
@@ -2395,6 +2583,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(False)
+            optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(False)
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
@@ -2415,6 +2604,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.lblNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.lblquiet_NLP.show(False)
+            optionsnotebook.tabSolver.lblACE_feasible_point_finder.Show(False)
             
             optionsnotebook.tabSolver.txtMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.txtMBH_max_trials.Show(False)
@@ -2431,6 +2621,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(False)
+            optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(False)
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
@@ -2451,6 +2642,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblNLP_solver_type.Show(True)
             optionsnotebook.tabSolver.lblNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.lblquiet_NLP.Show(True)
+            optionsnotebook.tabSolver.lblACE_feasible_point_finder.Show(True)
             
             optionsnotebook.tabSolver.txtMBH_max_not_improve.Show(True)
             optionsnotebook.tabSolver.txtMBH_max_trials.Show(True)
@@ -2467,6 +2659,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_type.Show(True)
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(True)
+            optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(True)
 
             #change the available parameters and labels based on which distribution is selected
             if self.MBH_hop_distribution == 0: #uniform
@@ -2502,6 +2695,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.lblNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.lblquiet_NLP.Show(False)
+            optionsnotebook.tabSolver.lblACE_feasible_point_finder.Show(False)
             
             optionsnotebook.tabSolver.txtMBH_max_not_improve.Show(True)
             optionsnotebook.tabSolver.txtMBH_max_trials.Show(True)
@@ -2518,6 +2712,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_type.Show(False)
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(False)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(False)
+            optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(False)
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
@@ -2538,6 +2733,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblNLP_solver_type.Show(True)
             optionsnotebook.tabSolver.lblNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.lblquiet_NLP.Show(True)
+            optionsnotebook.tabSolver.lblACE_feasible_point_finder.Show(False)
             
             optionsnotebook.tabSolver.txtMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.txtMBH_max_trials.Show(False)
@@ -2554,6 +2750,7 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_type.Show(True)
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(True)
+            optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(False)
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)

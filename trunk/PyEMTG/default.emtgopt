@@ -48,21 +48,21 @@ NLP_solver_mode 1
 #Quiet NLP solver?
 quiet_NLP 0
 #quantity Max_not_improve for MBH
-MBH_max_not_improve 50
+MBH_max_not_improve 100000
 #maximum number of trials for MBH
 MBH_max_trials 100000
 #maximum run time for MBH, in seconds
 MBH_max_run_time 60
 #maximum step size for uniform MBH, or scaling factor for Cauchy MBH
-MBH_max_step_size 0.5
+MBH_max_step_size 1.0
 #MBH hop probabilty distribution
 #0: uniform
 #1: Cauchy
 #2: Pareto
 #3: Gaussian
-MBH_hop_distribution 1
+MBH_hop_distribution 2
 #Pareto distribution alpha
-MBH_Pareto_alpha 3.0
+MBH_Pareto_alpha 1.5
 #probability of MBH time hop operation
 MBH_time_hop_probability 0.05
 #feasibility tolerance
@@ -74,7 +74,7 @@ snopt_max_run_time 3600
 #method of specifying derivatives
 #0: finite difference
 #1: analytical flybys and objective function but finite difference the patch points
-#2: fully analytical
+#2: all but time derivatives#3: fully analytical
 derivative_type 2
 #Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.
 seed_MBH 0
@@ -224,7 +224,7 @@ power_at_1_AU 5.0
 power_source_type 0
 #solar power coefficients gamma_1 through gamma_5
 #if all gamma = [1 0 0 0 0], then solar power is a simple 1/r^2
-solar_power_gamma 1.1063 0.1495 -0.299 -0.0432 0.0
+solar_power_gamma 1.32077 -0.10848 -0.11665 0.10843 -0.01279
 #Power margin (for thrusters, as a fraction)
 power_margin 0.0
 #Power system decay rate (per year)
@@ -304,6 +304,7 @@ total_flight_time_bounds 0.0 302.0
 #10: minimum propellant (not the same as #2)
 #11: maximum dry/wet ratio
 #12: maximum arrival kinetic energy
+#13: minimum BOL power
 objective_type 2
 #bounds on the DLA, in degrees (typically set to declination of your launch site)
 DLA_bounds -90.0 90.0
