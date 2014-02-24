@@ -1883,16 +1883,16 @@ namespace EMTG {
 																		dPdu);
 			} //end loop over later steps
 
-			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
+			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
 			{
 				//place the derivatives in the Jacobian
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
 			}
 		}
 	
@@ -2036,7 +2036,7 @@ namespace EMTG {
 			dPdu = 0.0;
 
 			//loop over later steps
-			for (int stepnext = 1; stepnext < options->num_timesteps / 2; ++stepnext)
+			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_backward_propagation_derivatives(	G,
 																		Gindex,
@@ -2130,16 +2130,16 @@ namespace EMTG {
 																		dPdu);
 			} //end loop over later steps
 
-			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
+			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
 			{
 				//place the derivatives in the Jacobian
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
-				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
 			}
 		}
 
