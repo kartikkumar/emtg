@@ -2085,10 +2085,10 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				objective_functions[objective] = this->options.LV_type;
 				break;
 			case 6: //Final mass
-				objective_functions[objective] = options.minimum_dry_mass > 0 ? this->dry_mass : this->journeys.back().phases.back().state_at_end_of_phase[6];
+				objective_functions[objective] = -(options.minimum_dry_mass > 0 ? this->dry_mass : this->journeys.back().phases.back().state_at_end_of_phase[6]);
 				break;
 			case 7: //Final journey mass increment (for maximizing sample return)
-				objective_functions[objective] = this->journeys.back().phases.back().current_mass_increment * this->journeys.back().phases.back().journey_initial_mass_increment_scale_factor;
+				objective_functions[objective] = -(this->journeys.back().phases.back().current_mass_increment * this->journeys.back().phases.back().journey_initial_mass_increment_scale_factor);
 				break;
 			}
 		}

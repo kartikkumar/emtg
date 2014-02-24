@@ -65,6 +65,7 @@ namespace EMTG {
 																	double& dzdotdu,
 																	double& dmdu,
 																	double& dtdu,
+																	double& dt_total_available_thrust_time_du,
 																	double& dPdu);
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
@@ -84,6 +85,7 @@ namespace EMTG {
 																	double& dzdotdu,
 																	double& dmdu,
 																	double& dtdu,
+																	double& dt_total_available_thrust_time_du,
 																	double& dPdu);
 
 		//time information

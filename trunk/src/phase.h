@@ -301,6 +301,7 @@ namespace EMTG {
 		double time_step_distribution_scale_or_stdv;
 		double initial_coast_duration;
 		double terminal_coast_duration;
+		double total_available_thrust_time; //time after intial and terminal coasts have been removed
 		vector<double> time_step_sizes;
 
 		//calculation objects

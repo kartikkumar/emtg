@@ -49,6 +49,11 @@ namespace GeneticAlgorithm
 			int generation_found;
 			std::vector<double> fitness_values;
 			std::string description;
+			std::vector< int > dominated_by;	// vector of other EMTG_outerloop_solution objects that the solution is dominated by
+			std::vector< int > dominates;		// vector of other EMTG_outerloop_solution objects that the solution dominates;
+			double crowding_distance;								// relative measure of distance to others along non-dominated front
+			int pareto_rank;										// level of non-dominated front that the solution belongs to (the lower the closer to the pareto front)
+			int ndom;												// dominated-by counter for non-dpminated sorting
 
 			//members
 
@@ -90,10 +95,12 @@ namespace GeneticAlgorithm
 	{
 		private:
 			//methods
-			void select();
-			void mutate();
-			void crossover();
-			void non_dominated_sort();
+			std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::select(const std::vector<EMTG_outerloop_solution> &parent_population);
+			std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::crossover_uniformInt(std::vector<EMTG_outerloop_solution> &parent_pool);
+			void outerloop_NSGAII::mutate(std::vector< EMTG_outerloop_solution > &population);
+			void outerloop_NSGAII::non_dominated_sort(std::vector<EMTG_outerloop_solution> &population);
+			void outerloop_NSGAII::assign_crowding_distance(std::vector< EMTG_outerloop_solution > &local_front);
+			void outerloop_NSGAII::filter_population();
 
 			//distributions
 			std::vector< boost::uniform_int<> > random_integer;
@@ -114,6 +121,8 @@ namespace GeneticAlgorithm
 			std::vector<std::string> objective_descriptions;
 			std::vector<double> tolfit; //tolerance for each fitness function
 			std::vector< EMTG_outerloop_solution > this_generation, last_generation;
+			std::vector< EMTG_outerloop_solution > parent_population, children_population, parent_pool;
+			std::vector< std::vector < EMTG_outerloop_solution > > nondominated_fronts; // local non-dominated front levels for a population of solutions
 			std::vector< EMTG_outerloop_solution > archive_of_solutions;
 			std::vector<int> Xupperbounds, Xlowerbounds;
 			std::vector<std::string> Xdescriptions;
@@ -142,7 +151,7 @@ namespace GeneticAlgorithm
 			void writepop(std::string filename);
 			void read_archive(std::string filename);
 			void write_archive(std::string filename);
-			void evolve(const EMTG::missionoptions& options, const EMTG::Astrodynamics::universe& TheUniverse);
+			void evolve(const EMTG::missionoptions& options, const boost::ptr_vector<EMTG::Astrodynamics::universe>& Universe);
 			void reset();
 			void calcbounds(const EMTG::missionoptions& options);
 			void startclock() {this->tstart = time(NULL);}

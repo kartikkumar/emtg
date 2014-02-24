@@ -400,25 +400,317 @@ namespace GeneticAlgorithm
 
 	//*****************private methods
 
-	//GA selection function (Matt)
-	void outerloop_NSGAII::select()
+	//NSGAII crowded tournament selection function (Matt)
+	std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::select(const std::vector<EMTG_outerloop_solution> &parent_population_in)
 	{
-	}
+		std::vector< EMTG_outerloop_solution > parent_pool;
 
-	//GA mutation function (Matt)
-	void outerloop_NSGAII::mutate()
-	{
+		for (int i = 0; i < 2; i++)   // two rounds in tournament to create parent_pool of same size as parent_population
+		{
+			// shuffle population
+			this->RNG.seed(time(NULL));
+			parent_population = parent_population_in;
+			std::shuffle(parent_population.begin(), parent_population.end(), RNG); // TODO: make sure shuffle works with RNG input
+
+			// compare solutions to generate half of parent pool
+			for (int j = 0; j < parent_population.size()/2; ++j)
+			{
+				if (parent_population[j].pareto_rank < parent_population[parent_population.size() - j - 1].pareto_rank)
+					parent_pool.push_back(parent_population[j]);
+				else if (parent_population[j].pareto_rank > parent_population[parent_population.size() - j - 1].pareto_rank)
+					parent_pool.push_back(parent_population[parent_population.size() - j - 1]);
+				else
+				{
+					// individuals belong to the same local front so use crowding distance measure to determine winner (choose individual w/ larger crowding_distnance)
+					if (parent_population[j].crowding_distance > parent_population[parent_population.size() - j - 1].crowding_distance)
+						parent_pool.push_back(parent_population[j]);
+					else
+						parent_pool.push_back(parent_population[parent_population.size() - j - 1]);
+				}
+			}
+		}
+		return parent_pool; // parent_pool (vector of NSGAII individuals) is returned
 	}
 
 	//GA crossover function (Matt)
-	void outerloop_NSGAII::crossover()
+	std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::crossover_uniformInt(std::vector<EMTG_outerloop_solution> &parent_pool)
 	{
+		// uniform crossover for an integer GA crossover (crossover at each gene position)
+
+		// initialize
+		std::vector< EMTG_outerloop_solution > children_population;
+		std::vector< int> X_child1;
+		std::vector< int> X_child2;
+		IntegerDistribution = boost::uniform_int<>(0, 1);
+
+		// shuffle population
+		this->RNG.seed(time(NULL));
+		std::shuffle(parent_pool.begin(), parent_pool.end(), RNG);
+
+		for (int i = 0; i < this->popsize/2; ++i)
+		{
+			X_child1.clear();
+			X_child2.clear();
+			for (int gene = 0 ; gene < parent_pool[i].X.size(); ++gene)
+			{
+				int coinflip = IntegerDistribution(RNG);
+				if (coinflip == 0)
+				{
+					//if coinflip==0 child 1 chromosome receives gene from parent 1, child 2 receives gene from parent 2 
+					X_child1.push_back(parent_pool[i].X[gene]);
+					X_child2.push_back(parent_pool[this->popsize/2 + i].X[gene]);
+				}
+				else
+				{
+					//if coinflip==1 child 2 chromosome receives gene from parent 1, child 1 receives gene from parent 2
+					X_child1.push_back(parent_pool[i].X[gene]);
+					X_child2.push_back(parent_pool[this->popsize/2 + i].X[gene]);
+				}
+			}
+
+			// add fitness value place holders
+			
+			// add children to offspring population
+			children_population.push_back(EMTG_outerloop_solution(X_child1, this->number_of_objectives));
+			children_population.push_back(EMTG_outerloop_solution(X_child2, this->number_of_objectives));
+		}
+		return children_population;  //next generation
 	}
 
 	//NSGA-II non-dominated sort (Matt)
-	void outerloop_NSGAII::non_dominated_sort()
+	void outerloop_NSGAII::non_dominated_sort(std::vector<EMTG_outerloop_solution> &population)
 	{
-		
+		//based on fast-non-dominated sort by Deb
+
+		//declare sorting variables
+		int obj_compare_lt_i;
+		int obj_compare_lteq2_i;
+		int obj_compare_lt_j;
+		int obj_compare_lteq2_j;
+		int front;
+		std::vector< EMTG_outerloop_solution > local_front;
+
+		this->nondominated_fronts.clear();
+
+		//loop for calculating individuals comprising 1st nondominated front
+		for (size_t i = 0; i < population.size(); ++i)
+		{
+			//initialize individual solution attributes
+			population[i].dominated_by.clear(); 
+			population[i].dominates.clear(); 
+			population[i].pareto_rank = 0;
+			population[i].ndom = population.size();
+
+			//compare solution i with all other solutions to find if it is dominated
+			for (size_t j = 0; j < population.size(); ++j)
+			{
+				if (i != j)
+				{	 
+					//check if i is dominated by j
+					obj_compare_lt_i = 0;
+					obj_compare_lteq2_i = 0;
+					obj_compare_lt_j = 0;
+					obj_compare_lteq2_j = 0;
+					for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+					{
+						obj_compare_lt_i = obj_compare_lt_i + population[j].compare_objective_lessthan(population[i], obj_ind, 0);
+						obj_compare_lteq2_i = obj_compare_lteq2_i + population[j].compare_objective_lessthanorequalto(population[i], obj_ind, 1.0e-06);
+						obj_compare_lt_j = obj_compare_lt_j + population[i].compare_objective_lessthan(population[j], obj_ind, 0);
+						obj_compare_lteq2_j = obj_compare_lteq2_j + population[i].compare_objective_lessthanorequalto(population[j], obj_ind, 1.0e-06);
+					}
+					
+					if ((obj_compare_lteq2_i == this->number_of_objectives) && (obj_compare_lt_i > 1))
+						population[i].dominated_by.push_back(j); // individual i is dominated by j
+					else if ((obj_compare_lteq2_j == this->number_of_objectives) && (obj_compare_lt_j > 1))
+						population[i].dominates.push_back(j); // individual j is dominated by i
+				}			
+			}
+			population[i].ndom = population[i].dominated_by.size(); // number of times individual i is dominated
+			if (population[i].ndom == 0)
+			{
+				population[i].pareto_rank = 1;
+				local_front.push_back(population[i]); // first non-dominated front
+			}
+		}
+
+		// create top ranking local front
+		this->nondominated_fronts.push_back(local_front);
+
+		// loop for determining remaining local non-dominated fronts
+		int frontcount = 0;
+		while (nondominated_fronts[frontcount].size() != 0)
+		{
+			local_front.clear();
+			// for each individual in the current front vector (@frontcount)
+			for (int individual = 0; individual < this->nondominated_fronts[frontcount].size(); ++individual)
+			{
+				// for each individual in the 'dominates' vector
+				for (int dom_by_ind = 0; dom_by_ind < this->nondominated_fronts[frontcount][individual].dominates.size(); ++dom_by_ind)
+				{
+					population[this->nondominated_fronts[frontcount][individual].dominates[dom_by_ind]].ndom = population[this->nondominated_fronts[frontcount][individual].dominates[dom_by_ind]].ndom  - 1; // reduce domination counter by 1
+					if (population[this->nondominated_fronts[frontcount][individual].dominates[dom_by_ind]].ndom == 0)
+					{
+						population[this->nondominated_fronts[frontcount][individual].dominates[dom_by_ind]].pareto_rank = frontcount+2; // assign pareto rank to the individual
+						local_front.push_back(population[this->nondominated_fronts[frontcount][individual].dominates[dom_by_ind]]);  // add solution object to current local front vector
+					}
+				}
+			}
+			frontcount = frontcount + 1;
+			if (local_front.size() != 0)
+				this->nondominated_fronts.push_back(local_front);
+			else
+				break;
+		}
+
+		// remove extra vector from this->nondominated_fronts
+		if (this->nondominated_fronts.back().size() == 0)
+			this->nondominated_fronts.pop_back();
+
+
+		// assign crowding distance to member of each front
+		for (int front = 0; front < this->nondominated_fronts.size(); ++front)
+		{
+			this->assign_crowding_distance(this->nondominated_fronts[front]);
+		}
+
+		// rebuild population 
+		//TODO: ensure members of parent population were updated with pareto_rank value
+		population.clear();
+		for (int front = 0; front < this->nondominated_fronts.size(); ++front)
+		{
+			for (int individual = 0; individual < this->nondominated_fronts[front].size(); ++individual)
+			{
+				population.push_back(this->nondominated_fronts[front][individual]);
+			}
+		}
+	}
+
+
+	//NSGA-II assign crowding distance (Matt)
+	void outerloop_NSGAII::assign_crowding_distance(std::vector<EMTG_outerloop_solution> &local_front)
+	{
+		// assign crowding distance measure described by Deb
+		// updates .crowding_distance in each individual of local_front input
+
+		// declare variables
+		std::vector< std::vector< std::pair< double, int > > > obj_value;
+		std::vector< std::pair< double, int > > obj_value_ind;
+		std::vector< double > min_obj_value;
+		std::vector< double > max_obj_value;
+
+		// create vector of objective function value and index pairs (order from local_front order)
+		for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+		{
+			obj_value_ind.clear();
+			for (int i = 0; i < local_front.size(); ++i)  // for each individual, i, in local_front
+			{
+				obj_value_ind.push_back(make_pair(local_front[i].fitness_values[obj_ind], i)); // create vector of objective function value and index pairs (order from local_front order)
+			}
+			obj_value.push_back(obj_value_ind);
+		}
+
+		// sort obj_value vector of vector pairs (.second of pair is associated with order of local_front)
+		for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+		{
+			std::sort(obj_value[obj_ind].begin(), obj_value[obj_ind].end());
+		}
+
+		// assign large crowding distance measure to solutions at boundaries for each objective function
+		for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+		{
+			local_front[obj_value[obj_ind][0].second].crowding_distance = 9.9e99; // individual with smallest objective value
+			local_front[obj_value[obj_ind][local_front.size()-1].second].crowding_distance = 9.9e98; // individual with largest objective value (set smaller than individual w/ smallest obj value)
+
+			// set min and max of objective function values for all objectives of the vector of local_front
+			min_obj_value.push_back(local_front[obj_value[obj_ind][0].second].fitness_values[obj_ind]);
+			max_obj_value.push_back(local_front[obj_value[obj_ind][local_front.size()-1].second].fitness_values[obj_ind]);
+		}
+
+		// assign crowding distance measure to remaining individuals according to "distance" of neighbors in objective space
+		for (int i = 1; i < local_front.size()-1; ++i)  // for each individual, i, in local_front
+		{
+			for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+			{
+				if (obj_ind == 0)
+					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0;  // initialize crowding_distance to 0
+				double prev_crowd_dist = local_front[obj_value[obj_ind][i].second].crowding_distance;
+				double obj_range = max_obj_value[obj_ind] - min_obj_value[obj_ind]; // range of objective function values for current objective
+				double current_crowd_dist = (local_front[obj_value[obj_ind][i+1].second].fitness_values[obj_ind] - local_front[obj_value[obj_ind][i-1].second].fitness_values[obj_ind]) / obj_range;
+				local_front[obj_value[obj_ind][i].second].crowding_distance = prev_crowd_dist + current_crowd_dist; // add crowding distance measure of current objective
+			}
+		}
+	}
+
+	//GA mutation function (Matt)
+
+	void outerloop_NSGAII::mutate(std::vector<EMTG_outerloop_solution> &population)
+	{
+		// mutate genes of members of population based on mu value
+
+		//declare/initialize variables
+		this->DoubleDistribution = boost::uniform_real<>(0.0, 1.0);
+		int genes_in_X = population[0].X.size();
+
+		for (int individual = 0; individual < population.size(); ++individual)
+		{
+			for (int gene = 0; gene < genes_in_X; ++gene)
+			{
+				if (this->DoubleDistribution(RNG) < this->mu)
+				{
+					this->IntegerDistribution = boost::uniform_int<>(0, this->Xupperbounds[gene]); 
+					population[individual].X[gene] = IntegerDistribution(RNG);
+				}
+			}
+		}
+	}
+
+
+	//GA population_filter function (Matt)
+	void outerloop_NSGAII::filter_population()
+	{
+		// reduce parent population to size this->popsize (size n), taking the top performing individuals
+		// this is the elitism operation of the NSGAII
+
+		// declare/initialize
+		std::vector< EMTG_outerloop_solution > population;
+		int slots_remaining = this->popsize; // number of remaining open slots of population 
+		std::vector< std::pair < double, int > > crowd_dist_vec; // vector crowding_distance,index pairs
+
+		this->parent_population.clear(); // clear parent population (will update at end of function)
+
+		for (int front = 0; front < this->nondominated_fronts.size(); ++front)
+		{
+			if (slots_remaining > this->nondominated_fronts[front].size())
+			{
+				// add all members of current front
+				for (int individual = 0; individual < this->nondominated_fronts[front].size(); ++individual)
+				{
+					population.push_back(this->nondominated_fronts[front][individual]);
+					slots_remaining = this->popsize - population.size();
+				}
+			}
+			else
+			{
+				// add least crowded individuals of current front until population is size n
+				// create vector of crowding_distance, index pairs
+				for (int i = 0; i < this->nondominated_fronts[front].size(); ++i)
+				{
+					crowd_dist_vec.push_back(make_pair(this->nondominated_fronts[front][i].crowding_distance, i));
+				}
+
+				//rearrange crowd_dist_vec in ascending order according to crowding distance
+				sort(crowd_dist_vec.begin(), crowd_dist_vec.end()); 
+
+				for (int i = 0; i < slots_remaining; ++i)
+				{
+					population.push_back(this->nondominated_fronts[front][crowd_dist_vec[crowd_dist_vec.size() - i -1].second]);
+				}
+				break;
+			}
+		}
+
+		// update parent population (now size n)
+		this->parent_population = population;
 	}
 
 	//*****************public methods
@@ -459,6 +751,10 @@ namespace GeneticAlgorithm
 
 						cout << "]" << endl;
 						NewSolution = false;
+
+						this->this_generation[individual].timestamp = this->archive_of_solutions[archived_solution].timestamp;
+						this->this_generation[individual].generation_found = this->archive_of_solutions[archived_solution].generation_found;
+						this->this_generation[individual].Xinner = this->archive_of_solutions[archived_solution].Xinner;
 						break;
 					}
 				}
@@ -883,9 +1179,99 @@ namespace GeneticAlgorithm
 	}
 
 	//run the main GA evolution loop (Matt and Jacob)
-	void outerloop_NSGAII::evolve(const EMTG::missionoptions& options, const EMTG::Astrodynamics::universe& TheUniverse)
+	void outerloop_NSGAII::evolve(const EMTG::missionoptions& options, const boost::ptr_vector<EMTG::Astrodynamics::universe>& Universe)
 	{
+
+		// evolves this_generation population towards Pareto front (main NSGA-II function)
+
+		//Initialize
+		//************
+		//1. generate random initial parent population (size n)
+		//1a. evaluate objectives for initial parent population
+		this->evaluatepop(options, Universe); //evaluates this->this_generation vector of solution indiviudals
+
+		//1b. assign pareto rank and crowding distance value to initial parent population using non-dominated sorting
+		this->parent_population = this->this_generation; //random initial parent population of size n based on copy of this->this_generation
+
+		/////// remove
+		// for testing
+		/*
+		double fitness1[8] = {-9.0, -8.0, -12.0, -11.0, -16.0, 2.0, -7.0, 0.0};  //remove
+		double fitness2[8] = {2.0, 5.0, 1.0, 3.0, 2.0, 3.1, -1.0, 12.0};  //remove
+		for (int i = 0; i < this->parent_population.size(); ++i) //remove
+		{
+			this-> parent_population[i].fitness_values[0] = fitness1[i]; //remove
+			this-> parent_population[i].fitness_values[1] = fitness2[i]; //remove
+		}
+		*/
+		//////////////////////
+
+
+		this->non_dominated_sort(this->parent_population); // assigns local non-dominated front value to parent_population members
+
+		//2. generate initial child population from initial parent population (size n)
+		//2a. crowded tournment selection to generate parent pool
+		this->parent_pool = this->select(this->parent_population);
+		
+		//2b. apply crossover to generate offspring from parent pool
+		this->children_population = this->crossover_uniformInt(this->parent_pool);
+
+		//2c. mutate offspring to finalize initial child population
+		this->mutate(this->children_population);
+
+		//2d. evaluate objectives for initial child population
+		this->this_generation = this->children_population;
+		this->evaluatepop(options, Universe);
+		this->children_population = this->this_generation;
+		this->current_generation = 1;
+		
+
+		// Main loop
+		//**************
+		while (this->current_generation <= this->genmax)
+		{
+			//3. combine parent and child populations to create combined population
+			for (int individual = 0; individual < this->children_population.size(); ++individual)
+			{
+				this->parent_population.push_back(children_population[individual]);
+			}
+
+			//4. assign fitness to parent population (size 2n), using non-dominated sorting
+			this->non_dominated_sort(this->parent_population); // assigns local non-dominated front value to parent_population members
+
+			//5. generate new parent population from combined population by filling N slots with the best N designs from combine population
+			this->filter_population(); //updates parent population
+			this->this_generation = this->parent_population;
+
+			//6. generate new offspring via genetic operators
+			//6a. crowded tournment selection to generate parent pool from parent population
+			this->parent_pool = this->select(this->parent_population);
+
+			//6b. apply crossover to generate offspring from parent pool
+			this->children_population = this->crossover_uniformInt(this->parent_pool);
+
+			//6c. mutate offspring to finalize new child population
+			this->mutate(this->children_population); // update child population
+
+			//6d. evaluate objectives for new child population
+			this->last_generation = this->parent_population;
+			this->this_generation = this->children_population;
+			this->evaluatepop(options, Universe);
+			this->children_population = this->this_generation;  
+
+			//7. print the current population to a file
+			std::stringstream popfilestream;
+			popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
+			this->writepop(popfilestream.str());
+
+			//8. write out the current archive in case we need to warm-start another GA later
+			this->write_archive(options.working_directory + "//NSGAII_archive.csv");
+
+			++this->current_generation;  // increase generation counter
+		}
 	}
+
+
 
 	//reset the GA (Jacob)
 	void outerloop_NSGAII::reset()
