@@ -8,10 +8,10 @@
 namespace Kepler
 {
 	//Lagrange-Laguerre-Conway Kepler solver
-	void KeplerLagrangeLaguerreConway(const double* state0, double* state, const double& mu, const double& propTime, STM& stm, const bool& compute_STM_flag)
+	void KeplerLagrangeLaguerreConway(const double* state0, double* state, const double& mu, const double& propTime, double& F, double& G, double& Ft, double& Gt, double& Ftt, double& Gtt, STM& stm, const bool& compute_STM_flag)
 	{
-		double F, G, Ft, Gt, r;
-		double sqrta, sqrtma, deltaE, deltaH;
+		double r;
+		double sqrta, sqrtma, deltaE, deltaH, cdeltaE, sdeltaE, chdeltaH, shdeltaH;
 		int iteration_count = 0;
 
 		//set Laguerre-Conway n
@@ -54,8 +54,8 @@ namespace Kepler
 				deltaE = deltaE_new;
 
 				//trig evaluations that only need to be done once
-				double cdeltaE = cos(deltaE);
-				double sdeltaE = sin(deltaE);
+				cdeltaE = cos(deltaE);
+				sdeltaE = sin(deltaE);
 
 				//Kepler's equation for an elliptical orbit
 				double F = deltaE - deltaM + sigma0 / sqrta * (1.0 - cdeltaE) - coeff * sdeltaE;
@@ -74,8 +74,6 @@ namespace Kepler
 			//Step 3: find F, G, r Ft, Gt
 
 			//Step 3.1 find F and G
-			double cdeltaE = cos(deltaE);
-			double sdeltaE = sin(deltaE);
 			//Battin equations 4.41
 			F = 1 - a/r0 * (1.0 - cdeltaE);
 
@@ -113,17 +111,17 @@ namespace Kepler
 				deltaH = deltaH_new;
 
 				//trig evaluations that only need to be done once
-				double cdeltaH = cosh(deltaH);
-				double sdeltaH = sinh(deltaH);
+				chdeltaH = cosh(deltaH);
+				shdeltaH = sinh(deltaH);
 
 				//Kepler's equation for a hyperbolic orbit
-				double F = -deltaN - deltaH + sigma0/sqrtma * (cdeltaH - 1.0) + coeff * sdeltaH;
+				double F = -deltaN - deltaH + sigma0/sqrtma * (chdeltaH - 1.0) + coeff * shdeltaH;
 
 				//derivative with respect to deltaH
-				double dF = -1 + sigma0/sqrtma * sdeltaH + coeff * cdeltaH;
+				double dF = -1 + sigma0/sqrtma * shdeltaH + coeff * chdeltaH;
 
 				//second derivative with respect to deltaH
-				double ddF = sigma0/sqrtma * cdeltaH + coeff * sdeltaH;
+				double ddF = sigma0/sqrtma * chdeltaH + coeff * shdeltaH;
 
 				//Laguerre-Conway update
 				int sgn = dF >= 0 ? 1 : -1;
@@ -135,8 +133,6 @@ namespace Kepler
 			//Step 3: find F, G, r Ft, Gt
 
 			//Step 3.1 find F and G
-			double chdeltaH = cosh(deltaH);
-			double shdeltaH = sinh(deltaH);
 			//Battin equations 4.62
 			F = 1.0 - a/r0 * (1.0 - chdeltaH);
 
@@ -177,13 +173,19 @@ namespace Kepler
 			else //hyperbola
 				X = sqrtma * deltaH;
 
-			//Step 5.2 compute the universal functions Ui
+			//Step 5.2 compute the universal functions Ui and their derivatives
 			//from equations 9.69
+			double U0 = a > 0.0 ? cdeltaE : chdeltaH;
+			double U1 = a > 0.0 ? sdeltaE * sqrta : shdeltaH * sqrtma;
 			double U2 = r0 * (1.0 - F);
 			double U3 = sqmu * (propTime - G);
 			//from the recursion relation 4.76
 			double U4 = a * (X*X / 2.0 - U2);
 			double U5 = a * (X*X*X / 6.0 - U3);
+
+			double U0dot = sqmu * (a > 0.0 ? -sdeltaE / (sqrta * r) : shdeltaH / (sqrtma * r));
+			double U1dot = sqmu * (a > 0.0 ? cdeltaE / r : chdeltaH / r);
+			double U2dot = sqmu * (a > 0.0 ? sqrta/r * sdeltaE : sqrtma / r * shdeltaH);
 
 			//Step 5.3 compute C, which along with F, G, Ft, and Gt can be used to compute the STM
 			//Battin equation 9.74
@@ -234,6 +236,13 @@ namespace Kepler
 			stm(5,3) = r0/mu*(state[5] - state0[5])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[2]*state0[0]) - C*(state[2]*state0[3]))/(r*r*r);
 			stm(5,4) = r0/mu*(state[5] - state0[5])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[2]*state0[1]) - C*(state[2]*state0[4]))/(r*r*r);
 			stm(5,5) = r0/mu*(state[5] - state0[5])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[2]*state0[2]) - C*(state[2]*state0[5]))/(r*r*r) + Gt;
+
+			//Step 5.5 compute Ftt and Gtt
+			double rdot = r0 * U0dot + sigma0 * U1dot + U2dot;
+			double r2 = r*r;
+			Ftt = -sqmu / r0 * (U1dot / r - U1 * rdot / r2);
+
+			Gtt = -(U2dot / r - U2 * rdot / r2);
 		}
 	}
 

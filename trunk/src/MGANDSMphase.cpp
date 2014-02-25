@@ -51,6 +51,18 @@ MGA_NDSM_phase::MGA_NDSM_phase(int j, int p, missionoptions* options) {
 	//set up the forward and backward STMs
 	Forward_STM.resize(1);
 	Backward_STM.resize(1);
+	Kepler_F_Forward.resize(1);
+	Kepler_Fdot_Forward.resize(1);
+	Kepler_G_Forward.resize(1);
+	Kepler_Gdot_Forward.resize(1);
+	Kepler_F_Backward.resize(1);
+	Kepler_Fdot_Backward.resize(1);
+	Kepler_G_Backward.resize(1);
+	Kepler_Gdot_Backward.resize(1);
+	Kepler_Fdotdot_Forward.resize(1);
+	Kepler_Gdotdot_Forward.resize(1);
+	Kepler_Fdotdot_Backward.resize(1);
+	Kepler_Gdotdot_Backward.resize(1);
 }
 
 MGA_NDSM_phase::~MGA_NDSM_phase() {
@@ -84,14 +96,44 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 	spacecraft_state_forward[6] = state_at_beginning_of_phase[6];
 
 #ifndef _MGANDSM_STM
-		Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, spacecraft_state_forward, Universe->mu, (eta * TOF) * 86400, Forward_STM[0], false);
+		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
+											spacecraft_state_forward,
+											Universe->mu,
+											(this->eta * this->TOF) * 86400,
+											this->Kepler_F_Forward[0],
+											this->Kepler_Fdot_Forward[0],
+											this->Kepler_G_Forward[0], 
+											this->Kepler_Gdot_Forward[0],
+											this->Kepler_Fdotdot_Forward[0],
+											this->Kepler_Gdotdot_Forward[0],
+											this->Forward_STM[0], false);
 #else
 		if (options->derivative_type > 0 && needG)
 		{
-			Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, spacecraft_state_forward, Universe->mu, (eta * TOF) * 86400, Forward_STM[0], true);
+			Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
+												spacecraft_state_forward,
+												Universe->mu,
+												(this->eta * this->TOF) * 86400,
+												this->Kepler_F_Forward[0], 
+												this->Kepler_Fdot_Forward[0],
+												this->Kepler_G_Forward[0],
+												this->Kepler_Gdot_Forward[0],
+												this->Kepler_Fdotdot_Forward[0],
+												this->Kepler_Gdotdot_Forward[0], 
+												this->Forward_STM[0], true);
 		}
 		else
-			Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, spacecraft_state_forward, Universe->mu, (eta * TOF) * 86400, Forward_STM[0], false);
+			Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, 
+												spacecraft_state_forward,
+												Universe->mu, 
+												(this->eta * this->TOF) * 86400,
+												this->Kepler_F_Forward[0], 
+												this->Kepler_Fdot_Forward[0],
+												this->Kepler_G_Forward[0], 
+												this->Kepler_Gdot_Forward[0], 
+												this->Kepler_Fdotdot_Forward[0],
+												this->Kepler_Gdotdot_Forward[0], 
+												this->Forward_STM[0], false);
 #endif
 
 
@@ -100,14 +142,44 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 	spacecraft_state_backward[6] = state_at_end_of_phase[6];
 
 #ifndef _MGANDSM_STM
-		Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase, spacecraft_state_backward, Universe->mu, -((1 - eta) * TOF) * 86400, Backward_STM[0], false);
+		Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
+											spacecraft_state_backward,
+											Universe->mu, 
+											-((1 - this->eta) * this->TOF) * 86400,
+											this->Kepler_F_Backward[0], 
+											this->Kepler_Fdot_Backward[0],
+											this->Kepler_G_Backward[0],
+											this->Kepler_Gdot_Backward[0],
+											this->Kepler_Fdotdot_Backward[0],
+											this->Kepler_Gdotdot_Backward[0], 
+											this->Backward_STM[0], false);
 #else
 		if (options->derivative_type > 0 && needG)
 		{
-			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase, spacecraft_state_backward, Universe->mu, -((1 - eta) * TOF) * 86400, Backward_STM[0], true);
+			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
+												spacecraft_state_backward,
+												Universe->mu,
+												-((1 - this->eta) * this->TOF) * 86400,
+												this->Kepler_F_Backward[0],
+												this->Kepler_Fdot_Backward[0],
+												this->Kepler_G_Backward[0], 
+												this->Kepler_Gdot_Backward[0], 
+												this->Kepler_Fdotdot_Forward[0], 
+												this->Kepler_Gdotdot_Forward[0], 
+												this->Backward_STM[0], true);
 		}
 		else
-			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase, spacecraft_state_backward, Universe->mu, -((1 - eta) * TOF) * 86400, Backward_STM[0], false);
+			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
+												spacecraft_state_backward,
+												Universe->mu, 
+												-((1 - this->eta) * this->TOF) * 86400, 
+												this->Kepler_F_Backward[0], 
+												this->Kepler_Fdot_Backward[0], 
+												this->Kepler_G_Backward[0], 
+												this->Kepler_Gdot_Backward[0],
+												this->Kepler_Fdotdot_Forward[0], 
+												this->Kepler_Gdotdot_Forward[0], 
+												this->Backward_STM[0], false);
 #endif
 
 	//Step 6.4: enforce match point constraint
@@ -730,7 +802,17 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, output_state, Universe->mu, (epoch - phase_start_epoch) * 86400, Current_STM, false);
+		Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase,
+											output_state,
+											Universe->mu,
+											(epoch - phase_start_epoch) * 86400, 
+											this->Kepler_F_Current, 
+											this->Kepler_Fdot_Current,
+											this->Kepler_G_Current,
+											this->Kepler_Gdot_Current, 
+											this->Kepler_Fdotdot_Current,
+											this->Kepler_Gdotdot_Current,
+											this->Current_STM, false);
 
 		//write the summary line
 		write_summary_line(options,
@@ -798,7 +880,17 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		double epoch = phase_start_epoch + eta * TOF + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(match_point_state.data(), output_state, Universe->mu, timestep * (step + 0.5) * 86400, Current_STM, false);
+		Kepler::KeplerLagrangeLaguerreConway(match_point_state.data(),
+											output_state,
+											Universe->mu,
+											timestep * (step + 0.5) * 86400, 
+											this->Kepler_F_Current,
+											this->Kepler_Fdot_Current,
+											this->Kepler_G_Current, 
+											this->Kepler_Gdot_Current, 
+											this->Kepler_Fdotdot_Current,
+											this->Kepler_Gdotdot_Current, 
+											this->Current_STM, false);
 
 		//write the summary line
 		write_summary_line(options,

@@ -8,9 +8,7 @@
 #include "MGADSMphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
-#ifdef _EMTG_proprietary
 #include "Lambert.h"
-#endif
 #include "kepler_lagrange_laguerre_conway.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -353,39 +351,62 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 
 	//Step 5 propagate to the burn point
 	//Step 5.1 extract parameters of the burn and flight time
-	TOF = X[*Xindex];
-	burn_index = X[*Xindex + 1];
-	phase_start_epoch = *current_epoch;
-	phase_end_epoch = *current_epoch + TOF;
+	this->TOF = X[*Xindex];
+	this->burn_index = X[*Xindex + 1];
+	this->phase_start_epoch = *current_epoch;
+	this->phase_end_epoch = *current_epoch + TOF;
 	*Xindex += 2;
 	
 	//Step 5.2 compute the time before and after the burn
-	time_before_burn = burn_index * TOF;
-	time_after_burn = TOF - time_before_burn;
+	this->time_before_burn = this->burn_index * this->TOF;
+	this->time_after_burn = this->TOF - this->time_before_burn;
 
 	//Step 5.3 propagate
-	Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, state_before_burn, Universe->mu, time_before_burn * 86400, Current_STM, false);
-	state_before_burn[6] = state_at_beginning_of_phase[6];
+	Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
+										this->state_before_burn, 
+										Universe->mu, 
+										this->time_before_burn * 86400,
+										this->Kepler_F_Current,
+										this->Kepler_Fdot_Current,
+										this->Kepler_G_Current, 
+										this->Kepler_Gdot_Current, 
+										this->Kepler_Fdotdot_Current, 
+										this->Kepler_Gdotdot_Current,
+										this->Current_STM, false);
+
+	this->state_before_burn[6] = this->state_at_beginning_of_phase[6];
 
 	//Step 6: locate the second boundary point
-	locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+	locate_boundary_point(boundary2_location_code,
+							options->journey_arrival_type[j],
+							false,
+							Universe,
+							boundary2_state,
+							current_state+3, 
+							*current_epoch + this->TOF, 
+							X, 
+							Xindex, 
+							F, 
+							Findex,
+							G, 
+							Gindex,
+							false, 
+							j,
+							p,
+							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-#ifdef _EMTG_proprietary
-	EMTG::Astrodynamics::Lambert (state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 1, 0, lambert_v1, lambert_v2);
-#endif
+	EMTG::Astrodynamics::Lambert (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 1, 0, lambert_v1, lambert_v2);
 
 	//check the angular momentum vector
 	//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
 	//similarly if we are already retrograde, the burn shouldn't drive us prograde
 	//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way"
-	hz1 = state_before_burn[0]*state_before_burn[3]-state_before_burn[1]*state_before_burn[4]; //angular momentum before burn
-	hz2 = state_before_burn[0]*lambert_v1[1]-state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
+	hz1 = this->state_before_burn[0]*this->state_before_burn[3]-this->state_before_burn[1]*this->state_before_burn[4]; //angular momentum before burn
+	hz2 = this->state_before_burn[0]*lambert_v1[1]-this->state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
 
 	if (!(hz1 == hz2))
-#ifdef _EMTG_proprietary
 		EMTG::Astrodynamics::Lambert (state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 0, lambert_v1, lambert_v2);
-#endif
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)
@@ -548,7 +569,17 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, output_state, Universe->mu, (epoch - phase_start_epoch) * 86400, Current_STM, false);
+		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, 
+											output_state,
+											Universe->mu,
+											(epoch - this->phase_start_epoch) * 86400, 
+											this->Kepler_F_Current,
+											this->Kepler_Fdot_Current, 
+											this->Kepler_G_Current,
+											this->Kepler_Gdot_Current,
+											this->Kepler_Fdotdot_Current,
+											this->Kepler_Gdotdot_Current, 
+											this->Current_STM, false);
 
 		//write the summary line
 		write_summary_line(options,
@@ -611,7 +642,17 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		double epoch = phase_start_epoch + time_before_burn + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(state_after_burn, output_state, Universe->mu, (epoch - time_before_burn) * 86400, Current_STM, false);
+		Kepler::KeplerLagrangeLaguerreConway(this->state_after_burn,
+											output_state,
+											Universe->mu,
+											(epoch - this->time_before_burn) * 86400,
+											this->Kepler_F_Current,
+											this->Kepler_Fdot_Current, 
+											this->Kepler_G_Current, 
+											this->Kepler_Gdot_Current,
+											this->Kepler_Fdotdot_Current,
+											this->Kepler_Gdotdot_Current, 
+											this->Current_STM, false);
 
 		//write the summary line
 		write_summary_line(options,

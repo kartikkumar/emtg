@@ -402,6 +402,10 @@ namespace EMTG {
 		vector< Kepler::STM > Forward_STM; //vector of state transition matrices
 		vector< Kepler::STM > Backward_STM; //vector of state transition matrices
 		Kepler::STM Current_STM;
+		vector<double> Kepler_F_Forward, Kepler_Fdot_Forward, Kepler_G_Forward, Kepler_Gdot_Forward, Kepler_Fdotdot_Forward, Kepler_Gdotdot_Forward;
+		vector<double> Kepler_F_Backward, Kepler_Fdot_Backward, Kepler_G_Backward, Kepler_Gdot_Backward, Kepler_Fdotdot_Backward, Kepler_Gdotdot_Backward;
+		double Kepler_F_Current, Kepler_Fdot_Current, Kepler_G_Current, Kepler_Gdot_Current, Kepler_Fdotdot_Current, Kepler_Gdotdot_Current;
+		vector<double> Propagation_Step_Time_Fraction_Forward, Propagation_Step_Time_Fraction_Backward;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass;
 		vector< vector<int> > G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables;
