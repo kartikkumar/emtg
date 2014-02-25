@@ -107,10 +107,10 @@ namespace EMTG {namespace Astrodynamics {
 				if (need_deriv)
 				{
 					double statepert[6];
-					spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET") + (1.0 / 8640.0), "J2000", "NONE", central_body_spice_ID, statepert, &LT_dump);
-					state[6] = (statepert[3] - state[3]) / (1.0 / 8640.0);
-					state[7] = (statepert[4] - state[4]) / (1.0 / 8640.0);
-					state[8] = (statepert[5] - state[5]) / (1.0 / 8640.0);
+					spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET") + (1.0 / 86400.0), "J2000", "NONE", central_body_spice_ID, statepert, &LT_dump);
+					state[6] = (statepert[3] - state[3]) / (1.0 / 86400.0);
+					state[7] = (statepert[4] - state[4]) / (1.0 / 86400.0);
+					state[8] = (statepert[5] - state[5]) / (1.0 / 86400.0);
 				}
 
 				break;

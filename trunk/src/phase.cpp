@@ -418,6 +418,17 @@ namespace EMTG {
 			for (int k = 0; k < 3; ++k)
 				this->V_infinity_in(k) = current_state[k+3] - boundary1_state[k+3];
 
+			//store the left boundary state derivative if we are using time derivatives
+			if (options->derivative_type > 2 && needG)
+			{
+				left_boundary_state_derivative[0] = boundary1_state[3];
+				left_boundary_state_derivative[1] = boundary1_state[4];
+				left_boundary_state_derivative[2] = boundary1_state[5];
+				left_boundary_state_derivative[3] = boundary1_state[6];
+				left_boundary_state_derivative[4] = boundary1_state[7];
+				left_boundary_state_derivative[5] = boundary1_state[8];
+			}
+
 			vinf_in = this->V_infinity_in.norm();
 
 			//step 3.2 compute outgoing v_infinity at flyby
@@ -2218,20 +2229,32 @@ namespace EMTG {
 		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu) / 86400;// pseudo-period of body 1 in days
 		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu) / 86400;// pseudo-period of body 2 in days
 	
+		double forced_coast_this_phase = 0.0;
+		if (p == 0 && j == 0)
+			forced_coast_this_phase += options->forced_post_launch_coast;
+		else if (p > 0 || (p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)) )
+			forced_coast_this_phase += options->forced_flyby_coast;
+		if (p < options->number_of_phases[j] - 1 || (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0)) )
+			forced_coast_this_phase += options->forced_flyby_coast;
+
 		if (boundary1_location_code == -2) //start at periapse of an arrival hyperbola
 		{
-			Xlowerbounds->push_back(0.1*min(T1,T2));
+			double lowerbound_temp = 0.1*min(T1,T2);
+			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
 			Xupperbounds->push_back(20.0*max(T1,T2));
 		}
 		else if (boundary1_location_code == boundary2_location_code && boundary1_location_code > 0) //if this transfer is a repeat of the same planet, we have special rules
 		{
-			Xlowerbounds->push_back(T1 * 0.5);
+			double lowerbound_temp = T1 * 0.5;
+			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
 			Xupperbounds->push_back(T1 * 20.0);
 		}
 		else
 		{
 			//lower bound is the same for all non-resonant phases
 			double lowerbound_temp = 0.1 * min(T1,T2);
+
+			lowerbound_temp = lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase;
 			Xlowerbounds->push_back(lowerbound_temp > 600.0 ? 600.0 : lowerbound_temp);
 
 			if (max(pseudoa1,pseudoa2)/Universe->LU < 2.0) //outermost body is an inner body with a < 2 LU
@@ -2536,7 +2559,7 @@ namespace EMTG {
 					pprefix_stream << "j" << pj << "p" << pp;
 					string pprefix = pprefix_stream.str();
 
-					for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+					for (int entry = 0; entry <= first_X_entry_in_phase; ++entry)
 					{
 						if ( (*Xdescriptions)[entry].find(pprefix) < 1024 && ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024) )
 						{
@@ -2560,13 +2583,15 @@ namespace EMTG {
 					if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 					{
 						bool duplicateflag = false;
-						for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+						stringstream entry_tag_stream;
+						entry_tag_stream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+						for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
 						{
-							stringstream tempstream;
-							tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
-							if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+							if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
 							{
 								duplicateflag = true;
+								G_index_of_derivative_of_match_point_with_respect_to_BOL_power[state] = Gentry;
+								this->power_range = (*Xupperbounds)[Xentry] - math::SMALL;
 								break;
 							}
 						}
@@ -2746,11 +2771,12 @@ namespace EMTG {
 						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 						{
 							bool duplicateflag = false;
-							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
+							stringstream entry_tag_stream;
+							entry_tag_stream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+
+							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
 							{
-								stringstream tempstream;
-								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
-								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
+								if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
 								{
 									duplicateflag = true;
 									break;
