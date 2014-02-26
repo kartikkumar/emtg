@@ -406,6 +406,7 @@ namespace EMTG {
 		vector<double> Kepler_F_Backward, Kepler_Fdot_Backward, Kepler_G_Backward, Kepler_Gdot_Backward, Kepler_Fdotdot_Backward, Kepler_Gdotdot_Backward;
 		double Kepler_F_Current, Kepler_Fdot_Current, Kepler_G_Current, Kepler_Gdot_Current, Kepler_Fdotdot_Current, Kepler_Gdotdot_Current;
 		vector<double> Propagation_Step_Time_Fraction_Forward, Propagation_Step_Time_Fraction_Backward;
+		vector<double> Propagation_Step_Time_Fraction_Derivative_Forward, Propagation_Step_Time_Fraction_Derivative_Backward;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass;
 		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass;
 		vector< vector<int> > G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables;

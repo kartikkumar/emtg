@@ -145,11 +145,11 @@ namespace EMTG {
 
 							this->state_at_beginning_of_phase[6] = launch_mass > options->maximum_mass ? options->maximum_mass : launch_mass;
 						
-							//convert from dm/dC3 to dm/dvinf
-							this->dmdvinf *= (2 * vinf_out);
-					
 							//apply the mass margin
 							this->state_at_beginning_of_phase[6] *= 1.0 - options->LV_margin;
+
+							//convert from dm/dC3 to dm/dvinf
+							this->dmdvinf *= (2 * vinf_out)*(1.0 - options->LV_margin);
 						}
 						else if (options->LV_type == 0)
 						{
@@ -1405,7 +1405,7 @@ namespace EMTG {
 		{
 		case 0: //uniform distribution
 			return 1.0 / options->num_timesteps;
-		case 1: case 3://Gaussian distribution with or without variable standard deviation
+		/*case 1: case 3://Gaussian distribution with or without variable standard deviation
 			{
 				double t = (double) step / options->num_timesteps;
 				return 1.0 / (scale_or_stdv * sqrt(math::TwoPI)) * exp(-(t - 0.5)*(t - 0.5)/(2*scale_or_stdv*scale_or_stdv));
@@ -1414,7 +1414,7 @@ namespace EMTG {
 			{
 				double t = (double) step / options->num_timesteps;
 				return scale_or_stdv / ( math::PI * ( scale_or_stdv*scale_or_stdv + (t - 0.5)*(t - 0.5) ) );
-			}
+			}*/
 		}
 
 		return 0.0;

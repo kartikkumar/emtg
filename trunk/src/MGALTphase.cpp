@@ -80,6 +80,8 @@ namespace EMTG {
 		Kepler_Gdotdot_Backward.resize(options->num_timesteps/2 + 1);
 		Propagation_Step_Time_Fraction_Forward.resize(options->num_timesteps/2 + 1);
 		Propagation_Step_Time_Fraction_Backward.resize(options->num_timesteps/2 + 1);
+		Propagation_Step_Time_Fraction_Derivative_Forward.resize(options->num_timesteps/2 + 1);
+		Propagation_Step_Time_Fraction_Derivative_Backward.resize(options->num_timesteps/2 + 1);
 
 		current_mass_increment = 0.0;
 		journey_initial_mass_increment_scale_factor = 1.0;
@@ -121,6 +123,7 @@ namespace EMTG {
 		//declare some local variables
 		int errcode = 0;
 		double local_throttle, impulse_magnitude;
+		double TOF2 = this->TOF * this->TOF;
 
 		//******************************************************************
 		//Steps 1-4: Process the left boundary condition
@@ -150,13 +153,26 @@ namespace EMTG {
 		}
 
 		this->total_available_thrust_time = TOF;
-		
+		double t_step_basic = 0.0;
+		double dt_step_basic_dt = 0.0;
 		if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
+		{
 			this->total_available_thrust_time -= options->forced_post_launch_coast;
+			t_step_basic -= options->forced_post_launch_coast / options->num_timesteps;
+			dt_step_basic_dt += options->forced_post_launch_coast / (options->num_timesteps * TOF2);
+		}
 		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
+		{
 			this->total_available_thrust_time -= options->forced_flyby_coast;
+			t_step_basic -= options->forced_flyby_coast;
+			dt_step_basic_dt += options->forced_flyby_coast / (2 * options->num_timesteps * TOF2);
+		}
 		if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
+		{
 			this->total_available_thrust_time -= options->forced_flyby_coast;
+			t_step_basic -= options->forced_flyby_coast;
+			dt_step_basic_dt += options->forced_flyby_coast / (2 * options->num_timesteps * TOF2);
+		}
 
 		for (int step = 0; step < options->num_timesteps; ++step)
 		{
@@ -190,7 +206,12 @@ namespace EMTG {
 												(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast;
-			this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast) / this->TOF;
+
+			if (options->derivative_type > 2 && needG)
+			{
+				this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast) / this->TOF;
+				this->Propagation_Step_Time_Fraction_Derivative_Forward[0] = -options->forced_post_launch_coast / TOF2 + dt_step_basic_dt / 2.0;
+			}
 		}
 		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
 		{
@@ -209,7 +230,12 @@ namespace EMTG {
 												(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0 + options->forced_flyby_coast;
-			this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0 + options->forced_flyby_coast) / this->TOF;
+
+			if (options->derivative_type > 2 && needG)
+			{
+				this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0 + options->forced_flyby_coast) / this->TOF;
+				this->Propagation_Step_Time_Fraction_Derivative_Forward[0] = -options->forced_flyby_coast / TOF2 + dt_step_basic_dt / 2.0;
+			}
 		}
 		else
 		{
@@ -228,7 +254,11 @@ namespace EMTG {
 												(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0;
-			this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0) / this->TOF;
+			if (options->derivative_type > 2 && needG)
+			{
+				this->Propagation_Step_Time_Fraction_Forward[0] = (this->time_step_sizes[0]/2.0) / this->TOF;
+				this->Propagation_Step_Time_Fraction_Derivative_Forward[0] = dt_step_basic_dt / 2.0;
+			}
 		}
 		
 		
@@ -327,7 +357,12 @@ namespace EMTG {
 													this->Forward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));
 
-				this->Propagation_Step_Time_Fraction_Forward[step+1] = propagation_time / this->TOF;
+				
+				if (options->derivative_type > 2 && needG)
+				{
+					this->Propagation_Step_Time_Fraction_Forward[step+1] = propagation_time / this->TOF;
+					this->Propagation_Step_Time_Fraction_Derivative_Forward[step+1] = dt_step_basic_dt / 2.0;
+				}
 			}
 			else
 			{
@@ -345,7 +380,11 @@ namespace EMTG {
 													this->Forward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));
 
-				this->Propagation_Step_Time_Fraction_Forward[step+1] = propagation_time / this->TOF;
+				if (options->derivative_type > 2 && needG)
+				{
+					this->Propagation_Step_Time_Fraction_Forward[step+1] = propagation_time / this->TOF;
+					this->Propagation_Step_Time_Fraction_Derivative_Forward[step+1] = dt_step_basic_dt / 2.0;
+				}
 			}
 			phase_time_elapsed_forward += propagation_time;
 
@@ -383,7 +422,12 @@ namespace EMTG {
 												(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_backward += this->time_step_sizes.back()/2.0 + options->forced_flyby_coast;
-			this->Propagation_Step_Time_Fraction_Backward[0] = (this->time_step_sizes.back()/2.0 + options->forced_flyby_coast) / this->TOF;
+			
+			if (options->derivative_type > 2 && needG)
+			{
+				this->Propagation_Step_Time_Fraction_Backward[0] = (this->time_step_sizes.back()/2.0 + options->forced_flyby_coast) / this->TOF;
+				this->Propagation_Step_Time_Fraction_Derivative_Backward[0] = -options->forced_flyby_coast / TOF2 + dt_step_basic_dt / 2.0;
+			}
 		}
 		else
 		{
@@ -402,7 +446,11 @@ namespace EMTG {
 												(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_backward += this->time_step_sizes.back()/2.0;
-			this->Propagation_Step_Time_Fraction_Backward[0] = (this->time_step_sizes.back()/2.0) / this->TOF;
+			if (options->derivative_type > 2 && needG)
+			{
+				this->Propagation_Step_Time_Fraction_Backward[0] = (this->time_step_sizes.back()/2.0) / this->TOF;
+				this->Propagation_Step_Time_Fraction_Derivative_Backward[0] = dt_step_basic_dt / 2.0;
+			}
 		}
 
 		
@@ -516,7 +564,11 @@ namespace EMTG {
 													this->Backward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));
 
-				this->Propagation_Step_Time_Fraction_Backward[step+1] = propagation_time / this->TOF;
+				if (options->derivative_type > 2 && needG)
+				{
+					this->Propagation_Step_Time_Fraction_Backward[step+1] = propagation_time / this->TOF;
+					this->Propagation_Step_Time_Fraction_Derivative_Forward[step+1] = dt_step_basic_dt / 2.0;
+				}
 			}
 			else
 			{
@@ -535,7 +587,11 @@ namespace EMTG {
 													this->Backward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));
 
-				this->Propagation_Step_Time_Fraction_Backward[step+1] = propagation_time / this->TOF;
+				if (options->derivative_type > 2 && needG)
+				{
+					this->Propagation_Step_Time_Fraction_Backward[step+1] = propagation_time / this->TOF;
+					this->Propagation_Step_Time_Fraction_Derivative_Forward[step+1] = dt_step_basic_dt;
+				}
 			}
 			this->phase_time_elapsed_backward += propagation_time;
 
@@ -1416,7 +1472,7 @@ namespace EMTG {
 															missionoptions* options, 
 															EMTG::Astrodynamics::universe* Universe)
 	{
-		double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu, dPdu, dt_total_available_thrust_time_du;
+		double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu, dPdu, dtotal_available_thrust_time_du;
 
 		//compute and store the derivatives of the match-point constraint with respect to forward and backward propagation for variable initial power
 		//this will require passing in "dPdu"
@@ -1428,7 +1484,7 @@ namespace EMTG {
 			dzdotdu = 0.0;
 			dydotdu = 0.0;
 			dzdotdu = 0.0;
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 			dtdu = 0.0;
 			dmdu = 0.0;
 			dPdu = 1.0;
@@ -1452,7 +1508,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over forward steps
 
@@ -1483,7 +1539,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over backward steps
 
@@ -1520,7 +1576,7 @@ namespace EMTG {
 
 				dmdu = -(available_mass_flow_rate[step-1] * deltat * options->engine_duty_cycle) * ( (control[step-1][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0; //there is no defendence of power on thrust control
 
 				//loop over later steps
@@ -1542,7 +1598,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1580,7 +1636,7 @@ namespace EMTG {
 
 				dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[step-1];
 				dtdu = 0.0; //there is no dependence of time on Isp
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0; //there is no dependence of power on Isp
 
 				//loop over later steps
@@ -1602,7 +1658,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1628,7 +1684,7 @@ namespace EMTG {
 
 			dmdu = 0.0;
 			dtdu = 0.0;
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 			dPdu = 1.0; //changing power modifies power ONLY
 
 			//loop over later steps
@@ -1650,7 +1706,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -1673,7 +1729,7 @@ namespace EMTG {
 
 			dmdu = 0.0;
 			dtdu = 0.0;
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 			dPdu = 1.0; //changing power modifies power ONLY
 
 			//loop over later steps
@@ -1695,7 +1751,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -1722,7 +1778,7 @@ namespace EMTG {
 
 				dmdu = unscaled_phase_initial_mass;
 				dtdu = 0.0; //there is no dependence of time on mass
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0; //there is no dependence of power on mass
 
 				//loop over later steps
@@ -1744,7 +1800,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1768,7 +1824,7 @@ namespace EMTG {
 
 				dmdu = options->journey_starting_mass_increment[j];
 				dtdu = 0.0; //there is no dependence of time on mass
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0; //there is no dependence of power on mass
 
 				//loop over later steps
@@ -1790,7 +1846,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1812,7 +1868,7 @@ namespace EMTG {
 				double sDEC = sin(DEC_departure);
 				double v_infinity = sqrt(C3_departure);
 				dtdu = 0.0; //there is no dependence of time on the departure V_infinity vector
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 			
 				//Step 1: derivative of match point constraints with respect to v_infinity magnitude
 				dxdu = Forward_STM[0](0,3) * (cRA*cDEC) + Forward_STM[0](0,4) * (sRA*cDEC) + Forward_STM[0](0,5) * sDEC;
@@ -1844,7 +1900,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1887,7 +1943,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1930,7 +1986,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -1959,7 +2015,7 @@ namespace EMTG {
 
 				dmdu = 0.0;
 				dtdu = 0.0; //there is no dependence of time on initial velocity
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -1981,7 +2037,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -2006,7 +2062,7 @@ namespace EMTG {
 
 				dmdu = -1.0;
 				dtdu = 0.0; //there is no dependence of time on initial mass
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -2028,7 +2084,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -2056,7 +2112,7 @@ namespace EMTG {
 			double dzdotdt = left_boundary_state_derivative[5];
 
 			dtdu = 1.0; //time varies directly with time variables (obviously)
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 
 			dxdu = Forward_STM[0](0,0) * dxdt + Forward_STM[0](0,1) * dydt + Forward_STM[0](0,2) * dzdt
 				+ Forward_STM[0](0,3) * dxdotdt + Forward_STM[0](0,4) * dydotdt + Forward_STM[0](0,5) * dzdotdt;
@@ -2093,7 +2149,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -2114,7 +2170,7 @@ namespace EMTG {
 
 			//the following derivatives are for the current phase flight time ONLY
 			dtdu = 1.0; //time varies directly with time variables (obviously)
-			dt_total_available_thrust_time_du = this->total_available_thrust_time / this->TOF;
+			dtotal_available_thrust_time_du = this->total_available_thrust_time / this->TOF;
 			 
 			dxdu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[0] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction_Forward[0];
 			dydu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[1] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction_Forward[0];
@@ -2145,7 +2201,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -2184,7 +2240,7 @@ namespace EMTG {
 
 				dmdu = (available_mass_flow_rate[backstep] * deltat * options->engine_duty_cycle) * ( (control[backstep][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -2206,7 +2262,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -2246,7 +2302,7 @@ namespace EMTG {
 
 				dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[backstep];
 				dtdu = 0.0; //there is no dependence of time on Isp
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -2268,7 +2324,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -2296,7 +2352,7 @@ namespace EMTG {
 
 			dmdu = 1.0;
 			dtdu = 0.0; //there is no dependence of time on arrival mass
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 			dPdu = 0.0;
 
 			//loop over later steps
@@ -2318,7 +2374,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -2345,7 +2401,7 @@ namespace EMTG {
 			double dzdotdt = right_boundary_state_derivative[5];
 
 			dtdu = -1.0; //time varies directly with time variables (obviously)
-			dt_total_available_thrust_time_du = 0.0;
+			dtotal_available_thrust_time_du = 0.0;
 
 			dxdu = Backward_STM[0](0,0) * dxdt + Backward_STM[0](0,1) * dydt + Backward_STM[0](0,2) * dzdt 
 				+ Backward_STM[0](0,3) * dxdotdt + Backward_STM[0](0,4) * dydotdt + Backward_STM[0](0,5) * dzdotdt;
@@ -2382,7 +2438,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -2403,26 +2459,26 @@ namespace EMTG {
 
 			//the following derivatives are for the current phase flight time
 			dtdu = -1.0; //time varies directly with time variables (obviously)
-			dt_total_available_thrust_time_du = -this->total_available_thrust_time / this->TOF;
+			dtotal_available_thrust_time_du = -this->total_available_thrust_time / this->TOF;
 
 			dxdu = Backward_STM[0](0,0) * dxdt + Backward_STM[0](0,1) * dydt + Backward_STM[0](0,2) * dzdt 
 				+ Backward_STM[0](0,3) * dxdotdt + Backward_STM[0](0,4) * dydotdt + Backward_STM[0](0,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 			dydu = Backward_STM[0](1,0) * dxdt + Backward_STM[0](1,1) * dydt + Backward_STM[0](1,2) * dzdt 
 				+ Backward_STM[0](1,3) * dxdotdt + Backward_STM[0](1,4) * dydotdt + Backward_STM[0](1,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 			dzdu = Backward_STM[0](2,0) * dxdt + Backward_STM[0](2,1) * dydt + Backward_STM[0](2,2) * dzdt 
 				+ Backward_STM[0](2,3) * dxdotdt + Backward_STM[0](2,4) * dydotdt + Backward_STM[0](2,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 			dxdotdu = Backward_STM[0](3,0) * dxdt + Backward_STM[0](3,1) * dydt + Backward_STM[0](3,2) * dzdt 
 				+ Backward_STM[0](3,3) * dxdotdt + Backward_STM[0](3,4) * dydotdt + Backward_STM[0](3,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 			dydotdu = Backward_STM[0](4,0) * dxdt + Backward_STM[0](4,1) * dydt + Backward_STM[0](4,2) * dzdt 
 				+ Backward_STM[0](4,3) * dxdotdt + Backward_STM[0](4,4) * dydotdt + Backward_STM[0](4,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 			dzdotdu = Backward_STM[0](5,0) * dxdt + Backward_STM[0](5,1) * dydt + Backward_STM[0](5,2) * dzdt 
 				+ Backward_STM[0](5,3) * dxdotdt + Backward_STM[0](5,4) * dydotdt + Backward_STM[0](5,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0];
+				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
 
 			dmdu = 0.0;
 			dPdu = 0.0;
@@ -2446,7 +2502,7 @@ namespace EMTG {
 																		dzdotdu,
 																		dmdu,
 																		dtdu,
-																		dt_total_available_thrust_time_du,
+																		dtotal_available_thrust_time_du,
 																		dPdu);
 			} //end loop over later steps
 
@@ -2478,7 +2534,7 @@ namespace EMTG {
 
 				dmdu = 0.0;
 				dtdu = 0.0; //there is no dependence of time on initial velocity
-				dt_total_available_thrust_time_du = 0.0;
+				dtotal_available_thrust_time_du = 0.0;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -2500,7 +2556,7 @@ namespace EMTG {
 																			dzdotdu,
 																			dmdu,
 																			dtdu,
-																			dt_total_available_thrust_time_du,
+																			dtotal_available_thrust_time_du,
 																			dPdu);
 				} //end loop over later steps
 
@@ -2535,11 +2591,11 @@ namespace EMTG {
 																			double& dzdotdu,
 																			double& dmdu,
 																			double& dtdu,
-																			double& dt_total_available_thrust_time_du,
+																			double& dtotal_available_thrust_time_du,
 																			double& dPdu)
 	{
-		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next, deltat;
-		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt, dmdt;
+		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next;
+		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt;
 
 		double x = spacecraft_state[stepnext - 1][0];
 		double y = spacecraft_state[stepnext - 1][1];
@@ -2549,28 +2605,32 @@ namespace EMTG {
 		double vz = spacecraft_state[stepnext - 1][5];
 		double r = sqrt(x*x + y*y + z*z);
 		double r3 = r*r*r;
-		double umag = (math::norm(control[stepnext-1].data(),3) + 1.0e-10);
+		double cmag = (math::norm(control[stepnext-1].data(),3) + 1.0e-10);
 
-		deltat = (time_step_sizes[stepnext-1]*86400);
-				
+
+		//values to be used in the derivative evaluation
+		double dTdP = this->dTdP[stepnext-1] / 1000.0; //convert from kg*m/s^2/kW to kg*km/s^2/kW
+		double dPdr = this->dPdr[stepnext-1] / Universe->LU;
+		double dPdt = this->dPdt[stepnext-1];
+		double Thrust = this->available_thrust[stepnext-1] / 1000.0; //convert from kg*m/s^2 to kg*km/s^2
+		double mdot = this->available_mass_flow_rate[stepnext-1];
+		double deltat = this->total_available_thrust_time / options->num_timesteps * 86400.0;
+		double dmdotdP = this->dmdotdP[stepnext-1];
+		double D = options->engine_duty_cycle;		
+		double m = spacecraft_state[stepnext-1][6];
 		
 		double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
 		double drdt = (x*vx + y*vy + z*vz) / r;
-		double mold = spacecraft_state[stepnext-1][6];
 
 		//evaluate the time derivatives only when dtdu is nonzero, i.e. if u is a time variable
-		if (fabs(dt_total_available_thrust_time_du) > 1.0e-8)
+		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			//dxdt = this->spacecraft_state[stepnext][3];
-			//dydt = this->spacecraft_state[stepnext][4];
-			//dzdt = this->spacecraft_state[stepnext][5];
 			dxdt = this->Kepler_Fdot_Forward[stepnext] * x + this->Kepler_Gdot_Forward[stepnext] * vx;
 			dydt = this->Kepler_Fdot_Forward[stepnext] * y + this->Kepler_Gdot_Forward[stepnext] * vy;
 			dzdt = this->Kepler_Fdot_Forward[stepnext] * z + this->Kepler_Gdot_Forward[stepnext] * vz;
 			dxdotdt = this->Kepler_Fdotdot_Forward[stepnext] * x + this->Kepler_Gdotdot_Forward[stepnext] * vx;
 			dydotdt = this->Kepler_Fdotdot_Forward[stepnext] * y + this->Kepler_Gdotdot_Forward[stepnext] * vy;
 			dzdotdt = this->Kepler_Fdotdot_Forward[stepnext] * z + this->Kepler_Gdotdot_Forward[stepnext] * vz;
-			dmdt = umag * options->engine_duty_cycle * available_mass_flow_rate[stepnext - 1];
 		}
 		else
 		{
@@ -2580,14 +2640,12 @@ namespace EMTG {
 			dxdotdt = 0.0;
 			dydotdt = 0.0;
 			dzdotdt = 0.0;
-			dmdt = 0.0;
 		}
 
-		//time-dependent version of ddVmaxdu, collapses to time independent version if u is not time
-		double ddVmaxdu = (options->engine_duty_cycle * this->time_step_sizes[stepnext-1] * 86400.0) / (mold * mold) 
-							 * (mold * (dTdP[stepnext-1]/1000*(dPdr[stepnext-1]/Universe->LU*drdu + dPdu + dPdt[stepnext-1]*dtdu) )
-								+ mold / (this->total_available_thrust_time * 86400.0) * available_thrust[stepnext - 1]/1000.0 * dt_total_available_thrust_time_du
-								- available_thrust[stepnext - 1]/1000.0 * dmdu );
+		double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+		double ddeltatdu = 86400.0 / options->num_timesteps * dtotal_available_thrust_time_du;
+
+		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
 
 		double dVxplusdu = (dxdotdu + ddVmaxdu * control[stepnext-1][0] + this->dagravdRvec[stepnext - 1][0]*dxdu + this->dagravdtvec[stepnext - 1][0]*dtdu);
 		double dVyplusdu = (dydotdu + ddVmaxdu * control[stepnext-1][1] + this->dagravdRvec[stepnext - 1][1]*dydu + this->dagravdtvec[stepnext - 1][0]*dtdu);
@@ -2611,9 +2669,9 @@ namespace EMTG {
 		dzdotdu_next = Forward_STM[stepnext](5,0) * dxdu + Forward_STM[stepnext](5,1) * dydu + Forward_STM[stepnext](5,2) * dzdu + 
 					+ Forward_STM[stepnext](5,3) * dVxplusdu + Forward_STM[stepnext](5,4) * dVyplusdu + Forward_STM[stepnext](5,5) * dVzplusdu
 					+ dzdotdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dmdu_next = dmdu - (deltat * options->engine_duty_cycle)
-							* (umag * dmdotdP[stepnext-1] * (dPdr[stepnext-1]/Universe->LU * drdu + dPdu + dPdt[stepnext-1] * dtdu))
-							- dmdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
+
+		double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+		dmdu_next = dmdu - D * cmag * (ddeltatdu * mdot + dmdotdu * deltat);
 
 		dxdu = dxdu_next;
 		dydu = dydu_next;
@@ -2643,11 +2701,11 @@ namespace EMTG {
 																				double& dzdotdu,
 																				double& dmdu,
 																				double& dtdu,
-																				double& dt_total_available_thrust_time_du,
+																				double& dtotal_available_thrust_time_du,
 																				double& dPdu)
 	{
-		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next, deltat;
-		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt, dmdt;
+		double dxdu_next, dydu_next, dzdu_next, dxdotdu_next, dydotdu_next, dzdotdu_next, dmdu_next;
+		double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt;
 
 		//translate into backward steps
 		int backstepnext = options->num_timesteps - 1 - stepnext;
@@ -2660,28 +2718,33 @@ namespace EMTG {
 		double vz = spacecraft_state[backstepnext - 1][5];
 		double r = sqrt(x*x + y*y + z*z);
 		double r3 = r*r*r;
-		double umag = (math::norm(control[backstepnext-1].data(),3) + 1.0e-10);
+		double cmag = (math::norm(control[backstepnext-1].data(),3) + 1.0e-10);
 
-		deltat = (time_step_sizes[backstepnext-1]*86400);
+
+		//values to be used in the derivative evaluation
+		double dTdP = this->dTdP[backstepnext-1] / 1000.0; //convert from kg*m/s^2/kW to kg*km/s^2/kW
+		double dPdr = this->dPdr[backstepnext-1] / Universe->LU;
+		double dPdt = this->dPdt[backstepnext-1];
+		double Thrust = this->available_thrust[backstepnext-1] / 1000.0; //convert from kg*m/s^2 to kg*km/s^2
+		double mdot = this->available_mass_flow_rate[backstepnext-1];
+		double deltat = this->total_available_thrust_time / options->num_timesteps * 86400.0;
+		double dmdotdP = this->dmdotdP[backstepnext-1];
+		double D = options->engine_duty_cycle;		
+		double m = spacecraft_state[backstepnext-1][6];
 				
 		
 		double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
 		double drdt = (x*vx + y*vy + z*vz) / r;
-		double mold = spacecraft_state[backstepnext-1][6];
 
 		//evaluate the time derivatives only when dtdu is nonzero, i.e. if u is a time variable
-		if (fabs(dt_total_available_thrust_time_du) > 1.0e-8)
+		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			//dxdt = spacecraft_state[backstepnext][3];
-			//dydt = spacecraft_state[backstepnext][4];
-			//dzdt = spacecraft_state[backstepnext][5];
-			dxdt = this->Kepler_Fdot_Backward[stepnext+1] * x + this->Kepler_Gdot_Backward[stepnext+1] * vx;
-			dydt = this->Kepler_Fdot_Backward[stepnext+1] * y + this->Kepler_Gdot_Backward[stepnext+1] * vy;
-			dzdt = this->Kepler_Fdot_Backward[stepnext+1] * z + this->Kepler_Gdot_Backward[stepnext+1] * vz;
-			dxdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * x + this->Kepler_Gdotdot_Backward[stepnext+1] * vx;
-			dydotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * y + this->Kepler_Gdotdot_Backward[stepnext+1] * vy;
-			dzdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * z + this->Kepler_Gdotdot_Backward[stepnext+1] * vz;
-			dmdt = umag * options->engine_duty_cycle * available_mass_flow_rate[backstepnext - 1];
+			dxdt = (this->Kepler_Fdot_Backward[stepnext+1] * x + this->Kepler_Gdot_Backward[stepnext+1] * vx);
+			dydt = (this->Kepler_Fdot_Backward[stepnext+1] * y + this->Kepler_Gdot_Backward[stepnext+1] * vy);
+			dzdt = (this->Kepler_Fdot_Backward[stepnext+1] * z + this->Kepler_Gdot_Backward[stepnext+1] * vz);
+			dxdotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * x + this->Kepler_Gdotdot_Backward[stepnext+1] * vx);
+			dydotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * y + this->Kepler_Gdotdot_Backward[stepnext+1] * vy);
+			dzdotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * z + this->Kepler_Gdotdot_Backward[stepnext+1] * vz);
 		}
 		else
 		{
@@ -2691,13 +2754,19 @@ namespace EMTG {
 			dxdotdt = 0.0;
 			dydotdt = 0.0;
 			dzdotdt = 0.0;
-			dmdt = 0.0;
 		}
 
-		double ddVmaxdu = (options->engine_duty_cycle * this->time_step_sizes[backstepnext-1] * 86400.0) / (mold * mold) 
-							 * (mold * (dTdP[backstepnext-1]/1000*(dPdr[backstepnext-1]/Universe->LU*drdu + dPdu + dPdt[backstepnext-1]*dtdu) )
-								+ mold / (this->total_available_thrust_time * 86400.0) * available_thrust[backstepnext - 1]/1000.0 * dt_total_available_thrust_time_du
+		double mold = m;
+		double ddVmaxdu1 = (options->engine_duty_cycle * this->time_step_sizes[backstepnext-1] * 86400.0) / (mold * mold) 
+							 * (mold * (this->dTdP[backstepnext-1]/1000*(this->dPdr[backstepnext-1]/Universe->LU*drdu + dPdu + this->dPdt[backstepnext-1]*dtdu) )
+								+ mold / (this->total_available_thrust_time * 86400.0) * available_thrust[backstepnext - 1]/1000.0 * dtotal_available_thrust_time_du
 								- available_thrust[backstepnext - 1]/1000.0 * dmdu );
+
+		double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+		double ddeltatdu = 86400.0 / options->num_timesteps * dtotal_available_thrust_time_du;
+
+		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
+
 
 		double dVxplusdu = (dxdotdu - ddVmaxdu * control[backstepnext - 1][0] + dagravdRvec[backstepnext - 1][0]*dxdu + this->dagravdtvec[backstepnext - 1][0]*dtdu);
 		double dVyplusdu = (dydotdu - ddVmaxdu * control[backstepnext - 1][1] + dagravdRvec[backstepnext - 1][1]*dydu + this->dagravdtvec[backstepnext - 1][0]*dtdu);
@@ -2721,9 +2790,9 @@ namespace EMTG {
 		dzdotdu_next = Backward_STM[stepnext+1](5,0) * dxdu + Backward_STM[stepnext+1](5,1) * dydu + Backward_STM[stepnext+1](5,2) * dzdu + 
 					+ Backward_STM[stepnext+1](5,3) * dVxplusdu + Backward_STM[stepnext+1](5,4) * dVyplusdu + Backward_STM[stepnext+1](5,5) * dVzplusdu
 					+ dzdotdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dmdu_next = dmdu + (deltat * options->engine_duty_cycle)
-							* (umag * dmdotdP[backstepnext-1] * (dPdr[backstepnext-1]/Universe->LU  * drdu + dPdu + dPdt[backstepnext-1] * dtdu))
-							- dmdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
+
+		double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+		dmdu_next = dmdu + D * cmag * (ddeltatdu * mdot + dmdotdu * deltat);
 
 		dxdu = dxdu_next;
 		dydu = dydu_next;
