@@ -996,13 +996,13 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	case 1:
 		{ //minimum flight time
 			double TU = TheUniverse[options.number_of_journeys - 1].TU;
-			F[0] = (current_epoch - X[0]) * 86400 / TU;
+			F[0] = (current_epoch - X[0]) / TU;
 
 			if (this->options.derivative_type > 0)
 			{
 				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size() - 1; ++ whichderiv)
 				{
-					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] * 86400 / TU;
+					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] / TU;
 				}
 			}
 			break;
@@ -1270,7 +1270,7 @@ int mission::output()
 	outputfile << "Spacecraft dry mass: " << dry_mass << endl;
 	
 	//output flight time in years
-	outputfile << "Flight time (y): " << (current_epoch - journeys[0].phases[0].phase_start_epoch) / 365.25 << endl;
+	outputfile << "Flight time (y): " << (current_epoch - journeys[0].phases[0].phase_start_epoch) / 86400.0 /365.25 << endl;
 
 	//objective-function specific information
 	if (options.objective_type == 12)
@@ -1293,19 +1293,40 @@ int mission::output()
 	//upper bounds
 	outputfile << "Xupperbounds";
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xupperbounds[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xupperbounds[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xupperbounds[k];
+	}
 	outputfile << endl;
 	//decision vector
 	outputfile << "Decision Vector:";
 	outputfile.unsetf(ios::fixed);
 	outputfile.precision(20);
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xopt[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xopt[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xopt[k];
+	}
 	outputfile << endl;
 	//lower bounds
 	outputfile << "Xlowerbounds";
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xlowerbounds[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xlowerbounds[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xlowerbounds[k];
+	}
 	outputfile << endl;
 	//descriptions
 	outputfile << "Xdescriptions";
@@ -1421,31 +1442,6 @@ vector<double> mission::create_initial_guess(vector<double> XFBLT, vector<string
 	{
 		for (int p = 0; p < options.number_of_phases[j]; ++p)
 		{
-			/*
-			//first we will need the flight time for this phase
-			stringstream prefixstream;
-			prefixstream << "j" << j << "p" << p;
-
-			for (int entry = 0; entry < Xdescriptions.size(); ++entry)
-			{
-			}
-
-			double state[8];
-			for (int k = 0; k < 7; ++k)
-				state[k] = journeys[j].phases[p].state_at_beginning_of_phase[k];
-
-			state[7] = 0;
-
-			double resumeH = timestep * 86400/Universe->TU;
-			double resumeError = 1.0e-6;
-
-			for (int step = 0; step < options.num_timesteps; ++step)
-			{
-
-				integrator.adaptive_step_int(state, state, journeys[j].phases[p].control[step].data(), 
-			}
-			*/
-			
 			double angle = acos(math::dot(journeys[j].phases[p].state_at_beginning_of_phase, journeys[j].phases[p].spacecraft_state[0].data(), 3) / (math::norm(journeys[j].phases[p].state_at_beginning_of_phase, 3) * math::norm(journeys[j].phases[p].spacecraft_state[0].data(), 3)));
 
 			for (int step = 1; step < options.num_timesteps; ++step)

@@ -455,6 +455,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			*Isp = *max_thrust / *max_mass_flow_rate / options->g0;
 			*active_power = *number_of_active_engines * P_eff;
 			
+			
 
 			if (generate_derivatives)
 			{
@@ -475,7 +476,9 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			*power = input_power;
 		}
 	}
-	
+	*max_thrust /= 1000.0; //kN to N conversion
+	*dTdIsp /= 1000.0; //kN to N conversion
+	*dTdP /= 1000.0; //kN to N conversion
 	return 0;
 }
 

@@ -195,7 +195,7 @@ namespace EMTG {
 			Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
 												this->spacecraft_state[0].data(),
 												Universe->mu,
-												this->time_step_sizes[0]*86400/2.0 + options->forced_post_launch_coast*86400,
+												this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast,
 												this->Kepler_F_Forward[0],
 												this->Kepler_G_Forward[0],
 												this->Kepler_Fdot_Forward[0],
@@ -219,7 +219,7 @@ namespace EMTG {
 			Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
 												this->spacecraft_state[0].data(),
 												Universe->mu,
-												this->time_step_sizes[0]*86400/2.0 + options->forced_flyby_coast*86400,
+												this->time_step_sizes[0]/2.0 + options->forced_flyby_coast,
 												this->Kepler_F_Forward[0],
 												this->Kepler_G_Forward[0],
 												this->Kepler_Fdot_Forward[0],
@@ -243,7 +243,7 @@ namespace EMTG {
 			Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
 												this->spacecraft_state[0].data(), 
 												Universe->mu, 
-												this->time_step_sizes[0]*86400/2.0,
+												this->time_step_sizes[0]/2.0,
 												this->Kepler_F_Forward[0],
 												this->Kepler_G_Forward[0],
 												this->Kepler_Fdot_Forward[0],
@@ -327,12 +327,12 @@ namespace EMTG {
 				dagravdRvec[step],
 				dagravdtvec[step]);
 
-			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / spacecraft_state[step][6] * (time_step_sizes[step]*86400) / 1000;
+			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / spacecraft_state[step][6] * (time_step_sizes[step]);
 
 			//step 6.2.6 apply the burn
 			for (size_t k = 0; k < 3; ++k)
 			{
-				dV[step][k] = ForceVector[step][k] / spacecraft_state[step][6] * (time_step_sizes[step]*86400) / 1000;
+				dV[step][k] = ForceVector[step][k] / spacecraft_state[step][6] * (time_step_sizes[step]);
 				spacecraft_state[step][k+3] += dV[step][k];
 			}
 			impulse_magnitude = local_throttle * dVmax[step];
@@ -347,7 +347,7 @@ namespace EMTG {
 				Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[step].data(),
 													spacecraft_state_forward,
 													Universe->mu,
-													propagation_time*86400,
+													propagation_time,
 													this->Kepler_F_Forward[step+1],
 													this->Kepler_G_Forward[step+1],
 													this->Kepler_Fdot_Forward[step+1],
@@ -370,7 +370,7 @@ namespace EMTG {
 				propagation_time = (this->time_step_sizes[step] + this->time_step_sizes[step + 1]) / 2.0;
 				Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[step].data(),
 													this->spacecraft_state[step+1].data(),
-													Universe->mu, propagation_time*86400,
+													Universe->mu, propagation_time,
 													this->Kepler_F_Forward[step+1],
 													this->Kepler_G_Forward[step+1],
 													this->Kepler_Fdot_Forward[step+1],
@@ -389,7 +389,7 @@ namespace EMTG {
 			phase_time_elapsed_forward += propagation_time;
 
 			//step 6.2.8 update the spacecraft mass
-			spacecraft_state[step][6] -= local_throttle * options->engine_duty_cycle * available_mass_flow_rate[step] * (time_step_sizes[step]*86400);
+			spacecraft_state[step][6] -= local_throttle * options->engine_duty_cycle * available_mass_flow_rate[step] * (time_step_sizes[step]);
 
 		}
 	
@@ -411,7 +411,7 @@ namespace EMTG {
 			Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_backward,
 												this->spacecraft_state[options->num_timesteps-1].data(),
 												Universe->mu,
-												-(this->time_step_sizes[options->num_timesteps-1] / 2.0 + options->forced_flyby_coast)* 86400, 
+												-(this->time_step_sizes[options->num_timesteps-1] / 2.0 + options->forced_flyby_coast), 
 												this->Kepler_F_Backward[0],
 												this->Kepler_G_Backward[0],
 												this->Kepler_Fdot_Backward[0],
@@ -435,7 +435,7 @@ namespace EMTG {
 			Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_backward,
 												this->spacecraft_state[options->num_timesteps-1].data(),
 												Universe->mu,
-												-this->time_step_sizes[options->num_timesteps-1]*86400/2.0,
+												-this->time_step_sizes[options->num_timesteps-1]/2.0,
 												this->Kepler_F_Backward[0],
 												this->Kepler_G_Backward[0],
 												this->Kepler_Fdot_Backward[0],
@@ -529,13 +529,13 @@ namespace EMTG {
 											dagravdRvec[backstep],
 											dagravdtvec[step]);
 
-			double mass_before_impulse = spacecraft_state[backstep][6] + local_throttle * options->engine_duty_cycle * available_mass_flow_rate[backstep] * (time_step_sizes[backstep]*86400);
-			dVmax[backstep] = options->engine_duty_cycle * available_thrust[backstep] / mass_before_impulse * (time_step_sizes[backstep]*86400) / 1000;
+			double mass_before_impulse = spacecraft_state[backstep][6] + local_throttle * options->engine_duty_cycle * available_mass_flow_rate[backstep] * (time_step_sizes[backstep]);
+			dVmax[backstep] = options->engine_duty_cycle * available_thrust[backstep] / mass_before_impulse * (time_step_sizes[backstep]);
 
 			//step 6.3.6 apply the burn
 			for (int k = 0; k < 3; ++k)
 			{
-				dV[backstep][k] = ForceVector[backstep][k] / mass_before_impulse * (time_step_sizes[backstep]*86400) / 1000;
+				dV[backstep][k] = ForceVector[backstep][k] / mass_before_impulse * (time_step_sizes[backstep]);
 				spacecraft_state[backstep][k+3] -= dV[backstep][k];
 			}
 			impulse_magnitude = local_throttle * dVmax[backstep];
@@ -554,7 +554,7 @@ namespace EMTG {
 				Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[backstep].data(),
 													spacecraft_state_backward,
 													Universe->mu,
-													-propagation_time*86400,
+													-propagation_time,
 													this->Kepler_F_Backward[step+1],
 													this->Kepler_G_Backward[step+1],
 													this->Kepler_Fdot_Backward[step+1],
@@ -577,7 +577,7 @@ namespace EMTG {
 				Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[backstep].data(),
 													this->spacecraft_state[backstep-1].data(),
 													Universe->mu,
-													-propagation_time*86400, 
+													-propagation_time, 
 													this->Kepler_F_Backward[step+1],
 													this->Kepler_G_Backward[step+1],
 													this->Kepler_Fdot_Backward[step+1],
@@ -1132,10 +1132,10 @@ namespace EMTG {
 			this->write_summary_line(options,
 									Universe,
 									eventcount, 
-									this->phase_start_epoch - this->spiral_escape_time,
+									(this->phase_start_epoch - this->spiral_escape_time) / 86400.0,
 									"begin_spiral",
 									this->Body1->name,
-									this->spiral_escape_time,
+									this->spiral_escape_time / 86400.0,
 									0.0,
 									0.0,
 									0.0,
@@ -1146,7 +1146,7 @@ namespace EMTG {
 									empty_vector,
 									empty_vector,
 									this->spiral_escape_dv,
-									this->spiral_escape_thrust,
+									this->spiral_escape_thrust * 1000.0, //kN to N conversion
 									this->spiral_escape_Isp,
 									this->spiral_escape_power,
 									this->spiral_escape_mdot,
@@ -1162,7 +1162,7 @@ namespace EMTG {
 		write_summary_line(options,
 							Universe,
 							eventcount,
-							this->phase_start_epoch,
+							this->phase_start_epoch / 86400.0,
 							event_type,
 							boundary1_name,
 							0,
@@ -1209,10 +1209,10 @@ namespace EMTG {
 			write_summary_line(	options,
 								Universe,
 								eventcount,
-								phase_start_epoch + 0.5 * initial_coast_duration,
+								(phase_start_epoch + 0.5 * initial_coast_duration) / 86400.0,
 								"force-coast",
 								"deep-space",
-								initial_coast_duration,
+								initial_coast_duration / 86400.0,
 								-1,
 								-1,
 								-1,
@@ -1247,14 +1247,14 @@ namespace EMTG {
 			double current_Isp, current_thrust, current_power;
 			if (options->engine_type == 0) //fixed thrust/Isp
 			{
-				current_thrust = options->Thrust;
+				current_thrust = options->Thrust * 1000.0;
 				current_Isp = options->IspLT;
 				current_power = -1;
 				current_mass_flow_rate = current_thrust / current_Isp / options->g0;
 			}
 			else //thrust, Isp are functions of power
 			{
-				current_thrust =  available_thrust[step];
+				current_thrust =  available_thrust[step] * 1000.0; //kN to N conversion
 				current_Isp = available_Isp[step];
 				current_power = available_power[step];
 				current_mass_flow_rate = current_thrust / current_Isp / options->g0;
@@ -1285,10 +1285,10 @@ namespace EMTG {
 			write_summary_line(options,
 							Universe,
 							eventcount,
-							this->phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step],
+							(this->phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step]) / 86400.0,
 							event_type,
 							"deep-space",
-							this->time_step_sizes[step],
+							(this->time_step_sizes[step]) / 86400.0,
 							-1,
 							-1,
 							-1,
@@ -1314,7 +1314,7 @@ namespace EMTG {
 				write_summary_line(options,
 							Universe,
 							eventcount,
-							this->phase_start_epoch + phase_time_elapsed,
+							(this->phase_start_epoch + phase_time_elapsed) / 86400.0,
 							"match_point",
 							"deep-space",
 							0.0,
@@ -1411,7 +1411,7 @@ namespace EMTG {
 			write_summary_line(options,
 							Universe,
 							eventcount,
-							this->phase_start_epoch + this->TOF,
+							(this->phase_start_epoch + this->TOF) / 86400.0,
 							event_type,
 							boundary2_name,
 							0,
@@ -1438,10 +1438,10 @@ namespace EMTG {
 				this->write_summary_line(options,
 									Universe,
 									eventcount, 
-									this->phase_start_epoch + this->TOF + this->spiral_capture_time,
+									(this->phase_start_epoch + this->TOF + this->spiral_capture_time)/86400.0,
 									"end_spiral",
 									this->Body2->name,
-									this->spiral_capture_time,
+									this->spiral_capture_time / 84600.0,
 									0.0,
 									0.0,
 									0.0,
@@ -1452,7 +1452,7 @@ namespace EMTG {
 									empty_vector,
 									empty_vector,
 									this->spiral_capture_dv,
-									this->spiral_capture_thrust,
+									this->spiral_capture_thrust * 1000.0, //kN to N conversion
 									this->spiral_capture_Isp,
 									this->spiral_capture_power,
 									this->spiral_capture_mdot,
@@ -1572,12 +1572,12 @@ namespace EMTG {
 				double umag = math::norm(control[step-1].data(), 3);
 				double r = math::norm(spacecraft_state[step-1].data(), 3);
 
-				deltat = (time_step_sizes[step]*86400);
+				deltat = (time_step_sizes[step]);
 
 				dmdu = -(available_mass_flow_rate[step-1] * deltat * options->engine_duty_cycle) * ( (control[step-1][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
 				dtotal_available_thrust_time_du = 0.0;
-				dPdu = 0.0; //there is no defendence of power on thrust control
+				dPdu = 0.0; //there is no dependence of power on thrust control
 
 				//loop over later steps
 				for (int stepnext = step + 1; stepnext <= options->num_timesteps / 2; ++stepnext)
@@ -1619,18 +1619,18 @@ namespace EMTG {
 		{
 			for (int step = 1; step <= options->num_timesteps / 2; ++step)
 			{
-				deltat = (time_step_sizes[step]*86400);
+				deltat = (time_step_sizes[step]);
 
 				double ux = control[step-1][0];
 				double uy = control[step-1][1];
 				double uz = control[step-1][2];
 				double m = spacecraft_state[step-1][6];
-				dxdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](0,3)*ux + Forward_STM[step](0,4)*uy + Forward_STM[step](0,5)*uz);
-				dydu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](1,3)*ux + Forward_STM[step](1,4)*uy + Forward_STM[step](1,5)*uz);
-				dzdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](2,3)*ux + Forward_STM[step](2,4)*uy + Forward_STM[step](2,5)*uz);
-				dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](3,3)*ux + Forward_STM[step](3,4)*uy + Forward_STM[step](3,5)*uz);
-				dydotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](4,3)*ux + Forward_STM[step](4,4)*uy + Forward_STM[step](4,5)*uz);
-				dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/1000/m * (Forward_STM[step](5,3)*ux + Forward_STM[step](5,4)*uy + Forward_STM[step](5,5)*uz);
+				dxdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](0,3)*ux + Forward_STM[step](0,4)*uy + Forward_STM[step](0,5)*uz);
+				dydu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](1,3)*ux + Forward_STM[step](1,4)*uy + Forward_STM[step](1,5)*uz);
+				dzdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](2,3)*ux + Forward_STM[step](2,4)*uy + Forward_STM[step](2,5)*uz);
+				dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](3,3)*ux + Forward_STM[step](3,4)*uy + Forward_STM[step](3,5)*uz);
+				dydotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](4,3)*ux + Forward_STM[step](4,4)*uy + Forward_STM[step](4,5)*uz);
+				dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[step-1]/m * (Forward_STM[step](5,3)*ux + Forward_STM[step](5,4)*uy + Forward_STM[step](5,5)*uz);
 
 				double umag = math::norm(control[step-1].data(), 3);
 
@@ -2158,13 +2158,13 @@ namespace EMTG {
 				if (! ( (p == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{
 					//place the derivatives in the Jacobian
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 				}
 			}
 
@@ -2207,13 +2207,13 @@ namespace EMTG {
 
 			//place the derivatives in the Jacobian
 			int timevar = (p == 0) ? 1 : 0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 		}
 	
 		//compute and store the backward derivatives of the match point constraints with respect to the control unit vector
@@ -2236,7 +2236,7 @@ namespace EMTG {
 				double umag = math::norm(control[backstep].data(), 3);
 				double r = math::norm(spacecraft_state[backstep].data(), 3);
 
-				deltat = (time_step_sizes[backstep]*86400);
+				deltat = (time_step_sizes[backstep]);
 
 				dmdu = (available_mass_flow_rate[backstep] * deltat * options->engine_duty_cycle) * ( (control[backstep][c] / (umag + 1.0e-10) ) );
 				dtdu = 0.0; //there is no dependence of time on thrust control
@@ -2285,18 +2285,18 @@ namespace EMTG {
 				//translate into backward steps
 				int backstep = options->num_timesteps - 1 - step;
 
-				deltat = (time_step_sizes[backstep]*86400);
+				deltat = (time_step_sizes[backstep]);
 
 				double ux = control[backstep][0];
 				double uy = control[backstep][1];
 				double uz = control[backstep][2];
 				double m = spacecraft_state[backstep][6];
-				dxdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](0,3)*ux + Backward_STM[step+1](0,4)*uy + Backward_STM[step+1](0,5)*uz);
-				dydu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](1,3)*ux + Backward_STM[step+1](1,4)*uy + Backward_STM[step+1](1,5)*uz);
-				dzdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](2,3)*ux + Backward_STM[step+1](2,4)*uy + Backward_STM[step+1](2,5)*uz);
-				dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](3,3)*ux + Backward_STM[step+1](3,4)*uy + Backward_STM[step+1](3,5)*uz);
-				dydotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](4,3)*ux + Backward_STM[step+1](4,4)*uy + Backward_STM[step+1](4,5)*uz);
-				dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/1000/m * (Backward_STM[step+1](5,3)*ux + Backward_STM[step+1](5,4)*uy + Backward_STM[step+1](5,5)*uz);
+				dxdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](0,3)*ux + Backward_STM[step+1](0,4)*uy + Backward_STM[step+1](0,5)*uz);
+				dydu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](1,3)*ux + Backward_STM[step+1](1,4)*uy + Backward_STM[step+1](1,5)*uz);
+				dzdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](2,3)*ux + Backward_STM[step+1](2,4)*uy + Backward_STM[step+1](2,5)*uz);
+				dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](3,3)*ux + Backward_STM[step+1](3,4)*uy + Backward_STM[step+1](3,5)*uz);
+				dydotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](4,3)*ux + Backward_STM[step+1](4,4)*uy + Backward_STM[step+1](4,5)*uz);
+				dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[backstep]/m * (Backward_STM[step+1](5,3)*ux + Backward_STM[step+1](5,4)*uy + Backward_STM[step+1](5,5)*uz);
 
 				double umag = math::norm(control[backstep].data(), 3);
 
@@ -2447,19 +2447,19 @@ namespace EMTG {
 				if (! ( (p == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{
 					//place the derivatives in the Jacobian
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
-					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 				}
 			}
 
 			//the following derivatives are for the current phase flight time
 			dtdu = -1.0; //time varies directly with time variables (obviously)
-			dtotal_available_thrust_time_du = -this->total_available_thrust_time / this->TOF;
+			dtotal_available_thrust_time_du = this->total_available_thrust_time / this->TOF;
 
 			dxdu = Backward_STM[0](0,0) * dxdt + Backward_STM[0](0,1) * dydt + Backward_STM[0](0,2) * dzdt 
 				+ Backward_STM[0](0,3) * dxdotdt + Backward_STM[0](0,4) * dydotdt + Backward_STM[0](0,5) * dzdotdt
@@ -2508,13 +2508,13 @@ namespace EMTG {
 
 			//place the derivatives in the Jacobian
 			int timevar = (p == 0) ? 1 : 0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU * 86400.0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) * 86400.0;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 		}
 
 		
@@ -2609,12 +2609,12 @@ namespace EMTG {
 
 
 		//values to be used in the derivative evaluation
-		double dTdP = this->dTdP[stepnext-1] / 1000.0; //convert from kg*m/s^2/kW to kg*km/s^2/kW
+		double dTdP = this->dTdP[stepnext-1];
 		double dPdr = this->dPdr[stepnext-1] / Universe->LU;
 		double dPdt = this->dPdt[stepnext-1];
-		double Thrust = this->available_thrust[stepnext-1] / 1000.0; //convert from kg*m/s^2 to kg*km/s^2
+		double Thrust = this->available_thrust[stepnext-1];
 		double mdot = this->available_mass_flow_rate[stepnext-1];
-		double deltat = this->total_available_thrust_time / options->num_timesteps * 86400.0;
+		double deltat = this->total_available_thrust_time / options->num_timesteps;
 		double dmdotdP = this->dmdotdP[stepnext-1];
 		double D = options->engine_duty_cycle;		
 		double m = spacecraft_state[stepnext-1][6];
@@ -2643,7 +2643,7 @@ namespace EMTG {
 		}
 
 		double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
-		double ddeltatdu = 86400.0 / options->num_timesteps * dtotal_available_thrust_time_du;
+		double ddeltatdu = 1.0 / options->num_timesteps * dtotal_available_thrust_time_du;
 
 		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
 
@@ -2722,12 +2722,12 @@ namespace EMTG {
 
 
 		//values to be used in the derivative evaluation
-		double dTdP = this->dTdP[backstepnext-1] / 1000.0; //convert from kg*m/s^2/kW to kg*km/s^2/kW
+		double dTdP = this->dTdP[backstepnext-1];
 		double dPdr = this->dPdr[backstepnext-1] / Universe->LU;
 		double dPdt = this->dPdt[backstepnext-1];
-		double Thrust = this->available_thrust[backstepnext-1] / 1000.0; //convert from kg*m/s^2 to kg*km/s^2
+		double Thrust = this->available_thrust[backstepnext-1];
 		double mdot = this->available_mass_flow_rate[backstepnext-1];
-		double deltat = this->total_available_thrust_time / options->num_timesteps * 86400.0;
+		double deltat = this->total_available_thrust_time / options->num_timesteps;
 		double dmdotdP = this->dmdotdP[backstepnext-1];
 		double D = options->engine_duty_cycle;		
 		double m = spacecraft_state[backstepnext-1][6];
@@ -2756,14 +2756,8 @@ namespace EMTG {
 			dzdotdt = 0.0;
 		}
 
-		double mold = m;
-		double ddVmaxdu1 = (options->engine_duty_cycle * this->time_step_sizes[backstepnext-1] * 86400.0) / (mold * mold) 
-							 * (mold * (this->dTdP[backstepnext-1]/1000*(this->dPdr[backstepnext-1]/Universe->LU*drdu + dPdu + this->dPdt[backstepnext-1]*dtdu) )
-								+ mold / (this->total_available_thrust_time * 86400.0) * available_thrust[backstepnext - 1]/1000.0 * dtotal_available_thrust_time_du
-								- available_thrust[backstepnext - 1]/1000.0 * dmdu );
-
 		double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
-		double ddeltatdu = 86400.0 / options->num_timesteps * dtotal_available_thrust_time_du;
+		double ddeltatdu = 1.0 / options->num_timesteps * dtotal_available_thrust_time_du;
 
 		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
 

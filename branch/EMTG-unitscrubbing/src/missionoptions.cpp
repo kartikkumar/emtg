@@ -921,13 +921,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "launch_window_open_date") {
-		this->launch_window_open_date = value;
+		this->launch_window_open_date = value * 86400.0;
 		return 0;
 	}
 	if (choice == "total_flight_time_bounds") {
-		this->total_flight_time_bounds[0] = value;
+		this->total_flight_time_bounds[0] = value * 86400.0;
 		inputfile >> value;
-		this->total_flight_time_bounds[1] = value;
+		this->total_flight_time_bounds[1] = value * 86400.0;
 		return 0;
 	}
 	if (choice == "DLA_bounds") {
@@ -955,12 +955,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "forced_post_launch_coast")
 	{
-		this->forced_post_launch_coast = value;
+		this->forced_post_launch_coast = value * 86400.0;
 		return 0;
 	}
 	if (choice == "forced_flyby_coast")
 	{
-		this->forced_flyby_coast = value;
+		this->forced_flyby_coast = value * 86400.0;
 		return 0;
 	}
 
@@ -977,11 +977,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_wait_time_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_wait_time_bounds.push_back(temp);
 		}
 		return 0;
@@ -990,11 +994,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_flight_time_bounds.push_back(temp);
 
 		for (int k=1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_flight_time_bounds.push_back(temp);
 		}
 		return 0;
@@ -1003,11 +1011,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_arrival_date_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_arrival_date_bounds.push_back(temp);
 		}
 		return 0;
@@ -1902,9 +1914,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#1: bounded total time (note that the global arrival date bound is by definition the same as the last journey's arrival date bound and is not duplicated" << endl;
 		outputfile << "global_timebounded " << this->global_timebounded << endl;
 		outputfile << "#MJD of the opening of the launch window" << endl;
-		outputfile << "launch_window_open_date " << this->launch_window_open_date << endl;
+		outputfile << "launch_window_open_date " << this->launch_window_open_date / 86400.0 << endl;
 		outputfile << "#total flight time bounds, in days" << endl;
-		outputfile << "total_flight_time_bounds " << this->total_flight_time_bounds[0] << " " << this->total_flight_time_bounds[1] << endl;
+		outputfile << "total_flight_time_bounds " << this->total_flight_time_bounds[0] / 86400.0 << " " << this->total_flight_time_bounds[1] / 86400.0  << endl;
 		outputfile << "#objective function type" << endl;
 		outputfile << "#0: minimum deltaV" << endl;
 		outputfile << "#1: minimum flight time" << endl;
@@ -1926,9 +1938,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#Initial V-Infinity vector (set to zeros unless starting the mission from periapse of a hyperbolic arrival)" << endl;
 		outputfile << "initial_V_infinity " << this->initial_V_infinity[0] << " " << this->initial_V_infinity[1] << " " << this->initial_V_infinity[2] << endl;
 		outputfile << "#Forced post-launch cost (in days, to be enforced after launch)" << endl;
-		outputfile << "forced_post_launch_coast " << this->forced_post_launch_coast << endl;
+		outputfile << "forced_post_launch_coast " << this->forced_post_launch_coast/86400.0 << endl;
 		outputfile << "#Forced post flyby/intercept coast (in days, to be enforced before/after each flyby/intercept)" << endl;
-		outputfile << "forced_flyby_coast " << this->forced_flyby_coast << endl;
+		outputfile << "forced_flyby_coast " << this->forced_flyby_coast/86400.0 << endl;
 		outputfile << endl;
 
 		outputfile << "##Settings for each journey" << endl;
@@ -1960,17 +1972,17 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#what are the wait time lower and upper bounds, in days, for each journey (two numbers per journey)" << endl;
 		outputfile << "journey_wait_time_bounds";
 			for (int j=0; j < this->number_of_journeys; ++j)
-				outputfile << " " << this->journey_wait_time_bounds[j][0] << " " << this->journey_wait_time_bounds[j][1];
+				outputfile << " " << this->journey_wait_time_bounds[j][0] / 86400.0  << " " << this->journey_wait_time_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the flight time bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)" << endl;
 		outputfile << "journey_flight_time_bounds";
 		for (int j = 0; j < this->number_of_journeys; ++j)
-			outputfile << " " << this->journey_flight_time_bounds[j][0] << " " << this->journey_flight_time_bounds[j][1];
+			outputfile << " " << this->journey_flight_time_bounds[j][0] / 86400.0  << " " << this->journey_flight_time_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the arrival date bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)" << endl;
 		outputfile << "journey_arrival_date_bounds";
 		for (int j = 0; j < this->number_of_journeys; ++j)
-			outputfile << " " << this->journey_arrival_date_bounds[j][0] << " " << this->journey_arrival_date_bounds[j][1];
+			outputfile << " " << this->journey_arrival_date_bounds[j][0] / 86400.0  << " " << this->journey_arrival_date_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the bounds on the initial impulse for each journey in km/s (two numbers per journey)" << endl;
 		outputfile << "#you can set a very high upper bound if you are using a launchy vehicle model - the optimizer will find the correct value" << endl;

@@ -361,9 +361,7 @@ namespace EMTG {
 				}
 
 				//Step 4.3 construct the post-spiral state
-				//Step 4.3.1 advance time
-				this->spiral_escape_time /= 86400.0;
-				*current_epoch += this->spiral_escape_time;
+				//Step 4.3.1 advance time not required since we are there already
 
 				//Step 4.3.2 find the position of the body at the new phase start time and store it in state_at_beginning_of_phase
 				this->locate_boundary_point(this->boundary1_location_code,
@@ -769,8 +767,7 @@ namespace EMTG {
 			}
 
 			//Step 4.3 construct the post-spiral state
-			//Step 4.3.1 advance time
-			this->spiral_capture_time /= 86400.0;
+			//Step 4.3.1 advance time (not required)
 
 			//Step 4.3.2 find the position of the body at the new phase start time and store it in spiral_capture_state_after_spiral
 			locate_boundary_point(boundary2_location_code, options->journey_departure_type[j], true, Universe, this->spiral_capture_state_after_spiral, current_state+3, *current_epoch + this->TOF + this->spiral_capture_time, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
@@ -2226,8 +2223,8 @@ namespace EMTG {
 		else
 			pseudoa2 = Universe->r_SOI / 5.0;
 
-		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu) / 86400;// pseudo-period of body 1 in days
-		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu) / 86400;// pseudo-period of body 2 in days
+		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu);// pseudo-period of body 1 in days
+		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu);// pseudo-period of body 2 in days
 	
 		double forced_coast_this_phase = 0.0;
 		if (p == 0 && j == 0)
@@ -2255,21 +2252,21 @@ namespace EMTG {
 			double lowerbound_temp = 0.1 * min(T1,T2);
 
 			lowerbound_temp = lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase;
-			Xlowerbounds->push_back(lowerbound_temp > 600.0 ? 600.0 : lowerbound_temp);
+			Xlowerbounds->push_back(lowerbound_temp > 600.0*86400.0 ? 600.0*86400.0 : lowerbound_temp);
 
 			if (max(pseudoa1,pseudoa2)/Universe->LU < 2.0) //outermost body is an inner body with a < 2 LU
-				Xupperbounds->push_back(2.0 * max(T1, T2) < 2500.0 ? 2500.0 : 2.0 * max(T1, T2));
+				Xupperbounds->push_back(2.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 2.0 * max(T1, T2));
 			 
 			else //outermost body is an outer body
-				Xupperbounds->push_back(1.0 * max(T1, T2) < 2500.0 ? 2500.0 : 1.0 * max(T1, T2));
+				Xupperbounds->push_back(1.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 1.0 * max(T1, T2));
 		}
 
 		Xdescriptions->push_back(prefix + "phase flight time");
 
 		//compute the synodic period of the boundary points, for use in the MBH synodic period perturbation
 		//these are "true" periods, not the pseudo-periods used for computing the bounds
-		T1 = 2*math::PI*sqrt(a1*a1*a1/Universe->mu) / 86400;
-		T2 = 2*math::PI*sqrt(a2*a2*a2/Universe->mu) / 86400;
+		T1 = 2*math::PI*sqrt(a1*a1*a1/Universe->mu);
+		T2 = 2*math::PI*sqrt(a2*a2*a2/Universe->mu);
 		synodic_periods->push_back(1.0 / (fabs(1.0/T1 - 1.0/T2)));
 	}
 

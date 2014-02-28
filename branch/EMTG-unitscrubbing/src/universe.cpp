@@ -126,6 +126,7 @@ namespace EMTG {namespace Astrodynamics {
 						inputfile >> temp_mass;
 						inputfile >> temp_radius;
 						inputfile >> temp_epoch;
+						temp_epoch *= 86400.0;
 
 						for (int k = 0; k < 6; ++k)
 						{
@@ -159,7 +160,7 @@ namespace EMTG {namespace Astrodynamics {
 		if (!(central_body_name.c_str() == "SUN"))
 		{
 			double LT_dump;
-			spkez_c (central_body_SPICE_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", 10, state, &LT_dump);
+			spkez_c (central_body_SPICE_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", 10, state, &LT_dump);
 		}
 		else
 		{

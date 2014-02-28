@@ -72,7 +72,7 @@ namespace EMTG {namespace Astrodynamics {
 			//first, check to see if the body exists in the currently loaded SPICE kernels
 			double temp_state[6];
 			double LT_dump;
-			spkez_c (spice_ID, unitim_c(reference_epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
+			spkez_c (spice_ID, reference_epoch - (51544.5 * 86400.0), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
 			if (failed_c())
 				reset_c();
 
@@ -102,15 +102,15 @@ namespace EMTG {namespace Astrodynamics {
 		{
 			case 1: //SPICE
 				double LT_dump;
-				spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", central_body_spice_ID, state, &LT_dump);
+				spkez_c (spice_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", central_body_spice_ID, state, &LT_dump);
 
 				if (need_deriv)
 				{
 					double statepert[6];
-					spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET") + (1.0 / 86400.0), "J2000", "NONE", central_body_spice_ID, statepert, &LT_dump);
-					state[6] = (statepert[3] - state[3]) / (1.0 / 86400.0);
-					state[7] = (statepert[4] - state[4]) / (1.0 / 86400.0);
-					state[8] = (statepert[5] - state[5]) / (1.0 / 86400.0);
+					spkez_c (spice_ID, epoch - (51544.5 * 86400.0) + 1.0, "J2000", "NONE", central_body_spice_ID, statepert, &LT_dump);
+					state[6] = (statepert[3] - state[3]) / (1.0);
+					state[7] = (statepert[4] - state[4]) / (1.0);
+					state[8] = (statepert[5] - state[5]) / (1.0);
 				}
 
 				break;
@@ -118,7 +118,7 @@ namespace EMTG {namespace Astrodynamics {
 					//TODO static ephemeris is not ready!
 					//note, always should give in Earth equatorial J2000 coordinates for internal processing
 
-					DT = ( epoch - reference_epoch ) * 86400;
+					DT = ( epoch - reference_epoch );
 					
 
 					if (SMA > 0.0)

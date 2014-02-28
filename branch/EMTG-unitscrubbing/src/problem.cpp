@@ -64,6 +64,15 @@ namespace EMTG {
 		{
 		case 0: //run trialX
 			{
+				//first convert the local copy of trialX from days to seconds
+				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				{
+					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+					{
+						this->options.current_trialX[entry] *= 86400.0;
+					}
+				}
+
 				this->Xopt = options.current_trialX;
 
 				this->evaluate(&this->Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
@@ -87,7 +96,17 @@ namespace EMTG {
 				EMTG::Solvers::MBH solver(this);
 
 				if (options.seed_MBH)
+				{
+					//first convert the local copy of trialX from days to seconds
+					for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+					{
+						if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+						{
+							this->options.current_trialX[entry] *= 86400.0;
+						}
+					}
 					solver.seed(options.current_trialX);
+				}
 
 				this->number_of_solutions = solver.run();
 			
@@ -138,6 +157,15 @@ namespace EMTG {
 				}
 
 				EMTG::Solvers::MBH solver(this);
+
+				//first convert the local copy of trialX from days to seconds
+				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				{
+					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+					{
+						this->options.current_trialX[entry] *= 86400.0;
+					}
+				}
 
 				solver.seed(options.current_trialX);
 
