@@ -66,6 +66,7 @@ class MissionOptions(object):
     initial_guess_num_timesteps = 10
     initial_guess_step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     initial_guess_step_size_stdv_or_scale = 1.0
+    MBH_zero_control_initial_guess = 1
 
     #problem settings set by the user
 
@@ -391,7 +392,8 @@ class MissionOptions(object):
                         self.initial_guess_step_size_distribution = int(linecell[1])
                     elif choice ==  "initial_guess_step_size_stdv_or_scale":
                         self.initial_guess_step_size_stdv_or_scale = float(linecell[1])		
-
+                    elif choice == "MBH_zero_control_initial_guess":
+                        self.MBH_zero_control_initial_guess = int(linecell[1])
 
                     #problem settings set by the user
                     elif choice ==  "ephemeris_source":
@@ -788,7 +790,8 @@ class MissionOptions(object):
         outputfile.write("#0: finite difference\n")
         outputfile.write("#1: analytical flybys and objective function but finite difference the patch points\n")
         outputfile.write("#2: all but time derivatives\n")
-        outputfile.write("#3: fully analytical\n")
+        outputfile.write("#3: all but current phase flight time derivatives\n")
+        outputfile.write("#4: fully analytical (experimental)\n")
         outputfile.write("derivative_type " + str(self.derivative_type) + "\n")
         outputfile.write("#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.\n")
         outputfile.write("seed_MBH " + str(self.seed_MBH) + "\n")
@@ -804,6 +807,11 @@ class MissionOptions(object):
         outputfile.write("initial_guess_step_size_distribution " + str(self.initial_guess_step_size_distribution) + "\n")
         outputfile.write("#What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess\n")
         outputfile.write("initial_guess_step_size_stdv_or_scale " + str(self.initial_guess_step_size_stdv_or_scale) + "\n")
+        outputfile.write("#Apply zero-control initial guess in MBH?\n")
+        outputfile.write("#0: do not use\n")
+        outputfile.write("#1: zero-control for resets, random perturbations for hops\n")
+        outputfile.write("#2: always use zero-control guess except when seeded<int MBH_zero_control_initial_guess\n")
+        outputfile.write("MBH_zero_control_initial_guess " + str(self.MBH_zero_control_initial_guess) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##low-thrust solver parameters\n")	
@@ -1464,6 +1472,7 @@ class MissionOptions(object):
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(False)
 
         optionsnotebook.tabGlobal.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
     def update_journey_options_panel(self, optionsnotebook):
         optionsnotebook.tabJourney.Journeylist = []
@@ -2001,6 +2010,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.btnjourney_perturbation_bodies.Show(False)
 
         optionsnotebook.tabJourney.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
     def update_spacecraft_options_panel(self, optionsnotebook):
         optionsnotebook.tabSpacecraft.txtmaximum_mass.SetValue(str(self.maximum_mass))
@@ -2519,6 +2529,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabSpacecraft.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
 
 
@@ -2548,6 +2559,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.SetValue(str(self.initial_guess_num_timesteps))
         optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.SetSelection(self.initial_guess_step_size_distribution)
         optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.SetValue(str(self.initial_guess_step_size_stdv_or_scale))
+        optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.SetSelection(self.MBH_zero_control_initial_guess)
         optionsnotebook.tabSolver.txttrialX.SetValue(str(self.trialX))
         
         if self.run_inner_loop == 0: #trialX
@@ -2588,6 +2600,9 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
 
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
         elif self.run_inner_loop == 1: #batch trialX
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.lblMBH_max_trials.Show(False)
@@ -2625,6 +2640,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
             
         elif self.run_inner_loop == 2: #MBH
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(True)
@@ -2660,6 +2678,9 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(True)
             optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(True)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(True)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(True)
 
             #change the available parameters and labels based on which distribution is selected
             if self.MBH_hop_distribution == 0: #uniform
@@ -2716,6 +2737,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
             
         elif self.run_inner_loop == 4: #SNOPT
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
@@ -2754,6 +2778,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
             
         if (self.run_inner_loop == 2 and self.seed_MBH == 1) or (self.run_inner_loop == 4):
             optionsnotebook.tabSolver.lblinterpolate_initial_guess.Show(True)
@@ -2862,6 +2889,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
 
     def update_physics_options_panel(self, optionsnotebook):
@@ -2890,6 +2918,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabPhysics.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
 
     def update_output_options_panel(self, optionsnotebook):

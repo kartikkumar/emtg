@@ -79,6 +79,7 @@ public:
 
 	//helper arrays
 	vector<int> time_variable_indices;
+	vector<int> significant_variable_indices;
 
 	//counters
 	int number_of_solutions; //how many feasible solutions found so far

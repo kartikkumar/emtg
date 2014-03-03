@@ -604,6 +604,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_num_timesteps)
         self.optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.Bind(wx.EVT_COMBOBOX, self.Changeinitial_guess_step_size_distribution)
         self.optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_step_size_stdv_or_scale)
+        self.optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Bind(wx.EVT_COMBOBOX, self.ChangeMBH_zero_control_initial_guess)
         
         self.optionsnotebook.tabSolver.chkrun_outerloop.Bind(wx.EVT_CHECKBOX,self.Changerun_outerloop)
         self.optionsnotebook.tabSolver.txtouterloop_popsize.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_popsize)
@@ -1484,6 +1485,10 @@ class PyEMTG_interface(wx.Frame):
         
     def Changeinitial_guess_step_size_stdv_or_scale(self, e):
         self.missionoptions.initial_guess_step_size_stdv_or_scale = eval(self.optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+    
+    def ChangeMBH_zero_control_initial_guess(self, e):
+        self.missionoptions.MBH_zero_control_initial_guess = self.optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.GetSelection()
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changerun_outerloop(self, e):

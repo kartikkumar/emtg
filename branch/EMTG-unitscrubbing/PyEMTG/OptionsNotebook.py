@@ -666,7 +666,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
-        innerloopgrid = wx.GridSizer(22,2,5,5)
+        innerloopgrid = wx.GridSizer(23,2,5,5)
         
         self.lblInnerLoopSolver = wx.StaticText(self, -1, "Inner-loop Solver Mode")
         innerloopsolvertypes = ['Evaluate trialX', 'Evaluate a batch of trialX vectors','Monotonic Basin Hopping',
@@ -719,7 +719,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtsnopt_max_run_time = wx.TextCtrl(self, -1, "snopt_max_run_time")
         
         self.lblderivative_type = wx.StaticText(self, -1, "Maximum number of innerloop trials")
-        derivativechoices = ["Finite Differencing","Analytical flybys and objective function","Analytical all but time","Fully analytical (experimental)"]
+        derivativechoices = ["Finite Differencing","Analytical flybys and objective function","Analytical all but time","All but current phase flight time derivatives","Fully analytical (experimental)"]
         self.cmbderivative_type = wx.ComboBox(self, -1, choices = derivativechoices, style = wx.CB_READONLY)
         
         self.lblcheck_derivatives = wx.StaticText(self, -1, "Check derivatives via finite differencing?")
@@ -740,6 +740,10 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lblinitial_guess_step_size_stdv_or_scale = wx.StaticText(self, -1, "Initial guess scale width/standard deviation")
         self.txtinitial_guess_step_size_stdv_or_scale = wx.TextCtrl(self, -1, "initial_guess_step_size_stdv_or_scale")
+
+        self.lblMBH_zero_control_initial_guess = wx.StaticText(self, -1, "Zero-control initial guess")
+        MBH_zero_control_initial_guess_options = ['do not use','zero-control for resets, random perturbations for hops','always use zero-control guess except when seeded']
+        self.cmbMBH_zero_control_initial_guess = wx.ComboBox(self, -1, choices = MBH_zero_control_initial_guess_options, style=wx.CB_READONLY)
                 
         innerloopgrid.AddMany(  [self.lblInnerLoopSolver, self.cmbInnerLoopSolver,
                                  self.lblNLP_solver_type, self.cmbNLP_solver_type,
@@ -762,7 +766,8 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblinterpolate_initial_guess, self.chkinterpolate_initial_guess,
                                 self.lblinitial_guess_num_timesteps, self.txtinitial_guess_num_timesteps,
                                 self.lblinitial_guess_step_size_distribution, self.cmbinitial_guess_step_size_distribution,
-                                self.lblinitial_guess_step_size_stdv_or_scale, self.txtinitial_guess_step_size_stdv_or_scale])
+                                self.lblinitial_guess_step_size_stdv_or_scale, self.txtinitial_guess_step_size_stdv_or_scale,
+                                self.lblMBH_zero_control_initial_guess, self.cmbMBH_zero_control_initial_guess])
                                 
         outerloopgrid = wx.GridSizer(11,2,0,0)
         
@@ -796,8 +801,8 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblouterloop_elitecount = wx.StaticText(self, -1, "Number of elite individuals")
         self.txtouterloop_elitecount = wx.TextCtrl(self, -1, "outerloop_elitecount")
                 
-        #self.lblouterloop_useparallel = wx.StaticText(self, -1, "Run outer-loop GA in parallel?")
-        #self.chkouterloop_useparallel = wx.CheckBox(self, -1)
+        self.lblouterloop_useparallel = wx.StaticText(self, -1, "Run outer-loop GA in parallel?")
+        self.chkouterloop_useparallel = wx.CheckBox(self, -1)
         
         self.lblouterloop_warmstart = wx.StaticText(self, -1, "Warm-start the outer-loop?")
         self.txtouterloop_warmstart = wx.TextCtrl(self, -1, "outerloop_warmstart")

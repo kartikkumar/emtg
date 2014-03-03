@@ -44,6 +44,7 @@ missionoptions::missionoptions() {
 	this->MBH_time_hop_probability = 0.2;
 	this->interpolate_initial_guess = false;
 	this->seed_MBH = false;
+	this->MBH_zero_control_initial_guess = 1;
 	this->AU = 1.49597870691e+8;
 	this->snopt_max_run_time = 3600;
 	this->power_decay_rate = 0.0;
@@ -86,6 +87,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->MBH_time_hop_probability = 0.1;
 	this->interpolate_initial_guess = false;
 	this->seed_MBH = false;
+	this->MBH_zero_control_initial_guess = 1;
 	this->AU = 1.49597870691e+8;
 	this->snopt_max_run_time = 3600;
 	this->power_decay_rate = 0.0;
@@ -395,6 +397,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "initial_guess_step_size_stdv_or_scale") {
 		this->initial_guess_step_size_stdv_or_scale = value;
+		return 0;
+	}
+	if (choice == "MBH_zero_control_initial_guess") {
+		this->MBH_zero_control_initial_guess = (int) value;
 		return 0;
 	}
 				
@@ -1676,7 +1682,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: finite difference" << endl;
 		outputfile << "#1: analytical flybys and objective function but finite difference the patch points" << endl;
 		outputfile << "#2: all but time derivatives" << endl;
-		outputfile << "#3: fully analytical" << endl;
+		outputfile << "#3: all but current phase flight time derivatives" << endl;
+		outputfile << "#4: fully analytical (experimental)" << endl;
 		outputfile << "derivative_type " << this->derivative_type << endl;
 		outputfile << "#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point." << endl;
 		outputfile << "seed_MBH " << this->seed_MBH << endl;
@@ -1692,6 +1699,11 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "initial_guess_step_size_distribution " << this->initial_guess_step_size_distribution << endl;
         outputfile << "#What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess" << endl;
         outputfile << "initial_guess_step_size_stdv_or_scale " << this->initial_guess_step_size_stdv_or_scale << endl;
+		outputfile << "#Apply zero-control initial guess in MBH?" << endl;
+		outputfile << "#0: do not use" << endl;
+		outputfile << "#1: zero-control for resets, random perturbations for hops" << endl;
+		outputfile << "#2: always use zero-control guess except when seeded" << endl;
+		outputfile << "MBH_zero_control_initial_guess " << this->MBH_zero_control_initial_guess << endl;
         outputfile << endl;
 
 		outputfile << "##low-thrust solver parameters" << endl;

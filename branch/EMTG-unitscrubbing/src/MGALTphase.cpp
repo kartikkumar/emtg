@@ -2167,53 +2167,56 @@ namespace EMTG {
 					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 				}
 			}
-
+			
 			//the following derivatives are for the current phase flight time ONLY
-			dtdu = 1.0; //time varies directly with time variables (obviously)
-			dtotal_available_thrust_time_du = this->total_available_thrust_time / this->TOF;
-			 
-			dxdu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[0] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction_Forward[0];
-			dydu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[1] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction_Forward[0];
-			dzdu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[2] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction_Forward[0];
-			dxdotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[0] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction_Forward[0];
-			dydotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[1] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction_Forward[0];
-			dzdotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[2] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction_Forward[0];
-
-			dmdu = 0.0;
-			dPdu = 0.0;
-
-			//loop over later steps
-			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
+			if (options->derivative_type > 3)
 			{
-				calculate_match_point_forward_propagation_derivatives(	G,
-																		Gindex,
-																		j, 
-																		p,
-																		options, 
-																		Universe,
-																		0,
-																		stepnext,
-																		dxdu,
-																		dydu,
-																		dzdu,
-																		dxdotdu,
-																		dydotdu,
-																		dzdotdu,
-																		dmdu,
-																		dtdu,
-																		dtotal_available_thrust_time_du,
-																		dPdu);
-			} //end loop over later steps
+				dtdu = 1.0; //time varies directly with time variables (obviously)
+				dtotal_available_thrust_time_du = 1.0;
+			 
+				dxdu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[0] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction_Forward[0];
+				dydu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[1] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction_Forward[0];
+				dzdu = (this->Kepler_Fdot_Forward[0] * this->state_at_beginning_of_phase[2] + this->Kepler_Gdot_Forward[0] * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction_Forward[0];
+				dxdotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[0] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction_Forward[0];
+				dydotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[1] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction_Forward[0];
+				dzdotdu = (this->Kepler_Fdotdot_Forward[0] * this->state_at_beginning_of_phase[2] + this->Kepler_Gdotdot_Forward[0] * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction_Forward[0];
 
-			//place the derivatives in the Jacobian
-			int timevar = (p == 0) ? 1 : 0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				dmdu = 0.0;
+				dPdu = 0.0;
+
+				//loop over later steps
+				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
+				{
+					calculate_match_point_forward_propagation_derivatives(	G,
+																			Gindex,
+																			j, 
+																			p,
+																			options, 
+																			Universe,
+																			0,
+																			stepnext,
+																			dxdu,
+																			dydu,
+																			dzdu,
+																			dxdotdu,
+																			dydotdu,
+																			dzdotdu,
+																			dmdu,
+																			dtdu,
+																			dtotal_available_thrust_time_du,
+																			dPdu);
+				} //end loop over later steps
+
+				//place the derivatives in the Jacobian
+				int timevar = (p == 0) ? 1 : 0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+			}
 		}
 	
 		//compute and store the backward derivatives of the match point constraints with respect to the control unit vector
@@ -2458,63 +2461,66 @@ namespace EMTG {
 			}
 
 			//the following derivatives are for the current phase flight time
-			dtdu = -1.0; //time varies directly with time variables (obviously)
-			dtotal_available_thrust_time_du = this->total_available_thrust_time / this->TOF;
-
-			dxdu = Backward_STM[0](0,0) * dxdt + Backward_STM[0](0,1) * dydt + Backward_STM[0](0,2) * dzdt 
-				+ Backward_STM[0](0,3) * dxdotdt + Backward_STM[0](0,4) * dydotdt + Backward_STM[0](0,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-			dydu = Backward_STM[0](1,0) * dxdt + Backward_STM[0](1,1) * dydt + Backward_STM[0](1,2) * dzdt 
-				+ Backward_STM[0](1,3) * dxdotdt + Backward_STM[0](1,4) * dydotdt + Backward_STM[0](1,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-			dzdu = Backward_STM[0](2,0) * dxdt + Backward_STM[0](2,1) * dydt + Backward_STM[0](2,2) * dzdt 
-				+ Backward_STM[0](2,3) * dxdotdt + Backward_STM[0](2,4) * dydotdt + Backward_STM[0](2,5) * dzdotdt
-				+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-			dxdotdu = Backward_STM[0](3,0) * dxdt + Backward_STM[0](3,1) * dydt + Backward_STM[0](3,2) * dzdt 
-				+ Backward_STM[0](3,3) * dxdotdt + Backward_STM[0](3,4) * dydotdt + Backward_STM[0](3,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-			dydotdu = Backward_STM[0](4,0) * dxdt + Backward_STM[0](4,1) * dydt + Backward_STM[0](4,2) * dzdt 
-				+ Backward_STM[0](4,3) * dxdotdt + Backward_STM[0](4,4) * dydotdt + Backward_STM[0](4,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-			dzdotdu = Backward_STM[0](5,0) * dxdt + Backward_STM[0](5,1) * dydt + Backward_STM[0](5,2) * dzdt 
-				+ Backward_STM[0](5,3) * dxdotdt + Backward_STM[0](5,4) * dydotdt + Backward_STM[0](5,5) * dzdotdt
-				+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
-
-			dmdu = 0.0;
-			dPdu = 0.0;
-
-			//loop over later steps
-			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
+			if (options->derivative_type > 3)
 			{
-				calculate_match_point_backward_propagation_derivatives(	G,
-																		Gindex,
-																		j, 
-																		p,
-																		options, 
-																		Universe,
-																		0,
-																		stepnext,
-																		dxdu,
-																		dydu,
-																		dzdu,
-																		dxdotdu,
-																		dydotdu,
-																		dzdotdu,
-																		dmdu,
-																		dtdu,
-																		dtotal_available_thrust_time_du,
-																		dPdu);
-			} //end loop over later steps
+				dtdu = -1.0; //time varies directly with time variables (obviously)
+				dtotal_available_thrust_time_du = 1.0;
 
-			//place the derivatives in the Jacobian
-			int timevar = (p == 0) ? 1 : 0;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
-			G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				dxdu = Backward_STM[0](0,0) * dxdt + Backward_STM[0](0,1) * dydt + Backward_STM[0](0,2) * dzdt 
+					+ Backward_STM[0](0,3) * dxdotdt + Backward_STM[0](0,4) * dydotdt + Backward_STM[0](0,5) * dzdotdt
+					+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+				dydu = Backward_STM[0](1,0) * dxdt + Backward_STM[0](1,1) * dydt + Backward_STM[0](1,2) * dzdt 
+					+ Backward_STM[0](1,3) * dxdotdt + Backward_STM[0](1,4) * dydotdt + Backward_STM[0](1,5) * dzdotdt
+					+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+				dzdu = Backward_STM[0](2,0) * dxdt + Backward_STM[0](2,1) * dydt + Backward_STM[0](2,2) * dzdt 
+					+ Backward_STM[0](2,3) * dxdotdt + Backward_STM[0](2,4) * dydotdt + Backward_STM[0](2,5) * dzdotdt
+					+ (this->Kepler_Fdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+				dxdotdu = Backward_STM[0](3,0) * dxdt + Backward_STM[0](3,1) * dydt + Backward_STM[0](3,2) * dzdt 
+					+ Backward_STM[0](3,3) * dxdotdt + Backward_STM[0](3,4) * dydotdt + Backward_STM[0](3,5) * dzdotdt
+					+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[0] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[3]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+				dydotdu = Backward_STM[0](4,0) * dxdt + Backward_STM[0](4,1) * dydt + Backward_STM[0](4,2) * dzdt 
+					+ Backward_STM[0](4,3) * dxdotdt + Backward_STM[0](4,4) * dydotdt + Backward_STM[0](4,5) * dzdotdt
+					+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[1] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[4]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+				dzdotdu = Backward_STM[0](5,0) * dxdt + Backward_STM[0](5,1) * dydt + Backward_STM[0](5,2) * dzdt 
+					+ Backward_STM[0](5,3) * dxdotdt + Backward_STM[0](5,4) * dydotdt + Backward_STM[0](5,5) * dzdotdt
+					+ (this->Kepler_Fdotdot_Backward[0] * this->state_at_end_of_phase[2] + this->Kepler_Gdotdot_Backward[0] * this->state_at_end_of_phase[5]) * this->Propagation_Step_Time_Fraction_Backward[0] * dtdu;
+
+				dmdu = 0.0;
+				dPdu = 0.0;
+
+				//loop over later steps
+				for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
+				{
+					calculate_match_point_backward_propagation_derivatives(	G,
+																			Gindex,
+																			j, 
+																			p,
+																			options, 
+																			Universe,
+																			0,
+																			stepnext,
+																			dxdu,
+																			dydu,
+																			dzdu,
+																			dxdotdu,
+																			dydotdu,
+																			dzdotdu,
+																			dmdu,
+																			dtdu,
+																			dtotal_available_thrust_time_du,
+																			dPdu);
+				} //end loop over later steps
+
+				//place the derivatives in the Jacobian
+				int timevar = (p == 0) ? 1 : 0;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[1][timevar]]] * dydu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[2][timevar]]] * dzdu / Universe->LU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[3][timevar]]] * dxdotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[4][timevar]]] * dydotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[5][timevar]]] * dzdotdu / Universe->LU * Universe->TU;
+				G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[6][timevar]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+			}
 		}
 
 		
@@ -2622,15 +2628,27 @@ namespace EMTG {
 		double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
 		double drdt = (x*vx + y*vy + z*vz) / r;
 
-		//evaluate the time derivatives only when dtdu is nonzero, i.e. if u is a time variable
+		//evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
 		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			dxdt = this->Kepler_Fdot_Forward[stepnext] * x + this->Kepler_Gdot_Forward[stepnext] * vx;
-			dydt = this->Kepler_Fdot_Forward[stepnext] * y + this->Kepler_Gdot_Forward[stepnext] * vy;
-			dzdt = this->Kepler_Fdot_Forward[stepnext] * z + this->Kepler_Gdot_Forward[stepnext] * vz;
-			dxdotdt = this->Kepler_Fdotdot_Forward[stepnext] * x + this->Kepler_Gdotdot_Forward[stepnext] * vx;
-			dydotdt = this->Kepler_Fdotdot_Forward[stepnext] * y + this->Kepler_Gdotdot_Forward[stepnext] * vy;
-			dzdotdt = this->Kepler_Fdotdot_Forward[stepnext] * z + this->Kepler_Gdotdot_Forward[stepnext] * vz;
+			//double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			//double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			//double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			//double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			//double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			//double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			dxdt = this->Kepler_Fdot_Forward[stepnext] * x// + this->Kepler_F_Forward[stepnext] * dx_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vx;// + this->Kepler_G_Forward[stepnext] * dvx_ddeltatprop;
+			dydt = this->Kepler_Fdot_Forward[stepnext] * y// + this->Kepler_F_Forward[stepnext] * dy_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vy;// + this->Kepler_G_Forward[stepnext] * dvy_ddeltatprop;
+			dzdt = this->Kepler_Fdot_Forward[stepnext] * z// + this->Kepler_F_Forward[stepnext] * dz_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vz;// + this->Kepler_G_Forward[stepnext] * dvz_ddeltatprop;
+			dxdotdt = this->Kepler_Fdotdot_Forward[stepnext] * x// + this->Kepler_Fdot_Forward[stepnext] * dx_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vx;// + this->Kepler_Gdot_Forward[stepnext] * dvx_ddeltatprop;
+			dydotdt = this->Kepler_Fdotdot_Forward[stepnext] * y// + this->Kepler_Fdot_Forward[stepnext] * dy_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vy;// + this->Kepler_Gdot_Forward[stepnext] * dvy_ddeltatprop;
+			dzdotdt = this->Kepler_Fdotdot_Forward[stepnext] * z// + this->Kepler_Fdot_Forward[stepnext] * dz_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vz;// + this->Kepler_Gdot_Forward[stepnext] * dvz_ddeltatprop;
 		}
 		else
 		{
@@ -2736,15 +2754,27 @@ namespace EMTG {
 		double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
 		double drdt = (x*vx + y*vy + z*vz) / r;
 
-		//evaluate the time derivatives only when dtdu is nonzero, i.e. if u is a time variable
+		//evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
 		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			dxdt = (this->Kepler_Fdot_Backward[stepnext+1] * x + this->Kepler_Gdot_Backward[stepnext+1] * vx);
-			dydt = (this->Kepler_Fdot_Backward[stepnext+1] * y + this->Kepler_Gdot_Backward[stepnext+1] * vy);
-			dzdt = (this->Kepler_Fdot_Backward[stepnext+1] * z + this->Kepler_Gdot_Backward[stepnext+1] * vz);
-			dxdotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * x + this->Kepler_Gdotdot_Backward[stepnext+1] * vx);
-			dydotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * y + this->Kepler_Gdotdot_Backward[stepnext+1] * vy);
-			dzdotdt = (this->Kepler_Fdotdot_Backward[stepnext+1] * z + this->Kepler_Gdotdot_Backward[stepnext+1] * vz);
+			//double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			//double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			//double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			//double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			//double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			//double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			dxdt = this->Kepler_Fdot_Backward[stepnext+1] * x// + this->Kepler_F_Backward[stepnext+1] * dx_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vx;// + this->Kepler_G_Backward[stepnext+1] * dvx_ddeltatprop);
+			dydt = this->Kepler_Fdot_Backward[stepnext+1] * y// + this->Kepler_F_Backward[stepnext+1] * dy_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vy;// + this->Kepler_G_Backward[stepnext+1] * dvy_ddeltatprop);
+			dzdt = this->Kepler_Fdot_Backward[stepnext+1] * z// + this->Kepler_F_Backward[stepnext+1] * dz_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vz;// + this->Kepler_G_Backward[stepnext+1] * dvz_ddeltatprop);
+			dxdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * x// + this->Kepler_Fdot_Backward[stepnext+1] * dx_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vx;// + this->Kepler_Gdot_Backward[stepnext+1] * dvx_ddeltatprop);
+			dydotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * y// + this->Kepler_Fdot_Backward[stepnext+1] * dy_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vy;// + this->Kepler_Gdot_Backward[stepnext+1] * dvy_ddeltatprop);
+			dzdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * z// + this->Kepler_Fdot_Backward[stepnext+1] * dz_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vz;// + this->Kepler_Gdot_Backward[stepnext+1] * dvz_ddeltatprop);
 		}
 		else
 		{

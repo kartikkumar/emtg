@@ -158,6 +158,16 @@ namespace EMTG { namespace Solvers {
 					this->time_variable_indices.push_back(entry);
 				}
 		}
+
+		//search through the problem object and identify which decision variables are significant (i.e. non-control)
+		if (Problem->options.MBH_time_hop_probability > 0.0)
+		{
+			for (int entry = 0; entry < Problem->total_number_of_NLP_parameters; ++entry)
+				if ( !(Problem->Xdescriptions[entry].find("u_x") < 1024 || Problem->Xdescriptions[entry].find("u_y") < 1024 || Problem->Xdescriptions[entry].find("u_z") < 1024 || Problem->Xdescriptions[entry].find("Isp") < 1024) )
+				{
+					this->significant_variable_indices.push_back(entry);
+				}
+		}
 	}
 
 	//destructor
@@ -244,8 +254,18 @@ namespace EMTG { namespace Solvers {
 		++this->number_of_resets;
 
 		//generate a new random trial point
-		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
-			this->Xtrial_scaled[k] = DoubleDistribution(RNG);
+		if (Problem->options.MBH_zero_control_initial_guess > 0)
+		{
+			for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+				this->Xtrial_scaled[k] = 0.5;
+			for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				this->Xtrial_scaled[this->significant_variable_indices[sigk]] = DoubleDistribution(RNG);
+		}
+		else
+		{
+			for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+				this->Xtrial_scaled[k] = DoubleDistribution(RNG);
+		}
 
 		fcurrent = EMTG::math::LARGE;
 
@@ -279,52 +299,104 @@ namespace EMTG { namespace Solvers {
 		if (Problem->options.MBH_hop_distribution == 0)
 		{
 			//perform a uniform "hop"
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				double r = DoubleDistribution(RNG);
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					double r = DoubleDistribution(RNG);
 
-				step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
+					step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					double r = DoubleDistribution(RNG);
+
+					step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 1)
 		{
 			//perform a Cauchy "hop"
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				///double r = DoubleDistribution(RNG);
-				//int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
 
-				//step_size = s * Problem->options.MBH_max_step_size * 1.0/(EMTG::math::PI*(1.0 + r*r));
+					double r = 0.0;
 
-				//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
+					while (r < math::SMALL)
+						r = DoubleDistribution(RNG);
 
-				double r = 0.0;
+					step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
 
-				while (r < math::SMALL)
-					r = DoubleDistribution(RNG);
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
 
-				step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
+					double r = 0.0;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					while (r < math::SMALL)
+						r = DoubleDistribution(RNG);
+
+					step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 2)
 		{
 			double alpha = Problem->options.MBH_Pareto_alpha;
 			//perform a Pareto hop
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
 
-				//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
-				double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
-				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+					//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
+					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
 
-				step_size = s * Problem->options.MBH_max_step_size * r;
+					step_size = s * Problem->options.MBH_max_step_size * r;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
+
+					//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
+					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+
+					step_size = s * Problem->options.MBH_max_step_size * r;
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 3)
@@ -332,14 +404,31 @@ namespace EMTG { namespace Solvers {
 			//perform a Gaussian hop
 			double sigma = Problem->options.MBH_max_step_size;
 			double sigma2 = sigma * sigma;
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				double r = DoubleDistribution(RNG);
-				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					double r = DoubleDistribution(RNG);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
 
-				step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
+					step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+				{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					double r = DoubleDistribution(RNG);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+
+					step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 
@@ -523,7 +612,7 @@ namespace EMTG { namespace Solvers {
 			new_point = false;
 		}
 
-		int number_of_attempts = true;
+		int number_of_attempts = 1;
 		bool continue_flag = true;
 
 		//print the archive header
@@ -538,18 +627,21 @@ namespace EMTG { namespace Solvers {
 			if (new_point)
 			{
 				//Step 1: generate a random new point
-				reset_point();
+				this->reset_point();
 
-				number_of_failures_since_last_improvement = 0;
+				this->number_of_failures_since_last_improvement = 0;
 			}
 			else if (!seeded_step)
 			{
 				//Step 1 (alternate): perturb the existing point
-				hop();
+				this->hop();
 
 				if (Problem->options.MBH_time_hop_probability > 0.0)
-					time_hop();
+					this->time_hop();
 			}
+			
+			//if seeding MBH, only the first step runs from the seed. After that hopping occurs.
+			seeded_step = false;
 
 			//Step 2: apply the slide operator
 			//Step 2.1: If this is an MGA or MGA-DSM problem, make the finite differencing step coarse
@@ -717,7 +809,14 @@ namespace EMTG { namespace Solvers {
 
 		//archive lines
 		for (int entry = 0; entry < Problem->total_number_of_NLP_parameters; ++entry)
-			outputfile << archive[linenumber][entry] << ",";
+		{
+			if (this->Problem->Xdescriptions[entry].find("epoch") < 1024 || this->Problem->Xdescriptions[entry].find("time") < 1024)
+			{
+				outputfile << this->archive[linenumber][entry] / 86400.0 << ",";
+			}
+			else
+				outputfile << this->archive[linenumber][entry] << ",";
+		}
 		outputfile << archive_reset_count[linenumber] << ",";
 		outputfile << archive_step_count[linenumber] << ",";
 		outputfile << archive_timestamps[linenumber] << ",";

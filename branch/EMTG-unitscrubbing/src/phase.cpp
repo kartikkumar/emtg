@@ -1950,6 +1950,20 @@ namespace EMTG {
 					//First, we have outgoing velocity
 					Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);
 					Xupperbounds->push_back(options->journey_initial_impulse_bounds[j][1]);
+
+					//make sure that if we are launching on a rocket that the maximum C3 does not exceed that of the rocket
+					if (j == 0 && options->journey_departure_type[0] == 0)
+					{
+						double C3max = 100.0;
+						double C3max_LV[] = {35,50,40,60,60,60,60,60,60,60,60,60,200,0,100,0};
+						if (options->LV_type > 0)
+							C3max = C3max_LV[options->LV_type - 1];
+						else if (options->LV_type == -2)
+							C3max = options->custom_LV_C3_bounds[1];
+
+						if (Xupperbounds->back() > sqrt(C3max))
+							Xupperbounds->back() = sqrt(C3max);
+					}
 					Xdescriptions->push_back(prefix + "magnitude of outgoing velocity asymptote");
 
 					//then we have the angles defining the departure asymptote
