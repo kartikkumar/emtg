@@ -34,7 +34,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		
 		double ForceVector[3];
 		double spacecraft_state[6];
-		double epoch = t / 86400 * Universe->TU;
+		double epoch = t * Universe->TU;
 		double launch_epoch = t0;
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
@@ -84,7 +84,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										dagravdtvec);
 
 		for (int k = 0; k < 3; ++k)
-			ForceVector[k] /= ( 1000.0 * (Universe->LU / (Universe->TU * Universe->TU)) );
+			ForceVector[k] /= ( (Universe->LU / (Universe->TU * Universe->TU)) );
 
 		//convert mdot from kg/s to SpacecraftMassUnits/TU
 		*mdot *= Universe->TU / options->maximum_mass;
@@ -134,7 +134,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		double mu = 1;
 		
 		double ForceVector[3];
-		double epoch = x[7]*Universe->TU / 86400;
+		double epoch = x[7]*Universe->TU;
 		double launch_epoch = t0;
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
@@ -174,7 +174,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										dagravdtvec);
 
 		for (int k = 0; k < 3; ++k)
-			ForceVector[k] /= 1000.0 * (Universe->LU / (Universe->TU * Universe->TU));
+			ForceVector[k] /= (Universe->LU / (Universe->TU * Universe->TU));
 
 		//convert mdot from kg/s to SpacecraftMassUnits/TU
 		*mdot *= Universe->TU / options->maximum_mass;

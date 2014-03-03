@@ -104,7 +104,7 @@ namespace GeneticAlgorithm
 		}
 		if (options.outerloop_vary_launch_epoch && options.outerloop_launch_epoch_choices.size() > 1)
 		{
-			options.launch_window_open_date = options.outerloop_launch_epoch_choices[X[Xindex]];
+			options.launch_window_open_date = options.outerloop_launch_epoch_choices[X[Xindex]] * 86400.0;
 			++Xindex;
 			descriptionstream << "_LD" << (int) options.launch_window_open_date;
 		}
@@ -113,7 +113,7 @@ namespace GeneticAlgorithm
 			options.total_flight_time_bounds[1] = options.outerloop_flight_time_upper_bound_choices[X[Xindex]];
 
 			if (X[Xindex] > 0)
-				options.total_flight_time_bounds[0] = options.outerloop_flight_time_upper_bound_choices[X[Xindex] - 1];
+				options.total_flight_time_bounds[0] = options.outerloop_flight_time_upper_bound_choices[X[Xindex] - 1] * 86400.0;
 			else
 				options.total_flight_time_bounds[0] = 0.0;
 

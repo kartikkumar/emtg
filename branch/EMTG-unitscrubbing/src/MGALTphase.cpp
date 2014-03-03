@@ -1257,7 +1257,7 @@ namespace EMTG {
 				current_thrust =  available_thrust[step] * 1000.0; //kN to N conversion
 				current_Isp = available_Isp[step];
 				current_power = available_power[step];
-				current_mass_flow_rate = current_thrust / current_Isp / options->g0;
+				current_mass_flow_rate = available_mass_flow_rate[step];// current_thrust / current_Isp / options->g0;
 			}
 
 			if (EMTG::math::norm(control[step].data(), 3) > 1.0e-2 && fabs(current_thrust) > 1.0e-6)
