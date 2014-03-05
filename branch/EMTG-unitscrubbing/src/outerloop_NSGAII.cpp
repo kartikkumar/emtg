@@ -408,9 +408,10 @@ namespace GeneticAlgorithm
 		for (int i = 0; i < 2; i++)   // two rounds in tournament to create parent_pool of same size as parent_population
 		{
 			// shuffle population
-			this->RNG.seed(time(NULL));
-			parent_population = parent_population_in;
-			std::shuffle(parent_population.begin(), parent_population.end(), RNG); // TODO: make sure shuffle works with RNG input
+			this->parent_population = parent_population_in;
+#ifndef _STONEAGECplusplus
+			std::shuffle(this->parent_population.begin(), this->parent_population.end(), this->RNG); // TODO: make sure shuffle works with RNG input
+#endif
 
 			// compare solutions to generate half of parent pool
 			for (int j = 0; j < parent_population.size()/2; ++j)
@@ -444,8 +445,9 @@ namespace GeneticAlgorithm
 		IntegerDistribution = boost::uniform_int<>(0, 1);
 
 		// shuffle population
-		this->RNG.seed(time(NULL));
-		std::shuffle(parent_pool.begin(), parent_pool.end(), RNG);
+#ifndef _STONEAGECplusplus
+		std::shuffle(this->parent_pool.begin(), this->parent_pool.end(), this->RNG);
+#endif
 
 		for (int i = 0; i < this->popsize/2; ++i)
 		{
