@@ -304,28 +304,28 @@ namespace EMTG {
 			//step 6.2.5 determine the maximum size of the burn
 			//it is calculated as "thrust / mass * time"
 			EMTG::Astrodynamics::force_model(options,
-				Universe,
-				spacecraft_state[step].data(),
-				&event_epochs[step],
-				X,
-				control[step].data(),
-				&available_thrust[step],
-				&available_mass_flow_rate[step],
-				&available_Isp[step],
-				&available_power[step],
-				&active_power[step],
-				&number_of_active_engines[step],
-				ForceVector[step].data(),
-				(options->derivative_type > 1 && needG ? 1 : 0),
-				&dTdP[step],
-				&dmdotdP[step],
-				&dTdIsp[step],
-				&dmdotdIsp[step],
-				&dPdr[step],
-				&dPdt[step],
-				&dFSRPdr[step],
-				dagravdRvec[step],
-				dagravdtvec[step]);
+											Universe,
+											spacecraft_state[step].data(),
+											&event_epochs[step],
+											X,
+											control[step].data(),
+											&available_thrust[step],
+											&available_mass_flow_rate[step],
+											&available_Isp[step],
+											&available_power[step],
+											&active_power[step],
+											&number_of_active_engines[step],
+											ForceVector[step].data(),
+											(options->derivative_type > 1 && needG ? 1 : 0),
+											&dTdP[step],
+											&dmdotdP[step],
+											&dTdIsp[step],
+											&dmdotdIsp[step],
+											&dPdr[step],
+											&dPdt[step],
+											&dFSRPdr[step],
+											dagravdRvec[step],
+											dagravdtvec[step]);
 
 			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / spacecraft_state[step][6] * (time_step_sizes[step]);
 
@@ -1204,7 +1204,7 @@ namespace EMTG {
 				initial_coast_duration = options->forced_flyby_coast;
 			}
 
-			Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, state_at_initial_coast_midpoint, Universe->mu, initial_coast_duration * 86400 / 2.0, &F, &G, &Ft, &Gt);
+			Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, state_at_initial_coast_midpoint, Universe->mu, initial_coast_duration / 2.0, &F, &G, &Ft, &Gt);
 			
 			write_summary_line(	options,
 								Universe,

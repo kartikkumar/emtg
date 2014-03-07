@@ -66,7 +66,7 @@ class MissionOptions(object):
     initial_guess_num_timesteps = 10
     initial_guess_step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     initial_guess_step_size_stdv_or_scale = 1.0
-    MBH_zero_control_initial_guess = 1
+    MBH_zero_control_initial_guess = 0
 
     #problem settings set by the user
 

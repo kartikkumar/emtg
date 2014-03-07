@@ -103,7 +103,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		//if applicable, model the decay rate of the power system
 		if (options->power_decay_rate > 1.0e-5)
 		{
-			double decay_coeff = pow( (1 - options->power_decay_rate), total_flight_time / 365.25 );
+			double decay_coeff = pow( (1 - options->power_decay_rate), total_flight_time / (365.25 * 86400.0) );
 			input_power *= decay_coeff;
 
 			if (generate_derivatives)
@@ -436,10 +436,10 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			}
 
 			//next compute Thrust in mN
-			T = (1.0 - dX) * at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et;
+			T = (1.0 - dX) * (at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et);
 			
 			//next compute mass flow rate in mg/s
-			F = (1.0 - dX) * af*P_eff*P_eff*P_eff*P_eff + bf*P_eff*P_eff*P_eff + cf*P_eff*P_eff + df*P_eff + ef;
+			F = (1.0 - dX) * (af*P_eff*P_eff*P_eff*P_eff + bf*P_eff*P_eff*P_eff + cf*P_eff*P_eff + df*P_eff + ef);
 			
 
 			if (*power < minP)
