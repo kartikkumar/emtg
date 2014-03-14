@@ -106,7 +106,7 @@ namespace GeneticAlgorithm
 		{
 			options.launch_window_open_date = options.outerloop_launch_epoch_choices[X[Xindex]] * 86400.0;
 			++Xindex;
-			descriptionstream << "_LD" << (int) options.launch_window_open_date;
+			descriptionstream << "_LD" << (int) options.launch_window_open_date / 86400.0;
 		}
 		if (options.outerloop_vary_flight_time_upper_bound && options.outerloop_flight_time_upper_bound_choices.size() > 1)
 		{
@@ -118,7 +118,7 @@ namespace GeneticAlgorithm
 				options.total_flight_time_bounds[0] = 0.0;
 
 			++Xindex;
-			descriptionstream << "_" << (int)(options.total_flight_time_bounds[1]) << "d";
+			descriptionstream << "_" << (int)(options.total_flight_time_bounds[1] / 86400.0) << "d";
 		}
 		if (options.outerloop_vary_thruster_type && options.outerloop_thruster_type_choices.size() > 1)
 		{
@@ -244,6 +244,7 @@ namespace GeneticAlgorithm
 		EMTG::mission TrialMission(&options, *Universe);
 
 		//Step 3: run the inner-loop
+		options.print_options_file(options.working_directory + "//" + this->description + ".emtgopt");
 		TrialMission.output_mission_tree(options.working_directory + "//" + this->description + ".emtgtree");
 		cout << "Optimizing mission: " << TrialMission.options.description << endl;
 		TrialMission.optimize();
@@ -805,7 +806,7 @@ namespace GeneticAlgorithm
 		//then scatter the subvectors
 		std::vector< EMTG_outerloop_solution > my_subpopulation;
 
-		boost::mpi::scatter(*(this->MPIWorld), subpopulations, &my_subpopulation, this->MPIWorld->size(), 0);
+		boost::mpi::scatter <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), subpopulations, my_subpopulation, 0);
 
 		//announce how many problems are to be evaluated by each processor
 		std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
@@ -813,7 +814,7 @@ namespace GeneticAlgorithm
 		//evaluate the local subvector
 		for (size_t individual = 0; individual < my_subpopulation.size(); ++individual)
 		{
-			std::cout << "Proc #" << this->MPIWorld->rank() << " " << my_subpopulation[individual].description << std::endl;
+			std::cout << "Processor #" << this->MPIWorld->rank() << " " << my_subpopulation[individual].description << std::endl;
 			my_subpopulation[individual].set_data_pointers((void*) &options, (void*) &(Universe));
 			my_subpopulation[individual].evaluate();
 			my_subpopulation[individual].timestamp = std::time(NULL) - this->tstart;
@@ -821,7 +822,7 @@ namespace GeneticAlgorithm
 		}
 
 		//gather the results
-		boost::mpi::gather(*(this->MPIWorld), my_subpopulation, subpopulations, 0);
+		boost::mpi::gather <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), my_subpopulation, subpopulations, 0);
 #else
 		//serial evaluation of the population
 		for (size_t individual = 0; individual < unevaluated_individuals_indices.size(); ++individual)

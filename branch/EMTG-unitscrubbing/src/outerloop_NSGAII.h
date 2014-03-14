@@ -70,9 +70,11 @@ namespace GeneticAlgorithm
 			bool compare_objective_equalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
 			bool compare_description(EMTG_outerloop_solution& OtherSolution);
 
+			private:
 			//serialization code, if applicable
 #ifdef EMTG_MPI
 			friend class boost::serialization::access;
+	
 			template<class Archive>
 			void serialize(Archive & ar, const unsigned int version)
 			{
@@ -90,7 +92,6 @@ namespace GeneticAlgorithm
 			}
 #endif
 
-		private:
 			EMTG::missionoptions* options_base;
 			boost::ptr_vector<EMTG::Astrodynamics::universe>* Universe;
 
