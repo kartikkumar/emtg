@@ -1,7 +1,7 @@
 //outer-loop NSGA-II
 //written to solve systems optimization as formulated by J. Englander, M. Vavrina, and D. Ellison
 //collaborative effort by J. Englander and M. Vavrina based on A. Ghosh's abstract GA spec and M. Vavrina's NSGA-II spec
-
+#define _STONEAGECplusplus
 #include "outerloop_NSGAII.h"
 #include "mission.h"
 
@@ -412,6 +412,8 @@ namespace GeneticAlgorithm
 			this->parent_population = parent_population_in;
 #ifndef _STONEAGECplusplus
 			std::shuffle(this->parent_population.begin(), this->parent_population.end(), this->RNG); // TODO: make sure shuffle works with RNG input
+#else
+			std::random_shuffle(parent_population.begin(), parent_population.end(),  [](int n) { return rand() % n; }); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
 #endif
 
 			// compare solutions to generate half of parent pool
@@ -448,6 +450,8 @@ namespace GeneticAlgorithm
 		// shuffle population
 #ifndef _STONEAGECplusplus
 		std::shuffle(this->parent_pool.begin(), this->parent_pool.end(), this->RNG);
+#else
+		std::random_shuffle(parent_pool.begin(), parent_pool.end(),  [](int n) { return rand() % n; }); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
 #endif
 
 		for (int i = 0; i < this->popsize/2; ++i)
@@ -1195,7 +1199,7 @@ namespace GeneticAlgorithm
 	//run the main GA evolution loop (Matt and Jacob)
 	void outerloop_NSGAII::evolve(const EMTG::missionoptions& options, const boost::ptr_vector<EMTG::Astrodynamics::universe>& Universe)
 	{
-
+		std::srand(time(NULL));
 		// evolves this_generation population towards Pareto front (main NSGA-II function)
 
 		//Initialize
