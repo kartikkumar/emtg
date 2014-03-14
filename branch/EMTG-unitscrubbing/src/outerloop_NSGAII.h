@@ -82,6 +82,11 @@ namespace GeneticAlgorithm
 				ar & this->generation_found;
 				ar & this->fitness_values;
 				ar & this->description;
+				ar & this->crowding_distance;
+				ar & this->pareto_rank;
+				ar & this->ndom;
+				ar & this->dominated_by;
+				ar & this->dominates;
 			}
 #endif
 

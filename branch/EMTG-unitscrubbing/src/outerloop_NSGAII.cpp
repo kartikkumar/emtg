@@ -110,7 +110,7 @@ namespace GeneticAlgorithm
 		}
 		if (options.outerloop_vary_flight_time_upper_bound && options.outerloop_flight_time_upper_bound_choices.size() > 1)
 		{
-			options.total_flight_time_bounds[1] = options.outerloop_flight_time_upper_bound_choices[X[Xindex]];
+			options.total_flight_time_bounds[1] = options.outerloop_flight_time_upper_bound_choices[X[Xindex]] * 86400;
 
 			if (X[Xindex] > 0)
 				options.total_flight_time_bounds[0] = options.outerloop_flight_time_upper_bound_choices[X[Xindex] - 1] * 86400.0;
@@ -767,7 +767,13 @@ namespace GeneticAlgorithm
 		}
 
 #ifdef EMTG_MPI
-		//if MPI is enabled, conduct a parallel evaluation of the populatio
+		//if MPI is enabled, conduct a parallel evaluation of the population
+		//first announce that this processor is ready to go
+		if (this->MPIWorld->rank() == 0)
+			std::cout << "Processor " << this->MPIWorld->rank() << " ready to broadcast population of " << unevaluated_individuals_indices.size() << " individuals." << std::endl;
+		else
+			std::cout << "Processor " << this->MPIWorld->rank() << " ready to receive cases." << std::endl;
+
 		//distribute the population into subvectors
 
 		//vector of subpopulations
@@ -792,12 +798,17 @@ namespace GeneticAlgorithm
 				}
 				subpopulations.push_back(temppop);
 			}
+
+			std::cout << "Processor " << this->MPIWorld->rank() << " is ready to scatter" << std::endl;
 		}
 		
 		//then scatter the subvectors
 		std::vector< EMTG_outerloop_solution > my_subpopulation;
 
 		boost::mpi::scatter(*(this->MPIWorld), subpopulations, &my_subpopulation, this->MPIWorld->size(), 0);
+
+		//announce how many problems are to be evaluated by each processor
+		std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
 		
 		//evaluate the local subvector
 		for (size_t individual = 0; individual < my_subpopulation.size(); ++individual)
