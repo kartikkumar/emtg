@@ -1,7 +1,6 @@
 //outer-loop NSGA-II
 //written to solve systems optimization as formulated by J. Englander, M. Vavrina, and D. Ellison
 //collaborative effort by J. Englander and M. Vavrina based on A. Ghosh's abstract GA spec and M. Vavrina's NSGA-II spec
-#define _STONEAGECplusplus
 #include "outerloop_NSGAII.h"
 #include "mission.h"
 
@@ -413,7 +412,7 @@ namespace GeneticAlgorithm
 #ifndef _STONEAGECplusplus
 			std::shuffle(this->parent_population.begin(), this->parent_population.end(), this->RNG); // TODO: make sure shuffle works with RNG input
 #else
-			std::random_shuffle(parent_population.begin(), parent_population.end(),  [](int n) { return rand() % n; }); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
+			std::random_shuffle(parent_population.begin(), parent_population.end()); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
 #endif
 
 			// compare solutions to generate half of parent pool
@@ -451,7 +450,7 @@ namespace GeneticAlgorithm
 #ifndef _STONEAGECplusplus
 		std::shuffle(this->parent_pool.begin(), this->parent_pool.end(), this->RNG);
 #else
-		std::random_shuffle(parent_pool.begin(), parent_pool.end(),  [](int n) { return rand() % n; }); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
+		std::random_shuffle(parent_pool.begin(), parent_pool.end()); // TODO: make sure random_shuffle works with rand() function; modify to use mersenne twister
 #endif
 
 		for (int i = 0; i < this->popsize/2; ++i)
@@ -776,8 +775,8 @@ namespace GeneticAlgorithm
 		//first announce that this processor is ready to go
 		if (this->MPIWorld->rank() == 0)
 			std::cout << "Processor " << this->MPIWorld->rank() << " ready to broadcast population of " << unevaluated_individuals_indices.size() << " individuals." << std::endl;
-		else
-			std::cout << "Processor " << this->MPIWorld->rank() << " ready to receive cases." << std::endl;
+		//else
+		//	std::cout << "Processor " << this->MPIWorld->rank() << " ready to receive cases." << std::endl;
 
 		//distribute the population into subvectors
 
@@ -796,7 +795,7 @@ namespace GeneticAlgorithm
 					temppop.push_back(this->this_generation[unevaluated_individuals_indices[populationcounter]]);
 					++populationcounter;
 				}
-				if (Rank < this->popsize % this->MPIWorld->size())
+				if (Rank < unevaluated_individuals_indices.size() % this->MPIWorld->size())
 				{
 					temppop.push_back(this->this_generation[unevaluated_individuals_indices[populationcounter]]);
 					++populationcounter;
