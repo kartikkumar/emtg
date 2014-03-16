@@ -22,7 +22,7 @@ outerloop_tournamentsize 4
 #crossover ratio
 outerloop_CR 0.3
 #mutation rate
-outerloop_mu 0.05
+outerloop_mu 0.15
 #maximum number of stall generations
 outerloop_stallmax 20
 #fitness tolerance for the outer-loop
@@ -47,6 +47,8 @@ NLP_solver_type 0
 NLP_solver_mode 1
 #Quiet NLP solver?
 quiet_NLP 0
+#Enable ACE feasible point finder?
+ACE_feasible_point_finder 0
 #quantity Max_not_improve for MBH
 MBH_max_not_improve 100000
 #maximum number of trials for MBH
@@ -74,7 +76,9 @@ snopt_max_run_time 3600
 #method of specifying derivatives
 #0: finite difference
 #1: analytical flybys and objective function but finite difference the patch points
-#2: all but time derivatives#3: fully analytical
+#2: all but time derivatives
+#3: all but current phase flight time derivatives
+#4: fully analytical (experimental)
 derivative_type 2
 #Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.
 seed_MBH 0
@@ -90,6 +94,11 @@ initial_guess_num_timesteps 20
 initial_guess_step_size_distribution 0
 #What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess
 initial_guess_step_size_stdv_or_scale 10.0
+#Apply zero-control initial guess in MBH?
+#0: do not use
+#1: zero-control for resets, random perturbations for hops
+#2: always use zero-control guess except when seeded<int MBH_zero_control_initial_guess
+MBH_zero_control_initial_guess 0
 
 ##low-thrust solver parameters
 #number of time steps per phase
@@ -409,6 +418,56 @@ spacecraft_area 1.0
 #1.0: perfectly absorbing
 #2.0: perfectly reflecting
 coefficient_of_reflectivity 1.0
+
+##Outer-loop selectable options settings
+#Allow outer-loop to vary power level?
+outerloop_vary_power 0
+#Allow outer-loop to vary launch epoch?
+outerloop_vary_launch_epoch 0
+#Allow outer-loop to vary flight time upper bound?
+outerloop_vary_flight_time_upper_bound 0
+#Allow outer-loop to vary thruster type?
+outerloop_vary_thruster_type 0
+#Allow outer-loop to vary number of thrusters?
+outerloop_vary_number_of_thrusters 0
+#Allow outer-loop to vary launch vehicle?
+outerloop_vary_launch_vehicle 0
+#Allow outer-loop to vary journey destination? (one value per journey)
+outerloop_vary_journey_destination 0
+#Allow outer-loop to vary journey flyby sequence? (one value per journey)
+outerloop_vary_journey_flyby_sequence 0
+#Outer-loop power at 1 AU choices (in kW)
+outerloop_power_choices 10.0
+#Outer-loop launch window open epoch choices (in MJD)
+outerloop_launch_epoch_choices 51544.5
+#Outer-loop flight time upper bound choices (in days)
+outerloop_flight_time_upper_bound_choices 365.25
+#Outer-loop thruster type choices (in order of most to least preferable)
+outerloop_thruster_type_choices 8
+#Outer-loop number of thruster choices
+outerloop_number_of_thrusters_choices 1
+#Outer-loop launch vehicle choices (in order of most to least preferable)
+outerloop_launch_vehicle_choices 1
+#Outer-loop maximum number of flybys (one value for each journey)
+outerloop_journey_maximum_number_of_flybys 8
+#Outer-loop journey destination choices (one line for each journey)
+outerloop_journey_destination_choices
+ 1
+#Outer-loop flyby sequence choices (one line for each journey)
+outerloop_journey_flyby_sequence_choices
+ 1
+
+##Outer-loop objective function settings
+#Pick as many as you want. The Pareto surface will be generated in these dimensions
+#0: BOL power at 1 AU (kW)
+#1: Launch epoch (MJD)
+#2: Flight time (days)
+#3: Thruster preference
+#4: Number of thrusters
+#5: Launch vehicle preference
+#6: Delivered mass to final target
+#7: Final journey mass increment (for maximizing sample return)
+outerloop_objective_function_choices 2 6
 
 ##output format settings
 #output units, 0: km and km/s, 1: LU and LU/day

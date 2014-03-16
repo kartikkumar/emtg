@@ -855,12 +855,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "outerloop_journey_maximum_number_of_flybys") {
-		this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+		this->outerloop_journey_maximum_number_of_flybys.push_back((int) value);
 
 		for (int j = 1; j < this->number_of_journeys; ++j)
 		{
 			inputfile >> value;
-			this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+			this->outerloop_journey_maximum_number_of_flybys.push_back((int) value);
 		}
 
 		return 0;

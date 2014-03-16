@@ -123,7 +123,7 @@ namespace GeneticAlgorithm
 		{
 			options.engine_type = options.outerloop_thruster_type_choices[X[Xindex]];
 			++Xindex;
-			descriptionstream << "_" << options.thruster_names[options.outerloop_thruster_type_choices[X[Xindex]]];
+			descriptionstream << "_" << options.thruster_names[options.engine_type];
 		}
 		if (options.outerloop_vary_number_of_thrusters && options.outerloop_number_of_thrusters_choices.size() > 1)
 		{
@@ -135,7 +135,7 @@ namespace GeneticAlgorithm
 		{
 			options.LV_type = options.outerloop_launch_vehicle_choices[X[Xindex]];
 			++Xindex;
-			descriptionstream << "_" << options.LV_names[options.outerloop_launch_vehicle_choices[X[Xindex]]];
+			descriptionstream << "_" << options.LV_names[options.LV_type];
 		}
 		
 		//choices for each journey
@@ -812,7 +812,20 @@ namespace GeneticAlgorithm
 		boost::mpi::scatter <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), subpopulations, my_subpopulation, 0);
 
 		//announce how many problems are to be evaluated by each processor
-		std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
+		try
+		{
+			if (this->MPIWorld->rank() == 0)
+				std::cout << "Attempting to scatter the population for generation " << this->current_generation << std::endl;
+			std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
+		}
+		catch (int e)
+		{
+			if (this->MPIWorld->rank() == 0)
+				std::cout << "Failure to scatter population! Exiting..." << std::endl;
+
+			throw e;
+		}
+		
 		
 		//evaluate the local subvector
 		for (size_t individual = 0; individual < my_subpopulation.size(); ++individual)
@@ -825,7 +838,19 @@ namespace GeneticAlgorithm
 		}
 
 		//gather the results
-		boost::mpi::gather <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), my_subpopulation, subpopulations, 0);
+		try
+		{
+			if (this->MPIWorld->rank() == 0)
+				std::cout << "Attempting to gather the population for generation " << this->current_generation << std::endl;
+			boost::mpi::gather <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), my_subpopulation, subpopulations, 0);
+		}
+		catch (int e)
+		{
+			if (this->MPIWorld->rank() == 0)
+				std::cout << "Failure to gather population! Exiting..." << std::endl;
+
+			throw e;
+		}
 #else
 		//serial evaluation of the population
 		for (size_t individual = 0; individual < unevaluated_individuals_indices.size(); ++individual)
@@ -1239,6 +1264,12 @@ namespace GeneticAlgorithm
 		//2d. evaluate objectives for initial child population
 		this->this_generation = this->children_population;
 		this->evaluatepop(options, Universe);
+
+		std::stringstream popfilestream;
+		popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
+		this->writepop(popfilestream.str());
+		this->write_archive(options.working_directory + "//NSGAII_archive.csv");
+
 		this->children_population = this->this_generation;
 		this->current_generation = 1;
 		
