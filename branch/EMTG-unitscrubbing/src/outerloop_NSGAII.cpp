@@ -105,7 +105,7 @@ namespace GeneticAlgorithm
 		{
 			options.launch_window_open_date = options.outerloop_launch_epoch_choices[X[Xindex]] * 86400.0;
 			++Xindex;
-			descriptionstream << "_LD" << (int) options.launch_window_open_date / 86400.0;
+			descriptionstream << "_LD" << (int) (options.launch_window_open_date / 86400.0);
 		}
 		if (options.outerloop_vary_flight_time_upper_bound && options.outerloop_flight_time_upper_bound_choices.size() > 1)
 		{
@@ -137,7 +137,26 @@ namespace GeneticAlgorithm
 			++Xindex;
 			descriptionstream << "_" << options.LV_names[options.LV_type];
 		}
-		
+		if (options.outerloop_vary_departure_C3 && options.outerloop_departure_C3_choices.size() > 1)
+		{
+			if (X[Xindex] > 0)
+				options.journey_initial_impulse_bounds[0][0] = sqrt(options.outerloop_departure_C3_choices[X[Xindex] - 1]);
+			else
+				options.journey_initial_impulse_bounds[0][0] = 0.0;
+			options.journey_initial_impulse_bounds[0][1] = sqrt(options.outerloop_departure_C3_choices[X[Xindex]]);
+			++Xindex;
+			descriptionstream << "_C3d" << options.outerloop_departure_C3_choices[X[Xindex]];
+		}
+		if (options.outerloop_vary_arrival_C3 && options.outerloop_arrival_C3_choices.size() > 1)
+		{
+			if (X[Xindex] > 0)
+				options.journey_final_velocity.back()[0] = sqrt(options.outerloop_arrival_C3_choices[X[Xindex] - 1]);
+			else
+				options.journey_final_velocity.back()[0] = 0.0;
+			options.journey_final_velocity.back()[1] = sqrt(options.outerloop_arrival_C3_choices[X[Xindex]]);
+			++Xindex;
+			descriptionstream << "_C3a" << options.outerloop_arrival_C3_choices[X[Xindex]];
+		}
 		//choices for each journey
 		for (size_t j = 0; j < options.number_of_journeys; ++j)
 		{
@@ -225,10 +244,42 @@ namespace GeneticAlgorithm
 
 			options.sequence.push_back(journey_sequence);
 			options.number_of_phases[j] = journey_sequence.size() - 1;
-			vector<int> phase_type(journey_sequence.size() - 1, options.mission_type);
-			options.phase_type.push_back(phase_type);
+			vector<int> journey_phase_type(journey_sequence.size() - 1, options.mission_type);
+			options.phase_type.push_back(journey_phase_type);
 		}
+
+		vector< vector<int> > sequence_input;
+		vector< vector<int> > phase_type_input;
+
+		for (int j = 0; j < options.number_of_journeys; ++j)
+		{
+			vector<int> journey_sequence_input;
+			vector<int> journey_phase_type_input;
+			for (int p = 0; p < options.max_phases_per_journey; ++p)
+			{
+				if (p < options.number_of_phases[j])
+				{
+					journey_sequence_input.push_back(options.sequence[j][p]);
+					journey_phase_type_input.push_back(options.phase_type[j][p]);
+				}
+				else
+				{
+					journey_sequence_input.push_back(0);
+					journey_phase_type_input.push_back(options.mission_type);
+				}
+			}
+			sequence_input.push_back(journey_sequence_input);
+			phase_type_input.push_back(journey_phase_type_input);
+		}
+		options.sequence_input.clear();
+		options.phase_type_input.clear();
+		options.sequence_input.push_back(sequence_input);
+		options.number_of_trial_sequences = 1;
+		options.phase_type_input = phase_type_input;
+
 		options.description = descriptionstream.str();
+		options.run_outerloop = 0;
+		options.mission_name = options.description;
 		this->description = options.description;
 
 		return options;
@@ -1349,6 +1400,8 @@ namespace GeneticAlgorithm
 		objective_menu_descriptions.push_back("Launch vehicle preference");
 		objective_menu_descriptions.push_back("Delivered mass to final target");
 		objective_menu_descriptions.push_back("Final journey mass increment (for maximizing sample return)");
+		objective_menu_descriptions.push_back("First journey departure C3 (km^2/s^2)");
+		objective_menu_descriptions.push_back("Final journey arrival C3 (km^2/s^2)");
 
 		for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
 		{
@@ -1422,6 +1475,22 @@ namespace GeneticAlgorithm
 			this->Xdescriptions.push_back("Launch vehicle");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
 			std::cout << "varying launch vehicle" << std::endl;
+		}
+		if (options.outerloop_vary_departure_C3 && options.outerloop_departure_C3_choices.size() > 1)
+		{
+			this->Xlowerbounds.push_back(0);
+			this->Xupperbounds.push_back(options.outerloop_departure_C3_choices.size() - 1);
+			this->Xdescriptions.push_back("Departure C3 upper bound");
+			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
+			std::cout << "varying first journey departure C3" << std::endl;
+		}
+		if (options.outerloop_vary_departure_C3 && options.outerloop_departure_C3_choices.size() > 1)
+		{
+			this->Xlowerbounds.push_back(0);
+			this->Xupperbounds.push_back(options.outerloop_departure_C3_choices.size() - 1);
+			this->Xdescriptions.push_back("Arrival C3 upper bound");
+			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
+			std::cout << "varying last journey arrival C3" << std::endl;
 		}
 
 		//options for each journey

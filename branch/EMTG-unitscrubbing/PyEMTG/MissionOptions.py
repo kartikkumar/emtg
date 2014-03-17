@@ -35,12 +35,16 @@ class MissionOptions(object):
     outerloop_vary_thruster_type = 0
     outerloop_vary_number_of_thrusters = 0
     outerloop_vary_launch_vehicle = 0
+    outerloop_vary_departure_C3 = 0
+    outerloop_vary_arrival_C3 = 0
     outerloop_power_choices = [10.0]
     outerloop_launch_epoch_choices = [51544.5]
     outerloop_flight_time_upper_bound_choices = [365.25]
     outerloop_thruster_type_choices = [8]
     outerloop_number_of_thrusters_choices = [1]
     outerloop_launch_vehicle_choices = [1]
+    outerloop_departure_C3_choices = [25.0]
+    outerloop_arrival_C3_choices = [25.0]
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -306,6 +310,10 @@ class MissionOptions(object):
                         self.outerloop_vary_number_of_thrusters = int(linecell[1])
                     elif choice == "outerloop_vary_launch_vehicle":
                         self.outerloop_vary_launch_vehicle = int(linecell[1])
+                    elif choice == "outerloop_vary_departure_C3":
+                        self.outerloop_vary_departure_C3 = int(linecell[1])
+                    elif choice == "outerloop_vary_arrival_C3":
+                        self.outerloop_vary_arrival_C3 = int(linecell[1])
                     elif choice == "outerloop_vary_journey_destination":
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].outerloop_vary_journey_destination = int(linecell[j+1])
@@ -327,15 +335,23 @@ class MissionOptions(object):
                     elif choice == "outerloop_thruster_type_choices":
                         self.outerloop_thruster_type_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_thruster_type_choices.append(float(x))
+                            self.outerloop_thruster_type_choices.append(int(float(x)))
                     elif choice == "outerloop_number_of_thrusters_choices":
                         self.outerloop_number_of_thrusters_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_number_of_thrusters_choices.append(float(x))
+                            self.outerloop_number_of_thrusters_choices.append(int(float(x)))
                     elif choice == "outerloop_launch_vehicle_choices":
                         self.outerloop_launch_vehicle_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_launch_vehicle_choices.append(float(x))
+                            self.outerloop_launch_vehicle_choices.append(int(float(x)))
+                    elif choice == "outerloop_departure_C3_choices":
+                        self.outerloop_departure_C3_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_departure_C3_choices.append(float(x))
+                    elif choice == "outerloop_arrival_C3_choices":
+                        self.outerloop_arrival_C3_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_arrival_C3_choices.append(float(x))
                     elif choice == "outerloop_journey_flyby_sequence_choices":
                         flyby_choice_line_flag = 1
                     elif choice == "outerloop_journey_destination_choices":
@@ -810,7 +826,7 @@ class MissionOptions(object):
         outputfile.write("#Apply zero-control initial guess in MBH?\n")
         outputfile.write("#0: do not use\n")
         outputfile.write("#1: zero-control for resets, random perturbations for hops\n")
-        outputfile.write("#2: always use zero-control guess except when seeded<int MBH_zero_control_initial_guess\n")
+        outputfile.write("#2: always use zero-control guess except when seeded\n")
         outputfile.write("MBH_zero_control_initial_guess " + str(self.MBH_zero_control_initial_guess) + "\n")
         outputfile.write("\n")
 
@@ -1268,6 +1284,10 @@ class MissionOptions(object):
         outputfile.write("outerloop_vary_number_of_thrusters " + str(self.outerloop_vary_number_of_thrusters) + "\n")
         outputfile.write("#Allow outer-loop to vary launch vehicle?\n")
         outputfile.write("outerloop_vary_launch_vehicle " + str(self.outerloop_vary_launch_vehicle) + "\n")
+        outputfile.write("#Allow outer-loop to vary first journey departure C3?\n")
+        outputfile.write("outerloop_vary_departure_C3 " + str(self.outerloop_vary_departure_C3) + "\n")
+        outputfile.write("#Allow outer-loop to vary last journey arrival C3?\n")
+        outputfile.write("outerloop_vary_arrival_C3 " + str(self.outerloop_vary_arrival_C3) + "\n")
         outputfile.write("#Allow outer-loop to vary journey destination? (one value per journey)\n")
         outputfile.write("outerloop_vary_journey_destination")
         for j in range(0, self.number_of_journeys):
@@ -1308,6 +1328,16 @@ class MissionOptions(object):
         for entry in self.outerloop_launch_vehicle_choices:
             outputfile.write(" " + str(int(entry)))
         outputfile.write("\n")
+        outputfile.write("#Outer-loop first journey departure C3 choices\n")
+        outputfile.write("outerloop_departure_C3_choices")
+        for entry in self.outerloop_departure_C3_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop last arrival departure C3 choices\n")
+        outputfile.write("outerloop_arrival_C3_choices")
+        for entry in self.outerloop_arrival_C3_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
         outputfile.write("#Outer-loop maximum number of flybys (one value for each journey)\n")
         outputfile.write("outerloop_journey_maximum_number_of_flybys")
         for j in range(0, self.number_of_journeys):
@@ -1337,6 +1367,8 @@ class MissionOptions(object):
         outputfile.write("#5: Launch vehicle preference\n")
         outputfile.write("#6: Delivered mass to final target\n")
         outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
+        outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
+        outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))

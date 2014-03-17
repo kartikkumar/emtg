@@ -2086,6 +2086,11 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			case 7: //Final journey mass increment (for maximizing sample return)
 				objective_functions[objective] = -(this->journeys.back().phases.back().current_mass_increment * this->journeys.back().phases.back().journey_initial_mass_increment_scale_factor);
 				break;
+			case 8: //first journey departure C3
+				objective_functions[objective] = this->journeys[0].phases[0].C3_departure;
+				break;
+			case 9: //last journey arrival C3
+				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
 			}
 		}
 	}

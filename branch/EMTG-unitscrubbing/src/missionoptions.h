@@ -81,6 +81,8 @@ public:
 	bool outerloop_vary_thruster_type;
 	bool outerloop_vary_number_of_thrusters;
 	bool outerloop_vary_launch_vehicle;
+	bool outerloop_vary_departure_C3;
+	bool outerloop_vary_arrival_C3;
 	vector<bool> outerloop_vary_journey_destination;
 	vector<bool> outerloop_vary_journey_flyby_sequence;
 	vector<double> outerloop_power_choices;
@@ -89,6 +91,8 @@ public:
 	vector<int> outerloop_thruster_type_choices;
 	vector<int> outerloop_number_of_thrusters_choices;
 	vector<int> outerloop_launch_vehicle_choices;
+	vector<double> outerloop_departure_C3_choices;
+	vector<double> outerloop_arrival_C3_choices;
 	vector< vector<int> > outerloop_journey_destination_choices;
 	vector< vector<int> > outerloop_journey_flyby_sequence_choices;
 	vector<int> outerloop_journey_maximum_number_of_flybys;

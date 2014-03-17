@@ -30,6 +30,8 @@ missionoptions::missionoptions() {
 	this->outerloop_vary_thruster_type = false;
 	this->outerloop_vary_number_of_thrusters = false;
 	this->outerloop_vary_launch_vehicle = false;
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -73,6 +75,8 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_vary_thruster_type = false;
 	this->outerloop_vary_number_of_thrusters = false;
 	this->outerloop_vary_launch_vehicle = false;
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -670,6 +674,14 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->outerloop_vary_launch_vehicle = (bool) value;
 		return 0;
 	}
+	if (choice == "outerloop_vary_departure_C3") {
+		this->outerloop_vary_departure_C3 = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_arrival_C3") {
+		this->outerloop_vary_arrival_C3 = (bool) value;
+		return 0;
+	}
 	if (choice == "outerloop_vary_journey_destination") {
 		this->outerloop_vary_journey_destination.push_back((bool) value);
 
@@ -776,6 +788,36 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		{
 			inputfile >> value;
 			this->outerloop_launch_vehicle_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_departure_C3_choices") {
+		this->outerloop_departure_C3_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_departure_C3_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_arrival_C3_choices") {
+		this->outerloop_arrival_C3_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_arrival_C3_choices.push_back((int) value);
 
 			peek = inputfile.peek();
 		}
@@ -2185,6 +2227,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_vary_number_of_thrusters " << this->outerloop_vary_number_of_thrusters << endl;
 		outputfile << "#Allow outer-loop to vary launch vehicle?" << endl;
 		outputfile << "outerloop_vary_launch_vehicle " << this->outerloop_vary_launch_vehicle << endl;
+		outputfile << "#Allow outer-loop to vary first journey departure C3?" << endl;
+		outputfile << "outerloop_vary_departure_C3 " << this->outerloop_vary_departure_C3 << endl;
+		outputfile << "#Allow outer-loop to vary last journey arrival C3?" << endl;
+		outputfile << "outerloop_vary_arrival_C3 " << this->outerloop_vary_arrival_C3 << endl;
 		outputfile << "#Allow outer-loop to vary journey destination? (one value per journey)" << endl;
 		outputfile << "outerloop_vary_journey_destination";
 		for (int j = 0; j < this->number_of_journeys; ++j)
@@ -2225,6 +2271,16 @@ int missionoptions::print_options_file(string filename) {
 		for (int entry = 0; entry < this->outerloop_launch_vehicle_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_launch_vehicle_choices[entry];
 		outputfile << endl;
+		outputfile << "#Outer-loop first journey departure C3 choices" << endl;
+		outputfile << "outerloop_departure_C3_choices";
+		for (int entry = 0; entry < this->outerloop_departure_C3_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_departure_C3_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop last arrival departure C3 choices" << endl;
+		outputfile << "outerloop_arrival_C3_choices";
+		for (int entry = 0; entry < this->outerloop_arrival_C3_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_arrival_C3_choices[entry];
+		outputfile << endl;
 		outputfile << "#Outer-loop maximum number of flybys (one value for each journey)" << endl;
 		outputfile << "outerloop_journey_maximum_number_of_flybys";
 		for (int j = 0; j < this->number_of_journeys; ++j)
@@ -2258,6 +2314,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#5: Launch vehicle preference" << endl;
 		outputfile << "#6: Delivered mass to final target" << endl;
 		outputfile << "#7: Final journey mass increment (for maximizing sample return)" << endl;
+		outputfile << "#8: First journey departure C3 (km^2/s^2)" << endl;
+		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;
 		outputfile << "outerloop_objective_function_choices";
 		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_objective_function_choices[entry];
