@@ -452,6 +452,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSpacecraft.txtpropellant_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepropellant_margin)
         self.optionsnotebook.tabSpacecraft.txtpower_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepower_margin)
         self.optionsnotebook.tabSpacecraft.txtLV_margin.Bind(wx.EVT_KILL_FOCUS, self.ChangeLV_margin)
+        self.optionsnotebook.tabSpacecraft.txtLV_adapter_mass.Bind(wx.EVT_KILL_FOCUS, self.Change_LV_adapter_mass)
         self.optionsnotebook.tabSpacecraft.cmbengine_type.Bind(wx.EVT_COMBOBOX, self.Changeengine_type)
         self.optionsnotebook.tabSpacecraft.txtnumber_of_engines.Bind(wx.EVT_KILL_FOCUS, self.Changenumber_of_engines)
         self.optionsnotebook.tabSpacecraft.cmbthrottle_logic_mode.Bind(wx.EVT_COMBOBOX, self.Changethrottle_logic_mode)
@@ -808,6 +809,10 @@ class PyEMTG_interface(wx.Frame):
 
     def ChangeLV_margin(self, e):
         self.missionoptions.LV_margin = eval(self.optionsnotebook.tabSpacecraft.txtLV_margin.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Change_LV_adapter_mass(self, e):
+        self.missionoptions.LV_adapter_mass = eval(self.optionsnotebook.tabSpacecraft.txtLV_adapter_mass.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
     def Changeengine_type(self, e):
