@@ -155,7 +155,7 @@ namespace GeneticAlgorithm
 				options.journey_final_velocity.back()[0] = 0.0;
 			options.journey_final_velocity.back()[1] = sqrt(options.outerloop_arrival_C3_choices[X[Xindex]]);
 			++Xindex;
-			descriptionstream << "_C3a" << options.outerloop_arrival_C3_choices[X[Xindex]];
+			descriptionstream << "_C3a" << options.outerloop_departure_C3_choices[X[Xindex]];
 		}
 		//choices for each journey
 		for (size_t j = 0; j < options.number_of_journeys; ++j)
@@ -1285,20 +1285,10 @@ namespace GeneticAlgorithm
 
 		//1b. assign pareto rank and crowding distance value to initial parent population using non-dominated sorting
 		this->parent_population = this->this_generation; //random initial parent population of size n based on copy of this->this_generation
-
-		/////// remove
-		// for testing
-		/*
-		double fitness1[8] = {-9.0, -8.0, -12.0, -11.0, -16.0, 2.0, -7.0, 0.0};  //remove
-		double fitness2[8] = {2.0, 5.0, 1.0, 3.0, 2.0, 3.1, -1.0, 12.0};  //remove
-		for (int i = 0; i < this->parent_population.size(); ++i) //remove
-		{
-			this-> parent_population[i].fitness_values[0] = fitness1[i]; //remove
-			this-> parent_population[i].fitness_values[1] = fitness2[i]; //remove
-		}
-		*/
-		//////////////////////
-
+		std::stringstream popfilestream;
+		popfilestream << options.working_directory << "//NSGAII_initial_population.csv";
+		this->writepop(popfilestream.str());
+		this->write_archive(options.working_directory + "//NSGAII_archive.csv");
 
 		this->non_dominated_sort(this->parent_population); // assigns local non-dominated front value to parent_population members
 
@@ -1315,8 +1305,7 @@ namespace GeneticAlgorithm
 		//2d. evaluate objectives for initial child population
 		this->this_generation = this->children_population;
 		this->evaluatepop(options, Universe);
-
-		std::stringstream popfilestream;
+		popfilestream.clear();
 		popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
 		this->writepop(popfilestream.str());
 		this->write_archive(options.working_directory + "//NSGAII_archive.csv");
