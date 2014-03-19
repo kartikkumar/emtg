@@ -2102,8 +2102,18 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "journey_departure_elements_bounds";
         for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-            for (int k = 0; k < 6; ++k)
-                outputfile << " " << this->journey_departure_elements_bounds[j][k][0] << " " << this->journey_departure_elements_bounds[j][k][1];
+            if (this->journey_departure_elements_type[j])
+			{
+				outputfile << " " << this->journey_departure_elements_bounds[j][0][0] << " " << this->journey_departure_elements_bounds[j][0][1];
+				outputfile << " " << this->journey_departure_elements_bounds[j][1][0] << " " << this->journey_departure_elements_bounds[j][1][1];
+				for (int k = 2; k < 6; ++k)
+					outputfile << " " << this->journey_departure_elements_bounds[j][k][0] * 180.0 / math::PI << " " << this->journey_departure_elements_bounds[j][k][1] * 180.0 / math::PI ;
+			}
+			else
+			{
+				for (int k = 0; k < 6; ++k)
+					outputfile << " " << this->journey_departure_elements_bounds[j][k][0] << " " << this->journey_departure_elements_bounds[j][k][1];
+			}
 		}
 		outputfile << endl;
 		outputfile << "#type of orbit elements specified at end of journey(0: inertial, 1: COE)" << endl;
@@ -2141,8 +2151,18 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "journey_arrival_elements_bounds";
         for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-            for (int k = 0; k < 6; ++k)
-                outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] << " " << this->journey_arrival_elements_bounds[j][k][1];
+			if (this->journey_arrival_elements_type[j])
+			{
+				outputfile << " " << this->journey_arrival_elements_bounds[j][0][0] << " " << this->journey_arrival_elements_bounds[j][0][1];
+				outputfile << " " << this->journey_arrival_elements_bounds[j][1][0] << " " << this->journey_arrival_elements_bounds[j][1][1];
+				for (int k = 2; k < 6; ++k)
+					outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] * 180.0 / math::PI << " " << this->journey_arrival_elements_bounds[j][k][1] * 180.0 / math::PI ;
+			}
+			else
+			{
+				for (int k = 0; k < 6; ++k)
+					outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] << " " << this->journey_arrival_elements_bounds[j][k][1];
+			}
 		}
 		outputfile << endl;
 		outputfile << "#journey central body" << endl;

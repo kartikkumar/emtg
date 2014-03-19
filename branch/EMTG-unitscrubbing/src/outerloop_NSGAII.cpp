@@ -144,8 +144,9 @@ namespace GeneticAlgorithm
 			else
 				options.journey_initial_impulse_bounds[0][0] = 0.0;
 			options.journey_initial_impulse_bounds[0][1] = sqrt(options.outerloop_departure_C3_choices[X[Xindex]]);
-			++Xindex;
+			
 			descriptionstream << "_C3d" << options.outerloop_departure_C3_choices[X[Xindex]];
+			++Xindex;
 		}
 		if (options.outerloop_vary_arrival_C3 && options.outerloop_arrival_C3_choices.size() > 1)
 		{
@@ -154,8 +155,9 @@ namespace GeneticAlgorithm
 			else
 				options.journey_final_velocity.back()[0] = 0.0;
 			options.journey_final_velocity.back()[1] = sqrt(options.outerloop_arrival_C3_choices[X[Xindex]]);
+			
+			descriptionstream << "_C3a" << options.outerloop_arrival_C3_choices[X[Xindex]];
 			++Xindex;
-			descriptionstream << "_C3a" << options.outerloop_departure_C3_choices[X[Xindex]];
 		}
 		//choices for each journey
 		for (size_t j = 0; j < options.number_of_journeys; ++j)
@@ -1473,10 +1475,10 @@ namespace GeneticAlgorithm
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
 			std::cout << "varying first journey departure C3" << std::endl;
 		}
-		if (options.outerloop_vary_departure_C3 && options.outerloop_departure_C3_choices.size() > 1)
+		if (options.outerloop_vary_arrival_C3 && options.outerloop_arrival_C3_choices.size() > 1)
 		{
 			this->Xlowerbounds.push_back(0);
-			this->Xupperbounds.push_back(options.outerloop_departure_C3_choices.size() - 1);
+			this->Xupperbounds.push_back(options.outerloop_arrival_C3_choices.size() - 1);
 			this->Xdescriptions.push_back("Arrival C3 upper bound");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
 			std::cout << "varying last journey arrival C3" << std::endl;
