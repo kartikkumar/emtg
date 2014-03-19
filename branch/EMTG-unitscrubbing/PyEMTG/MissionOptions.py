@@ -27,6 +27,7 @@ class MissionOptions(object):
     outerloop_elitecount = 1 #how many elite individuals to retain
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
     outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
+    outerloop_reevaluate_full_population = 0
 
     #outer loop selectable options settings
     outerloop_vary_power = 0
@@ -45,6 +46,7 @@ class MissionOptions(object):
     outerloop_launch_vehicle_choices = [1]
     outerloop_departure_C3_choices = [25.0]
     outerloop_arrival_C3_choices = [25.0]
+    outerloop_restrict_flight_time_lower_bound = 0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -296,6 +298,8 @@ class MissionOptions(object):
                         self.outerloop_useparallel = int(linecell[1])
                     elif choice == "outerloop_warmstart":
                         self.outerloop_warmstart = int(linecell[1])
+                    elif choice == "outerloop_reevaluate_full_population":
+                        self.outerloop_reevaluate_full_population = int(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -304,6 +308,8 @@ class MissionOptions(object):
                         self.outerloop_vary_launch_epoch = int(linecell[1])
                     elif choice == "outerloop_vary_flight_time_upper_bound":
                         self.outerloop_vary_flight_time_upper_bound = int(linecell[1])
+                    elif choice == "outerloop_restrict_flight_time_lower_bound":
+                        self.outerloop_restrict_flight_time_lower_bound = int(linecell[1])
                     elif choice == "outerloop_vary_thruster_type":
                         self.outerloop_vary_thruster_type = int(linecell[1])
                     elif choice == "outerloop_vary_number_of_thrusters":
@@ -763,6 +769,8 @@ class MissionOptions(object):
         outputfile.write("outerloop_useparallel " + str(self.outerloop_useparallel) + "\n")
         outputfile.write("#whether or not to perform an outer loop warm start\n")
         outputfile.write("outerloop_warmstart " + str(self.outerloop_warmstart) + "\n")
+        outputfile.write("#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.\n")
+        outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -1278,6 +1286,8 @@ class MissionOptions(object):
         outputfile.write("outerloop_vary_launch_epoch " + str(self.outerloop_vary_launch_epoch) + "\n")
         outputfile.write("#Allow outer-loop to vary flight time upper bound?\n")
         outputfile.write("outerloop_vary_flight_time_upper_bound " + str(self.outerloop_vary_flight_time_upper_bound) + "\n")
+        outputfile.write("#Restrict flight-time lower bound when running outer-loop?\n")
+        outputfile.write("outerloop_restrict_flight_time_lower_bound " + str(self.outerloop_restrict_flight_time_lower_bound) + "\n")
         outputfile.write("#Allow outer-loop to vary thruster type?\n")
         outputfile.write("outerloop_vary_thruster_type " + str(self.outerloop_vary_thruster_type) + "\n")
         outputfile.write("#Allow outer-loop to vary number of thrusters?\n")

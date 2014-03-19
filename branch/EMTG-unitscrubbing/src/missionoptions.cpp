@@ -32,6 +32,8 @@ missionoptions::missionoptions() {
 	this->outerloop_vary_launch_vehicle = false;
 	this->outerloop_vary_departure_C3 = false;
 	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -77,6 +79,8 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_vary_launch_vehicle = false;
 	this->outerloop_vary_departure_C3 = false;
 	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -318,6 +322,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "outerloop_warmstart") 
 	{
 		this->outerloop_warmstart = (int) value;
+		return 0;
+	}
+	if (choice == "outerloop_reevaluate_full_population")
+	{
+		this->outerloop_reevaluate_full_population = (bool) value;
 		return 0;
 	}
 
@@ -660,6 +669,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "outerloop_vary_flight_time_upper_bound") {
 		this->outerloop_vary_flight_time_upper_bound = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_restrict_flight_time_lower_bound") {
+		this->outerloop_restrict_flight_time_lower_bound = (bool) value;
 		return 0;
 	}
 	if (choice == "outerloop_vary_thruster_type") {
@@ -1681,6 +1694,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_useparallel " << this->outerloop_useparallel << endl;
 		outputfile << "#whether or not to perform an outer loop warm start" << endl;
 		outputfile << "outerloop_warmstart " << this->outerloop_warmstart << endl;
+		outputfile << "#Re-evaluate the entire outerloop each generation? Otherwise read from the archive." << endl;
+		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << endl;
 
 		outputfile << "##inner-loop solver settings" << endl;
@@ -2241,6 +2256,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_vary_launch_epoch " << this->outerloop_vary_launch_epoch << endl;
 		outputfile << "#Allow outer-loop to vary flight time upper bound?" << endl;
 		outputfile << "outerloop_vary_flight_time_upper_bound " << this->outerloop_vary_flight_time_upper_bound << endl;
+		outputfile << "#Restrict flight-time lower bound when running outer-loop?" << endl;
+		outputfile << "outerloop_restrict_flight_time_lower_bound " << this->outerloop_restrict_flight_time_lower_bound << endl;
 		outputfile << "#Allow outer-loop to vary thruster type?" << endl;
 		outputfile << "outerloop_vary_thruster_type " << this->outerloop_vary_thruster_type << endl;
 		outputfile << "#Allow outer-loop to vary number of thrusters?" << endl;

@@ -73,6 +73,7 @@ public:
 	int outerloop_elitecount; //how many elite individuals to retain
 	bool outerloop_useparallel; //whether or not to use the parallel outer-loop
 	int outerloop_warmstart; //if true, read "population.txt" and "solutions.txt"
+	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 
 	//outer loop selectable options settings
 	bool outerloop_vary_power;
@@ -88,6 +89,7 @@ public:
 	vector<double> outerloop_power_choices;
 	vector<double> outerloop_launch_epoch_choices;
 	vector<double> outerloop_flight_time_upper_bound_choices;
+	bool outerloop_restrict_flight_time_lower_bound;
 	vector<int> outerloop_thruster_type_choices;
 	vector<int> outerloop_number_of_thrusters_choices;
 	vector<int> outerloop_launch_vehicle_choices;

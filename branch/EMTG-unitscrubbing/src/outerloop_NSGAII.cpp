@@ -111,7 +111,7 @@ namespace GeneticAlgorithm
 		{
 			options.total_flight_time_bounds[1] = options.outerloop_flight_time_upper_bound_choices[X[Xindex]] * 86400;
 
-			if (X[Xindex] > 0)
+			if (X[Xindex] > 0 && options.outerloop_restrict_flight_time_lower_bound)
 				options.total_flight_time_bounds[0] = options.outerloop_flight_time_upper_bound_choices[X[Xindex] - 1] * 86400.0;
 			else
 				options.total_flight_time_bounds[0] = 0.0;
@@ -781,46 +781,55 @@ namespace GeneticAlgorithm
 		//we really only need to keep track of their indices because later we will just place them back into the main population anyway
 		std::vector< int > unevaluated_individuals_indices;
 		bool NewSolution;
-		for (size_t individual = 0; individual < this->popsize; ++individual)
+
+		if (options.outerloop_reevaluate_full_population) //this adds EVERYTHING to the list of things to be evaluated
 		{
-			//check if this solution has been evaluated before
-			if ( !(this->this_generation[individual].description == "") )
-				NewSolution = false;
-			else
+			for (size_t individual = 0; individual < this->popsize; ++individual)
+				unevaluated_individuals_indices.push_back(individual);
+		}
+		else
+		{
+			for (size_t individual = 0; individual < this->popsize; ++individual)
 			{
-				NewSolution = true;
-				this->this_generation[individual].set_data_pointers((void*) &options, (void*) &(Universe));
-				this->this_generation[individual].parse_outer_loop_decision_vector();
-
-				for (size_t archived_solution = 0; archived_solution < this->archive_of_solutions.size(); ++archived_solution)
+				//check if this solution has been evaluated before
+				if ( !(this->this_generation[individual].description == "") )
+					NewSolution = false;
+				else
 				{
-					if ( this->archive_of_solutions[archived_solution].description == this->this_generation[individual].description )
+					NewSolution = true;
+					this->this_generation[individual].set_data_pointers((void*) &options, (void*) &(Universe));
+					this->this_generation[individual].parse_outer_loop_decision_vector();
+
+					for (size_t archived_solution = 0; archived_solution < this->archive_of_solutions.size(); ++archived_solution)
 					{
-						cout << "Solution " << this->this_generation[individual].description << " has already been evaluated with fitnesses [";
-
-						for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+						if ( this->archive_of_solutions[archived_solution].description == this->this_generation[individual].description )
 						{
-							this->this_generation[individual].fitness_values[objective] = this->archive_of_solutions[archived_solution].fitness_values[objective];
+							cout << "Solution " << this->this_generation[individual].description << " has already been evaluated with fitnesses [";
 
-							if (objective > 0)
-								cout << ", ";
+							for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+							{
+								this->this_generation[individual].fitness_values[objective] = this->archive_of_solutions[archived_solution].fitness_values[objective];
 
-							cout << this->this_generation[individual].fitness_values[objective];
+								if (objective > 0)
+									cout << ", ";
+
+								cout << this->this_generation[individual].fitness_values[objective];
+							}
+
+							cout << "]" << endl;
+							NewSolution = false;
+
+							this->this_generation[individual].timestamp = this->archive_of_solutions[archived_solution].timestamp;
+							this->this_generation[individual].generation_found = this->archive_of_solutions[archived_solution].generation_found;
+							this->this_generation[individual].Xinner = this->archive_of_solutions[archived_solution].Xinner;
+							break;
 						}
-
-						cout << "]" << endl;
-						NewSolution = false;
-
-						this->this_generation[individual].timestamp = this->archive_of_solutions[archived_solution].timestamp;
-						this->this_generation[individual].generation_found = this->archive_of_solutions[archived_solution].generation_found;
-						this->this_generation[individual].Xinner = this->archive_of_solutions[archived_solution].Xinner;
-						break;
 					}
 				}
-			}
 
-			if (NewSolution)
-				unevaluated_individuals_indices.push_back(individual);
+				if (NewSolution)
+					unevaluated_individuals_indices.push_back(individual);
+			}
 		}
 
 #ifdef EMTG_MPI
@@ -966,7 +975,7 @@ namespace GeneticAlgorithm
 					break;
 				}
 			}
-			if (NewSolution)
+			if (NewSolution || options.outerloop_reevaluate_full_population)
 				this->archive_of_solutions.push_back(this->this_generation[unevaluated_individuals_indices[entry]]);
 		}
 #endif
