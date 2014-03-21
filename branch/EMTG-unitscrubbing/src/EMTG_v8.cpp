@@ -42,8 +42,10 @@ using namespace boost::posix_time;
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
+#ifndef _STONEAGECplusplus
 	fs::path fort(L"fort.1"); 
-	fs::remove(fort); 
+	fs::remove(fort);
+#endif
 
 
 	cout << "program starting" << endl;

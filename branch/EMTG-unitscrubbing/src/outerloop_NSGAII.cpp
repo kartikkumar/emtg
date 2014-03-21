@@ -892,8 +892,8 @@ namespace GeneticAlgorithm
 			}
 			catch (int e)
 			{
-				if (this->MPIWorld->rank() == 0)
-					std::cout << "Failure to scatter population! Exiting..." << std::endl;
+				
+				std::cout << "Failure to scatter population! Exiting..." << std::endl;
 
 				throw e;
 			}
@@ -933,8 +933,7 @@ namespace GeneticAlgorithm
 		}
 		catch (int e)
 		{
-			if (this->MPIWorld->rank() == 0)
-				std::cout << "Failure to gather population! Exiting..." << std::endl;
+			std::cout << "Failure to gather population! Exiting..." << std::endl;
 
 			throw e;
 		}
