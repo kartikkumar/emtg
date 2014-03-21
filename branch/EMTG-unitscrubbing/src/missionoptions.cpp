@@ -34,6 +34,7 @@ missionoptions::missionoptions() {
 	this->outerloop_vary_arrival_C3 = false;
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
+	this->quiet_outerloop = 1;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -81,6 +82,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_vary_arrival_C3 = false;
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
+	this->quiet_outerloop = true;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -327,6 +329,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "outerloop_reevaluate_full_population")
 	{
 		this->outerloop_reevaluate_full_population = (bool) value;
+		return 0;
+	}
+	if (choice == "quiet_outerloop")
+	{
+		this->quiet_outerloop = (bool) value;
 		return 0;
 	}
 
@@ -1696,6 +1703,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_warmstart " << this->outerloop_warmstart << endl;
 		outputfile << "#Re-evaluate the entire outerloop each generation? Otherwise read from the archive." << endl;
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
+		outputfile << "#Quiet outer-loop?" << endl;
+        outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
 		outputfile << endl;
 
 		outputfile << "##inner-loop solver settings" << endl;

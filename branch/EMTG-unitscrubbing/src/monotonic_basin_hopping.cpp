@@ -473,8 +473,11 @@ namespace EMTG { namespace Solvers {
 		if (!this->printed_sparsity)
 		{
 			this->printed_sparsity = true;
-			Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
-			Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
+			if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+			{
+				Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
+				Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
+			}
 		}
 
 		if (this->Problem->options.NLP_solver_type == 1)
@@ -502,7 +505,8 @@ namespace EMTG { namespace Solvers {
 				vector<bool> cjacflag(neF);
 				if (true /*Problem->options.derivative_type > 0*/)
 				{
-					Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
+					if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+						Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
 
 					for (size_t entry = 0; entry < Problem->Adescriptions.size(); ++entry)
 					{
@@ -524,8 +528,11 @@ namespace EMTG { namespace Solvers {
 				else
 				{
 					SNOPTproblem->computeJac    ();
-					write_sparsity("sparsitySNJac.txt");
-					Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions_SNJAC.csv");
+					if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+					{
+						write_sparsity("sparsitySNJac.txt");
+						Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions_SNJAC.csv");
+					}
 
 					//Step 3: If the Jacobian calculation succeeded, then check if it is full rank
 					if (SNOPTproblem->getInform() == 102)
@@ -557,7 +564,7 @@ namespace EMTG { namespace Solvers {
 				SNOPT_start_time = time(NULL);
 				SNOPTproblem->solve( 0 );
 			}
-			else
+			else if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
 			{
 				cout << "Jacobian is not full rank. SNOPT cannot be run." << endl;
 			}
@@ -577,14 +584,16 @@ namespace EMTG { namespace Solvers {
 			}
 			catch (int errorcode) //integration step error
 			{
-				cout << "EMTG::Invalid initial point or failure in objective function." << endl;
+				if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+					cout << "EMTG::Invalid initial point or failure in objective function." << endl;
 				F[0] = EMTG::math::LARGE;
 			}
 		}
 
 		else
 		{
-			cout << "EMTG::Invalid initial point or failure in objective function." << endl;
+			if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+				cout << "EMTG::Invalid initial point or failure in objective function." << endl;
 			F[0] = EMTG::math::LARGE;
 		}
 		for (int k = 0; k < Problem->total_number_of_constraints; ++k)
@@ -647,7 +656,8 @@ namespace EMTG { namespace Solvers {
 			//Step 2.1: If this is an MGA or MGA-DSM problem, make the finite differencing step coarse
 			if (Problem->options.mission_type < 2)
 			{
-				cout << "Performing coarse optimization step" << endl;
+				if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+					cout << "Performing coarse optimization step" << endl;
 				SNOPTproblem->setRealParameter("Difference interval", 1.0e-2);
 			}
 
@@ -659,14 +669,18 @@ namespace EMTG { namespace Solvers {
 			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
 			if (Problem->options.mission_type < 2 && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
-				cout << "Coarse optimization step succeeded with J = " << F[0] << endl;
-				cout << "Performing fine optimization step" << endl;
+				if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+				{
+					cout << "Coarse optimization step succeeded with J = " << F[0] << endl;
+					cout << "Performing fine optimization step" << endl;
+				}
 				SNOPTproblem->setRealParameter("Difference interval", 1.5e-8);
 				slide();
 
 				if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 				{
-					cout << "Fine optimization step succeeded with J = " << F[0] << endl;
+					if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+						cout << "Fine optimization step succeeded with J = " << F[0] << endl;
 				}
 			}
 
@@ -680,8 +694,11 @@ namespace EMTG { namespace Solvers {
 				archive_step_count.push_back(number_of_attempts);
 				archive_reset_count.push_back(number_of_resets);
 
-				print_archive_line(archive_file, number_of_solutions);
-				cout << "Hop evaluated mission " << Problem->options.description << " with fitness " << F[0] << endl;
+				if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+				{
+					print_archive_line(archive_file, number_of_solutions);
+					cout << "Hop evaluated mission " << Problem->options.description << " with fitness " << F[0] << endl;
+				}
 
 				++number_of_solutions;
 
@@ -693,7 +710,8 @@ namespace EMTG { namespace Solvers {
 						fcurrent = F[0];
 						Xcurrent_scaled = Xtrial_scaled;
 
-						cout << "New local best" << endl;
+						if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+							cout << "New local best" << endl;
 
 						++number_of_improvements;
 
@@ -717,7 +735,8 @@ namespace EMTG { namespace Solvers {
 					Problem->unscale(&Xbest_scaled[0]);
 					Problem->Xopt = Problem->X; //we store the unscaled Xbest
 
-					cout << "New global best" << endl;
+					if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+						cout << "New global best" << endl;
 
 					//Write out a results file for the current global best
 					Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
@@ -732,7 +751,8 @@ namespace EMTG { namespace Solvers {
 				//then we should see if this point is "more feasible" than best one we have so far
 				if (feasibility < best_feasibility)
 				{
-					std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+					if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+						std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
 					fcurrent = F[0];
 					Xcurrent_scaled = Xtrial_scaled;
 					best_feasibility = feasibility;
@@ -767,11 +787,14 @@ namespace EMTG { namespace Solvers {
 			*/
 		} while (number_of_attempts < Problem->options.MBH_max_trials && (time(NULL) - tstart) < Problem->options.MBH_max_run_time);
 
-		cout << endl;
-		if (number_of_solutions > 0)
-			cout << "Best value found was " << fbest << endl;
-		else
-			cout << "No feasible solutions found." << endl;
+		if ( !(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+		{
+			cout << endl;
+			if (number_of_solutions > 0)
+				cout << "Best value found was " << fbest << endl;
+			else
+				cout << "No feasible solutions found." << endl;
+		}
 
 		return number_of_solutions;
 	}

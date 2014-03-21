@@ -47,6 +47,7 @@ class MissionOptions(object):
     outerloop_departure_C3_choices = [25.0]
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
+    quiet_outerloop = 1#if true, suppress all text outputs except error catches
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -300,6 +301,8 @@ class MissionOptions(object):
                         self.outerloop_warmstart = int(linecell[1])
                     elif choice == "outerloop_reevaluate_full_population":
                         self.outerloop_reevaluate_full_population = int(linecell[1])
+                    elif choice == "quiet_outerloop":
+                        self.quiet_outerloop = int(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -771,6 +774,8 @@ class MissionOptions(object):
         outputfile.write("outerloop_warmstart " + str(self.outerloop_warmstart) + "\n")
         outputfile.write("#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.\n")
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
+        outputfile.write("#Quiet outer-loop?\n")
+        outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")

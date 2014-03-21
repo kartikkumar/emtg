@@ -74,6 +74,7 @@ public:
 	bool outerloop_useparallel; //whether or not to use the parallel outer-loop
 	int outerloop_warmstart; //if true, read "population.txt" and "solutions.txt"
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
+	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 
 	//outer loop selectable options settings
 	bool outerloop_vary_power;

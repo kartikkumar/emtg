@@ -297,8 +297,11 @@ namespace GeneticAlgorithm
 
 		//Step 3: run the inner-loop
 		options.print_options_file(options.working_directory + "//" + this->description + ".emtgopt");
-		TrialMission.output_mission_tree(options.working_directory + "//" + this->description + ".emtgtree");
-		cout << "Optimizing mission: " << TrialMission.options.description << endl;
+		if (!options.quiet_outerloop)
+		{
+			TrialMission.output_mission_tree(options.working_directory + "//" + this->description + ".emtgtree");
+			cout << "Optimizing mission: " << TrialMission.options.description << endl;
+		}
 		TrialMission.optimize();
 
 		//Step 4: extract the fitness values
@@ -804,19 +807,22 @@ namespace GeneticAlgorithm
 					{
 						if ( this->archive_of_solutions[archived_solution].description == this->this_generation[individual].description )
 						{
-							cout << "Solution " << this->this_generation[individual].description << " has already been evaluated with fitnesses [";
-
-							for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+							if (!options.quiet_outerloop)
 							{
-								this->this_generation[individual].fitness_values[objective] = this->archive_of_solutions[archived_solution].fitness_values[objective];
+								cout << "Solution " << this->this_generation[individual].description << " has already been evaluated with fitnesses [";
 
-								if (objective > 0)
-									cout << ", ";
+								for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+								{
+									this->this_generation[individual].fitness_values[objective] = this->archive_of_solutions[archived_solution].fitness_values[objective];
 
-								cout << this->this_generation[individual].fitness_values[objective];
+									if (objective > 0)
+										cout << ", ";
+
+									cout << this->this_generation[individual].fitness_values[objective];
+								}
+
+								cout << "]" << endl;
 							}
-
-							cout << "]" << endl;
 							NewSolution = false;
 
 							this->this_generation[individual].timestamp = this->archive_of_solutions[archived_solution].timestamp;
@@ -836,10 +842,11 @@ namespace GeneticAlgorithm
 		//if MPI is enabled, conduct a parallel evaluation of the population
 		//first announce that this processor is ready to go
 		if (this->MPIWorld->rank() == 0)
-			std::cout << "Processor " << this->MPIWorld->rank() << " ready to broadcast population of " << unevaluated_individuals_indices.size() << " individuals." << std::endl;
-		//else
-		//	std::cout << "Processor " << this->MPIWorld->rank() << " ready to receive cases." << std::endl;
-
+		{
+			if (!options.quiet_outerloop)
+				std::cout << "Processor " << this->MPIWorld->rank() << " ready to broadcast population of " << unevaluated_individuals_indices.size() << " individuals." << std::endl;
+		}
+		
 		//distribute the population into subvectors
 
 		//vector of subpopulations
@@ -865,7 +872,8 @@ namespace GeneticAlgorithm
 				subpopulations.push_back(temppop);
 			}
 
-			std::cout << "Processor " << this->MPIWorld->rank() << " is ready to scatter" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "Processor " << this->MPIWorld->rank() << " is ready to scatter" << std::endl;
 		}
 		
 		//then scatter the subvectors
@@ -874,27 +882,41 @@ namespace GeneticAlgorithm
 		boost::mpi::scatter <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), subpopulations, my_subpopulation, 0);
 
 		//announce how many problems are to be evaluated by each processor
-		try
+		if (!options.quiet_outerloop)
 		{
-			if (this->MPIWorld->rank() == 0)
-				std::cout << "Attempting to scatter the population for generation " << this->current_generation << std::endl;
-			std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
-		}
-		catch (int e)
-		{
-			if (this->MPIWorld->rank() == 0)
-				std::cout << "Failure to scatter population! Exiting..." << std::endl;
+			try
+			{
+				if (this->MPIWorld->rank() == 0)
+					std::cout << "Attempting to scatter the population for generation " << this->current_generation << std::endl;
+				std::cout << "Processor " << this->MPIWorld->rank() << " evaluating " << my_subpopulation.size() << " cases." << std::endl;
+			}
+			catch (int e)
+			{
+				if (this->MPIWorld->rank() == 0)
+					std::cout << "Failure to scatter population! Exiting..." << std::endl;
 
-			throw e;
+				throw e;
+			}
 		}
 		
 		
 		//evaluate the local subvector
 		for (size_t individual = 0; individual < my_subpopulation.size(); ++individual)
 		{
-			std::cout << "Processor #" << this->MPIWorld->rank() << " " << my_subpopulation[individual].description << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "Processor #" << this->MPIWorld->rank() << " " << my_subpopulation[individual].description << std::endl;
 			my_subpopulation[individual].set_data_pointers((void*) &options, (void*) &(Universe));
-			my_subpopulation[individual].evaluate();
+			try
+			{
+				my_subpopulation[individual].evaluate();
+			}
+			catch (int e)
+			{
+				std::cout << "Processor #" << this->MPIWorld->rank() << " CRASHED evaluating " << my_subpopulation[individual].description << std::endl;
+				std::cout << "Exception " << e << std::endl;
+				for (int obj = 0; obj < my_subpopulation[individual].fitness_values.size(); ++ obj)
+					my_subpopulation[individual].fitness_values[obj] = 1.0e+100;
+			}
 			my_subpopulation[individual].timestamp = std::time(NULL) - this->tstart;
 			my_subpopulation[individual].generation_found = this->current_generation;
 		}
@@ -902,8 +924,11 @@ namespace GeneticAlgorithm
 		//gather the results
 		try
 		{
-			if (this->MPIWorld->rank() == 0)
-				std::cout << "Attempting to gather the population for generation " << this->current_generation << std::endl;
+			if (!options.quiet_outerloop)
+			{
+				if (this->MPIWorld->rank() == 0)
+					std::cout << "Attempting to gather the population for generation " << this->current_generation << std::endl;
+			}
 			boost::mpi::gather <vector <EMTG_outerloop_solution> > (*(this->MPIWorld), my_subpopulation, subpopulations, 0);
 		}
 		catch (int e)
@@ -1299,6 +1324,7 @@ namespace GeneticAlgorithm
 		std::stringstream popfilestream;
 		popfilestream << options.working_directory << "//NSGAII_initial_population.csv";
 		this->writepop(popfilestream.str());
+		popfilestream.clear();
 		this->write_archive(options.working_directory + "//NSGAII_archive.csv");
 
 		this->non_dominated_sort(this->parent_population); // assigns local non-dominated front value to parent_population members
@@ -1316,9 +1342,6 @@ namespace GeneticAlgorithm
 		//2d. evaluate objectives for initial child population
 		this->this_generation = this->children_population;
 		this->evaluatepop(options, Universe);
-		popfilestream.clear();
-		popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
-		this->writepop(popfilestream.str());
 		this->write_archive(options.working_directory + "//NSGAII_archive.csv");
 
 		this->children_population = this->this_generation;
@@ -1342,6 +1365,11 @@ namespace GeneticAlgorithm
 			this->filter_population(); //updates parent population
 			this->this_generation = this->parent_population;
 
+			// print the current population to a file
+			std::stringstream popfilestream;
+			popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
+			this->writepop(popfilestream.str());
+
 			//6. generate new offspring via genetic operators
 			//6a. crowded tournment selection to generate parent pool from parent population
 			this->parent_pool = this->select(this->parent_population);
@@ -1358,12 +1386,7 @@ namespace GeneticAlgorithm
 			this->evaluatepop(options, Universe);
 			this->children_population = this->this_generation;  
 
-			//7. print the current population to a file
-			std::stringstream popfilestream;
-			popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".csv";
-			this->writepop(popfilestream.str());
-
-			//8. write out the current archive in case we need to warm-start another GA later
+			//7. write out the current archive in case we need to warm-start another GA later
 			this->write_archive(options.working_directory + "//NSGAII_archive.csv");
 
 			++this->current_generation;  // increase generation counter
@@ -1434,7 +1457,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_power_choices.size() - 1);
 			this->Xdescriptions.push_back("BOL Power at 1 AU (kW)");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying power" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying power" << std::endl;
 		}
 		if (options.outerloop_vary_launch_epoch && options.outerloop_launch_epoch_choices.size() > 1)
 		{
@@ -1442,7 +1466,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_launch_epoch_choices.size() - 1);
 			this->Xdescriptions.push_back("Launch window open date (MJD)");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying launch window open date" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying launch window open date" << std::endl;
 		}
 		if (options.outerloop_vary_flight_time_upper_bound && options.outerloop_flight_time_upper_bound_choices.size() > 1)
 		{
@@ -1450,7 +1475,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_flight_time_upper_bound_choices.size() - 1);
 			this->Xdescriptions.push_back("Flight time upper bound (d)");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying flight time upper bound" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying flight time upper bound" << std::endl;
 		}
 		if (options.outerloop_vary_thruster_type && options.outerloop_thruster_type_choices.size() > 1)
 		{
@@ -1458,7 +1484,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_thruster_type_choices.size() - 1);
 			this->Xdescriptions.push_back("Thruster type");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying thruster type" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying thruster type" << std::endl;
 		}
 		if (options.outerloop_vary_number_of_thrusters && options.outerloop_number_of_thrusters_choices.size() > 1)
 		{
@@ -1466,7 +1493,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_number_of_thrusters_choices.size() - 1);
 			this->Xdescriptions.push_back("Number of thrusters");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying number of thrusters" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying number of thrusters" << std::endl;
 		}
 		if (options.outerloop_vary_launch_vehicle && options.outerloop_launch_vehicle_choices.size() > 1)
 		{
@@ -1474,7 +1502,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_launch_vehicle_choices.size() - 1);
 			this->Xdescriptions.push_back("Launch vehicle");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying launch vehicle" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying launch vehicle" << std::endl;
 		}
 		if (options.outerloop_vary_departure_C3 && options.outerloop_departure_C3_choices.size() > 1)
 		{
@@ -1482,7 +1511,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_departure_C3_choices.size() - 1);
 			this->Xdescriptions.push_back("Departure C3 upper bound");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying first journey departure C3" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying first journey departure C3" << std::endl;
 		}
 		if (options.outerloop_vary_arrival_C3 && options.outerloop_arrival_C3_choices.size() > 1)
 		{
@@ -1490,7 +1520,8 @@ namespace GeneticAlgorithm
 			this->Xupperbounds.push_back(options.outerloop_arrival_C3_choices.size() - 1);
 			this->Xdescriptions.push_back("Arrival C3 upper bound");
 			this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-			std::cout << "varying last journey arrival C3" << std::endl;
+			if (!options.quiet_outerloop)
+				std::cout << "varying last journey arrival C3" << std::endl;
 		}
 
 		//options for each journey
@@ -1505,7 +1536,8 @@ namespace GeneticAlgorithm
 				descriptionstream << "Journey " << j << " destination";
 				this->Xdescriptions.push_back(descriptionstream.str());
 				this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-				std::cout << "varying journey " << j << " destination" << std::endl;
+				if (!options.quiet_outerloop)
+					std::cout << "varying journey " << j << " destination" << std::endl;
 			}
 
 			//flyby sequence using Englander and Conway "null gene" method
@@ -1519,7 +1551,8 @@ namespace GeneticAlgorithm
 					descriptionstream << "Journey " << j << " potential flyby target " << p;
 					this->Xdescriptions.push_back(descriptionstream.str());
 					this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
-					std::cout << "varying journey " << j << " potential flyby target " << p << std::endl;
+					if (!options.quiet_outerloop)
+						std::cout << "varying journey " << j << " potential flyby target " << p << std::endl;
 				}
 			}
 		}

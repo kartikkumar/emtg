@@ -71,11 +71,11 @@ int main(int argc, char* argv[])
 	//*****************************************************************
 	ptime now = second_clock::local_time();
 	std::stringstream timestream;
-	timestream << static_cast<int>(now.date().month()) << "_" << now.date().day() << "_" << now.date().year() << "_" << now.time_of_day().hours() << "_" << now.time_of_day().minutes() << "_" << now.time_of_day().seconds();
+	timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 
 		
 	//define a new working directory
-	options.working_directory = "..//EMTG_v8_results//solutions_" + options.mission_name + "_" + timestream.str();
+	options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
 	//create the working directory
 	try 
 	{ 
