@@ -626,7 +626,8 @@ namespace EMTG { namespace Solvers {
 
 		//print the archive header
 		string archive_file = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "archive.emtg_archive";
-		print_archive_header(archive_file);
+		if (!(Problem->options.run_outerloop && Problem->options.quiet_outerloop) )
+			print_archive_header(archive_file);
 
 		time_t tstart = time(NULL);
 

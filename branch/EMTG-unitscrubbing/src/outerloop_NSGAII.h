@@ -54,6 +54,7 @@ namespace GeneticAlgorithm
 			double crowding_distance;								// relative measure of distance to others along non-dominated front
 			int pareto_rank;										// level of non-dominated front that the solution belongs to (the lower the closer to the pareto front)
 			int ndom;												// dominated-by counter for non-dpminated sorting
+			double innerloop_fitness;
 
 			//members
 
@@ -89,6 +90,7 @@ namespace GeneticAlgorithm
 				ar & this->ndom;
 				ar & this->dominated_by;
 				ar & this->dominates;
+				ar & this->innerloop_fitness;
 			}
 #endif
 

@@ -172,7 +172,6 @@ namespace GeneticAlgorithm
 				if (j > 0)
 				{
 					options.destination_list[j][0] = options.destination_list[j-1][1];
-					journey_sequence.push_back(options.destination_list[j][0]);
 				}
 
 				options.destination_list[j][1] = options.outerloop_journey_destination_choices[j][X[Xindex]];
@@ -257,7 +256,7 @@ namespace GeneticAlgorithm
 		{
 			vector<int> journey_sequence_input;
 			vector<int> journey_phase_type_input;
-			for (int p = 0; p < options.max_phases_per_journey; ++p)
+			for (int p = 1; p < options.max_phases_per_journey + 1; ++p)
 			{
 				if (p < options.number_of_phases[j])
 				{
@@ -280,9 +279,17 @@ namespace GeneticAlgorithm
 		options.phase_type_input = phase_type_input;
 
 		options.description = descriptionstream.str();
-		options.run_outerloop = 0;
 		options.mission_name = options.description;
 		this->description = options.description;
+
+		//if this is a previously evaluated solution that we want to take another cut at, seed the optimizer from its decision vector
+		if (this->Xinner.size() > 0)
+		{
+			options.seed_MBH = 1;
+			options.current_trialX = this->Xinner;
+		}
+		else
+			options.seed_MBH = 0;
 
 		return options;
 	}
@@ -302,12 +309,30 @@ namespace GeneticAlgorithm
 			TrialMission.output_mission_tree(options.working_directory + "//" + this->description + ".emtgtree");
 			cout << "Optimizing mission: " << TrialMission.options.description << endl;
 		}
+
+		//Step 3.1: Do a quick check - if any journey destination is visited twice (later make this a switch) then assign poor fitness values and return
+		for (int j = 0; j < options.number_of_journeys; ++j)
+		{
+			for (int jj = 0; jj < options.number_of_journeys; ++jj)
+			{
+				if ( !(jj == j) && (options.destination_list[j][1] == options.destination_list[jj][1]) )
+				{
+					std::cout << "Mission " <<TrialMission.options.description << " contains duplicate journeys. Discarding." << std::endl;
+					this->innerloop_fitness = 1.0e+100;
+					for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
+						this->fitness_values[objective] = 1.0e+100;
+					return;
+				}
+			}
+		}
+		//Step 3.2 if we made it this far then optimize
 		TrialMission.optimize();
 
 		//Step 4: extract the fitness values
 		//if the trial mission has no feasible solution then set the fitness values very high
 		if (TrialMission.number_of_solutions == 0)
 		{
+			this->innerloop_fitness = 1.0e+100;
 			for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
 				this->fitness_values[objective] = 1.0e+100;
 			return;
@@ -316,6 +341,7 @@ namespace GeneticAlgorithm
 		{
 			this->Xinner = TrialMission.Xopt;
 			TrialMission.extract_objective_function_values(this->fitness_values);
+			this->innerloop_fitness = TrialMission.F[0];
 		}
 
 		return;
@@ -761,7 +787,7 @@ namespace GeneticAlgorithm
 				}
 
 				//rearrange crowd_dist_vec in ascending order according to crowding distance
-				sort(crowd_dist_vec.begin(), crowd_dist_vec.end()); 
+				std::sort(crowd_dist_vec.begin(), crowd_dist_vec.end()); 
 
 				for (int i = 0; i < slots_remaining; ++i)
 				{
@@ -963,15 +989,23 @@ namespace GeneticAlgorithm
 					++population_counter;
 
 					//determine if this solution is a member of the archive. If not, add it
-					//note this is NOT redundant. While it is true that we do not evaluate any solution that already existed
-					//in the archive, it is possible for us to evaluate several copies of a new solution at the same time
-					//perhaps in the future there might be another (better?) way to do this by checking to see if any of the
-					//identical solutions dominate the others. For now we'll just keep the first one.
+					//note this is NOT redundant. If the solution is in the archive but the new one is better, replace it.
+					//If the old one is better, replace the new one with the old one.
 					bool NewSolution = true;
 					for (size_t ArchiveEntry = 0; ArchiveEntry < this->archive_of_solutions.size(); ++ArchiveEntry)
 					{
 						if (subpopulations[Rank][entry].description == this->archive_of_solutions[ArchiveEntry].description)
 						{
+							//if this solution is better than the one in the archive with the same name, over-write the archive
+							if (subpopulations[Rank][entry].innerloop_fitness < this->archive_of_solutions[ArchiveEntry].innerloop_fitness)
+							{
+								std::cout << "Solution to " << subpopulations[Rank][entry].description << " is superior to its value in the archive. Overwriting." << std::endl;
+								this->archive_of_solutions[ArchiveEntry] = subpopulations[Rank][entry];
+							}
+							//otherwise overwrite the current solution with what is in the archive
+							else
+								this->this_generation[unevaluated_individuals_indices[population_counter-1]] = this->archive_of_solutions[ArchiveEntry];
+
 							NewSolution = false;
 							break;
 						}

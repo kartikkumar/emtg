@@ -29,6 +29,7 @@
 #include <fstream>
 #include <sstream>
 
+
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
 #include <boost/mpi/communicator.hpp>
@@ -39,12 +40,31 @@ using namespace boost::filesystem;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 
+#ifdef _STONEAGECplusplus
+#include <execinfo.h>
+#include <signal.h>
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+#endif
+
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
 #ifndef _STONEAGECplusplus
 	fs::path fort(L"fort.1"); 
 	fs::remove(fort);
+#else
+	signal(SIGSEGV, handler);
 #endif
 
 
