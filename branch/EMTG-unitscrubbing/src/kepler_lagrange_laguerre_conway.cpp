@@ -4,6 +4,7 @@
 #include "STM.h"
 
 #include <math.h>
+#include <iostream>
 
 namespace Kepler
 {
@@ -11,7 +12,7 @@ namespace Kepler
 	void KeplerLagrangeLaguerreConway(const double* state0, double* state, const double& mu, const double& propTime, double& F, double& G, double& Ft, double& Gt, double& Ftt, double& Gtt, STM& stm, const bool& compute_STM_flag)
 	{
 		double r;
-		double sqrta, sqrtma, deltaE, deltaH, cdeltaE, sdeltaE, chdeltaH, shdeltaH;
+		double sqrta, sqrtma, deltaE = 0.0, deltaH = 0.0, cdeltaE = 0.0, sdeltaE = 0.0, chdeltaH = 0.0, shdeltaH = 0.0;
 		int iteration_count = 0;
 
 		//set Laguerre-Conway n
@@ -38,11 +39,11 @@ namespace Kepler
 			sqrta = sqrt(a);
 
 			//Battin equation 4.35
-			double deltaM = sqmu / sqrt(a*a*a) * propTime;
+			double deltaM = sqmu / (sqrta*sqrta*sqrta) * propTime;
 
 			//Step 2.2: solve for deltaE using the Laguerre-Conway method
 			//initial guess is deltaE = deltaM
-			deltaE = 1000.0;
+			deltaE = 1.0e+100;
 			double deltaE_new = deltaM;
 
 			while (fabs(deltaE - deltaE_new) > 1.0e-8 && iteration_count < 100)
@@ -69,6 +70,12 @@ namespace Kepler
 				//Laguerre-Conway update
 				int sgn = dF >= 0 ? 1 : -1;
 				deltaE_new = deltaE - n*F / (dF + sgn * sqrt(fabs( (n-1)*(n-1)*dF*dF - n * (n - 1) * F * ddF )));
+
+				if ( !(deltaE_new == deltaE_new) )
+				{
+					std::cout << "deltaE_new is a NaN!" << std::endl;
+					throw 1000000;
+				}
 			}
 
 			//Step 3: find F, G, r Ft, Gt
@@ -126,6 +133,12 @@ namespace Kepler
 				//Laguerre-Conway update
 				int sgn = dF >= 0 ? 1 : -1;
 				deltaH_new = deltaH - n*F / (dF + sgn * sqrt(fabs( (n-1)*(n-1)*dF*dF - n * (n - 1) * F * ddF )));
+
+				if ( !(deltaH_new == deltaH_new) )
+				{
+					std::cout << "deltaH_new is a NaN!" << std::endl;
+					throw 1000000;
+				}
 			}
 
 

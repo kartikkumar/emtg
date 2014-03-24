@@ -972,6 +972,12 @@ namespace GeneticAlgorithm
 			this->this_generation[unevaluated_individuals_indices[individual]].timestamp = std::time(NULL) - this->tstart;
 			this->this_generation[unevaluated_individuals_indices[individual]].generation_found = this->current_generation;
 		}
+
+		std::stringstream generation_note_stream;
+		generation_note_stream << "Evaluated_population_generation" << this->current_generation;
+		std::ofstream generation_note(generation_note_stream.str() + ".txt", ios::trunc);
+		generation_note << "Finished evaluating generation " << this->current_generation << std::endl;
+		generation_note.close();
 #endif
 		
 		//unwrap the results into the main population vector and add each solution to the archive IFF it is unique
