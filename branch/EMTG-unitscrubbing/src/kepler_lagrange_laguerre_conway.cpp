@@ -28,10 +28,10 @@ namespace Kepler
 
 		double a = 1.0 / (2.0 / r0 - v0*v0 / mu);
 		double coeff = (1 - r0 / a);
-		
+		double Energy = v0*v0 / 2.0 - mu / r0;
 
 		 
-		if (a > 0.0) //ellipse
+		if (Energy < -1.0e-8) //ellipse
 		{
 			//step 2: solve Kepler's equation
 
@@ -96,7 +96,7 @@ namespace Kepler
 
 			Gt = 1.0 - a/r * (1.0 -cdeltaE);
 		}
-		else //parabola or hyperbola
+		else if (Energy > 1.0e8) //hyperbola
 		{
 			//Step 2.1: initialize hyperbola-specific quantities
 			sqrtma = sqrt(-a);
@@ -143,6 +143,7 @@ namespace Kepler
 
 
 
+
 			//Step 3: find F, G, r Ft, Gt
 
 			//Step 3.1 find F and G
@@ -162,6 +163,11 @@ namespace Kepler
 			Ft = -sqrtma*sqmu / (r*r0) * shdeltaH;
 
 			Gt = 1.0 - a/r * (1.0 - chdeltaH);
+		}
+		else //parabola - solve Barker's equation
+		{
+			std::cout << "Oy! A parabola!" << std::endl;
+			throw 1000000;
 		}
 
 		//Step 4: compute the final state as functions of F, G, Ft, Gt

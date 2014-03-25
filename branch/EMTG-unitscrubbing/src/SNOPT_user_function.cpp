@@ -28,9 +28,11 @@ namespace EMTG { namespace Solvers {
 		{
 			Problem->evaluate(&(Problem->X[0]), F, G, *needG, Problem->iGfun, Problem->jGvar);
 		}
-		catch (int errorcode) //integration step error
+		catch (int errorcode)
 		{
-			if (errorcode == 13)
+			if (errorcode == 13)  //integration step error
+				*Status = -1;
+			if (errorcode == 1000000) //Kepler solver error
 				*Status = -1;
 		}
 

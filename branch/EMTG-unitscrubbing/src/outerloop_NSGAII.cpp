@@ -90,6 +90,9 @@ namespace GeneticAlgorithm
 
 		//Step 2: create a new options structure as a copy of the original
 		EMTG::missionoptions options = *options_base;
+		options.run_outerloop = 0;
+		options.quiet_basinhopping = options.quiet_outerloop;
+		options.quiet_NLP = options.quiet_outerloop;
 				
 		//Step 3: decode decision vector and create an options structure
 		//we must decode the decision vector in the order that we encoded it
@@ -995,7 +998,9 @@ namespace GeneticAlgorithm
 					++population_counter;
 
 					//determine if this solution is a member of the archive. If not, add it
-					//note this is NOT redundant. If the solution is in the archive but the new one is better, replace it.
+					//note this is NOT redundant. While it is true that we do not evaluate any solution that already existed
+					//in the archive, it is possible for us to evaluate several copies of a new solution at the same time
+					//If the solution is in the archive but the new one is better, replace it
 					//If the old one is better, replace the new one with the old one.
 					bool NewSolution = true;
 					for (size_t ArchiveEntry = 0; ArchiveEntry < this->archive_of_solutions.size(); ++ArchiveEntry)
@@ -1028,13 +1033,24 @@ namespace GeneticAlgorithm
 			//determine if this solution is a member of the archive. If not, add it
 			//note this is NOT redundant. While it is true that we do not evaluate any solution that already existed
 			//in the archive, it is possible for us to evaluate several copies of a new solution at the same time
-			//perhaps in the future there might be another (better?) way to do this by checking to see if any of the
-			//identical solutions dominate the others. For now we'll just keep the first one.
+			//If the solution is in the archive but the new one is better, replace it
+			//If the old one is better, replace the new one with the old one.
 			bool NewSolution = true;
 			for (size_t ArchiveEntry = 0; ArchiveEntry < this->archive_of_solutions.size(); ++ArchiveEntry)
 			{
 				if (this->this_generation[unevaluated_individuals_indices[entry]].description == this->archive_of_solutions[ArchiveEntry].description)
 				{
+
+					//if this solution is better than the one in the archive with the same name, over-write the archive
+					if (this->this_generation[unevaluated_individuals_indices[entry]].innerloop_fitness < this->archive_of_solutions[ArchiveEntry].innerloop_fitness)
+					{
+						std::cout << "Solution to " << this->this_generation[unevaluated_individuals_indices[entry]].description << " is superior to its value in the archive. Overwriting." << std::endl;
+						this->archive_of_solutions[ArchiveEntry] = this->this_generation[unevaluated_individuals_indices[entry]];
+					}
+					//otherwise overwrite the current solution with what is in the archive
+					else
+						this->this_generation[unevaluated_individuals_indices[entry]] = this->archive_of_solutions[ArchiveEntry];
+
 					NewSolution = false;
 					break;
 				}
