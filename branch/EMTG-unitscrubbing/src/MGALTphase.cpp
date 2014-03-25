@@ -952,7 +952,7 @@ namespace EMTG {
 			{
 				if ( (*Gdescriptions)[entry].find(constraintname) < 1024)
 				{
-					if ( (*Gdescriptions)[entry].find("launch epoch") < 1024 || (*Gdescriptions)[entry].find("phase flight time") < 1024)
+					if ( (*Gdescriptions)[entry].find("launch epoch") < 1024 || (*Gdescriptions)[entry].find("phase flight time") < 1024 || (*Gdescriptions)[entry].find("stay time") < 1024)
 					{
 						constraint_slice.push_back(entry);
 					}
@@ -2155,7 +2155,7 @@ namespace EMTG {
 
 			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
 			{
-				if (! ( (p == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
+				if (! ( (p == 0 && j == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{
 					//place the derivatives in the Jacobian
 					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] = -options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;

@@ -466,6 +466,7 @@ namespace EMTG { namespace Solvers {
 		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
 		{
 			xstate[k] = 0;
+			xmul[k] = 0.0;
 			x[k] = Xtrial_scaled[k];
 		}
 
@@ -495,7 +496,12 @@ namespace EMTG { namespace Solvers {
 		else
 		{
 			//run SNOPT
-
+			for (int k=0; k < Problem->total_number_of_constraints; ++k)
+			{
+				Fstate[k] = 0;
+				Fmul[k] = 0.0;
+				F[k] = 0.0;
+			}
 			//Step 2: attempt to calculate the Jacobian
 			SNOPTproblem->setX          ( x, xlow, xupp, xmul, xstate );
 			SNOPTproblem->setF          ( F, Flow, Fupp, Fmul, Fstate );
@@ -580,7 +586,7 @@ namespace EMTG { namespace Solvers {
 		{
 			try
 			{
-				Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+				Problem->evaluate(Problem->X.data(), F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
 			}
 			catch (int errorcode) //integration step error
 			{

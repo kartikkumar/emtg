@@ -35,6 +35,10 @@ outerloop_ntrials 1
 outerloop_useparallel 0
 #whether or not to perform an outer loop warm start
 outerloop_warmstart 0
+#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.
+outerloop_reevaluate_full_population 0
+#Quiet outer-loop?
+quiet_outerloop 1
 
 ##inner-loop solver settings
 #NLP solver type
@@ -97,7 +101,7 @@ initial_guess_step_size_stdv_or_scale 10.0
 #Apply zero-control initial guess in MBH?
 #0: do not use
 #1: zero-control for resets, random perturbations for hops
-#2: always use zero-control guess except when seeded<int MBH_zero_control_initial_guess
+#2: always use zero-control guess except when seeded
 MBH_zero_control_initial_guess 0
 
 ##low-thrust solver parameters
@@ -426,12 +430,18 @@ outerloop_vary_power 0
 outerloop_vary_launch_epoch 0
 #Allow outer-loop to vary flight time upper bound?
 outerloop_vary_flight_time_upper_bound 0
+#Restrict flight-time lower bound when running outer-loop?
+outerloop_restrict_flight_time_lower_bound 0
 #Allow outer-loop to vary thruster type?
 outerloop_vary_thruster_type 0
 #Allow outer-loop to vary number of thrusters?
 outerloop_vary_number_of_thrusters 0
 #Allow outer-loop to vary launch vehicle?
 outerloop_vary_launch_vehicle 0
+#Allow outer-loop to vary first journey departure C3?
+outerloop_vary_departure_C3 0
+#Allow outer-loop to vary last journey arrival C3?
+outerloop_vary_arrival_C3 0
 #Allow outer-loop to vary journey destination? (one value per journey)
 outerloop_vary_journey_destination 0
 #Allow outer-loop to vary journey flyby sequence? (one value per journey)
@@ -448,6 +458,10 @@ outerloop_thruster_type_choices 8
 outerloop_number_of_thrusters_choices 1
 #Outer-loop launch vehicle choices (in order of most to least preferable)
 outerloop_launch_vehicle_choices 1
+#Outer-loop first journey departure C3 choices
+outerloop_departure_C3_choices 25.0
+#Outer-loop last arrival departure C3 choices
+outerloop_arrival_C3_choices 25.0
 #Outer-loop maximum number of flybys (one value for each journey)
 outerloop_journey_maximum_number_of_flybys 8
 #Outer-loop journey destination choices (one line for each journey)
@@ -467,6 +481,8 @@ outerloop_journey_flyby_sequence_choices
 #5: Launch vehicle preference
 #6: Delivered mass to final target
 #7: Final journey mass increment (for maximizing sample return)
+#8: First journey departure C3 (km^2/s^2)
+#9: Final journey arrival C3 (km^2/s^2)
 outerloop_objective_function_choices 2 6
 
 ##output format settings
