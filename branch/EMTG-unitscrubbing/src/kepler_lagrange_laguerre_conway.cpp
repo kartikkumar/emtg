@@ -14,9 +14,21 @@ namespace Kepler
 	{
 		double r;
 		double deltaE = 0.0, deltaH = 0.0, cdeltaE = 0.0, sdeltaE = 0.0, chdeltaH = 0.0, shdeltaH = 0.0;
-		double U0, U1, U2, U3;
+		double U0, U1, U2, U3, X;
 		int iteration_count = 0;
 
+		//scaling code
+		/*
+		double LU = 149597870.691;
+		double TU = sqrt(LU*LU*LU/mu_in);
+		double mu = 1.0;
+		double state0[6];
+		for (int k = 0; k < 3; ++k)
+			state0[k] = state0_in[k] / LU;
+		for (int k = 3; k < 6; ++k)
+			state0[k] = state0_in[k] * TU/LU;
+		double propTime = propTime_in / TU;
+		*/
 		//set Laguerre-Conway n
 		const static int n = 5;
 
@@ -32,122 +44,204 @@ namespace Kepler
 		double a = 1.0 / (2.0 / r0 - v0*v0 / mu);
 		double coeff = (1 - r0 / a);
 		double Energy = v0*v0 / 2.0 - mu / r0;
-		const static double Energy_tolerance = 1.0e-6;
+		const static double alpha_tolerance = 1.0e-8;
 
 		//alpha for the Universal Kepler solver - this takes different values for each type of conic section
-		double alpha = fabs(Energy) < Energy_tolerance ? 0.0 : 1.0 / a;
+		double alpha = fabs(a) > alpha_tolerance ? 1.0 / a : 0.0;
 
-		//initial guess for the universal variable X, from Prussing and Conway p39
-		double rp;
-		//angular momentum vector and scalar
-		double hvec[3];
-		EMTG::math::cross(state, state+3, hvec);
-		double h = EMTG::math::norm(hvec, 3);
-
-		if (fabs(Energy) < Energy_tolerance) //parabola
+		if (alpha > alpha_tolerance) //ellipse
 		{
-			rp = h*h / mu;
-		}
-		else
-		{
-			//eccentricity vector
-			double evec[3];
-			double rdotv = EMTG::math::dot(state, state+3, 3);
-			double s = (v0*v0 - mu/r0);
+			//step 2: solve Kepler's equation
 
-			evec[0] = 1.0/mu * (s*state[0] - rdotv*state[3]);
-			evec[1] = 1.0/mu * (s*state[1] - rdotv*state[4]);
-			evec[2] = 1.0/mu * (s*state[2] - rdotv*state[5]);
+			//Step 2.1: initialize ellipse-specific quantities
+			double sqrta = sqrt(a);
 
-			//eccentricity scalar
-			double e = EMTG::math::norm(evec, 3);
+			//Battin equation 4.35
+			double deltaM = sqmu / (sqrta*sqrta*sqrta) * propTime;
 
-			//periapse distance
-			rp = a * (1.0 - e);
-		}
-		double Xplus = sqmu * propTime / rp;
-		//compute U0, U1, U2, U3 as per Battin Problem 4-21, p180
-		if (Energy < -Energy_tolerance) //ellipse
-		{
+			//Step 2.2: solve for deltaE using the Laguerre-Conway method
+			//initial guess is deltaE = deltaM
+			deltaE = 1.0e+100;
+			double deltaE_new = deltaM;
+
+			while (fabs(deltaE - deltaE_new) > 1.0e-8 && iteration_count < 100)
+			{
+				//iteration count update
+				++iteration_count;
+
+				//deltaE update
+				deltaE = deltaE_new;
+
+				//trig evaluations that only need to be done once
+				cdeltaE = cos(deltaE);
+				sdeltaE = sin(deltaE);
+
+				//Kepler's equation for an elliptical orbit
+				double F = deltaE - deltaM + sigma0 / sqrta * (1.0 - cdeltaE) - coeff * sdeltaE;
+
+				//derivative with respect to deltaE
+				double dF = 1 + sigma0 / sqrta * sdeltaE - coeff * cdeltaE;
+
+				//second derivative with respect to deltaE
+				double ddF = sigma0 / sqrta * cdeltaE + coeff * sdeltaE;
+
+				//Laguerre-Conway update
+				int sgn = dF >= 0 ? 1 : -1;
+				deltaE_new = deltaE - n*F / (dF + sgn * sqrt(fabs( (n-1)*(n-1)*dF*dF - n * (n - 1) * F * ddF )));
+
+				if ( !(deltaE_new == deltaE_new) )
+				{
+					std::cout << "deltaE_new is a NaN!" << std::endl;
+					throw 1000000;
+				}
+			}
+
+			//Step 3: find X, U0, U1, U2, U3
 			double sqalpha = sqrt(alpha);
-			double sqalphaX = sqalpha * Xplus;
+			X = sqrta * deltaE;
+			double sqalphaX = sqalpha * X;
 			U0 = cos(sqalphaX);
 			U1 = sin(sqalphaX) / sqalpha;
 			U2 = (1 - U0) / alpha;
 			U3 = (sqalphaX / sqalpha - U1) / alpha;
 		}
-		else if (Energy > Energy_tolerance) //hyperbola
+		else if (alpha < -alpha_tolerance) //hyperbola
 		{
+			//Step 2.1: initialize hyperbola-specific quantities
+			double sqrtma = sqrt(-a);
+
+			//Battin equation 4.51
+			double deltaN = sqmu / sqrt(-a*a*a) * propTime;
+
+			//Step 2.2: solve for deltaH using the Laguerre-Conway method
+			//initial guess is deltaH = deltaN
+			deltaH = 0;
+			double deltaH_new = propTime < 0.0 ? -1 : 1;
+
+			while (fabs(deltaH - deltaH_new) > 1.0e-8 && iteration_count < 100)
+			{
+				//iteration count update
+				++iteration_count;
+
+				//deltaE update
+				deltaH = deltaH_new;
+
+				//trig evaluations that only need to be done once
+				chdeltaH = cosh(deltaH);
+				shdeltaH = sinh(deltaH);
+
+				//Kepler's equation for a hyperbolic orbit
+				double F = -deltaN - deltaH + sigma0/sqrtma * (chdeltaH - 1.0) + coeff * shdeltaH;
+
+				//derivative with respect to deltaH
+				double dF = -1 + sigma0/sqrtma * shdeltaH + coeff * chdeltaH;
+
+				//second derivative with respect to deltaH
+				double ddF = sigma0/sqrtma * chdeltaH + coeff * shdeltaH;
+
+				//Laguerre-Conway update
+				int sgn = dF >= 0 ? 1 : -1;
+				deltaH_new = deltaH - n*F / (dF + sgn * sqrt(fabs( (n-1)*(n-1)*dF*dF - n * (n - 1) * F * ddF )));
+
+				if ( !(deltaH_new == deltaH_new) )
+				{
+					std::cout << "deltaH_new is a NaN!" << std::endl;
+					throw 1000000;
+				}
+			}
+
+			//Step 3: find X, U0, U1, U2
 			double sqmalpha = sqrt(-alpha);
-			double sqmalphaX = sqmalpha * Xplus;
+			X = sqrtma * deltaH;
+			double sqmalphaX = sqmalpha * X;
 			U0 = cosh(sqmalphaX);
 			U1 = sinh(sqmalphaX) / sqmalpha;
 			U2 = (U0 - 1) / -alpha;
 			U3 = (U1 - sqmalphaX / sqmalpha) / -alpha;
 		}
-		else //parabola
+		else //parabola - solve via Universal method
 		{
+			//std::cout << "Oy! A parabola!" << std::endl;
+
+			//initial guess for the universal variable X, from Prussing and Conway p39
+			double rp;
+			//angular momentum vector and scalar
+			double hvec[3];
+			EMTG::math::cross(state0, state0+3, hvec);
+			double h = EMTG::math::norm(hvec, 3);
+
+			if (fabs(alpha) < alpha_tolerance) //parabola
+			{
+				rp = h*h / mu;
+			}
+			else
+			{
+				//eccentricity vector
+				double evec[3];
+				double rdotv = EMTG::math::dot(state0, state0+3, 3);
+				double s = (v0*v0 - mu/r0);
+
+				evec[0] = 1.0/mu * (s*state0[0] - rdotv*state0[3]);
+				evec[1] = 1.0/mu * (s*state0[1] - rdotv*state0[4]);
+				evec[2] = 1.0/mu * (s*state0[2] - rdotv*state0[5]);
+
+				//eccentricity scalar
+				double e = EMTG::math::norm(evec, 3);
+
+				//periapse distance
+				rp = a * (1.0 - e);
+			}
+			double Xplus = sqmu * propTime / rp;
+			//compute U0, U1, U2, U3 as per Battin Problem 4-21, p180
 			U0 = 1.0;
 			U1 = Xplus;
 			U2 = Xplus*Xplus / 2.0;
 			U3 = U2 * Xplus / 3.0;
-		}
-		double FXplus = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
-		double X_new = (mu * propTime * propTime) / (rp * FXplus + sqmu * propTime);
+		
+			double FXplus = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
+			double X_new = (mu * propTime * propTime) / (rp * FXplus + sqmu * propTime);
 
-		//Step 2: solve Kepler's equation via a Universal Laguerre-Conway method
-		double X = 1.0e+100;
-		while (fabs(X - X_new) > 1.0e-8 && iteration_count < 100)
-		{
-			++iteration_count;
+			//Step 2: solve Kepler's equation via a Universal Laguerre-Conway method
+			X = 1.0e+100;
+			while (fabs(X - X_new) > 1.0e-8 && iteration_count < 100)
+			{
+				++iteration_count;
 
-			//Step 2.1
-			//X update
-			X = X_new;
+				//Step 2.1
+				//X update
+				X = X_new;
 
-			//Step 2.2
-			//compute U0, U1, U2, U3 as per Battin Problem 4-21, p180
-			if (Energy < -Energy_tolerance) //ellipse
-			{
-				double sqalpha = sqrt(alpha);
-				double sqalphaX = sqalpha * X;
-				U0 = cos(sqalphaX);
-				U1 = sin(sqalphaX) / sqalpha;
-				U2 = (1 - U0) / alpha;
-				U3 = (sqalphaX / sqalpha - U1) / alpha;
-			}
-			else if (Energy > Energy_tolerance) //hyperbola
-			{
-				double sqmalpha = sqrt(-alpha);
-				double sqmalphaX = sqmalpha * X;
-				U0 = cosh(sqmalphaX);
-				U1 = sinh(sqmalphaX) / sqmalpha;
-				U2 = (U0 - 1) / -alpha;
-				U3 = (U1 - sqmalphaX / sqmalpha) / -alpha;
-			}
-			else //parabola
-			{
+				//Step 2.2
+				//compute U0, U1, U2, U3 as per Battin Problem 4-21, p180
 				U0 = 1.0;
 				U1 = X;
 				U2 = X*X / 2.0;
 				U3 = U2 * X / 3.0;
+
+				//Step 2.3 compute r and sigma via equations 4.82 and 4.83, p178
+				r = r0 * U0 + sigma0 * U1 + U2;
+				sigma = sigma0 * U0 + (1 - alpha * r0) * U1;
+
+				//Step 2.4 Universal form of Kepler's equation and its derivatives
+				double FX = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
+				double dFX = r;
+				double ddFX = sigma;
+
+				//Laguerre-Conway update
+				int sgn = dFX >= 0 ? 1 : -1;
+				X_new = X - n*FX / (dFX + sgn * sqrt(fabs( (n-1)*(n-1)*dFX*dFX - n * (n - 1) * F * ddFX )));
 			}
 
-			//Step 2.3 compute r and sigma via equations 4.82 and 4.83, p178
-			r = r0 * U0 + sigma0 * U1 + U2;
-			sigma = sigma0 * U0 + (1 - alpha * r0) * U1;
-
-			//Step 2.4 Universal form of Kepler's equation and its derivatives
-			double FX = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
-			double dFX = r;
-			double ddFX = sigma;
-
-			//Laguerre-Conway update
-			int sgn = dFX >= 0 ? 1 : -1;
-			X_new = X - n*FX / (dFX + sgn * sqrt(fabs( (n-1)*(n-1)*dFX*dFX - n * (n - 1) * F * ddFX )));
+			if ( !(X == X) )
+			{
+				std::cout << "X is a NaN!" << std::endl;
+				throw 1000000;
+			}
 		}
 
 		//Step 3: find F, G, Ft, Gt
+		r = r0 * U0 + sigma0 * U1 + U2;
+		sigma = sigma0 * U0 + (1 - alpha * r0) * U1;
 		F = 1.0 - U2 / r0;
 		G = (r0 * U1 + sigma0 * U2) / sqmu;
 		Ft = -sqmu / (r0 * r) * U1;
@@ -155,12 +249,12 @@ namespace Kepler
 
 		//Step 4: compute the final state as functions of F, G, Ft, Gt
 		//Battin equation 3.33
-		state[0] = F*state0[0] + G*state0[3];
-		state[1] = F*state0[1] + G*state0[4];
-		state[2] = F*state0[2] + G*state0[5];
-		state[3] = Ft*state0[0] + Gt*state0[3];
-		state[4] = Ft*state0[1] + Gt*state0[4];
-		state[5] = Ft*state0[2] + Gt*state0[5];
+		state[0] = (F*state0[0] + G*state0[3]);// * LU;
+		state[1] = (F*state0[1] + G*state0[4]);// * LU;
+		state[2] = (F*state0[2] + G*state0[5]);// * LU;
+		state[3] = (Ft*state0[0] + Gt*state0[3]);// * LU/TU;
+		state[4] = (Ft*state0[1] + Gt*state0[4]);// * LU/TU;
+		state[5] = (Ft*state0[2] + Gt*state0[5]);// * LU/TU;
 
 		//Step 5: Compute the state transition matrix if requested
 		if (compute_STM_flag)
@@ -175,7 +269,7 @@ namespace Kepler
 			double dXdt = sqmu / r;
 			double U0dot, U1dot, U2dot;
 
-			if (Energy < -Energy_tolerance) //ellipse
+			if (alpha > alpha_tolerance) //ellipse
 			{
 				double sqalpha = sqrt(alpha);
 				double sqalphaX = sqalpha * X;
@@ -183,7 +277,7 @@ namespace Kepler
 				U1dot = U0 * dXdt;
 				U2dot = U1 * dXdt;
 			}
-			else if (Energy > Energy_tolerance) //hyperbola
+			else if (alpha < -alpha_tolerance) //hyperbola
 			{
 				double sqmalpha = sqrt(-alpha);
 				double sqmalphaX = sqmalpha * X;

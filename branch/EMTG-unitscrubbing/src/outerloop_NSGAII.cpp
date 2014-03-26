@@ -343,6 +343,13 @@ namespace GeneticAlgorithm
 		else
 		{
 			this->Xinner = TrialMission.Xopt;
+			for (int entry = 0; entry < TrialMission.Xdescriptions.size(); ++entry)
+			{
+				if (TrialMission.Xdescriptions[entry].find("epoch") < 1024 || TrialMission.Xdescriptions[entry].find("time") < 1024)
+				{
+					this->Xinner[entry] /= 86400.0;
+				}
+			}
 			TrialMission.extract_objective_function_values(this->fitness_values);
 			this->innerloop_fitness = TrialMission.F[0];
 		}
