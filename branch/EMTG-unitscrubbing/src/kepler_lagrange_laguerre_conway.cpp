@@ -64,7 +64,7 @@ namespace Kepler
 			deltaE = 1.0e+100;
 			double deltaE_new = deltaM;
 
-			while (fabs(deltaE - deltaE_new) > 1.0e-8 && iteration_count < 100)
+			while (fabs(deltaE - deltaE_new) > 1.0e-12 && iteration_count < 100)
 			{
 				//iteration count update
 				++iteration_count;
@@ -118,7 +118,7 @@ namespace Kepler
 			deltaH = 0;
 			double deltaH_new = propTime < 0.0 ? -1 : 1;
 
-			while (fabs(deltaH - deltaH_new) > 1.0e-8 && iteration_count < 100)
+			while (fabs(deltaH - deltaH_new) > 1.0e-12 && iteration_count < 100)
 			{
 				//iteration count update
 				++iteration_count;
@@ -203,7 +203,7 @@ namespace Kepler
 
 			//Step 2: solve Kepler's equation via a Universal Laguerre-Conway method
 			X = 1.0e+100;
-			while (fabs(X - X_new) > 1.0e-8 && iteration_count < 100)
+			while (fabs(X - X_new) > 1.0e-12 && iteration_count < 100)
 			{
 				++iteration_count;
 
@@ -276,6 +276,11 @@ namespace Kepler
 				U0dot =  -sqalpha * sin(sqalphaX) * dXdt;
 				U1dot = U0 * dXdt;
 				U2dot = U1 * dXdt;
+
+				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
+				{
+					std::cout << "Failure to calculate Udots" << std::endl;
+				}
 			}
 			else if (alpha < -alpha_tolerance) //hyperbola
 			{
@@ -284,12 +289,22 @@ namespace Kepler
 				U0dot = sqmalpha * sinh(sqmalphaX);
 				U1dot = U0 * dXdt;
 				U2dot = U1 * dXdt;
+
+				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
+				{
+					std::cout << "Failure to calculate Udots" << std::endl;
+				}
 			}
 			else //parabola
 			{
 				U0dot = 0;
 				U1dot = dXdt;
 				U2dot = X * dXdt;
+
+				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
+				{
+					std::cout << "Failure to calculate Udots" << std::endl;
+				}
 			}
 
 			//Step 5.2 compute C, which along with F, G, Ft, and Gt can be used to compute the STM

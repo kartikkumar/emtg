@@ -519,6 +519,7 @@
     <ClCompile Include="src\interpolator.cpp" />
     <ClCompile Include="src\journey.cpp" />
     <ClCompile Include="src\kepler_lagrange_laguerre_conway.cpp" />
+    <ClCompile Include="src\Kepler_Lagrange_Laguerre_Conway_Ger.cpp" />
     <ClCompile Include="src\Lambert_AroraRussell.cpp" />
     <ClCompile Include="src\LT_Spiral.cpp" />
     <ClCompile Include="src\MGADSMphase.cpp" />
@@ -567,6 +568,7 @@
     <ClInclude Include="src\interpolator.h" />
     <ClInclude Include="src\journey.h" />
     <ClInclude Include="src\kepler_lagrange_laguerre_conway.h" />
+    <ClInclude Include="src\Kepler_Lagrange_Laguerre_Conway_Ger.h" />
     <ClInclude Include="src\Lambert_AroraRussell.h" />
     <ClInclude Include="src\MGADSMphase.h" />
     <ClInclude Include="src\MGALTphase.h" />
