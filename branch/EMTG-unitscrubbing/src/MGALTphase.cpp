@@ -14,7 +14,7 @@
 #include "EMTG_Matrix.h"
 #include "UniversalKeplerPropagator.h"
 #include "kepler_lagrange_laguerre_conway.h"
-#include "Kepler_Lagrange_Laguerre_Conway_Ger.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 
 #include "SpiceUsr.h"
 
@@ -205,7 +205,7 @@ namespace EMTG {
 												this->Kepler_Gdotdot_Forward[0], 
 												this->Forward_STM[0],
 												(options->derivative_type > 1 && needG ? true : false));*/
-			Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(spacecraft_state_forward,
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(),
 														Universe->mu,
 														Universe->LU,
@@ -242,7 +242,7 @@ namespace EMTG {
 												this->Kepler_Gdotdot_Forward[0], 
 												this->Forward_STM[0],
 												(options->derivative_type > 1 && needG ? true : false));*/
-			Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(spacecraft_state_forward,
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(),
 														Universe->mu,
 														Universe->LU,
@@ -279,7 +279,7 @@ namespace EMTG {
 												this->Kepler_Gdotdot_Forward[0], 
 												this->Forward_STM[0], 
 												(options->derivative_type > 1 && needG ? true : false));*/
-			Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(spacecraft_state_forward,
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(), 
 														Universe->mu, 
 														Universe->LU,
@@ -396,7 +396,7 @@ namespace EMTG {
 													this->Kepler_Gdotdot_Forward[step+1], 
 													this->Forward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));*/
-				Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(this->spacecraft_state[step].data(),
+				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
 															spacecraft_state_forward,
 															Universe->mu,
 															Universe->LU,
@@ -433,7 +433,7 @@ namespace EMTG {
 													this->Kepler_Gdotdot_Forward[step+1], 
 													this->Forward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));*/
-				Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(this->spacecraft_state[step].data(),
+				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
 															this->spacecraft_state[step+1].data(),
 															Universe->mu,
 															Universe->LU,
@@ -487,7 +487,7 @@ namespace EMTG {
 												this->Kepler_Gdotdot_Backward[0], 
 												this->Backward_STM[0], 
 												(options->derivative_type > 1 && needG ? true : false));*/
-			Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(spacecraft_state_backward,
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_backward,
 														this->spacecraft_state[options->num_timesteps-1].data(),
 														Universe->mu,
 														Universe->LU,
@@ -524,7 +524,7 @@ namespace EMTG {
 												this->Kepler_Gdotdot_Backward[0], 
 												this->Backward_STM[0], 
 												(options->derivative_type > 1 && needG ? true : false));*/
-			Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(spacecraft_state_backward,
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_backward,
 														this->spacecraft_state[options->num_timesteps-1].data(),
 														Universe->mu,
 														Universe->LU,
@@ -656,7 +656,7 @@ namespace EMTG {
 													this->Kepler_Gdotdot_Backward[step+1], 
 													this->Backward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));*/
-				Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(this->spacecraft_state[backstep].data(),
+				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[backstep].data(),
 														spacecraft_state_backward,
 														Universe->mu,
 														Universe->LU,
@@ -692,7 +692,7 @@ namespace EMTG {
 													this->Kepler_Gdotdot_Backward[step+1], 
 													this->Backward_STM[step+1],
 													(options->derivative_type > 1 && needG ? true : false));*/
-				Kepler::Kepler_Lagrange_Laguerre_Conway_Ger(this->spacecraft_state[backstep].data(),
+				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[backstep].data(),
 															this->spacecraft_state[backstep-1].data(),
 															Universe->mu,
 															Universe->LU,

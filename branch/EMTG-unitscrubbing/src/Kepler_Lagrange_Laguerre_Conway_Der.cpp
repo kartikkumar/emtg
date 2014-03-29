@@ -4,14 +4,14 @@
 //STMs by Ellison
 
 #include "STM.h"
-#include "Kepler_Lagrange_Laguerre_Conway_Ger.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 
 #include <math.h>
 #include <iostream>
 
 namespace Kepler
 {
-	void Kepler_Lagrange_Laguerre_Conway_Ger(const double* state0_kms,
+	void Kepler_Lagrange_Laguerre_Conway_Der(const double* state0_kms,
 											 double* state_kms,
 											 const double& mu_km2s3,
 											 const double& LU,
@@ -28,12 +28,12 @@ namespace Kepler
 		//Step 0: declare necessary variables
 		double mu = 1.0;
 		double sqmu = sqrt(mu);
-		const double alphatol = 1.0e-6;
-		const double Xtol = 1.0e-10;
+		const double alphatol = 1.0e-12;
+		const double Xtol = 1.0e-12;
 		const int maximum_order = 10;
 		const int maximum_iterations_per_order = 10;
 		double r, sigma, U0, U1, U2, U3, X = 1.0e+100, X_new, dX;
-		double sqalpha, sqalphaX, sqmalpha, sqmalphaX;
+		double sqalpha, sqmalpha, sqmalphaX;
 		double state0[6], state[6];
 
 		//Step 1: compute r0 and v0 in LUs and TUs, and propTime in TUs
@@ -86,19 +86,35 @@ namespace Kepler
 			//Step 4.3: compute U0, U1, U2, U3 for the candidate X
 			if (alpha > alphatol) //ellipse
 			{
-				sqalphaX = sqalpha * X;
-				U0 = cos(sqalphaX);
-				U1 = sin(sqalphaX) / sqalpha;
-				U2 = (1.0 - U0) / alpha;
-				U3 = 1.0 / alpha * (X - U1);
+				//compute U0, U1, U2, U3 via Stumpff functions
+				double y = alpha * X * X;
+				double C = (1.0 - cos(sqrt(y))) / y;
+				double S = (sqrt(y) - sin(sqrt(y))) / sqrt(y*y*y);
+				U1 = X * (1.0 - y * S);
+				U2 = X * X * C;
+				U3 = X * X * X * S;
+				U0 = 1.0 - alpha * U2;
 			}
 			else if (alpha < -alphatol) //hyperbola
 			{
+				
 				sqmalphaX = sqmalpha * X;
+				if (sqmalphaX > 50.0)
+					sqmalphaX = 50.0;
+				else if (sqmalphaX < -50.0)
+					sqmalphaX = -50.0;
 				U0 = cosh(sqmalphaX);
 				U1 = sinh(sqmalphaX) / sqmalpha;
 				U2 = (1.0 - U0) / alpha;
 				U3 = 1.0 / alpha * (X - U1);
+				/*double y = alpha * X * X;
+				double yqr = sqrt(-y);
+				double C = (1.0 - cosh(yqr)) / y;
+				double S = (sinh(yqr) - sqrt(-y)) / (-yqr*yqr*yqr);
+				U1 = X * (1.0 - y * S);
+				U2 = X * X * C;
+				U3 = X * X * X * S;
+				U0 = 1.0 - alpha * U2;*/
 			}
 			else //parabola
 			{
@@ -107,6 +123,8 @@ namespace Kepler
 				U2 = U1*X / 2.0;
 				U3 = U2*X / 3.0;
 			}
+			
+
 
 			//Step 4.4: compute r and sigma
 			r = r0 * U0 + sigma0 * U1 + U2;
@@ -166,46 +184,9 @@ namespace Kepler
 
 			//derivatives
 			double dXdt = sqmu / r;
-			double U0dot, U1dot, U2dot;
-
-			if (alpha > alphatol) //ellipse
-			{
-				double sqalphaX = sqalpha * X;
-				U0dot = -sqalpha * sin(sqalphaX) * dXdt;
-				U1dot = U0 * dXdt;
-				U2dot = U1 * dXdt;
-
-				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
-				{
-					std::cout << "Failure to calculate Udots for elliptical case" << std::endl;
-					throw 10001;
-				}
-			}
-			else if (alpha < -alphatol) //hyperbola
-			{
-				double sqmalphaX = sqmalpha * X;
-				U0dot = sqmalpha * sinh(sqmalphaX);
-				U1dot = U0 * dXdt;
-				U2dot = U1 * dXdt;
-
-				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
-				{
-					std::cout << "Failure to calculate Udots for hyperbolic case" << std::endl;
-					throw 10001;
-				}
-			}
-			else //parabola
-			{
-				U0dot = 0;
-				U1dot = dXdt;
-				U2dot = X * dXdt;
-
-				if (!(U0dot == U0dot && U1dot == U1dot && U2dot == U2dot))
-				{
-					std::cout << "Failure to calculate Udots for parabolic case" << std::endl;
-					throw 10001;
-				}
-			}
+			double U0dot = -alpha * U1 * dXdt;
+			double U1dot = U0 * dXdt;
+			double U2dot = U1 * dXdt;
 
 			//Step 5.2 compute C, which along with F, G, Ft, and Gt can be used to compute the STM
 			//Battin equation 9.74
@@ -273,6 +254,18 @@ namespace Kepler
 			Ftt = -sqmu / r0 * (U1dot / r - U1 * rdot / r2);
 
 			Gtt = -(U2dot / r - U2 * rdot / r2);
+
+			//Step 5.4 scale F, G, Ft, Gt, Ftt, Gtt
+			//F converts km to km so there is no scalig
+			//G converts km/s to km so it must be multiplied by TU
+			G *= TU;
+			//Ft converts km to km/s so it must be divided by TU
+			Ft /= TU;
+			//Gt converts km/s to km/s so there is no scaling
+			//Ftt converts km to km/s^2 so it must be divided by TU twice
+			Ftt /= (TU * TU);
+			//Gtt converts km/s to km/s^2 so it must be divided by TU
+			Gtt /= TU;
 		}
 	}
 }

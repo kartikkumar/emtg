@@ -11,7 +11,7 @@
 
 namespace Kepler
 {
-	void Kepler_Lagrange_Laguerre_Conway_Ger(const double* state0_kms,
+	void Kepler_Lagrange_Laguerre_Conway_Der(const double* state0_kms,
 											 double* state_kms,
 											 const double& mu,
 											 const double& LU,
@@ -25,5 +25,4 @@ namespace Kepler
 											 STM& stm,
 											 const bool& compute_STM_flag);
 }
-
 #endif
