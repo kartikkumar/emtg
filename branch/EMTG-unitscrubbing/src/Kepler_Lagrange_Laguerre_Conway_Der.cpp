@@ -99,10 +99,10 @@ namespace Kepler
 			{
 				
 				sqmalphaX = sqmalpha * X;
-				if (sqmalphaX > 50.0)
-					sqmalphaX = 50.0;
-				else if (sqmalphaX < -50.0)
-					sqmalphaX = -50.0;
+				if (sqmalphaX > 10.0)
+					sqmalphaX = 10.0;
+				else if (sqmalphaX < -10.0)
+					sqmalphaX = -10.0;
 				U0 = cosh(sqmalphaX);
 				U1 = sinh(sqmalphaX) / sqmalpha;
 				U2 = (1.0 - U0) / alpha;
