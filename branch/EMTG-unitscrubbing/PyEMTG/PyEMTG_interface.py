@@ -1190,43 +1190,43 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtECC_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtECC_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtINC_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtINC_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtAOP_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtAOP_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtMA_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtMA_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeSMA_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtSMA_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtSMA_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtECC_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtECC_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtINC_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtINC_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtAOP_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtAOP_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_departure1(self, e):
@@ -1290,43 +1290,43 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtECC_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtECC_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtINC_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtINC_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtMA_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtMA_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeSMA_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtSMA_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtSMA_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtECC_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtECC_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtINC_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtINC_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_arrival1(self, e):

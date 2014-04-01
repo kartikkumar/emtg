@@ -978,7 +978,18 @@ namespace GeneticAlgorithm
 		for (size_t individual = 0; individual < unevaluated_individuals_indices.size(); ++individual)
 		{
 			this->this_generation[unevaluated_individuals_indices[individual]].set_data_pointers((void*) &options, (void*) &(Universe));
-			this->this_generation[unevaluated_individuals_indices[individual]].evaluate();
+			try
+			{
+				this->this_generation[unevaluated_individuals_indices[individual]].evaluate();
+			}
+			catch (int e)
+			{
+				std::cout << "CRASHED evaluating " << this->this_generation[unevaluated_individuals_indices[individual]].description << std::endl;
+				std::cout << "Exception " << e << std::endl;
+				for (int obj = 0; obj < this->this_generation[unevaluated_individuals_indices[individual]].fitness_values.size(); ++ obj)
+					this->this_generation[unevaluated_individuals_indices[individual]].fitness_values[obj] = 1.0e+100;
+			}
+			
 			this->this_generation[unevaluated_individuals_indices[individual]].timestamp = std::time(NULL) - this->tstart;
 			this->this_generation[unevaluated_individuals_indices[individual]].generation_found = this->current_generation;
 		}

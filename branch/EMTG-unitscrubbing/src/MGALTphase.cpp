@@ -2566,7 +2566,7 @@ namespace EMTG {
 
 			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
 			{
-				if (! ( (p == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
+				if (! ( (p == 0 && j == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{
 					//place the derivatives in the Jacobian
 					G[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]] += options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0][timevar]]] * dxdu / Universe->LU;
@@ -2784,27 +2784,38 @@ namespace EMTG {
 
 		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
 
-		double dVxplusdu = (dxdotdu + ddVmaxdu * control[stepnext-1][0] + this->dagravdRvec[stepnext - 1][0]*dxdu + this->dagravdtvec[stepnext - 1][0]*dtdu);
-		double dVyplusdu = (dydotdu + ddVmaxdu * control[stepnext-1][1] + this->dagravdRvec[stepnext - 1][1]*dydu + this->dagravdtvec[stepnext - 1][0]*dtdu);
-		double dVzplusdu = (dzdotdu + ddVmaxdu * control[stepnext-1][2] + this->dagravdRvec[stepnext - 1][2]*dzdu + this->dagravdtvec[stepnext - 1][0]*dtdu);
+		double dVxplusdu = (dxdotdu
+							+ ddVmaxdu * control[stepnext-1][0]
+							+ this->dagravdRvec[stepnext - 1][0]*dxdu
+							+ this->dagravdtvec[stepnext - 1][0]*dtdu);
+		double dVyplusdu = (dydotdu
+							+ ddVmaxdu * control[stepnext-1][1]
+							+ this->dagravdRvec[stepnext - 1][1]*dydu
+							+ this->dagravdtvec[stepnext - 1][1]*dtdu);
+		double dVzplusdu = (dzdotdu
+							+ ddVmaxdu * control[stepnext-1][2]
+							+ this->dagravdRvec[stepnext - 1][2]*dzdu
+							+ this->dagravdtvec[stepnext - 1][2]*dtdu);
 
-		dxdu_next = Forward_STM[stepnext](0,0) * dxdu + Forward_STM[stepnext](0,1) * dydu + Forward_STM[stepnext](0,2) * dzdu
-					+ Forward_STM[stepnext](0,3) * dVxplusdu + Forward_STM[stepnext](0,4) * dVyplusdu + Forward_STM[stepnext](0,5) * dVzplusdu
+		Kepler::STM& STM = this->Forward_STM[stepnext];
+
+		dxdu_next = STM(0,0) * dxdu + STM(0,1) * dydu + STM(0,2) * dzdu
+					+ STM(0,3) * dVxplusdu + STM(0,4) * dVyplusdu + STM(0,5) * dVzplusdu
 					+ dxdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dydu_next = Forward_STM[stepnext](1,0) * dxdu + Forward_STM[stepnext](1,1) * dydu + Forward_STM[stepnext](1,2) * dzdu + 
-					+ Forward_STM[stepnext](1,3) * dVxplusdu + Forward_STM[stepnext](1,4) * dVyplusdu + Forward_STM[stepnext](1,5) * dVzplusdu
+		dydu_next = STM(1,0) * dxdu + STM(1,1) * dydu + STM(1,2) * dzdu + 
+					+ STM(1,3) * dVxplusdu + STM(1,4) * dVyplusdu + STM(1,5) * dVzplusdu
 					+ dydt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dzdu_next = Forward_STM[stepnext](2,0) * dxdu + Forward_STM[stepnext](2,1) * dydu + Forward_STM[stepnext](2,2) * dzdu + 
-					+ Forward_STM[stepnext](2,3) * dVxplusdu + Forward_STM[stepnext](2,4) * dVyplusdu + Forward_STM[stepnext](2,5) * dVzplusdu
+		dzdu_next = STM(2,0) * dxdu + STM(2,1) * dydu + STM(2,2) * dzdu + 
+					+ STM(2,3) * dVxplusdu + STM(2,4) * dVyplusdu + STM(2,5) * dVzplusdu
 					+ dzdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dxdotdu_next = Forward_STM[stepnext](3,0) * dxdu + Forward_STM[stepnext](3,1) * dydu + Forward_STM[stepnext](3,2) * dzdu + 
-					+ Forward_STM[stepnext](3,3) * dVxplusdu + Forward_STM[stepnext](3,4) * dVyplusdu + Forward_STM[stepnext](3,5) * dVzplusdu
+		dxdotdu_next = STM(3,0) * dxdu + STM(3,1) * dydu + STM(3,2) * dzdu + 
+					+ STM(3,3) * dVxplusdu + STM(3,4) * dVyplusdu + STM(3,5) * dVzplusdu
 					+ dxdotdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dydotdu_next = Forward_STM[stepnext](4,0) * dxdu + Forward_STM[stepnext](4,1) * dydu + Forward_STM[stepnext](4,2) * dzdu + 
-					+ Forward_STM[stepnext](4,3) * dVxplusdu + Forward_STM[stepnext](4,4) * dVyplusdu + Forward_STM[stepnext](4,5) * dVzplusdu
+		dydotdu_next = STM(4,0) * dxdu + STM(4,1) * dydu + STM(4,2) * dzdu + 
+					+ STM(4,3) * dVxplusdu + STM(4,4) * dVyplusdu + STM(4,5) * dVzplusdu
 					+ dydotdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
-		dzdotdu_next = Forward_STM[stepnext](5,0) * dxdu + Forward_STM[stepnext](5,1) * dydu + Forward_STM[stepnext](5,2) * dzdu + 
-					+ Forward_STM[stepnext](5,3) * dVxplusdu + Forward_STM[stepnext](5,4) * dVyplusdu + Forward_STM[stepnext](5,5) * dVzplusdu
+		dzdotdu_next = STM(5,0) * dxdu + STM(5,1) * dydu + STM(5,2) * dzdu + 
+					+ STM(5,3) * dVxplusdu + STM(5,4) * dVyplusdu + STM(5,5) * dVzplusdu
 					+ dzdotdt * this->Propagation_Step_Time_Fraction_Forward[stepnext] * dtdu;
 
 		double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
@@ -2911,27 +2922,38 @@ namespace EMTG {
 		double ddVmaxdu = D / (m * m) * ( (dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
 
 
-		double dVxplusdu = (dxdotdu - ddVmaxdu * control[backstepnext - 1][0] + dagravdRvec[backstepnext - 1][0]*dxdu + this->dagravdtvec[backstepnext - 1][0]*dtdu);
-		double dVyplusdu = (dydotdu - ddVmaxdu * control[backstepnext - 1][1] + dagravdRvec[backstepnext - 1][1]*dydu + this->dagravdtvec[backstepnext - 1][0]*dtdu);
-		double dVzplusdu = (dzdotdu - ddVmaxdu * control[backstepnext - 1][2] + dagravdRvec[backstepnext - 1][2]*dzdu + this->dagravdtvec[backstepnext - 1][0]*dtdu);
+		double dVxplusdu = (dxdotdu 
+							- ddVmaxdu * this->control[backstepnext - 1][0]
+							+ this->dagravdRvec[backstepnext - 1][0]*dxdu
+							+ this->dagravdtvec[backstepnext - 1][0]*dtdu);
+		double dVyplusdu = (dydotdu
+							- ddVmaxdu * this->control[backstepnext - 1][1]
+							+ this->dagravdRvec[backstepnext - 1][1]*dydu
+							+ this->dagravdtvec[backstepnext - 1][1]*dtdu);
+		double dVzplusdu = (dzdotdu
+							- ddVmaxdu * this->control[backstepnext - 1][2]
+							+ this->dagravdRvec[backstepnext - 1][2]*dzdu
+							+ this->dagravdtvec[backstepnext - 1][2]*dtdu);
 
-		dxdu_next = Backward_STM[stepnext+1](0,0) * dxdu + Backward_STM[stepnext+1](0,1) * dydu + Backward_STM[stepnext+1](0,2) * dzdu
-					+ Backward_STM[stepnext+1](0,3) * dVxplusdu + Backward_STM[stepnext+1](0,4) * dVyplusdu + Backward_STM[stepnext+1](0,5) * dVzplusdu
+		Kepler::STM& STM = this->Backward_STM[stepnext+1];
+
+		dxdu_next = STM(0,0) * dxdu + STM(0,1) * dydu + STM(0,2) * dzdu
+					+ STM(0,3) * dVxplusdu + STM(0,4) * dVyplusdu + STM(0,5) * dVzplusdu
 					+ dxdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dydu_next = Backward_STM[stepnext+1](1,0) * dxdu + Backward_STM[stepnext+1](1,1) * dydu + Backward_STM[stepnext+1](1,2) * dzdu + 
-					+ Backward_STM[stepnext+1](1,3) * dVxplusdu + Backward_STM[stepnext+1](1,4) * dVyplusdu + Backward_STM[stepnext+1](1,5) * dVzplusdu
+		dydu_next = STM(1,0) * dxdu + STM(1,1) * dydu + STM(1,2) * dzdu + 
+					+ STM(1,3) * dVxplusdu + STM(1,4) * dVyplusdu + STM(1,5) * dVzplusdu
 					+ dydt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dzdu_next = Backward_STM[stepnext+1](2,0) * dxdu + Backward_STM[stepnext+1](2,1) * dydu + Backward_STM[stepnext+1](2,2) * dzdu + 
-					+ Backward_STM[stepnext+1](2,3) * dVxplusdu + Backward_STM[stepnext+1](2,4) * dVyplusdu + Backward_STM[stepnext+1](2,5) * dVzplusdu
+		dzdu_next = STM(2,0) * dxdu + STM(2,1) * dydu + STM(2,2) * dzdu + 
+					+ STM(2,3) * dVxplusdu + STM(2,4) * dVyplusdu + STM(2,5) * dVzplusdu
 					+ dzdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dxdotdu_next = Backward_STM[stepnext+1](3,0) * dxdu + Backward_STM[stepnext+1](3,1) * dydu + Backward_STM[stepnext+1](3,2) * dzdu + 
-					+ Backward_STM[stepnext+1](3,3) * dVxplusdu + Backward_STM[stepnext+1](3,4) * dVyplusdu + Backward_STM[stepnext+1](3,5) * dVzplusdu
+		dxdotdu_next = STM(3,0) * dxdu + STM(3,1) * dydu + STM(3,2) * dzdu + 
+					+ STM(3,3) * dVxplusdu + STM(3,4) * dVyplusdu + STM(3,5) * dVzplusdu
 					+ dxdotdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dydotdu_next = Backward_STM[stepnext+1](4,0) * dxdu + Backward_STM[stepnext+1](4,1) * dydu + Backward_STM[stepnext+1](4,2) * dzdu + 
-					+ Backward_STM[stepnext+1](4,3) * dVxplusdu + Backward_STM[stepnext+1](4,4) * dVyplusdu + Backward_STM[stepnext+1](4,5) * dVzplusdu
+		dydotdu_next = STM(4,0) * dxdu + STM(4,1) * dydu + STM(4,2) * dzdu + 
+					+ STM(4,3) * dVxplusdu + STM(4,4) * dVyplusdu + STM(4,5) * dVzplusdu
 					+ dydotdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
-		dzdotdu_next = Backward_STM[stepnext+1](5,0) * dxdu + Backward_STM[stepnext+1](5,1) * dydu + Backward_STM[stepnext+1](5,2) * dzdu + 
-					+ Backward_STM[stepnext+1](5,3) * dVxplusdu + Backward_STM[stepnext+1](5,4) * dVyplusdu + Backward_STM[stepnext+1](5,5) * dVzplusdu
+		dzdotdu_next = STM(5,0) * dxdu + STM(5,1) * dydu + STM(5,2) * dzdu + 
+					+ STM(5,3) * dVxplusdu + STM(5,4) * dVyplusdu + STM(5,5) * dVzplusdu
 					+ dzdotdt * this->Propagation_Step_Time_Fraction_Backward[stepnext+1] * dtdu;
 
 		double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
