@@ -3,6 +3,7 @@
 
 #include "Astrodynamics.h"
 #include "missionoptions.h"
+#include "EMTG_math.h"
 
 //if the proprietary switch is turned on, include the proprietary functions. This header file is NOT distributed with the open-source version of EMTG
 #ifdef _EMTG_proprietary
@@ -139,7 +140,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		*power = (1.0 - options->power_margin) * (input_power - spacecraft_power);
 		if (generate_derivatives)
 			*dPdr *= (1.0 - options->power_margin);
-		*power = *power < 0.0 ? 0.0 : *power;
+		*power = *power < math::SMALL ? math::SMALL : *power;
 
 		//now, what subtype of engine is this?
 		if (options->engine_type == 2 || options->engine_type == 4) //Isp is independent variable, power uses power model, and efficiency is fixed
