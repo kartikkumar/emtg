@@ -2118,6 +2118,57 @@ namespace EMTG {
 				G[match_point_constraint_G_indices[0][5][2]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][5][2]]] * dzdotdu / Universe->LU * Universe->TU;
 				G[match_point_constraint_G_indices[0][6][2]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][6][2]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 			}
+
+			if (j > 0) //for successive journeys the mass at the beginning of the phase affects the following patch point
+			{
+				//this must be disabled for phases that start with spirals
+				if (!(options->journey_arrival_type[j-1] == 7))
+				{
+					dxdu = 0.0;
+					dydu = 0.0;
+					dzdu = 0.0;
+					dxdotdu = 0.0;
+					dydotdu = 0.0;
+					dzdotdu = 0.0;
+
+					dmdu = -1.0;
+					dtdu = 0.0; //there is no dependence of time on initial mass
+					dtotal_available_thrust_time_du = 0.0;
+					dPdu = 0.0;
+
+					//loop over later steps
+					for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
+					{
+						calculate_match_point_forward_propagation_derivatives(	G,
+																				Gindex,
+																				j, 
+																				p,
+																				options, 
+																				Universe,
+																				0,
+																				stepnext,
+																				dxdu,
+																				dydu,
+																				dzdu,
+																				dxdotdu,
+																				dydotdu,
+																				dzdotdu,
+																				dmdu,
+																				dtdu,
+																				dtotal_available_thrust_time_du,
+																				dPdu);
+					} //end loop over later steps
+
+					//place the derivatives in the Jacobian
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[0]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[0]]] * dxdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[1]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[1]]] * dydu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[2]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[2]]] * dzdu / Universe->LU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[3]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[3]]] * dxdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[4]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[4]]] * dydotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[5]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[5]]] * dzdotdu / Universe->LU * Universe->TU;
+					G[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[6]] = options->X_scale_ranges[options->jGvar[G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[6]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				}
+			}
 		}
 		else//for other phases other than the first
 		{

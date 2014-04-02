@@ -245,7 +245,6 @@ namespace EMTG {
 		vector<double> G_central_differenced(this->Gdescriptions.size());
 		vector<double> Fforward(this->Fdescriptions.size());
 		vector<double> Fbackward(this->Fdescriptions.size());
-		double perturbation_step = 1.0e-6;
 
 		//evaluate the analytical derivatives
 		this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 1, this->iGfun, this->jGvar);
@@ -260,12 +259,17 @@ namespace EMTG {
 		outputfile << "iGfun, jGvar, analytical value, central-difference value, abs(error), relative error, sign flip(Y/N), text description" << endl;
 
 		//evaluate all of the derivatives via finite differencing, INCLUDING those which were not specified analytically (since we can't tell anyway)
-		for (int gIndex = 0; gIndex < Gdescriptions.size(); ++gIndex)
+		for (int gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
 		{
 			//reset X_perturbed
 			X_perturbed = Xopt;
 
 			//compute the central-difference forward step value of the constraint
+			double perturbation_step;
+			if ( this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024 )
+				perturbation_step = 10.0;
+			else
+				perturbation_step = 1.0e-6;
 			X_perturbed[jGvar[gIndex]] += perturbation_step;
 			
 			this->evaluate(X_perturbed.data(), Fforward.data(), this->G.data(), 0, this->iGfun, this->jGvar);
