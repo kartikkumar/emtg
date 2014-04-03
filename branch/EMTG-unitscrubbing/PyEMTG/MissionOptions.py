@@ -2583,6 +2583,9 @@ class MissionOptions(object):
 
     def update_solver_options_panel(self, optionsnotebook):
 
+        if self.snopt_max_run_time > self.MBH_max_run_time:
+            self.snopt_max_run_time = self.MBH_max_run_time - 1
+
         #inner-loop solver options
         optionsnotebook.tabSolver.cmbInnerLoopSolver.SetSelection(self.run_inner_loop)
         optionsnotebook.tabSolver.cmbNLP_solver_type.SetSelection(self.NLP_solver_type)

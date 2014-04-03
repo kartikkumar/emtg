@@ -202,6 +202,11 @@ namespace EMTG {
 
 
 	//function to output X and F bounds, descriptions
+	int problem::output_problem_bounds_and_descriptions()
+	{
+		this->output_problem_bounds_and_descriptions("XFfile.csv");
+		return 0;
+	}
 	int problem::output_problem_bounds_and_descriptions(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
@@ -234,6 +239,12 @@ namespace EMTG {
 
 		outputfile.close();
 
+		return 0;
+	}
+
+	int problem::check_and_print_derivatives()
+	{
+		this->check_and_print_derivatives("derivcheck.csv");
 		return 0;
 	}
 

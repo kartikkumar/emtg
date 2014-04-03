@@ -367,7 +367,8 @@ namespace EMTG {
 											dagravdRvec[step],
 											dagravdtvec[step]);
 
-			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / spacecraft_state[step][6] * (time_step_sizes[step]);
+			double effective_mass = spacecraft_state[step][6] > 1.0e-3 ? spacecraft_state[step][6] : 1.0e-3;
+			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / effective_mass * (time_step_sizes[step]);
 
 			//step 6.2.6 apply the burn
 			for (size_t k = 0; k < 3; ++k)
@@ -623,7 +624,8 @@ namespace EMTG {
 											dagravdtvec[step]);
 
 			double mass_before_impulse = spacecraft_state[backstep][6] + local_throttle * options->engine_duty_cycle * available_mass_flow_rate[backstep] * (time_step_sizes[backstep]);
-			dVmax[backstep] = options->engine_duty_cycle * available_thrust[backstep] / mass_before_impulse * (time_step_sizes[backstep]);
+			double effective_mass = mass_before_impulse > 1.0e-3 ? mass_before_impulse : 1.0e-3;
+			dVmax[backstep] = options->engine_duty_cycle * available_thrust[backstep] / effective_mass * (time_step_sizes[backstep]);
 
 			//step 6.3.6 apply the burn
 			for (int k = 0; k < 3; ++k)

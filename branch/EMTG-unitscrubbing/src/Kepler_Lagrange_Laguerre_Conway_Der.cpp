@@ -99,22 +99,14 @@ namespace Kepler
 			{
 				
 				sqmalphaX = sqmalpha * X;
-				if (sqmalphaX > 10.0)
-					sqmalphaX = 10.0;
-				else if (sqmalphaX < -10.0)
-					sqmalphaX = -10.0;
+				if (sqmalphaX > 50.0)
+					throw 1000000;
+				else if (sqmalphaX < -50.0)
+					throw 1000000;					
 				U0 = cosh(sqmalphaX);
 				U1 = sinh(sqmalphaX) / sqmalpha;
 				U2 = (1.0 - U0) / alpha;
 				U3 = 1.0 / alpha * (X - U1);
-				/*double y = alpha * X * X;
-				double yqr = sqrt(-y);
-				double C = (1.0 - cosh(yqr)) / y;
-				double S = (sinh(yqr) - sqrt(-y)) / (-yqr*yqr*yqr);
-				U1 = X * (1.0 - y * S);
-				U2 = X * X * C;
-				U3 = X * X * X * S;
-				U0 = 1.0 - alpha * U2;*/
 			}
 			else //parabola
 			{

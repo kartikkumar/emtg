@@ -43,13 +43,17 @@ public:
 	virtual int parse_outer_loop(int* Xouter, int n_outer_loop);
 
 	//function to output X and F bounds, descriptions
-	virtual int output_problem_bounds_and_descriptions(string filestring);
+	int output_problem_bounds_and_descriptions();
+	int output_problem_bounds_and_descriptions(string filestring);
+	
 
 	//function to output the Jacobian sparsity information
 	virtual int output_Jacobian_sparsity_information(string filestring);
 
 	//function to check the derivatives via central differencing
-	virtual int check_and_print_derivatives(string filestring);
+	int check_and_print_derivatives();
+	int check_and_print_derivatives(string filestring);
+	
 
 	//virtual function templates
 	virtual int evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar) = 0;
