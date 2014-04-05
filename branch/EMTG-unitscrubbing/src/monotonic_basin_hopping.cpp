@@ -746,7 +746,15 @@ namespace EMTG { namespace Solvers {
 						cout << "New global best" << endl;
 
 					//Write out a results file for the current global best
-					Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+					try
+					{
+						Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+					}
+					catch (int errorcode)
+					{
+						std::cout << "Failure to evaluate " << Problem->options.description << std::endl;
+						F[0] = EMTG::math::LARGE;
+					}
 					Problem->options.outputfile = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + ".emtg";
 					Problem->output();
 				}

@@ -75,7 +75,14 @@ namespace EMTG {
 
 				this->Xopt = options.current_trialX;
 
-				this->evaluate(&this->Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				try
+				{
+					this->evaluate(&this->Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				}
+				catch (int e)
+				{
+					std::cout << "Failure to evaluate " << this->options.description << std::endl;
+				}
 
 				std::cout << "Fitness = " << F[0] << endl;
 
@@ -121,7 +128,18 @@ namespace EMTG {
 					Xopt = Xlowerbounds;
 					options.outputfile = options.working_directory + "//FAILURE_" + options.mission_name + "_" + options.description + ".emtg";
 				}
-				evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				
+				try
+				{
+					this->evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				}
+				catch (int e)
+				{
+					if (e == 13)
+						cout << "EMTG::Integrator failure" << endl;
+					std::cout << "Failure to evaluate " << this->options.description << std::endl;
+					F[0] = EMTG::math::LARGE;
+				}
 
 				break;
 			}

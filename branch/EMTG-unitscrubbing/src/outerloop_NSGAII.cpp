@@ -13,7 +13,7 @@
 
 namespace GeneticAlgorithm
 {
-		EMTG_outerloop_solution::EMTG_outerloop_solution(const std::vector<int>& X_in, const int& number_of_objectives)
+	EMTG_outerloop_solution::EMTG_outerloop_solution(const std::vector<int>& X_in, const int& number_of_objectives)
 	{
 		this->X = X_in;
 		this->fitness_values.resize(number_of_objectives, 1.0e+100);
@@ -1456,6 +1456,11 @@ namespace GeneticAlgorithm
 			//6d. evaluate objectives for new child population
 			this->last_generation = this->parent_population;
 			this->this_generation = this->children_population;
+
+#ifdef EMTG_MPI
+			std::cout << "Processor " << this->MPIWorld->rank() << " has completed crossover and mutation and is ready to evaluate the population in generation " << this->current_generation << std::endl;
+#endif
+
 			this->evaluatepop(options, Universe);
 			this->children_population = this->this_generation;  
 
