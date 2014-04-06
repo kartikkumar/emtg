@@ -139,6 +139,7 @@ namespace EMTG {
 						cout << "EMTG::Integrator failure" << endl;
 					std::cout << "Failure to evaluate " << this->options.description << std::endl;
 					F[0] = EMTG::math::LARGE;
+					this->number_of_solutions = 0;
 				}
 
 				break;

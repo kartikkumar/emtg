@@ -35,6 +35,7 @@ missionoptions::missionoptions() {
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
 	this->quiet_outerloop = 1;
+	this->quiet_basinhopping = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -83,6 +84,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
 	this->quiet_outerloop = true;
+	this->quiet_basinhopping = false;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
