@@ -8,7 +8,7 @@
 #include "MGADSMphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
-#include "Lambert.h"
+#include "Lambert_AroraRussell.h"
 #include "kepler_lagrange_laguerre_conway.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -396,7 +396,9 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-	EMTG::Astrodynamics::Lambert (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 1, 0, lambert_v1, lambert_v2);
+	double lambert_error;
+	int	actual_iterations;
+	EMTG::Astrodynamics::Lambert_AroraRussell (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 1, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
 
 	//check the angular momentum vector
 	//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
@@ -406,7 +408,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	hz2 = this->state_before_burn[0]*lambert_v1[1]-this->state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
 
 	if (!(hz1 == hz2))
-		EMTG::Astrodynamics::Lambert (state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 0, lambert_v1, lambert_v2);
+			EMTG::Astrodynamics::Lambert_AroraRussell (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 0, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)

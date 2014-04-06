@@ -9,7 +9,7 @@
 #include "MGAphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
-#include "Lambert.h"
+#include "Lambert_AroraRussell.h"
 #include "kepler_lagrange_laguerre_conway.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -120,12 +120,14 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
 
 	//Step 5: solve Lambert's problem between the planets
-	EMTG::Astrodynamics::Lambert (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 1, 0, lambert_v1, lambert_v2);
+	double lambert_error;
+	int	actual_iterations;
+	EMTG::Astrodynamics::Lambert_AroraRussell (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 1, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
 
 	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
 
 	if (hz < 0)
-		EMTG::Astrodynamics::Lambert (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 0, lambert_v1, lambert_v2);
+		EMTG::Astrodynamics::Lambert_AroraRussell (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 0, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
 
 	//Step 6: compute all parameters of the first event of the phase
 	//if this is the first phase in the journey, compute RA and DEC. Otherwise process the flyby at the beginning of the phase
