@@ -193,18 +193,6 @@ namespace EMTG {
 		if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
 		{
 			//if this is a launch AND we are doing a forced post-launch initial coast
-			/*Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
-												this->spacecraft_state[0].data(),
-												Universe->mu,
-												this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast,
-												this->Kepler_F_Forward[0],
-												this->Kepler_G_Forward[0],
-												this->Kepler_Fdot_Forward[0],
-												this->Kepler_Gdot_Forward[0],
-												this->Kepler_Fdotdot_Forward[0],
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Forward_STM[0],
-												(options->derivative_type > 1 && needG ? true : false));*/
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(),
 														Universe->mu,
@@ -230,18 +218,6 @@ namespace EMTG {
 		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
 		{
 			//if we are coming out of a flyby and we are doing a forced post-flyby coast
-			/*Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
-												this->spacecraft_state[0].data(),
-												Universe->mu,
-												this->time_step_sizes[0]/2.0 + options->forced_flyby_coast,
-												this->Kepler_F_Forward[0],
-												this->Kepler_G_Forward[0],
-												this->Kepler_Fdot_Forward[0],
-												this->Kepler_Gdot_Forward[0],
-												this->Kepler_Fdotdot_Forward[0],
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Forward_STM[0],
-												(options->derivative_type > 1 && needG ? true : false));*/
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(),
 														Universe->mu,
@@ -267,18 +243,6 @@ namespace EMTG {
 		else
 		{
 			//if there is no forced initial coast, business as usual
-			/*Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_forward,
-												this->spacecraft_state[0].data(), 
-												Universe->mu, 
-												this->time_step_sizes[0]/2.0,
-												this->Kepler_F_Forward[0],
-												this->Kepler_G_Forward[0],
-												this->Kepler_Fdot_Forward[0],
-												this->Kepler_Gdot_Forward[0],
-												this->Kepler_Fdotdot_Forward[0],
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Forward_STM[0], 
-												(options->derivative_type > 1 && needG ? true : false));*/
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,
 														this->spacecraft_state[0].data(), 
 														Universe->mu, 
@@ -385,18 +349,7 @@ namespace EMTG {
 			{
 				//on the last step the propagation time is only half of the current timestep
 				propagation_time = this->time_step_sizes[step] / 2.0;
-				/*Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[step].data(),
-													spacecraft_state_forward,
-													Universe->mu,
-													propagation_time,
-													this->Kepler_F_Forward[step+1],
-													this->Kepler_G_Forward[step+1],
-													this->Kepler_Fdot_Forward[step+1],
-													this->Kepler_Gdot_Forward[step+1],
-													this->Kepler_Fdotdot_Forward[step+1],
-													this->Kepler_Gdotdot_Forward[step+1], 
-													this->Forward_STM[step+1],
-													(options->derivative_type > 1 && needG ? true : false));*/
+
 				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
 															spacecraft_state_forward,
 															Universe->mu,
@@ -422,18 +375,7 @@ namespace EMTG {
 			{
 				//on all other steps the propagation time is half of the current step plus half of the next step
 				propagation_time = (this->time_step_sizes[step] + this->time_step_sizes[step + 1]) / 2.0;
-				/*Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[step].data(),
-													this->spacecraft_state[step+1].data(),
-													Universe->mu, 
-													propagation_time,
-													this->Kepler_F_Forward[step+1],
-													this->Kepler_G_Forward[step+1],
-													this->Kepler_Fdot_Forward[step+1],
-													this->Kepler_Gdot_Forward[step+1],
-													this->Kepler_Fdotdot_Forward[step+1],
-													this->Kepler_Gdotdot_Forward[step+1], 
-													this->Forward_STM[step+1],
-													(options->derivative_type > 1 && needG ? true : false));*/
+
 				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
 															this->spacecraft_state[step+1].data(),
 															Universe->mu,
@@ -476,18 +418,6 @@ namespace EMTG {
 		if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
 		{
 			//if we are going into a flyby or intercept
-			/*Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_backward,
-												this->spacecraft_state[options->num_timesteps-1].data(),
-												Universe->mu,
-												-(this->time_step_sizes[options->num_timesteps-1] / 2.0 + options->forced_flyby_coast), 
-												this->Kepler_F_Backward[0],
-												this->Kepler_G_Backward[0],
-												this->Kepler_Fdot_Backward[0],
-												this->Kepler_Gdot_Backward[0],
-												this->Kepler_Fdotdot_Backward[0],
-												this->Kepler_Gdotdot_Backward[0], 
-												this->Backward_STM[0], 
-												(options->derivative_type > 1 && needG ? true : false));*/
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_backward,
 														this->spacecraft_state[options->num_timesteps-1].data(),
 														Universe->mu,
@@ -513,18 +443,6 @@ namespace EMTG {
 		else
 		{
 			//if there is no forced terminal coast, business as usual
-			/*Kepler::KeplerLagrangeLaguerreConway(spacecraft_state_backward,
-												this->spacecraft_state[options->num_timesteps-1].data(),
-												Universe->mu,
-												-this->time_step_sizes[options->num_timesteps-1]/2.0,
-												this->Kepler_F_Backward[0],
-												this->Kepler_G_Backward[0],
-												this->Kepler_Fdot_Backward[0],
-												this->Kepler_Gdot_Backward[0],
-												this->Kepler_Fdotdot_Backward[0],
-												this->Kepler_Gdotdot_Backward[0], 
-												this->Backward_STM[0], 
-												(options->derivative_type > 1 && needG ? true : false));*/
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_backward,
 														this->spacecraft_state[options->num_timesteps-1].data(),
 														Universe->mu,
@@ -646,18 +564,7 @@ namespace EMTG {
 			{
 				//on the last step the propagation time is only half of the current timestep
 				propagation_time = this->time_step_sizes[backstep] / 2.0;
-				/*Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[backstep].data(),
-													spacecraft_state_backward,
-													Universe->mu,
-													-propagation_time,
-													this->Kepler_F_Backward[step+1],
-													this->Kepler_G_Backward[step+1],
-													this->Kepler_Fdot_Backward[step+1],
-													this->Kepler_Gdot_Backward[step+1],
-													this->Kepler_Fdotdot_Backward[step+1],
-													this->Kepler_Gdotdot_Backward[step+1], 
-													this->Backward_STM[step+1],
-													(options->derivative_type > 1 && needG ? true : false));*/
+
 				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[backstep].data(),
 														spacecraft_state_backward,
 														Universe->mu,
@@ -682,18 +589,7 @@ namespace EMTG {
 			{
 				//on all other steps the propagation time is half of the current step plus half of the next step
 				propagation_time = (this->time_step_sizes[backstep] + time_step_sizes[backstep - 1]) / 2.0;
-				/*Kepler::KeplerLagrangeLaguerreConway(this->spacecraft_state[backstep].data(),
-													this->spacecraft_state[backstep-1].data(),
-													Universe->mu,
-													-propagation_time, 
-													this->Kepler_F_Backward[step+1],
-													this->Kepler_G_Backward[step+1],
-													this->Kepler_Fdot_Backward[step+1],
-													this->Kepler_Gdot_Backward[step+1],
-													this->Kepler_Fdotdot_Backward[step+1],
-													this->Kepler_Gdotdot_Backward[step+1], 
-													this->Backward_STM[step+1],
-													(options->derivative_type > 1 && needG ? true : false));*/
+
 				Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[backstep].data(),
 															this->spacecraft_state[backstep-1].data(),
 															Universe->mu,
@@ -1397,10 +1293,10 @@ namespace EMTG {
 			state[6] = spacecraft_state[step][6];
 			for (int k = 0; k < 6; ++k)
 				state[k] = spacecraft_state[step][k];
-			if (step >= options->num_timesteps / 2)
+			if (step < options->num_timesteps / 2)
 			{
 				for (int k = 0; k < 3; ++k)
-					state[k+3] += dV[step][k];
+					state[k+3] -= dV[step][k];
 			}
 
 			write_summary_line(options,
@@ -1417,7 +1313,6 @@ namespace EMTG {
 							asin(this->dV[step][2] / impulse_magnitude) * EMTG::math::PI / 180.0,
 							0,
 							state,
-							//spacecraft_state[step].data(),
 							this->dV[step].data(),
 							thrust_vector,
 							impulse_magnitude,

@@ -455,6 +455,36 @@ namespace EMTG {
 		//time derivatives
 		double left_boundary_state_derivative[6];
 		double right_boundary_state_derivative[6];
+
+		//variable boundary orbits
+		double left_boundary_orbit_elements[6];
+		vector<double> left_boundary_SMA_G_indices;
+		vector<double> left_boundary_ECC_G_indices;
+		vector<double> left_boundary_INC_G_indices;
+		vector<double> left_boundary_RAAN_G_indices;
+		vector<double> left_boundary_AOP_G_indices;
+		vector<double> left_boundary_TA_G_indices;
+		double right_boundary_orbit_elements[6];
+		vector<double> right_boundary_SMA_G_indices;
+		vector<double> right_boundary_ECC_G_indices;
+		vector<double> right_boundary_INC_G_indices;
+		vector<double> right_boundary_RAAN_G_indices;
+		vector<double> right_boundary_AOP_G_indices;
+		vector<double> right_boundary_TA_G_indices;
+		double left_boundary_local_frame_state[6];
+		vector<double> left_boundary_X_G_indices;
+		vector<double> left_boundary_Y_G_indices;
+		vector<double> left_boundary_VZ_G_indices;
+		vector<double> left_boundary_XDOT_G_indices;
+		vector<double> left_boundary_YDOT_G_indices;
+		vector<double> left_boundary_ZDOT_G_indices;
+		double right_boundary_local_frame_state[6];
+		vector<double> right_boundary_X_G_indices;
+		vector<double> right_boundary_Y_G_indices;
+		vector<double> right_boundary_VZ_G_indices;
+		vector<double> right_boundary_XDOT_G_indices;
+		vector<double> right_boundary_YDOT_G_indices;
+		vector<double> right_boundary_ZDOT_G_indices;
 	};
 
 } /* namespace EMTG */

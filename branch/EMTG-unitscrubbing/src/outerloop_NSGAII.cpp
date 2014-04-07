@@ -333,7 +333,7 @@ namespace GeneticAlgorithm
 
 		//Step 4: extract the fitness values
 		//if the trial mission has no feasible solution then set the fitness values very high
-		if (TrialMission.number_of_solutions == 0)
+		if (TrialMission.number_of_solutions == 0 || TrialMission.options.outputfile.find("FAILURE") < 1024)
 		{
 			this->innerloop_fitness = 1.0e+100;
 			for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)

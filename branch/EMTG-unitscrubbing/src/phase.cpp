@@ -933,10 +933,6 @@ namespace EMTG {
 			}
 			else if (location == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
-				//note: boundary point is supplied in the local Universe frame
-				double temp_elements[6];
-				double local_frame_state[6];
-
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
 				//structure specifies that the element should be varied
 
@@ -945,24 +941,25 @@ namespace EMTG {
 					if (options->journey_departure_elements_vary_flag[j][k])
 					{
 						//if the user selected to vary this orbit element, extract it from the decision vector
-						temp_elements[k] = X[*Xindex];
+						if (options->journey_departure_elements_type[j])
+							this->left_boundary_orbit_elements[k] = X[*Xindex];
+						else
+							this->left_boundary_local_frame_state[k] = X[*Xindex];
 						++(*Xindex);
 					}
 					else
 					{
 						//if the user selected to specify this orbit element
-						temp_elements[k] = options->journey_departure_elements[j][k];
+						if (options->journey_departure_elements_type[j])
+							this->left_boundary_orbit_elements[k] = options->journey_departure_elements[j][k];
+						else
+							this->left_boundary_local_frame_state[k] = options->journey_departure_elements[j][k];
 					}
 				}
 
 				//if the orbit was specified in COE, it needs to be converted to inertial coordinates
 				if (options->journey_departure_elements_type[j])
-					Astrodynamics::COE2inertial(temp_elements, Universe->mu, local_frame_state);
-				else
-				{
-					for (int k = 0; k < 6; ++k)
-						local_frame_state[k] = temp_elements[k];
-				}
+					Astrodynamics::COE2inertial(left_boundary_orbit_elements, Universe->mu, this->left_boundary_local_frame_state);
 
 				//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
 				//then there must be a nonlinear constraint to prevent this
@@ -971,9 +968,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying SMA or ECC
 					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1])
 					{
-						double a = temp_elements[0];
-						double e = temp_elements[1];
-						double f = temp_elements[5];
+						double a = this->left_boundary_orbit_elements[0];
+						double e = this->left_boundary_orbit_elements[1];
+						double f = this->left_boundary_orbit_elements[5];
 						double cosf = cos(f);
 						double sinf = sqrt(1.0 - cosf*cosf);
 						double r = a * (1 - e*e) / (1 + e * cosf);
@@ -1012,9 +1009,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying x, y, or z
 					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1] || options->journey_departure_elements_vary_flag[j][2])
 					{
-						double x = temp_elements[0];
-						double y = temp_elements[1];
-						double z = temp_elements[2];
+						double x = this->left_boundary_local_frame_state[0];
+						double y = this->left_boundary_local_frame_state[1];
+						double z = this->left_boundary_local_frame_state[2];
 						double r = sqrt(x*x + y*y + z*z);
 
 						F[*Findex] = (r - Universe->minimum_safe_distance) / Universe->minimum_safe_distance;
@@ -1049,12 +1046,12 @@ namespace EMTG {
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
 				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
+				math::Matrix<double> rot_in_vec(3,1,this->left_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
 				{
 					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
+					rot_in_vec(k) = this->left_boundary_local_frame_state[k+3];
 				}
 				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1163,36 +1160,33 @@ namespace EMTG {
 			else if (location == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
 				//note: boundary point is supplied in the local Universe frame
-				double temp_elements[6];
-				double local_frame_state[6];
 
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
 				//structure specifies that the element should be varied
-
 				for (int k = 0; k < 6; ++k)
 				{
 					if (options->journey_arrival_elements_vary_flag[j][k])
 					{
 						//if the user selected to vary this orbit element, extract it from the decision vector
-						temp_elements[k] = X[*Xindex];
+						if (options->journey_arrival_elements_type[j])
+							this->right_boundary_orbit_elements[k] = X[*Xindex];
+						else
+							this->right_boundary_local_frame_state[k] = X[*Xindex];
 						++(*Xindex);
 					}
 					else
 					{
 						//if the user selected to specify this orbit element
-						temp_elements[k] = options->journey_arrival_elements[j][k];
+						if (options->journey_arrival_elements_type[j])
+							this->right_boundary_orbit_elements[k] = options->journey_arrival_elements[j][k];
+						else
+							this->right_boundary_local_frame_state[k] = options->journey_arrival_elements[j][k];
 					}
 				}
 
 				//if the orbit was specified in COE, it needs to be converted to inertial coordinates
 				if (options->journey_arrival_elements_type[j])
-					Astrodynamics::COE2inertial(temp_elements, Universe->mu, local_frame_state);
-				else
-				{
-					for (int k = 0; k < 6; ++k)
-						local_frame_state[k] = temp_elements[k];
-				}
-
+					Astrodynamics::COE2inertial(this->right_boundary_orbit_elements, Universe->mu, this->right_boundary_local_frame_state);
 				//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
 				//then there must be a nonlinear constraint to prevent this
 				if (options->journey_arrival_elements_type[j]) //classical orbit elements
@@ -1200,9 +1194,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying SMA or ECC
 					if (options->journey_arrival_elements_vary_flag[j][0] || options->journey_arrival_elements_vary_flag[j][1])
 					{
-						double a = temp_elements[0];
-						double e = temp_elements[1];
-						double f = temp_elements[5];
+						double a = this->right_boundary_orbit_elements[0];
+						double e = this->right_boundary_orbit_elements[1];
+						double f = this->right_boundary_orbit_elements[5];
 						double cosf = cos(f);
 						double sinf = sqrt(1.0 - cosf*cosf);
 						double r = a * (1 - e*e) / (1 + e * cosf);
@@ -1241,9 +1235,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying x, y, or z
 					if (options->journey_arrival_elements_vary_flag[j][0] || options->journey_arrival_elements_vary_flag[j][1] || options->journey_arrival_elements_vary_flag[j][2])
 					{
-						double x = temp_elements[0];
-						double y = temp_elements[1];
-						double z = temp_elements[2];
+						double x = this->right_boundary_local_frame_state[0];
+						double y = this->right_boundary_local_frame_state[1];
+						double z = this->right_boundary_local_frame_state[2];
 						double r = sqrt(x*x + y*y + z*z);
 
 						F[*Findex] = (r - Universe->minimum_safe_distance) / Universe->minimum_safe_distance;
@@ -1278,12 +1272,12 @@ namespace EMTG {
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
 				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
+				math::Matrix<double> rot_in_vec(3,1,this->right_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
 				{
 					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
+					rot_in_vec(k) = this->right_boundary_local_frame_state[k+3];
 				}
 				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
