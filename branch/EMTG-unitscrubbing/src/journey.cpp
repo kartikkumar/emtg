@@ -504,7 +504,7 @@ namespace EMTG
 		math::Matrix<double> disp_v(3,1);
 
 		//construct the rotation matrix from ICRF to the local frame
-		Universe.LocalFrame.construct_rotation_matrices(phases[0].phase_start_epoch + 2400000.5);
+		Universe.LocalFrame.construct_rotation_matrices(phases[0].phase_start_epoch / 86400.0+ 2400000.5);
 		outputfile << "Boundary states:" << endl;
 		for (int i = 0; i < number_of_phases + 1; ++i)
 		{

@@ -50,12 +50,12 @@ namespace EMTG { namespace Astrodynamics {
 
 	//convert from JED to TDB
 	//from http://sourcecodebrowser.com/astronomical-almanac/5.6/tdb_8c.html
-	double frame::convert_JED_to_TDB(const double& JEDepoch)
+	double frame::convert_ET_to_TDB(const double& ETepoch)
 	{
 		double M, T;
 
 		/* Find time T in Julian centuries from J2000.  */
-		T = (JEDepoch - 2451545.0)/36525.0;
+		T = (ETepoch - 2451545.0)/36525.0;
 
 		/* Mean anomaly of sun = l' (J. Laskar) */
 		M = 129596581.038354 * T +  1287104.76154;
@@ -78,16 +78,16 @@ namespace EMTG { namespace Astrodynamics {
 		/* TDB - TDT, in seconds.  */
 		T = 0.001658 * sin(M) + 0.000014 * sin(M+M);
 
-		T = JEDepoch + T / 86400.0;
+		T = ETepoch + T / 86400.0;
 
 		return T;
 	}
 
 	//construct the rotation matrices between ICRF and the local frame
-	void frame::construct_rotation_matrices(const double& JEDepoch)
+	void frame::construct_rotation_matrices(const double& ETepoch)
 	{
 		//first, get the current date in TBB
-		double TDBepoch = convert_JED_to_TDB(JEDepoch);
+		double TDBepoch = convert_ET_to_TDB(ETepoch);
 
 		double days_since_reference_epoch = TDBepoch - 2451545.0;
 		double centuries_since_reference_epoch = days_since_reference_epoch / 36525;

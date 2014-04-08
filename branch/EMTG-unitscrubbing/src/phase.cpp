@@ -1045,7 +1045,7 @@ namespace EMTG {
 				}
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
+				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 				math::Matrix<double> rot_in_vec(3,1,this->left_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1083,7 +1083,7 @@ namespace EMTG {
 
 				//rotate the boundary state into the ICRF coordinate frame
 				//finally, rotate to the ICRF frame
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
+				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1271,7 +1271,7 @@ namespace EMTG {
 				}
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
+				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 				math::Matrix<double> rot_in_vec(3,1,this->right_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1327,7 +1327,7 @@ namespace EMTG {
 		math::Matrix<double> Shat = V_infinity.unitize();
 
 		//construct the unit vector in the direction of the planet's pole, expressed in Earth J2000Eq
-		TheBody.J2000_body_equatorial_frame.construct_rotation_matrices(epoch + 2400000.5);
+		TheBody.J2000_body_equatorial_frame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 		double zhatl[] = {0,0,1};
 		math::Matrix<double> zhat_local(3,1, zhatl);
 
@@ -1440,7 +1440,7 @@ namespace EMTG {
 		math::Matrix<double> rot_in_vec(3,1);
 
 		//construct the rotation matrix from ICRF to the local frame
-		Universe->LocalFrame.construct_rotation_matrices(current_epoch_MJD + 2400000.5);
+		Universe->LocalFrame.construct_rotation_matrices(current_epoch_MJD / 86400.0+ 2400000.5);
 
 		//open the output file
 		ofstream outputfile(options->outputfile.c_str(), ios::out | ios::app);
