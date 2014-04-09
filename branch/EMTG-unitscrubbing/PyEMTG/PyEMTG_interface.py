@@ -467,11 +467,15 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients2)
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients3)
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients4)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients5)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients6)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients0)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients1)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients2)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients3)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients4)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients5)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients6)
         self.optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_power_bounds_lower)
         self.optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_power_bounds_upper)
         self.optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Bind(wx.EVT_KILL_FOCUS, self.Changepower_at_1_AU)
@@ -872,6 +876,14 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.engine_input_thrust_coefficients[4] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
+    def Changeengine_input_thrust_coefficients5(self, e):
+        self.missionoptions.engine_input_thrust_coefficients[5] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_thrust_coefficients6(self, e):
+        self.missionoptions.engine_input_thrust_coefficients[6] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
     def Changeengine_input_mass_flow_rate_coefficients0(self, e):
         self.missionoptions.engine_input_mass_flow_rate_coefficients[0] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
@@ -890,6 +902,14 @@ class PyEMTG_interface(wx.Frame):
 
     def Changeengine_input_mass_flow_rate_coefficients4(self, e):
         self.missionoptions.engine_input_mass_flow_rate_coefficients[4] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_mass_flow_rate_coefficients5(self, e):
+        self.missionoptions.engine_input_mass_flow_rate_coefficients[5] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_mass_flow_rate_coefficients6(self, e):
+        self.missionoptions.engine_input_mass_flow_rate_coefficients[6] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
     def Changeengine_input_power_bounds_lower(self, e):

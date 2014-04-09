@@ -198,8 +198,8 @@ public:
 	//1: maximum thrust
 	//2: minimum mass-flow rate
 	double spacecraft_power_coefficients[3];
-	double engine_input_thrust_coefficients[5];
-	double engine_input_mass_flow_rate_coefficients[5];
+	double engine_input_thrust_coefficients[7];
+	double engine_input_mass_flow_rate_coefficients[7];
 	double engine_input_power_bounds[2];
 	double user_defined_engine_efficiency;
 	int spacecraft_power_model_type;

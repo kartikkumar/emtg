@@ -51,6 +51,8 @@ NLP_solver_type 0
 NLP_solver_mode 1
 #Quiet NLP solver?
 quiet_NLP 0
+#Quiet MBH?
+quiet_basinhopping 0
 #Enable ACE feasible point finder?
 ACE_feasible_point_finder 0
 #quantity Max_not_improve for MBH
@@ -76,7 +78,7 @@ snopt_feasibility_tolerance 1e-05
 #maximum number of major iterations for SNOPT
 snopt_major_iterations 8000
 #Maximum run time, in seconds, for a single call to SNOPT
-snopt_max_run_time 3600
+snopt_max_run_time 59
 #method of specifying derivatives
 #0: finite difference
 #1: analytical flybys and objective function but finite difference the patch points
@@ -211,10 +213,10 @@ Thrust 0.1
 #19: BHT20K Cardiff 8-16-2013
 #20: Aerojet HiVHAC EM
 engine_type 6
-#Custom engine thrust coefficients (T = A*P^4 + B*P^3 + C*P^2 + D*P + E)
-engine_input_thrust_coefficients 0.0 0.0 0.0 0.0 0.0
-#Custom engine mass flow rate coefficients (mdot = A*P^4 + B*P^3 + C*P^2 + D*P + E)
-engine_input_mass_flow_rate_coefficients 0.0 0.0 0.0 0.0 0.0
+#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)
+engine_input_thrust_coefficients 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)
+engine_input_mass_flow_rate_coefficients 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 #Custom engine lower and upper bounds on input power (per engine, in kW)
 engine_input_power_bounds 1.0 5.0
 #Custom engine input efficiency

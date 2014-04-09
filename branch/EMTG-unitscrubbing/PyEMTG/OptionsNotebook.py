@@ -275,9 +275,12 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtengine_input_thrust_coefficients2 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[2]")
         self.txtengine_input_thrust_coefficients3 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[3]")
         self.txtengine_input_thrust_coefficients4 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[4]")
+        self.txtengine_input_thrust_coefficients5 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[5]")
+        self.txtengine_input_thrust_coefficients6 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[6]")
         thrust_coefficients_box = wx.BoxSizer(wx.HORIZONTAL)
         thrust_coefficients_box.AddMany([self.txtengine_input_thrust_coefficients0, self.txtengine_input_thrust_coefficients1, self.txtengine_input_thrust_coefficients2,
-                                         self.txtengine_input_thrust_coefficients3, self.txtengine_input_thrust_coefficients4])
+                                         self.txtengine_input_thrust_coefficients3, self.txtengine_input_thrust_coefficients4, self.txtengine_input_thrust_coefficients5,
+                                         self.txtengine_input_thrust_coefficients6])
 
         self.lblengine_input_mass_flow_rate_coefficients = wx.StaticText(self, -1, "Custom mass flow rate coefficients")
         self.txtengine_input_mass_flow_rate_coefficients0 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[0]")
@@ -285,9 +288,12 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtengine_input_mass_flow_rate_coefficients2 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[2]")
         self.txtengine_input_mass_flow_rate_coefficients3 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[3]")
         self.txtengine_input_mass_flow_rate_coefficients4 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[4]")
+        self.txtengine_input_mass_flow_rate_coefficients5 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[5]")
+        self.txtengine_input_mass_flow_rate_coefficients6 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[6]")
         mass_flow_rate_coefficients_box = wx.BoxSizer(wx.HORIZONTAL)
         mass_flow_rate_coefficients_box.AddMany([self.txtengine_input_mass_flow_rate_coefficients0, self.txtengine_input_mass_flow_rate_coefficients1, self.txtengine_input_mass_flow_rate_coefficients2,
-                                                 self.txtengine_input_mass_flow_rate_coefficients3, self.txtengine_input_mass_flow_rate_coefficients4])
+                                                 self.txtengine_input_mass_flow_rate_coefficients3, self.txtengine_input_mass_flow_rate_coefficients4, self.txtengine_input_mass_flow_rate_coefficients5,
+                                                 self.txtengine_input_mass_flow_rate_coefficients6])
 
         self.lblengine_input_power_bounds = wx.StaticText(self, -1, "Thruster input power bounds")
         self.txtengine_input_power_bounds_lower = wx.TextCtrl(self, -1, "engine_input_power_bounds[0]")

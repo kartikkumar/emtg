@@ -565,20 +565,42 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "engine_input_thrust_coefficients") {
 		this->engine_input_thrust_coefficients[0] = value;
-		for (int k = 1; k < 5; ++k)
+
+		string peek;
+		peek = inputfile.peek();
+		int count = 1;
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
 		{
 			inputfile >> value;
-			this->engine_input_thrust_coefficients[k] = value;
+			this->engine_input_thrust_coefficients[count] = value;
+
+			peek = inputfile.peek();
+			++count;
 		}
+
+		for (int k = count; k < 7; ++k)
+			this->engine_input_thrust_coefficients[k] = 0.0;
+
 		return 0;
 	}
 	if (choice == "engine_input_mass_flow_rate_coefficients") {
 		this->engine_input_mass_flow_rate_coefficients[0] = value;
-		for (int k = 1; k < 5; ++k)
+
+		string peek;
+		peek = inputfile.peek();
+		int count = 1;
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
 		{
 			inputfile >> value;
-			this->engine_input_mass_flow_rate_coefficients[k] = value;
+			this->engine_input_mass_flow_rate_coefficients[count] = value;
+
+			peek = inputfile.peek();
+			++count;
 		}
+
+		for (int k = count; k < 7; ++k)
+			this->engine_input_mass_flow_rate_coefficients[k] = 0.0;
+
 		return 0;
 	}
 	if (choice == "engine_input_power_bounds") {
@@ -1895,14 +1917,14 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#19: BHT20K Cardiff 8-16-2013" << endl;
 		outputfile << "#20: Aerojet HiVHAC EM" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
-		outputfile << "#Custom engine thrust coefficients (T = A*P^4 + B*P^3 + C*P^2 + D*P + E)" << endl;
+		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
-		for (int k = 0; k < 5; ++k)
+		for (int k = 0; k < 7; ++k)
 			outputfile << " " << this->engine_input_thrust_coefficients[k];
 		outputfile << endl;
-		outputfile << "#Custom engine mass flow rate coefficients (mdot = A*P^4 + B*P^3 + C*P^2 + D*P + E)" << endl;
+		outputfile << "#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_mass_flow_rate_coefficients";
-		for (int k = 0; k < 5; ++k)
+		for (int k = 0; k < 7; ++k)
 			outputfile << " " << this->engine_input_mass_flow_rate_coefficients[k];
 		outputfile << endl;
 		outputfile << "#Custom engine lower and upper bounds on input power (per engine, in kW)" << endl;

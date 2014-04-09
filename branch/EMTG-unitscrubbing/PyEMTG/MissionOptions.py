@@ -134,8 +134,8 @@ class MissionOptions(object):
     power_source_type = 0 #0: solar, 1: radioisotope (or other fixed power)
     solar_power_gamma = [0.0, 0.0, 0.0, 0.0, 0.0] #coefficients for solar panels
     power_margin = 0.0 #for propulsion, as a fraction
-    engine_input_thrust_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0]
-    engine_input_mass_flow_rate_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0]
+    engine_input_thrust_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    engine_input_mass_flow_rate_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     engine_input_power_bounds = [1.0, 5.0]
     user_defined_engine_efficiency = 0.7
     spacecraft_power_coefficients = [0.0, 0.0, 0.0]
@@ -500,10 +500,14 @@ class MissionOptions(object):
                         self.engine_input_thrust_coefficients = []
                         for x in linecell[1:]:
                             self.engine_input_thrust_coefficients.append(float(x))
+                        while len(self.engine_input_thrust_coefficients) < 7:
+                            self.engine_input_thrust_coefficients.append(0.0)
                     elif choice == "engine_input_mass_flow_rate_coefficients":
                         self.engine_input_mass_flow_rate_coefficients = []
                         for x in linecell[1:]:
                             self.engine_input_mass_flow_rate_coefficients.append(float(x))
+                        while len(self.engine_input_mass_flow_rate_coefficients) < 7:
+                            self.engine_input_mass_flow_rate_coefficients.append(0.0)
                     elif choice == "engine_input_power_bounds":
                         self.engine_input_power_bounds = []
                         for x in linecell[1:]:
@@ -963,14 +967,14 @@ class MissionOptions(object):
         outputfile.write("#19: BHT20K Cardiff 8-16-2013\n")
         outputfile.write("#20: Aerojet HiVHAC EM\n")
         outputfile.write("engine_type " + str(self.engine_type) + "\n")
-        outputfile.write("#Custom engine thrust coefficients (T = A*P^4 + B*P^3 + C*P^2 + D*P + E)\n")
+        outputfile.write("#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_thrust_coefficients")
-        for k in range(0,5):
+        for k in range(0,7):
             outputfile.write(" " + str(self.engine_input_thrust_coefficients[k]))
         outputfile.write("\n")
-        outputfile.write("#Custom engine mass flow rate coefficients (mdot = A*P^4 + B*P^3 + C*P^2 + D*P + E)\n")
+        outputfile.write("#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_mass_flow_rate_coefficients")
-        for k in range(0,5):
+        for k in range(0,7):
             outputfile.write(" " + str(self.engine_input_mass_flow_rate_coefficients[k]))
         outputfile.write("\n")
         outputfile.write("#Custom engine lower and upper bounds on input power (per engine, in kW)\n")
@@ -2100,11 +2104,15 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.SetValue(str(self.engine_input_thrust_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.SetValue(str(self.engine_input_thrust_coefficients[3]))
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.SetValue(str(self.engine_input_thrust_coefficients[4]))
+        optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.SetValue(str(self.engine_input_thrust_coefficients[5]))
+        optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.SetValue(str(self.engine_input_thrust_coefficients[6]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.SetValue(str(self.engine_input_mass_flow_rate_coefficients[0]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.SetValue(str(self.engine_input_mass_flow_rate_coefficients[1]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.SetValue(str(self.engine_input_mass_flow_rate_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.SetValue(str(self.engine_input_mass_flow_rate_coefficients[3]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.SetValue(str(self.engine_input_mass_flow_rate_coefficients[4]))
+        optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.SetValue(str(self.engine_input_mass_flow_rate_coefficients[5]))
+        optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.SetValue(str(self.engine_input_mass_flow_rate_coefficients[6]))
         optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.SetValue(str(self.engine_input_power_bounds[0]))
         optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.SetValue(str(self.engine_input_power_bounds[1]))
         optionsnotebook.tabSpacecraft.txtpower_at_1_AU.SetValue(str(self.power_at_1_AU))
@@ -2294,11 +2302,15 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)
@@ -2349,11 +2361,15 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)
@@ -2430,11 +2446,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2465,11 +2485,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2500,11 +2524,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2534,11 +2562,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(True)
@@ -2567,11 +2599,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(True)
