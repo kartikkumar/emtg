@@ -684,6 +684,9 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblquiet_NLP = wx.StaticText(self, -1, "Quiet NLP solver?")
         self.chkquiet_NLP = wx.CheckBox(self, -1)
 
+        self.lblquiet_MBH = wx.StaticText(self, -1, "Quiet MBH solver?")
+        self.chkquiet_MBH = wx.CheckBox(self, -1)
+
         self.lblACE_feasible_point_finder = wx.StaticText(self, -1, "Enable ACE feasible point finder?")
         self.chkACE_feasible_point_finder = wx.CheckBox(self, -1)
         
@@ -749,6 +752,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                  self.lblNLP_solver_type, self.cmbNLP_solver_type,
                                  self.lblNLP_solver_mode, self.cmbNLP_solver_mode,
                                  self.lblquiet_NLP, self.chkquiet_NLP,
+                                 self.lblquiet_MBH, self.chkquiet_MBH,
                                  self.lblACE_feasible_point_finder, self.chkACE_feasible_point_finder,
                                 self.lblMBH_max_not_improve, self.txtMBH_max_not_improve,
                                 self.lblMBH_max_trials, self.txtMBH_max_trials,

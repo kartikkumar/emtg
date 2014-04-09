@@ -587,6 +587,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.cmbNLP_solver_type.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_type)
         self.optionsnotebook.tabSolver.cmbNLP_solver_mode.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_mode)
         self.optionsnotebook.tabSolver.chkquiet_NLP.Bind(wx.EVT_CHECKBOX, self.Changequiet_NLP)
+        self.optionsnotebook.tabSolver.chkquiet_MBH.Bind(wx.EVT_CHECKBOX, self.Changequiet_MBH)
         self.optionsnotebook.tabSolver.chkACE_feasible_point_finder.Bind(wx.EVT_CHECKBOX, self.ChangeACE_feasible_point_finder)
         self.optionsnotebook.tabSolver.txtMBH_max_not_improve.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_not_improve)
         self.optionsnotebook.tabSolver.txtMBH_max_trials.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_trials)
@@ -1420,6 +1421,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changequiet_NLP(self, e):
         self.missionoptions.quiet_NLP = int(self.optionsnotebook.tabSolver.chkquiet_NLP.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changequiet_MBH(self, e):
+        self.missionoptions.quiet_basinhopping = int(self.optionsnotebook.tabSolver.chkquiet_MBH.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def ChangeACE_feasible_point_finder(self, e):

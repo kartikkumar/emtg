@@ -56,6 +56,7 @@ class MissionOptions(object):
     NLP_solver_type = 0
     NLP_solver_mode = 1
     quiet_NLP = 0
+    quiet_basinhopping = 0
     ACE_feasible_point_finder = 0
     MBH_max_not_improve = 50
     MBH_max_trials = 100000
@@ -385,6 +386,8 @@ class MissionOptions(object):
                         self.ACE_feasible_point_finder = int(linecell[1])
                     elif choice == "quiet_NLP":
                         self.quiet_NLP = int(linecell[1])
+                    elif choice == "quiet_basinhopping":
+                        self.quiet_basinhopping = int(linecell[1])
                     elif choice ==  "MBH_max_not_improve":
                         self.MBH_max_not_improve = int(linecell[1])
                     elif choice ==  "MBH_max_trials":
@@ -789,6 +792,8 @@ class MissionOptions(object):
         outputfile.write("NLP_solver_mode " + str(self.NLP_solver_mode) + "\n")
         outputfile.write("#Quiet NLP solver?\n")
         outputfile.write("quiet_NLP " + str(self.quiet_NLP) + "\n")
+        outputfile.write("#Quiet MBH?\n")
+        outputfile.write("quiet_basinhopping " + str(self.quiet_basinhopping) + "\n")
         outputfile.write("#Enable ACE feasible point finder?\n")
         outputfile.write("ACE_feasible_point_finder " + str(self.ACE_feasible_point_finder) + "\n")
         outputfile.write("#quantity Max_not_improve for MBH\n")
@@ -2591,6 +2596,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbNLP_solver_type.SetSelection(self.NLP_solver_type)
         optionsnotebook.tabSolver.cmbNLP_solver_mode.SetSelection(self.NLP_solver_mode)
         optionsnotebook.tabSolver.chkquiet_NLP.SetValue(self.quiet_NLP)
+        optionsnotebook.tabSolver.chkquiet_MBH.SetValue(self.quiet_basinhopping)
         optionsnotebook.tabSolver.chkACE_feasible_point_finder.SetValue(self.ACE_feasible_point_finder)
         optionsnotebook.tabSolver.txtMBH_max_not_improve.SetValue(str(self.MBH_max_not_improve))
         optionsnotebook.tabSolver.txtMBH_max_trials.SetValue(str(self.MBH_max_trials))
@@ -2653,6 +2659,9 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
             optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
 
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
+
         elif self.run_inner_loop == 1: #batch trialX
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.lblMBH_max_trials.Show(False)
@@ -2693,6 +2702,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
             optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         elif self.run_inner_loop == 2: #MBH
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(True)
@@ -2731,6 +2743,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(True)
             optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(True)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(True)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(True)
 
             #change the available parameters and labels based on which distribution is selected
             if self.MBH_hop_distribution == 0: #uniform
@@ -2790,6 +2805,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
             optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         elif self.run_inner_loop == 4: #SNOPT
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
@@ -2831,6 +2849,9 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
             optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         if (self.run_inner_loop == 2 and self.seed_MBH == 1) or (self.run_inner_loop == 4):
             optionsnotebook.tabSolver.lblinterpolate_initial_guess.Show(True)

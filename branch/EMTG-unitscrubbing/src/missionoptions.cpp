@@ -356,6 +356,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->quiet_NLP = (bool) value;
 		return 0;
 	}
+	if (choice == "quiet_basinhopping") {
+		this->quiet_basinhopping = (bool) value;
+		return 0;
+	}
 	if (choice == "MBH_max_not_improve") {
 		this->MBH_max_not_improve = (int) value;
 		return 0;
@@ -1720,6 +1724,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "NLP_solver_mode " << this->NLP_solver_mode << endl;
 		outputfile << "#Quiet NLP solver?" << endl;
 		outputfile << "quiet_NLP " << this->quiet_NLP << endl;
+		outputfile << "#Quiet MBH?" << endl;
+		outputfile << "quiet_basinhopping " << this->quiet_basinhopping << endl;
 		outputfile << "#Enable ACE feasible point finder?" << endl;
 		outputfile << "ACE_feasible_point_finder " << this->ACE_feasible_point_finder << endl;
 		outputfile << "#quantity 'Max_not_improve' for MBH" << endl;
