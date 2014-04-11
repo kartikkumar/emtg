@@ -125,6 +125,9 @@ public:
 	int initial_guess_step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	double initial_guess_step_size_stdv_or_scale;
 	int MBH_zero_control_initial_guess; //0: do not use, 1: zero-control for resets, random perturbations for hops, 2: always use zero-control guess except when seeded
+	bool MBH_two_step; //whether or not to use the 2-step MBH (coarse then fine derivatives)
+	double FD_stepsize; //"fine" finite differencing step size
+	double FD_stepsize_coarse; //"coarse" finite differencing step
 	
 
 

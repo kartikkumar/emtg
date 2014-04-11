@@ -693,6 +693,15 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblquiet_MBH = wx.StaticText(self, -1, "Quiet MBH solver?")
         self.chkquiet_MBH = wx.CheckBox(self, -1)
 
+        self.lblMBH_two_step = wx.StaticText(self, -1, "Two-step MBH?")
+        self.chkMBH_two_step = wx.CheckBox(self, -1)
+
+        self.lblFD_stepsize = wx.StaticText(self, -1, "Finite differencing step size")
+        self.txtFD_stepsize = wx.TextCtrl(self, -1, "FD_stepsize")
+
+        self.lblFD_stepsize_coarse = wx.StaticText(self, -1, "Finite differencing coarse step size")
+        self.txtFD_stepsize_coarse = wx.TextCtrl(self, -1, "FD_stepsize_coarse")
+
         self.lblACE_feasible_point_finder = wx.StaticText(self, -1, "Enable ACE feasible point finder?")
         self.chkACE_feasible_point_finder = wx.CheckBox(self, -1)
         
@@ -759,6 +768,9 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                  self.lblNLP_solver_mode, self.cmbNLP_solver_mode,
                                  self.lblquiet_NLP, self.chkquiet_NLP,
                                  self.lblquiet_MBH, self.chkquiet_MBH,
+                                 self.lblMBH_two_step, self.chkMBH_two_step,
+                                 self.lblFD_stepsize, self.txtFD_stepsize,
+                                 self.lblFD_stepsize_coarse, self.txtFD_stepsize_coarse,
                                  self.lblACE_feasible_point_finder, self.chkACE_feasible_point_finder,
                                 self.lblMBH_max_not_improve, self.txtMBH_max_not_improve,
                                 self.lblMBH_max_trials, self.txtMBH_max_trials,

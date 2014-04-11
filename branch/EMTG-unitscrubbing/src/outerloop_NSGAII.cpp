@@ -1425,6 +1425,9 @@ namespace GeneticAlgorithm
 		//**************
 		while (this->current_generation <= this->genmax)
 		{
+			// increase generation counter
+			++this->current_generation;
+
 			//3. combine parent and child populations to create combined population
 			for (int individual = 0; individual < this->children_population.size(); ++individual)
 			{
@@ -1466,8 +1469,6 @@ namespace GeneticAlgorithm
 
 			//7. write out the current archive in case we need to warm-start another GA later
 			this->write_archive(options.working_directory + "//NSGAII_archive.csv");
-
-			++this->current_generation;  // increase generation counter
 		}
 	}
 

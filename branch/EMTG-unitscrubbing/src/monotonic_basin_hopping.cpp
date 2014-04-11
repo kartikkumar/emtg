@@ -586,7 +586,7 @@ namespace EMTG { namespace Solvers {
 		{
 			try
 			{
-				Problem->evaluate(Problem->X.data(), F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
+				Problem->evaluate(Problem->X.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
 			}
 			catch (int errorcode) //integration step error
 			{
@@ -660,12 +660,15 @@ namespace EMTG { namespace Solvers {
 			seeded_step = false;
 
 			//Step 2: apply the slide operator
-			//Step 2.1: If this is an MGA or MGA-DSM problem, make the finite differencing step coarse
-			if (Problem->options.mission_type < 2)
+			//Step 2.1: If we are in two-step mode, make the finite differencing step coarse
+			int temporary_derivative_code;
+			if (Problem->options.MBH_two_step)
 			{
 				if (!Problem->options.quiet_basinhopping)
 					cout << "Performing coarse optimization step" << endl;
-				SNOPTproblem->setRealParameter("Difference interval", 1.0e-2);
+				SNOPTproblem->setRealParameter("Difference interval", Problem->options.FD_stepsize_coarse);
+				temporary_derivative_code = Problem->options.derivative_type;
+				Problem->options.derivative_type = 0;
 			}
 
 			int ransnopt = slide();
@@ -674,20 +677,39 @@ namespace EMTG { namespace Solvers {
 			double feasibility = check_feasibility();
 
 			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
-			if (Problem->options.mission_type < 2 && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
+			if (Problem->options.MBH_two_step && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
 				if (!Problem->options.quiet_basinhopping)
 				{
 					cout << "Coarse optimization step succeeded with J = " << F[0] << endl;
 					cout << "Performing fine optimization step" << endl;
 				}
-				SNOPTproblem->setRealParameter("Difference interval", 1.5e-8);
+				SNOPTproblem->setRealParameter("Difference interval", Problem->options.FD_stepsize);
+				Problem->options.derivative_type = temporary_derivative_code;
+				vector<double> coarseX = this->Xtrial_scaled;
+				double coarseF = this->F[0];
 				slide();
 
 				if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 				{
 					if (!Problem->options.quiet_basinhopping)
-						cout << "Fine optimization step succeeded with J = " << F[0] << endl;
+						if (!Problem->options.quiet_basinhopping)
+							cout << "Fine optimization step succeeded with J = " << F[0] << endl;
+					if (this->F[0] > coarseF)
+					{
+						if (!Problem->options.quiet_basinhopping)
+							cout << "Coarse solution was better, retaining coarse solution." << endl;
+						this->Xtrial_scaled = coarseX;
+						try
+						{
+							Problem->evaluate(&(Problem->X[0]), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+						}
+						catch (int e)
+						{
+							if (!Problem->options.quiet_basinhopping)
+								std::cout << "Failure to evaluate " << Problem->options.description << std::endl;
+						}
+					}
 				}
 			}
 
@@ -748,7 +770,7 @@ namespace EMTG { namespace Solvers {
 					//Write out a results file for the current global best
 					try
 					{
-						Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+						Problem->evaluate(&(Problem->X[0]), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
 					}
 					catch (int errorcode)
 					{

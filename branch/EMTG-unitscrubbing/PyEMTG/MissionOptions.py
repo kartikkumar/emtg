@@ -75,6 +75,9 @@ class MissionOptions(object):
     initial_guess_step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     initial_guess_step_size_stdv_or_scale = 1.0
     MBH_zero_control_initial_guess = 0
+    MBH_two_step = 0 #whether or not to use the 2-step MBH (coarse then fine derivatives)
+    FD_stepsize = 1.5e-8 #"fine" finite differencing step size
+    FD_stepsize_coarse = 1.0e-4 #"coarse" finite differencing step
 
     #problem settings set by the user
 
@@ -422,6 +425,12 @@ class MissionOptions(object):
                         self.initial_guess_step_size_stdv_or_scale = float(linecell[1])		
                     elif choice == "MBH_zero_control_initial_guess":
                         self.MBH_zero_control_initial_guess = int(linecell[1])
+                    elif choice == "MBH_two_step":
+                        self.MBH_two_step = int(linecell[1])
+                    elif choice == "FD_stepsize":
+                        self.FD_stepsize = float(linecell[1])
+                    elif choice == "FD_stepsize_coarse":
+                        self.FD_stepsize_coarse = float(linecell[1])
 
                     #problem settings set by the user
                     elif choice ==  "ephemeris_source":
@@ -850,6 +859,12 @@ class MissionOptions(object):
         outputfile.write("#1: zero-control for resets, random perturbations for hops\n")
         outputfile.write("#2: always use zero-control guess except when seeded\n")
         outputfile.write("MBH_zero_control_initial_guess " + str(self.MBH_zero_control_initial_guess) + "\n")
+        outputfile.write("#Enable two-step MBH?\n")
+        outputfile.write("MBH_two_step " + str(self.MBH_two_step) + "\n")
+        outputfile.write("#'Fine' finite differencing step size\n")
+        outputfile.write("FD_stepsize " + str(self.FD_stepsize) + "\n")
+        outputfile.write("#'Coarse' finite differencing step size\n")
+        outputfile.write("FD_stepsize_coarse " + str(self.FD_stepsize_coarse) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##low-thrust solver parameters\n")	
@@ -2633,6 +2648,9 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbNLP_solver_mode.SetSelection(self.NLP_solver_mode)
         optionsnotebook.tabSolver.chkquiet_NLP.SetValue(self.quiet_NLP)
         optionsnotebook.tabSolver.chkquiet_MBH.SetValue(self.quiet_basinhopping)
+        optionsnotebook.tabSolver.chkMBH_two_step.SetValue(self.MBH_two_step)
+        optionsnotebook.tabSolver.txtFD_stepsize.SetValue(str(self.FD_stepsize))
+        optionsnotebook.tabSolver.txtFD_stepsize_coarse.SetValue(str(self.FD_stepsize_coarse))
         optionsnotebook.tabSolver.chkACE_feasible_point_finder.SetValue(self.ACE_feasible_point_finder)
         optionsnotebook.tabSolver.txtMBH_max_not_improve.SetValue(str(self.MBH_max_not_improve))
         optionsnotebook.tabSolver.txtMBH_max_trials.SetValue(str(self.MBH_max_trials))
@@ -2653,6 +2671,29 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.SetValue(str(self.initial_guess_step_size_stdv_or_scale))
         optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.SetSelection(self.MBH_zero_control_initial_guess)
         optionsnotebook.tabSolver.txttrialX.SetValue(str(self.trialX))
+
+        if self.run_inner_loop == 2:
+            optionsnotebook.tabSolver.lblMBH_two_step.Show(True)
+            optionsnotebook.tabSolver.chkMBH_two_step.Show(True)
+
+            if self.MBH_two_step:
+                optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(True)
+                optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(True)
+            else:
+                optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(False)
+                optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(False)
+        else:
+            optionsnotebook.tabSolver.lblMBH_two_step.Show(False)
+            optionsnotebook.tabSolver.chkMBH_two_step.Show(False)
+            optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(False)
+            optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(False)
+
+        if self.derivative_type < 3 and (self.run_inner_loop == 2 or self.run_inner_loop == 4):
+            optionsnotebook.tabSolver.lblFD_stepsize.Show(True)
+            optionsnotebook.tabSolver.txtFD_stepsize.Show(True)
+        else:
+            optionsnotebook.tabSolver.lblFD_stepsize.Show(False)
+            optionsnotebook.tabSolver.txtFD_stepsize.Show(False)
         
         if self.run_inner_loop == 0: #trialX
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)

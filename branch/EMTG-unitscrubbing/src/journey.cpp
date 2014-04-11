@@ -509,6 +509,7 @@ namespace EMTG
 		for (int i = 0; i < number_of_phases + 1; ++i)
 		{
 			outputfile << "Boundary: " << i+1;
+			outputfile.precision(8);
 			r(0) = boundary_states[i][0];
 			r(1) = boundary_states[i][1];
 			r(2) = boundary_states[i][2];

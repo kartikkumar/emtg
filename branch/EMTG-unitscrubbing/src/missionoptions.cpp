@@ -36,6 +36,9 @@ missionoptions::missionoptions() {
 	this->outerloop_reevaluate_full_population = false;
 	this->quiet_outerloop = 1;
 	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -85,6 +88,9 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_reevaluate_full_population = false;
 	this->quiet_outerloop = true;
 	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -427,6 +433,18 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "MBH_zero_control_initial_guess") {
 		this->MBH_zero_control_initial_guess = (int) value;
+		return 0;
+	}
+	if (choice == "MBH_two_step") {
+		this->MBH_two_step = (bool) value;
+		return 0;
+	}
+	if (choice == "FD_stepsize") {
+		this->FD_stepsize = value;
+		return 0;
+	}
+	if (choice == "FD_stepsize_coarse") {
+		this->FD_stepsize_coarse = value;
 		return 0;
 	}
 				
@@ -1800,6 +1818,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#1: zero-control for resets, random perturbations for hops" << endl;
 		outputfile << "#2: always use zero-control guess except when seeded" << endl;
 		outputfile << "MBH_zero_control_initial_guess " << this->MBH_zero_control_initial_guess << endl;
+		outputfile << "#Enable two-step MBH?" << endl;
+		outputfile << "MBH_two_step " << this->MBH_two_step << endl;
+		outputfile << "#'Fine' finite differencing step size" << endl;
+		outputfile << "FD_stepsize " << this->FD_stepsize << endl;
+		outputfile << "#'Coarse' finite differencing step size" << endl;
+		outputfile << "FD_stepsize_coarse " << this->FD_stepsize_coarse << endl;
         outputfile << endl;
 
 		outputfile << "##low-thrust solver parameters" << endl;
