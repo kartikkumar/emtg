@@ -702,7 +702,7 @@ namespace EMTG { namespace Solvers {
 						this->Xtrial_scaled = coarseX;
 						try
 						{
-							Problem->evaluate(&(Problem->X[0]), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+							Problem->evaluate(this->Xtrial_scaled.data(), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
 						}
 						catch (int e)
 						{
