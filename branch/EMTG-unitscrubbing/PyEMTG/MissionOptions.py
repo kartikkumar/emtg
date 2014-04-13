@@ -1052,13 +1052,12 @@ class MissionOptions(object):
         outputfile.write("#1: MGA-DSM\n")
         outputfile.write("#2: MGA-LT\n")
         outputfile.write("#3: FBLT\n")
-        outputfile.write("#4: FBLT-S\n")
-        outputfile.write("#5: MGA-NDSM\n")
-        outputfile.write("#6: DTLT\n")
-        outputfile.write("#7: solver chooses (MGA, MGA-DSM)\n")
-        outputfile.write("#8: solver chooses (MGA, MGA-LT)\n")
-        outputfile.write("#9: solver chooses (MGA-DSM, MGA-LT)\n")
-        outputfile.write("#10: solver chooses (MGA, MGA-DSM, MGA-LT)\n")
+        outputfile.write("#4: MGA-NDSM\n")
+        outputfile.write("#5: DTLT\n")
+        outputfile.write("#6: solver chooses (MGA, MGA-DSM)\n")
+        outputfile.write("#7: solver chooses (MGA, MGA-LT)\n")
+        outputfile.write("#8: solver chooses (MGA-DSM, MGA-LT)\n")
+        outputfile.write("#9: solver chooses (MGA, MGA-DSM, MGA-LT)\n")
         outputfile.write("mission_type " + str(self.mission_type) + "\n")
         outputfile.write("#number of journeys (user-defined endpoints)\n")
         outputfile.write("#Each journey has a central body and two boundary points\n")
@@ -2221,7 +2220,7 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtLV_adapter_mass.Show(False)
 
         #impulsive vs low-thrust missions
-        if self.mission_type == 0 or self.mission_type == 1:
+        if self.mission_type == 0 or self.mission_type == 1 or self.mission_type == 4:
             #impulsive mission
             optionsnotebook.tabSpacecraft.powergridtitle.Show(False)
             optionsnotebook.tabSpacecraft.lblIspChem.Show(True)

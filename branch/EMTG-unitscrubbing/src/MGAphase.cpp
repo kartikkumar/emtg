@@ -10,7 +10,7 @@
 #include "missionoptions.h"
 #include "Astrodynamics.h"
 #include "Lambert.h"
-#include "kepler_lagrange_laguerre_conway.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
 #include "universe.h"
@@ -106,7 +106,23 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 		}
 
 		//Step 2: locate the first body
-		locate_boundary_point(boundary1_location_code, options->journey_departure_type[j], true, Universe, boundary1_state, current_state+3, *current_epoch, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+		this->locate_boundary_point(boundary1_location_code,
+									options->journey_departure_type[j],
+									true,
+									Universe, 
+									boundary1_state,
+									current_state+3,
+									*current_epoch, 
+									X, 
+									Xindex,
+									F,
+									Findex,
+									G, 
+									Gindex,
+									false,
+									j,
+									p,
+									options);
 	}
 	//there is no alternate step 2
 	
@@ -117,15 +133,45 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	++(*Xindex);
 
 	//Step 4: locate the second body
-	locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+	this->locate_boundary_point(boundary2_location_code, 
+								options->journey_arrival_type[j],
+								false,
+								Universe,
+								boundary2_state,
+								current_state+3, 
+								*current_epoch + TOF,
+								X,
+								Xindex, 
+								F, 
+								Findex,
+								G,
+								Gindex, 
+								false, 
+								j,
+								p, 
+								options);
 
 	//Step 5: solve Lambert's problem between the planets
-	EMTG::Astrodynamics::Lambert (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 1, 0, lambert_v1, lambert_v2);
+	EMTG::Astrodynamics::Lambert (boundary1_state,
+									boundary2_state,
+									TOF,
+									Universe->mu,
+									1, 
+									0, 
+									lambert_v1,
+									lambert_v2);
 
 	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
 
 	if (hz < 0)
-		EMTG::Astrodynamics::Lambert (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 0, lambert_v1, lambert_v2);
+		EMTG::Astrodynamics::Lambert (boundary1_state, 
+										boundary2_state,
+										TOF, 
+										Universe->mu,
+										0,
+										0,
+										lambert_v1, 
+										lambert_v2);
 
 	//Step 6: compute all parameters of the first event of the phase
 	//if this is the first phase in the journey, compute RA and DEC. Otherwise process the flyby at the beginning of the phase
@@ -390,7 +436,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch,
+						phase_start_epoch / 86400.0,
 						event_type,
 						boundary1_name,
 						0,
@@ -424,13 +470,25 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, output_state, Universe->mu, (epoch - phase_start_epoch) * 86400, this->Kepler_F_Current, this->Kepler_Fdot_Current, this->Kepler_G_Current, this->Kepler_Gdot_Current, this->Kepler_Fdotdot_Current, this->Kepler_Gdotdot_Current, this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													(epoch - phase_start_epoch),
+													this->Kepler_F_Current,
+													this->Kepler_Fdot_Current,
+													this->Kepler_G_Current,
+													this->Kepler_Gdot_Current,
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current,
+													this->Current_STM,
+													false);
 
 		//write the summary line
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						epoch,
+						epoch / 86400.0,
 						"coast",
 						"deep-space",
 						timestep,
@@ -488,7 +546,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + TOF,
+						(phase_start_epoch + TOF) / 86400.0,
 						event_type,
 						boundary2_name,
 						0,

@@ -14,9 +14,9 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtMissionName = wx.TextCtrl(self, -1, "mission_name", size=(500,-1))
 
         self.lblMissionType = wx.StaticText(self, -1, "Mission Type")
-        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT']#,'4: FBLT-S','5: MGA-NDSM','6: DTLT']
-                    #,'7: solver chooses (MGA, MGA-DSM)','8: solver chooses (MGA, MGA-LT)',
-                    #'9: solver chooses (MGA-DSM, MGA-LT)','10: solver chooses (MGA, MGA-DSM, MGA-LT)']
+        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT','4: MGA-NDSM']#,'6: DTLT']
+                    #,'6: solver chooses (MGA, MGA-DSM)','7: solver chooses (MGA, MGA-LT)',
+                    #'8: solver chooses (MGA-DSM, MGA-LT)','9: solver chooses (MGA, MGA-DSM, MGA-LT)']
         self.cmbMissionType = wx.ComboBox(self, -1, choices=phasetypes, style=wx.CB_READONLY)
 
         self.lblobjective_type = wx.StaticText(self, -1, "Include initial impulse in cost")

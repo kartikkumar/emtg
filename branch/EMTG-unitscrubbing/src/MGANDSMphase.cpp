@@ -7,20 +7,17 @@
 
 #include "MGANDSMphase.h"
 #include "Astrodynamics.h"
-#include "kepler_lagrange_laguerre_conway.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "missionoptions.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
 #include "universe.h"
 #include "EMTG_Matrix.h"
-#include "UniversalKeplerPropagator.h"
 
 #include "SpiceUsr.h"
 
 #include <sstream>
 #include <fstream>
-
-//#define _MGANDSM_STM
 
 namespace EMTG {
 
@@ -95,92 +92,67 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 	double spacecraft_state_forward[7];
 	spacecraft_state_forward[6] = state_at_beginning_of_phase[6];
 
-#ifndef _MGANDSM_STM
-		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
-											spacecraft_state_forward,
-											Universe->mu,
-											(this->eta * this->TOF) * 86400,
-											this->Kepler_F_Forward[0],
-											this->Kepler_Fdot_Forward[0],
-											this->Kepler_G_Forward[0], 
-											this->Kepler_Gdot_Forward[0],
-											this->Kepler_Fdotdot_Forward[0],
-											this->Kepler_Gdotdot_Forward[0],
-											this->Forward_STM[0], false);
-#else
-		if (options->derivative_type > 0 && needG)
-		{
-			Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
-												spacecraft_state_forward,
-												Universe->mu,
-												(this->eta * this->TOF) * 86400,
-												this->Kepler_F_Forward[0], 
-												this->Kepler_Fdot_Forward[0],
-												this->Kepler_G_Forward[0],
-												this->Kepler_Gdot_Forward[0],
-												this->Kepler_Fdotdot_Forward[0],
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Forward_STM[0], true);
-		}
-		else
-			Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, 
-												spacecraft_state_forward,
-												Universe->mu, 
-												(this->eta * this->TOF) * 86400,
-												this->Kepler_F_Forward[0], 
-												this->Kepler_Fdot_Forward[0],
-												this->Kepler_G_Forward[0], 
-												this->Kepler_Gdot_Forward[0], 
-												this->Kepler_Fdotdot_Forward[0],
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Forward_STM[0], false);
-#endif
-
+	if (options->derivative_type > 1 && needG)
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
+													spacecraft_state_forward,
+													Universe->mu,
+													Universe->LU,
+													this->eta * this->TOF,
+													this->Kepler_F_Forward[0],
+													this->Kepler_Fdot_Forward[0],
+													this->Kepler_G_Forward[0], 
+													this->Kepler_Gdot_Forward[0],
+													this->Kepler_Fdotdot_Forward[0],
+													this->Kepler_Gdotdot_Forward[0],
+													this->Forward_STM[0], 
+													true);
+	else
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
+													spacecraft_state_forward,
+													Universe->mu,
+													Universe->LU,
+													this->eta * this->TOF,
+													this->Kepler_F_Forward[0],
+													this->Kepler_Fdot_Forward[0],
+													this->Kepler_G_Forward[0], 
+													this->Kepler_Gdot_Forward[0],
+													this->Kepler_Fdotdot_Forward[0],
+													this->Kepler_Gdotdot_Forward[0],
+													this->Forward_STM[0], 
+													false);
 
 	//Step 6.3: propagate backward
 	double spacecraft_state_backward[7];
 	spacecraft_state_backward[6] = state_at_end_of_phase[6];
 
-#ifndef _MGANDSM_STM
-		Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
-											spacecraft_state_backward,
-											Universe->mu, 
-											-((1 - this->eta) * this->TOF) * 86400,
-											this->Kepler_F_Backward[0], 
-											this->Kepler_Fdot_Backward[0],
-											this->Kepler_G_Backward[0],
-											this->Kepler_Gdot_Backward[0],
-											this->Kepler_Fdotdot_Backward[0],
-											this->Kepler_Gdotdot_Backward[0], 
-											this->Backward_STM[0], false);
-#else
-		if (options->derivative_type > 0 && needG)
-		{
-			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
-												spacecraft_state_backward,
-												Universe->mu,
-												-((1 - this->eta) * this->TOF) * 86400,
-												this->Kepler_F_Backward[0],
-												this->Kepler_Fdot_Backward[0],
-												this->Kepler_G_Backward[0], 
-												this->Kepler_Gdot_Backward[0], 
-												this->Kepler_Fdotdot_Forward[0], 
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Backward_STM[0], true);
-		}
-		else
-			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase,
-												spacecraft_state_backward,
-												Universe->mu, 
-												-((1 - this->eta) * this->TOF) * 86400, 
-												this->Kepler_F_Backward[0], 
-												this->Kepler_Fdot_Backward[0], 
-												this->Kepler_G_Backward[0], 
-												this->Kepler_Gdot_Backward[0],
-												this->Kepler_Fdotdot_Forward[0], 
-												this->Kepler_Gdotdot_Forward[0], 
-												this->Backward_STM[0], false);
-#endif
+	if (options->derivative_type > 1 && needG)
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_end_of_phase,
+													spacecraft_state_backward,
+													Universe->mu,
+													Universe->LU,
+													-((1 - this->eta) * this->TOF),
+													this->Kepler_F_Backward[0],
+													this->Kepler_Fdot_Backward[0],
+													this->Kepler_G_Backward[0], 
+													this->Kepler_Gdot_Backward[0],
+													this->Kepler_Fdotdot_Backward[0],
+													this->Kepler_Gdotdot_Backward[0],
+													this->Backward_STM[0], 
+													true);
+	else
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_end_of_phase,
+													spacecraft_state_backward,
+													Universe->mu,
+													Universe->LU,
+													-((1 - this->eta) * this->TOF),
+													this->Kepler_F_Backward[0],
+													this->Kepler_Fdot_Backward[0],
+													this->Kepler_G_Backward[0], 
+													this->Kepler_Gdot_Backward[0],
+													this->Kepler_Fdotdot_Backward[0],
+													this->Kepler_Gdotdot_Backward[0],
+													this->Backward_STM[0], 
+													false);
 
 	//Step 6.4: enforce match point constraint
 
@@ -345,6 +317,19 @@ int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlo
 	//noting that every patch point constraint in the phase has a derivative with respect to every variable in the phase
 	//in addition, the patch point constraints have a derivative with respect to the previous phase's arrival mass
 	//and the patch point constraints have a derivatives with respect to all previous time variables, including the launch date
+
+	G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass.resize(7);
+	G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass.resize(7);
+
+	vector<string> statename;
+	statename.push_back("x");
+	statename.push_back("y");
+	statename.push_back("z");
+	statename.push_back("xdot");
+	statename.push_back("ydot");
+	statename.push_back("zdot");
+	statename.push_back("m");
+
 	Flowerbounds->push_back(-math::SMALL);
 	Fupperbounds->push_back(math::SMALL);
 	Fdescriptions->push_back(prefix + "match point x");
@@ -764,29 +749,29 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 	for (int k = 0; k < 3; ++k)
 		dVdeparture[k] = V_infinity_out(k);
 
-	write_summary_line(options,
-						Universe,
-						eventcount,
-						phase_start_epoch,
-						event_type,
-						boundary1_name,
-						0,
-						(p > 0 ? flyby_altitude : Bradius),
-						(Btheta),
-						(p > 0 ? flyby_turn_angle : -1),
-						RA_departure,
-						DEC_departure,
-						C3_departure,
-						state_at_beginning_of_phase,
-						dVdeparture,
-						empty_vector,
-						(p == 0 ? dV_departure_magnitude : flyby_outgoing_v_infinity),
-						-1,
-						initial_Isp,
-						-1,
-						0,
-						0,
-						0);
+	this->write_summary_line(options,
+							Universe,
+							eventcount,
+							phase_start_epoch / 86400.0,
+							event_type,
+							boundary1_name,
+							0,
+							(p > 0 ? flyby_altitude : Bradius),
+							(Btheta),
+							(p > 0 ? flyby_turn_angle : -1),
+							RA_departure,
+							DEC_departure,
+							C3_departure,
+							state_at_beginning_of_phase,
+							dVdeparture,
+							empty_vector,
+							(p == 0 ? dV_departure_magnitude : flyby_outgoing_v_infinity),
+							-1,
+							initial_Isp,
+							-1,
+							0,
+							0,
+							0);
 
 
 
@@ -802,42 +787,44 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase,
-											output_state,
-											Universe->mu,
-											(epoch - phase_start_epoch) * 86400, 
-											this->Kepler_F_Current, 
-											this->Kepler_Fdot_Current,
-											this->Kepler_G_Current,
-											this->Kepler_Gdot_Current, 
-											this->Kepler_Fdotdot_Current,
-											this->Kepler_Gdotdot_Current,
-											this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_beginning_of_phase,
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													epoch - phase_start_epoch, 
+													this->Kepler_F_Current, 
+													this->Kepler_Fdot_Current,
+													this->Kepler_G_Current,
+													this->Kepler_Gdot_Current, 
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current,
+													this->Current_STM,
+													false);
 
 		//write the summary line
-		write_summary_line(options,
-						Universe,
-						eventcount,
-						epoch,
-						"coast",
-						"deep-space",
-						timestep,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0,
-						output_state,
-						empty_vector,
-						empty_vector,
-						0,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0);
+		this->write_summary_line(options,
+								Universe,
+								eventcount,
+								epoch / 86400.0,
+								"coast",
+								"deep-space",
+								timestep,
+								-1,
+								-1,
+								-1,
+								0,
+								0,
+								0,
+								output_state,
+								empty_vector,
+								empty_vector,
+								0,
+								-1,
+								-1,
+								-1,
+								0,
+								0,
+								0);
 	}
 
 	//then print the DSM
@@ -846,29 +833,29 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 	dVout[1] = dV(1);
 	dVout[2] = dV(2);
 
-	write_summary_line(options,
-						Universe,
-						eventcount,
-						phase_start_epoch + eta * TOF,
-						"chem_burn",
-						"deep-space",
-						0,
-						-1,
-						-1,
-						-1,
-						atan2(dV(0), dV(1)),
-						asin(dV(2) / DSM_magnitude),
-						0,
-						match_point_state.data(),
-						dVout,
-						empty_vector,
-						DSM_magnitude,
-						-1,
-						options->IspChem,
-						-1,
-						0,
-						0,
-						0);
+	this->write_summary_line(options,
+							Universe,
+							eventcount,
+							(phase_start_epoch + eta * TOF) / 86400.0,
+							"chem_burn",
+							"deep-space",
+							0,
+							-1,
+							-1,
+							-1,
+							atan2(dV(0), dV(1)),
+							asin(dV(2) / DSM_magnitude),
+							0,
+							match_point_state.data(),
+							dVout,
+							empty_vector,
+							DSM_magnitude,
+							-1,
+							options->IspChem,
+							-1,
+							0,
+							0,
+							0);
 
 	//now print the coast after the DSM
 	timestep = (1 - eta) * TOF / options->num_timesteps;
@@ -877,45 +864,47 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 	for (int step = 0; step < options->num_timesteps; ++step)
 	{
 		//compute the current epoch
-		double epoch = phase_start_epoch + eta * TOF + timestep * (step + 0.5);
+		double epoch = (phase_start_epoch + eta * TOF + timestep * (step + 0.5)) / 86400.0;
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(match_point_state.data(),
-											output_state,
-											Universe->mu,
-											timestep * (step + 0.5) * 86400, 
-											this->Kepler_F_Current,
-											this->Kepler_Fdot_Current,
-											this->Kepler_G_Current, 
-											this->Kepler_Gdot_Current, 
-											this->Kepler_Fdotdot_Current,
-											this->Kepler_Gdotdot_Current, 
-											this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(match_point_state.data(),
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													timestep * (step + 0.5), 
+													this->Kepler_F_Current,
+													this->Kepler_Fdot_Current,
+													this->Kepler_G_Current, 
+													this->Kepler_Gdot_Current, 
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current, 
+													this->Current_STM,
+													false);
 
 		//write the summary line
-		write_summary_line(options,
-						Universe,
-						eventcount,
-						epoch,
-						"coast",
-						"deep-space",
-						timestep,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0,
-						output_state,
-						empty_vector,
-						empty_vector,
-						0,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0);
+		this->write_summary_line(options,
+								Universe,
+								eventcount,
+								epoch / 86400.0,
+								"coast",
+								"deep-space",
+								timestep,
+								-1,
+								-1,
+								-1,
+								0,
+								0,
+								0,
+								output_state,
+								empty_vector,
+								empty_vector,
+								0,
+								-1,
+								-1,
+								-1,
+								0,
+								0,
+								0);
 	}
 
 	//*****************************************************************************
@@ -951,29 +940,29 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 			dV_arrival_mag = dV_arrival_magnitude;
 		}
 
-		write_summary_line(options,
-						Universe,
-						eventcount,
-						phase_start_epoch + TOF,
-						event_type,
-						boundary2_name,
-						0,
-						-1,
-						-1,
-						-1,
-						RA_arrival,
-						DEC_arrival,
-						C3_arrival,
-						state_at_end_of_phase,
-						dVarrival,
-						empty_vector,
-						dV_arrival_mag,
-						-1,
-						options->IspChem,
-						-1,
-						0,
-						0,
-						0);
+		this->write_summary_line(options,
+								Universe,
+								eventcount,
+								(phase_start_epoch + TOF) / 86400.0,
+								event_type,
+								boundary2_name,
+								0,
+								-1,
+								-1,
+								-1,
+								RA_arrival,
+								DEC_arrival,
+								C3_arrival,
+								state_at_end_of_phase,
+								dVarrival,
+								empty_vector,
+								dV_arrival_mag,
+								-1,
+								options->IspChem,
+								-1,
+								0,
+								0,
+								0);
 	}
 
 	return 0;

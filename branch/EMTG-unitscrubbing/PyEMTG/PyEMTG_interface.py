@@ -1091,8 +1091,8 @@ class PyEMTG_interface(wx.Frame):
 
     def Changejourney_initial_impulse_bounds_upper(self, e):
         self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = eval(self.optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.GetValue())
-        if self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] < 1.0e-6:
-            self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = 1.0e-6
+        if self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] < 1.0e-8:
+            self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = 1.0e-8
 
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 

@@ -1140,17 +1140,17 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "journey_initial_impulse_bounds") {
 		vector<double> temp;
-		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+		temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 		inputfile >> value;
-		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+		temp.push_back(value > 1.0e-6 ? value : 1.0e-8);
 		this->journey_initial_impulse_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			temp.clear();
 			inputfile >> value;
-			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+			temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 			inputfile >> value;
-			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+			temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 			this->journey_initial_impulse_bounds.push_back(temp);
 		}
 		return 0;
@@ -2014,13 +2014,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#1: MGA-DSM" << endl;
 		outputfile << "#2: MGA-LT" << endl;
 		outputfile << "#3: FBLT" << endl;
-		outputfile << "#4: FBLT-S" << endl;
-		outputfile << "#5: MGA-NDSM" << endl;
-		outputfile << "#6: DTLT" << endl;
-		outputfile << "#7: solver chooses (MGA, MGA-DSM)" << endl;
-		outputfile << "#8: solver chooses (MGA, MGA-LT)" << endl;
-		outputfile << "#9: solver chooses (MGA-DSM, MGA-LT)" << endl;
-		outputfile << "#10: solver chooses (MGA, MGA-DSM, MGA-LT)" << endl;
+		outputfile << "#4: MGA-NDSM" << endl;
+		outputfile << "#5: DTLT" << endl;
+		outputfile << "#6: solver chooses (MGA, MGA-DSM)" << endl;
+		outputfile << "#7: solver chooses (MGA, MGA-LT)" << endl;
+		outputfile << "#8: solver chooses (MGA-DSM, MGA-LT)" << endl;
+		outputfile << "#9: solver chooses (MGA, MGA-DSM, MGA-LT)" << endl;
 		outputfile << "mission_type " << this->mission_type << endl;
 		outputfile << "#number of journeys (user-defined endpoints)" << endl;
 		outputfile << "#Each journey has a central body and two boundary points" << endl;

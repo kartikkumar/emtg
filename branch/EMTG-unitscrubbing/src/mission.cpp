@@ -129,7 +129,7 @@ int mission::parse_outer_loop(int* Xouter)
 
 	//if we have specified the mission type (all MGA, MGA-DSM, or MGA-LT) then it only takes one decision variable to encode a phase
 	//if we have NOT specified the mission type, it takes two decision variables to encode a phase
-	int phase_encode_length = (options.mission_type > 6 ? 2 : 1);
+	int phase_encode_length = (options.mission_type > 5 ? 2 : 1);
 
 	//loop through the journeys and figure out how many phases and what type they are
 	for (int j = 0; j < options.number_of_journeys; ++j)
@@ -142,36 +142,6 @@ int mission::parse_outer_loop(int* Xouter)
 		vector<int> temp_sequence;
 		vector<int> temp_phase_type;
 
-		//now add the first destination in the sequence. Note, in the second and later journeys, the destination list might claim that we start at the boundary of the central body SOI,
-		//but it actually means that we are starting at the boundary of the previous journey's central body SOI
-		//conversely, if in the second or later journey the destination list claims that we are starting from a body, we must check to see if we have actually just entered a new body's SOI
-/*		if (j > 0 && options.destination_list[j][0] == -1)
-		{
-			int previous_central_body_index = -1;
-			//first we need to find the body that matches the previous journey's central body
-			for (size_t k = 0; k < TheUniverse[j].bodies.size(); ++k)
-			{
-				if (boost::iequals(TheUniverse[j-1].central_body_name, TheUniverse[j].bodies[k].name))
-				{
-					previous_central_body_index = TheUniverse[j].bodies[k].body_code;
-					break;
-				}
-			}
-			if (previous_central_body_index < 0)
-			{
-				cout << "Central body of journey " << j-1 << " is not in the Universe file for journey " << j << ". Program halted." << endl;
-				throw 22;
-			}
-			temp_sequence.push_back(previous_central_body_index);
-		}
-		else if (j > 0 && options.destination_list[j][0] > 0)
-		{
-			if (boost::iequals(TheUniverse[j].central_body_name, TheUniverse[j-1].bodies[options.destination_list[j]-1].name))
-				temp_sequence.push_back(-1);
-			else
-				temp_sequence.push_back(options.destination_list[j]);
-		}
-		else //other than the specific situation of being a (after first) journey and starting from a body's SOI, we just read from the destination list*/
 		temp_sequence.push_back(options.destination_list[j][0]);
 
 		//options.description.push_back(planetcodes[options.destination_list[j]-1]);

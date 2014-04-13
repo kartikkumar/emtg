@@ -508,7 +508,6 @@
     <ClCompile Include="src\engine_model.cpp" />
     <ClCompile Include="src\equations_of_motion.cpp" />
     <ClCompile Include="src\FBLTphase.cpp" />
-    <ClCompile Include="src\FBLTSphase.cpp" />
     <ClCompile Include="src\file_utilities.cpp" />
     <ClCompile Include="src\find_mass_to_orbit.cpp" />
     <ClCompile Include="src\force_model.cpp" />
@@ -539,7 +538,6 @@
     <ClCompile Include="src\rk8713M.cpp" />
     <ClCompile Include="src\SNOPT_user_function.cpp" />
     <ClCompile Include="src\STM.cpp" />
-    <ClCompile Include="src\UniversalKeplerPropagator.cpp" />
     <ClCompile Include="src\universe.cpp" />
     <ClCompile Include="src\unpowered_flyby.cpp" />
   </ItemGroup>
@@ -561,7 +559,6 @@
     <ClInclude Include="src\EMTG_WORHP_interface.h" />
     <ClInclude Include="src\equations_of_motion.h" />
     <ClInclude Include="src\FBLTphase.h" />
-    <ClInclude Include="src\FBLTSphase.h" />
     <ClInclude Include="src\file_utilities.h" />
     <ClInclude Include="src\frame.h" />
     <ClInclude Include="src\integerGA.h" />
@@ -586,7 +583,6 @@
     <ClInclude Include="src\SNOPT_user_function.h" />
     <ClInclude Include="src\solverfunctions.h" />
     <ClInclude Include="src\STM.h" />
-    <ClInclude Include="src\UniversalKeplerPropagator.h" />
     <ClInclude Include="src\stdintvc.h" />
     <ClInclude Include="src\universe.h" />
   </ItemGroup>

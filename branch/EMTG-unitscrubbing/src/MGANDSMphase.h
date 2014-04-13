@@ -12,7 +12,6 @@
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
-#include "UniversalKeplerPropagator.h"
 
 #include <vector>
 
@@ -49,9 +48,6 @@ public:
 	vector<double> match_point_state;
 	math::Matrix<double> dV;
 	double DSM_magnitude;
-
-	//Propagator
-	Astrodynamics::UniversalKeplerPropagator Propagator;
 };
 
 } /* namespace EMTG */

@@ -668,7 +668,7 @@ namespace EMTG { namespace Solvers {
 					cout << "Performing coarse optimization step" << endl;
 				SNOPTproblem->setRealParameter("Difference interval", Problem->options.FD_stepsize_coarse);
 				temporary_derivative_code = Problem->options.derivative_type;
-				Problem->options.derivative_type = 0;
+				Problem->options.derivative_type = 1;
 			}
 
 			int ransnopt = slide();
@@ -690,6 +690,8 @@ namespace EMTG { namespace Solvers {
 				double coarseF = this->F[0];
 				slide();
 
+				feasibility = check_feasibility();
+
 				if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 				{
 					if (!Problem->options.quiet_basinhopping)
@@ -702,7 +704,7 @@ namespace EMTG { namespace Solvers {
 						this->Xtrial_scaled = coarseX;
 						try
 						{
-							Problem->evaluate(this->Xtrial_scaled.data(), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+							Problem->evaluate(this->Xtrial_scaled.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
 						}
 						catch (int e)
 						{
@@ -716,7 +718,7 @@ namespace EMTG { namespace Solvers {
 			if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
 				//Step 3.1: if the trial point is feasible, add it to the archive
-				Problem->unscale(&Xtrial_scaled[0]);
+				Problem->unscale(Xtrial_scaled.data());
 				archive.push_back(Problem->X);
 				archive_scores.push_back(F[0]);
 				archive_timestamps.push_back(time(NULL) - tstart);
@@ -760,8 +762,8 @@ namespace EMTG { namespace Solvers {
 				if (F[0] < fbest)
 				{
 					fbest = F[0];
-					Xbest_scaled = Xtrial_scaled; 
-					Problem->unscale(&Xbest_scaled[0]);
+					Xbest_scaled = this->Xtrial_scaled; 
+					Problem->unscale(this->Xbest_scaled.data());
 					Problem->Xopt = Problem->X; //we store the unscaled Xbest
 
 					if (!Problem->options.quiet_basinhopping)
@@ -770,7 +772,7 @@ namespace EMTG { namespace Solvers {
 					//Write out a results file for the current global best
 					try
 					{
-						Problem->evaluate(&(Problem->X[0]), this->F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+						Problem->evaluate(Problem->X.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
 					}
 					catch (int errorcode)
 					{
@@ -928,7 +930,7 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		return max_constraint_violation / EMTG::math::norm(&Xtrial_scaled[0], Problem->total_number_of_NLP_parameters);
+		return max_constraint_violation / EMTG::math::norm(this->Xtrial_scaled.data(), Problem->total_number_of_NLP_parameters);
 	}
 
 }} //close namespace

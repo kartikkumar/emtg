@@ -12,8 +12,6 @@
 #include "EMTG_math.h"
 #include "universe.h"
 #include "EMTG_Matrix.h"
-#include "UniversalKeplerPropagator.h"
-#include "kepler_lagrange_laguerre_conway.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 
 #include "SpiceUsr.h"
@@ -828,7 +826,12 @@ namespace EMTG {
 
 			//and the throttle magnitude constraint
 			//throttle = 0
-			Flowerbounds->push_back(0.0);
+			//note, if this is the last phase in a journey which ends in a low-thrust rendezvous, we want to force thrust-on
+			//to prevent the "unacknowledged arrival" behavior"
+			if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 3)
+				Flowerbounds->push_back(0.1);
+			else
+				Flowerbounds->push_back(0.0);
 			Fupperbounds->push_back(1.0);
 			Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
 
@@ -1207,7 +1210,8 @@ namespace EMTG {
 		{
 			double state_at_initial_coast_midpoint[7];
 			double initial_coast_duration;
-			double F, G, Ft, Gt;
+			double F, G, Ft, Gt, Ftt, Gtt;
+			Kepler::STM stm;
 			state_at_initial_coast_midpoint[6] = state_at_beginning_of_phase[6];
 
 			if (j == 0 && p == 0 && options->forced_post_launch_coast > 0.0)
@@ -1221,7 +1225,19 @@ namespace EMTG {
 				initial_coast_duration = options->forced_flyby_coast;
 			}
 
-			Kepler::KeplerLagrangeLaguerreConway(state_at_beginning_of_phase, state_at_initial_coast_midpoint, Universe->mu, initial_coast_duration / 2.0, &F, &G, &Ft, &Gt);
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_beginning_of_phase,
+														state_at_initial_coast_midpoint,
+														Universe->mu,
+														Universe->LU,
+														initial_coast_duration / 2.0,
+														F,
+														G,
+														Ft,
+														Gt,
+														Ftt,
+														Gtt,
+														stm,
+														false);
 			
 			write_summary_line(	options,
 								Universe,
@@ -1359,18 +1375,31 @@ namespace EMTG {
 		{
 			double state_at_terminal_coast_midpoint[7];
 			double terminal_coast_duration = options->forced_flyby_coast;
-			double F, G, Ft, Gt;
+			double F, G, Ft, Gt, Ftt, Gtt;
+			Kepler::STM stm;
 			state_at_terminal_coast_midpoint[6] = state_at_end_of_phase[6];
 
-			Kepler::KeplerLagrangeLaguerreConway(state_at_end_of_phase, state_at_terminal_coast_midpoint, Universe->mu, -terminal_coast_duration * 86400 / 2.0, &F, &G, &Ft, &Gt);
+			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_end_of_phase,
+														state_at_terminal_coast_midpoint,
+														Universe->mu,
+														Universe->LU,
+														-terminal_coast_duration * 86400 / 2.0,
+														F,
+														G,
+														Ft,
+														Gt,
+														Ftt,
+														Gtt,
+														stm,
+														false);
 			
 			write_summary_line(	options,
 								Universe,
 								eventcount,
-								this->phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration,
+								(this->phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration) / 86400.0,
 								"force-coast",
 								"deep-space",
-								terminal_coast_duration,
+								terminal_coast_duration / 86400.0,
 								-1,
 								-1,
 								-1,

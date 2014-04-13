@@ -10,7 +10,6 @@
 #include "MGADSMphase.h"
 #include "MGALTphase.h"
 #include "FBLTphase.h"
-#include "FBLTSphase.h"
 #include "MGANDSMphase.h"
 #include "journey.h"
 #include "missionoptions.h"
@@ -72,16 +71,11 @@ namespace EMTG
 				break;
 				case 4:
 					{
-						//this phase is an FBLT-S phase
-						phases.push_back(new FBLTS_phase(j, p, options));
-					}
-				case 5:
-					{
 						//this phase is an MGA-NDSM phase
 						phases.push_back(new MGA_NDSM_phase(j, p, options));
 					}
 				break;
-				case 6:
+				case 5:
 					{
 						//this phase is a DTLT phase
 						cout << "DTLT not yet implemented" << endl;
