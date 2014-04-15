@@ -1407,7 +1407,7 @@ class MissionOptions(object):
         outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
         outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
-        outputfile.write("Total delta-v (km/s)\n")
+        outputfile.write("#10: Total delta-v (km/s)\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))

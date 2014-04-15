@@ -20,7 +20,7 @@ double insertion_burn(const double *Vin, const double *Vplanet, const double mu,
 	for (int i=0;i<3;++i)
 		dV_heliocentric[i] = Vin[i] - Vplanet[i];
 	
-	*v_inf_inbound = math::norm(dV_heliocentric,3);
+	*v_inf_inbound = math::norm(dV_heliocentric,3) + 1.0e-10;
 
 	//find the periapse distance
 	r_p = destination_a * (1 - destination_e);

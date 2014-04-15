@@ -2449,7 +2449,7 @@ namespace EMTG {
 		}
 
 		//if this phase is a terminal intercept, then encode the terminal velocity increment
-		if (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0))
+		if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 2)
 		{
 			Xlowerbounds->push_back(-options->journey_final_velocity[j][1]);
 			Xupperbounds->push_back(options->journey_final_velocity[j][1]);
