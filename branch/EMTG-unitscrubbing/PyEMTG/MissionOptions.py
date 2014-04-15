@@ -1407,6 +1407,7 @@ class MissionOptions(object):
         outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
         outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
+        outputfile.write("Total delta-v (km/s)\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
@@ -2142,6 +2143,14 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtspacecraft_power_coefficients2.SetValue(str(self.spacecraft_power_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtpower_decay_rate.SetValue(str(self.power_decay_rate))
 
+        #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible
+        if self.minimum_dry_mass > 0.0:
+            optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(True)
+            optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(True)
+        else:
+            optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(False)
+            optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(False)
+
         #switch various spacecraft fields visible and invisible depending on the mission type
         #launch vehicle types
         if self.LV_type == -2:
@@ -2255,11 +2264,15 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
             optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)

@@ -172,7 +172,6 @@ int mission::parse_outer_loop(int* Xouter)
 			if (phase_encode_length == 2 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
 			{
 				//update the sequence array with a code for the next body
-				//temp_sequence.push_back(TheUniverse[j].flyby_menu[Xouter[j*(2*options.max_phases_per_journey + 1) + p]]);
 				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * (2*options.max_phases_per_journey + 1) + p] - 1]].body_code);
 
 				//if the outer-loop is choosing phase type, then extract the phase type
@@ -193,7 +192,6 @@ int mission::parse_outer_loop(int* Xouter)
 				temp_phase_type.push_back(options.mission_type);
 
 				//update the mission description
-				//options.description.append(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[temp_sequence[temp_sequence.size() - 1]] - 1].short_name);
 				options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1] - 1].short_name);
 
 				//keep track of the number of phases
@@ -861,7 +859,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	int Xindex = 0;
 	int Findex = 1; //F[0] is reserved for the objective function
 	int Gindex = 0;
-	current_deltaV = 0.0;
+	this->current_deltaV = 0.0;
 	int errcode = 0;
 
 	//process all of the journeys
@@ -979,7 +977,10 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 		}
 	case 2:
 		{ //maximum final mass
-			F[0] = -current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment);
+			if (options.mission_type > 1)
+				F[0] = -current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment);
+			else
+				F[0] = -current_state[6];
 			break;
 		}
 	case 3:
@@ -2061,6 +2062,8 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 9: //last journey arrival C3
 				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
+			case 10: //delta-V
+				objective_functions[objective] = this->current_deltaV;
 			}
 		}
 	}

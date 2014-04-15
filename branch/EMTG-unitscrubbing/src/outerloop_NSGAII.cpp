@@ -281,9 +281,9 @@ namespace GeneticAlgorithm
 		options.number_of_trial_sequences = 1;
 		options.phase_type_input = phase_type_input;
 
-		options.description = descriptionstream.str();
-		options.mission_name = options.description;
-		this->description = options.description;
+		options.mission_name = descriptionstream.str();
+		options.description = "";
+		this->description = options.mission_name;
 
 		//if this is a previously evaluated solution that we want to take another cut at, seed the optimizer from its decision vector
 		if (this->Xinner.size() > 0)
@@ -1504,6 +1504,7 @@ namespace GeneticAlgorithm
 		objective_menu_descriptions.push_back("Final journey mass increment (for maximizing sample return)");
 		objective_menu_descriptions.push_back("First journey departure C3 (km^2/s^2)");
 		objective_menu_descriptions.push_back("Final journey arrival C3 (km^2/s^2)");
+		objective_menu_descriptions.push_back("Total delta-v (km/s)");
 
 		for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
 		{

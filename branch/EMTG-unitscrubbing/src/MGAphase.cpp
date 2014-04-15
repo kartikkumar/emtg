@@ -331,9 +331,27 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	if (p == options->number_of_phases[j] - 1)
 	{
 		if (boundary2_location_code > 0) //ending at body
-			dVmag[1] = process_arrival(lambert_v2, boundary2_state, current_state+3, Body2->mu, Body2->r_SOI, F, Findex, j, options, Universe);
+			dVmag[1] = this->process_arrival(	lambert_v2, 
+												boundary2_state,
+												current_state+3, 
+												Body2->mu, 
+												Body2->r_SOI,
+												F,
+												Findex,
+												j,
+												options, 
+												Universe);
 		else //ending at point on central body SOI, fixed point, or fixed orbit
-			dVmag[1] = process_arrival(lambert_v2, boundary2_state, current_state+3, Universe->mu, Universe->r_SOI, F, Findex, j, options, Universe);
+			dVmag[1] = this->process_arrival(	lambert_v2, 
+												boundary2_state,
+												current_state+3, 
+												Universe->mu,
+												Universe->r_SOI, 
+												F,
+												Findex,
+												j,
+												options,
+												Universe);
 		
 		state_at_end_of_phase[6] = state_at_beginning_of_phase[6] * exp(-dVmag[1] * 1000/ (options->IspChem * options->g0));
 		*current_deltaV += dVmag[1];
@@ -381,7 +399,9 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		periapse_R(1) = periapse_state(1);
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);		
+		this->RA_departure = atan2(V_infinity_in(1), V_infinity_in(0));
+		this->DEC_departure = asin(V_infinity_in(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -491,7 +511,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 						epoch / 86400.0,
 						"coast",
 						"deep-space",
-						timestep,
+						timestep / 86400.0,
 						-1,
 						-1,
 						-1,

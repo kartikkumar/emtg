@@ -398,7 +398,14 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-	EMTG::Astrodynamics::Lambert (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 1, 0, lambert_v1, lambert_v2);
+	EMTG::Astrodynamics::Lambert (	this->state_before_burn,
+									boundary2_state,
+									time_after_burn,
+									Universe->mu,
+									1, 
+									0, 
+									lambert_v1, 
+									lambert_v2);
 
 	//check the angular momentum vector
 	//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
@@ -408,7 +415,14 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	hz2 = this->state_before_burn[0]*lambert_v1[1]-this->state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
 
 	if (!(hz1 == hz2))
-		EMTG::Astrodynamics::Lambert (state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 0, lambert_v1, lambert_v2);
+		EMTG::Astrodynamics::Lambert(	state_before_burn,
+										boundary2_state,
+										time_after_burn,
+										Universe->mu,
+										0,
+										0,
+										lambert_v1,
+										lambert_v2);
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)
@@ -483,6 +497,8 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
 		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+		this->RA_departure = atan2(V_infinity_in(1), V_infinity_in(0));
+		this->DEC_departure = asin(V_infinity_in(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -592,7 +608,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 							epoch / 86400.0,
 							"coast",
 							"deep-space",
-							timestep,
+							timestep / 86400.0,
 							-1,
 							-1,
 							-1,
@@ -615,7 +631,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + time_before_burn,
+						(phase_start_epoch + time_before_burn) / 86400.0,
 						"chem_burn",
 						"deep-space",
 						0,
@@ -650,7 +666,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 													output_state,
 													Universe->mu,
 													Universe->LU,
-													(epoch - this->time_before_burn),
+													timestep * (step + 0.5),
 													this->Kepler_F_Current,
 													this->Kepler_Fdot_Current, 
 													this->Kepler_G_Current, 
@@ -667,7 +683,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 							epoch / 86400.0,
 							"coast",
 							"deep-space",
-							timestep,
+							timestep / 86400.0,
 							-1,
 							-1,
 							-1,
@@ -1060,8 +1076,8 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
 	//all MGA-DSM phases encode a burn index
-	Xlowerbounds->push_back(0.01);
-	Xupperbounds->push_back(0.99);
+	Xlowerbounds->push_back(0.05);
+	Xupperbounds->push_back(0.95);
 	Xdescriptions->push_back(prefix + "burn index");
 
 	/*//all MGA-DSM phases encode a no-collision constraint

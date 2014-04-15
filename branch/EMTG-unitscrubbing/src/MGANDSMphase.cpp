@@ -75,11 +75,41 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 
 	//******************************************************************
 	//Steps 1-4: Process the left boundary condition
-	process_left_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+	this->process_left_boundary_condition(	X,
+											Xindex,
+											F, 
+											Findex,
+											G, 
+											Gindex,
+											needG,
+											current_epoch, 
+											current_state, 
+											current_deltaV, 
+											boundary1_state,
+											boundary2_state, 
+											j, 
+											p,
+											Universe, 
+											options);
 	
 	//******************************************************************
-	//Step 5: For MGA-NDSM, we need to know the state of the spacecraft at the right hand side (end) of the phase in order to propagate backward
-	process_right_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+	//Step 5: we need to know the state of the spacecraft at the right hand side (end) of the phase in order to propagate backward
+	this->process_right_boundary_condition(	X,
+											Xindex,
+											F,
+											Findex,
+											G,
+											Gindex,
+											needG, 
+											current_epoch, 
+											current_state,
+											current_deltaV, 
+											boundary1_state, 
+											boundary2_state, 
+											j,
+											p, 
+											Universe,
+											options);
 
 	//******************************************************************
 	//Step 6: propagate forward and back
@@ -308,8 +338,8 @@ int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlo
 
 	//**************************************************************************
 	//next, we need to include the burn index
-	Xlowerbounds->push_back(0.01);
-	Xupperbounds->push_back(0.99);
+	Xlowerbounds->push_back(0.05);
+	Xupperbounds->push_back(0.95);
 	Xdescriptions->push_back(prefix + "burn index");
 
 	//**************************************************************************
@@ -694,6 +724,8 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
 		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+		this->RA_departure = atan2(V_infinity_in(1), V_infinity_in(0));
+		this->DEC_departure = asin(V_infinity_in(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -808,7 +840,7 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 								epoch / 86400.0,
 								"coast",
 								"deep-space",
-								timestep,
+								timestep / 86400.0,
 								-1,
 								-1,
 								-1,
@@ -864,7 +896,7 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 	for (int step = 0; step < options->num_timesteps; ++step)
 	{
 		//compute the current epoch
-		double epoch = (phase_start_epoch + eta * TOF + timestep * (step + 0.5)) / 86400.0;
+		double epoch = (phase_start_epoch + eta * TOF + timestep * (step + 0.5));
 
 		//propagate the spacecraft
 		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(match_point_state.data(),
@@ -888,7 +920,7 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 								epoch / 86400.0,
 								"coast",
 								"deep-space",
-								timestep,
+								timestep / 86400.0,
 								-1,
 								-1,
 								-1,

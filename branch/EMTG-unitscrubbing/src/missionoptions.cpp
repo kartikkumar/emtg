@@ -2415,6 +2415,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#7: Final journey mass increment (for maximizing sample return)" << endl;
 		outputfile << "#8: First journey departure C3 (km^2/s^2)" << endl;
 		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;
+		outputfile << "#10: Total delta-v (km/s)" << endl;
 		outputfile << "outerloop_objective_function_choices";
 		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_objective_function_choices[entry];

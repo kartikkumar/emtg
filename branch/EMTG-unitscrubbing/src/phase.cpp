@@ -592,7 +592,7 @@ namespace EMTG {
 	void phase::process_right_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{		
 		//Step 5.1: if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 5))
+		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 4))
 		{
 			if (options->engine_type == 1)
 			{
@@ -642,7 +642,7 @@ namespace EMTG {
 	
 		//Step 5.4: if this is not a terminal rendezvous, extract the terminal velocity increment
 		//otherwise, the terminal state is the body state or the terminal v-infinity
-		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 1 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
+		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
 		{
 			dVarrival[0] = X[*Xindex];
 			dVarrival[1] = X[*Xindex+1];
