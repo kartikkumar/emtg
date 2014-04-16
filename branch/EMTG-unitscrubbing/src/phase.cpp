@@ -100,7 +100,7 @@ namespace EMTG {
 
 			//Step 3: compute the departure asymptote
 			//Step 3.1 extract the departure parameters
-			if (!(options->journey_departure_type[j] == 5)) //if this journey starts with an impulse
+			if (!(options->journey_departure_type[j] == 5 || options->journey_departure_type[j] == 2)) //if this journey starts with an impulse
 			{
 				vinf_out = X[*Xindex];
 				this->C3_departure = vinf_out*vinf_out;
@@ -241,6 +241,40 @@ namespace EMTG {
 					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
 				}
 			}//end code for journeys that start with an impulse
+			else if (options->journey_departure_type[j] == 2)//free direct departure
+			{
+				//journeys which start from a spiral have no initial impulse
+				this->C3_departure = 0;
+				this->RA_departure = 0;
+				this->DEC_departure = 0;
+
+				//Step 3.2 compute the outgoing velocity vector
+				this->V_infinity_out.assign_zeros();
+
+				
+				//*******************************************************
+				//Step 4: compute the state post-departure
+
+				for (int k = 0; k < 6; ++k)
+					this->state_at_beginning_of_phase[k] = boundary1_state[k];
+
+				double initialmass = j == 0 ? options->maximum_mass : current_state[6];
+
+				//add the starting mass increment
+				initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+
+				this->state_at_beginning_of_phase[6] = initialmass;
+				this->dmdvinf = 0.0;
+
+				if (j == 0 && options->allow_initial_mass_to_vary)
+				{
+					//if we have enabled varying the initial mass, then pass through a mass multiplier
+					this->mission_initial_mass_multiplier = X[*Xindex];
+					++(*Xindex);
+					this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
+					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
+				}
+			}
 			else if (options->journey_departure_type[j] == 5)//for journeys starting with a spiral
 			{
 				//journeys which start from a spiral have no initial impulse
@@ -1939,7 +1973,7 @@ namespace EMTG {
 			//then we have up to four variables to parameterize the departure
 			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)))
 			{
-				if (!(options->journey_departure_type[j] == 5)) //for journeys that do not start from a spiral
+				if (!(options->journey_departure_type[j] == 5 || options->journey_departure_type[j] == 2)) //for journeys that do not start from a spiral or a free direct departure
 				{
 					//First, we have outgoing velocity
 					Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);
