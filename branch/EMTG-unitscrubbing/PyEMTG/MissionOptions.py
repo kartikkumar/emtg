@@ -2050,14 +2050,21 @@ class MissionOptions(object):
         if self.Journeys[self.ActiveJourney].journey_departure_type == 5:
             optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
-            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
             optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(True)
             optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(True)
+        #free direct departure
+        elif self.Journeys[self.ActiveJourney].journey_departure_type == 2:
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
+            optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(False)
+            optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(False)
         else:
             #hide the initial v-infinity options
             optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
-            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(True)
             optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(False)
             optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(False)
 
