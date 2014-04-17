@@ -311,8 +311,10 @@ class MissionEvent(object):
             CenterPointState[6] = 1.0
 
             if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust":
-                CenterPointState = np.zeros(6)
-                CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
+                CenterPointState = np.array(copy.deepcopy(self.SpacecraftState))
+                if self.EventType == "SFthrust":
+                    CenterPointState[3:6] += np.array(self.DeltaVorThrustVectorControl)
+                CenterPointState /= LU
                 CenterPointState[3:6] *= TU
 
                 ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
@@ -324,6 +326,11 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + 86400 / TU)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
                     TimeHistoryForward.append(ForwardIntegrateObject.t * TU)
+
+                #backward integration
+                CenterPointState = np.array(copy.deepcopy(self.SpacecraftState))
+                CenterPointState /= LU
+                CenterPointState[3:6] *= TU
 
                 BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
