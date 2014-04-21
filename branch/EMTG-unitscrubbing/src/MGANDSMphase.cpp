@@ -228,9 +228,29 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 		{
 			//compute the arrival deltaV
 			if (boundary2_location_code > 0) //ending at body
-				dV_arrival_magnitude = process_arrival(state_at_end_of_phase+3, boundary2_state, current_state+3, Body2->mu, Body2->r_SOI, F, Findex, j, options, Universe);
+				dV_arrival_magnitude = process_arrival(	state_at_end_of_phase+3,
+														boundary2_state, 
+														current_state+3,
+														current_epoch,
+														Body2->mu,
+														Body2->r_SOI,
+														F, 
+														Findex, 
+														j, 
+														options, 
+														Universe);
 			else //ending at point on central body SOI, fixed point, or fixed orbit
-				dV_arrival_magnitude = process_arrival(state_at_end_of_phase+3, boundary2_state, current_state+3, Universe->mu, Universe->r_SOI, F, Findex, j, options, Universe);
+				dV_arrival_magnitude = process_arrival(	state_at_end_of_phase+3,
+														boundary2_state, 
+														current_state+3,
+														current_epoch,
+														Universe->mu, 
+														Universe->r_SOI, 
+														F,
+														Findex,
+														j,
+														options,
+														Universe);
 
 			//apply the arrival burn
 			state_at_end_of_phase[6] *= exp(-dV_arrival_magnitude * 1000/ ((options->IspChem > 0 ? options->IspChem : 1e-6)* options->g0));
@@ -249,7 +269,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 				//derivative with respect to z component of terminal velocity
 				G[terminal_velocity_constraint_G_indices[2]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[2] * X[terminal_velocity_constraint_X_indices[2]] / C3_desired;
 			}
-			if ( needG && options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
+			/*if ( needG && options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
 			{
 				double Vx = X[arrival_declination_constraint_X_indices[0]];
 				double Vy = X[arrival_declination_constraint_X_indices[1]];
@@ -265,7 +285,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 
 				//derivative with respect to z component of terminal velocity
 				G[arrival_declination_constraint_G_indices[2]] = arrival_declination_constraint_X_scale_ranges[0] * -A/B / options->journey_arrival_declination_bounds[j][1];
-			}
+			}*/
             else if (needG && options->journey_arrival_type[j] == 6)
 			{
 				double r = math::norm(boundary2_state, 3) / Universe->LU;
@@ -724,8 +744,14 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
 		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
-		this->RA_departure = atan2(V_infinity_in(1), V_infinity_in(0));
-		this->DEC_departure = asin(V_infinity_in(2) / V_infinity_in.norm());
+		
+		//compute RA and DEC in the frame of the target body
+		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+
+		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -955,6 +981,15 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 		else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
 			event_type = "match-vinf";
 	
+		//compute RA and DEC in the frame of the target body
+		this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+		math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+		this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+
 		double dV_arrival_mag;
 		if (options->journey_arrival_type[j] == 2)
 		{

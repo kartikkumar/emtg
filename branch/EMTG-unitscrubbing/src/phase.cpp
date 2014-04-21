@@ -812,7 +812,17 @@ namespace EMTG {
 
 	}
 
-	double phase::process_arrival(double* incoming_velocity, double* boundary_state, double* X_infinity, double mu, double r_SOI, double* F, int* Findex, int j, missionoptions* options, Astrodynamics::universe* Universe)
+	double phase::process_arrival(	double* incoming_velocity,
+									double* boundary_state,
+									double* X_infinity,
+									double* current_epoch,
+									double mu,
+									double r_SOI, 
+									double* F,
+									int* Findex, 
+									int j, 
+									missionoptions* options, 
+									Astrodynamics::universe* Universe)
 	{
 		switch (options->journey_arrival_type[j])
 			{
@@ -833,12 +843,17 @@ namespace EMTG {
 					this->dVarrival[1] = incoming_velocity[1] - boundary_state[4];
 					this->dVarrival[2] = incoming_velocity[2] - boundary_state[5];
 
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / vinf);
-
 					if (options->journey_arrival_declination_constraint_flag[j])
 					{
+						//first we need to rotate the incoming velocity vector into the reference frame of the arrival body
+						this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices(*current_epoch / 86400.0 + 2400000.5);
+						math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+						math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+						this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+						this->DEC_arrival = asin(rot_out_vec(2) / vinf);
+
 						F[*Findex] = this->DEC_arrival / options->journey_arrival_declination_bounds[j][1] - 1.0;
 						++(*Findex);
 					}
@@ -864,12 +879,17 @@ namespace EMTG {
 					F[*Findex] = C3_arrival / C3_max - 1;
 					++(*Findex);
 
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(C3_arrival));
-
 					if (options->journey_arrival_declination_constraint_flag[j])
 					{
+						//first we need to rotate the incoming velocity vector into the reference frame of the arrival body
+						this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices(*current_epoch / 86400.0 + 2400000.5);
+						math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+						math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+						this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+						this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+
 						F[*Findex] = this->DEC_arrival / options->journey_arrival_declination_bounds[j][1] - 1.0;
 						++(*Findex);
 					}
@@ -889,10 +909,6 @@ namespace EMTG {
 
 					double vinf = math::norm(dVarrival, 3);
 					this->C3_arrival = vinf*vinf;
-
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(vinf));
 				
 					return vinf;
 				}
@@ -903,10 +919,6 @@ namespace EMTG {
 					for (int k = 0; k < 3; ++k)
 						dVarrival[k] = boundary_state[k+3] - incoming_velocity[k];
 					this->C3_arrival = dVarrival[0]*dVarrival[0] + dVarrival[1]*dVarrival[1] + dVarrival[2]*dVarrival[2];
-
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(C3_arrival));
 
 					return 0;
 				}

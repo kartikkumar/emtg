@@ -51,6 +51,7 @@ namespace EMTG {
 		double process_arrival(double* incoming_velocity,
 							   double* boundary_state, 
 							   double* X_infinity, 
+							   double* current_epoch,
 							   double mu, 
 							   double r_SOI, 
 							   double* F, 
@@ -260,13 +261,46 @@ namespace EMTG {
 													missionoptions* options);
 
 		//GMAT output methods
-		void output_GMAT_spacecraft(int& j, int& p, vector<string>& SC_created, int& index_SC, vector<EMTG::Astrodynamics::body>& missionbodies, int& index_body_visited, std::ofstream& GMATfile);
-		void output_GMAT_fueltank_and_thruster(int& j, int& p, vector<EMTG::Astrodynamics::body>& missionbodies, int& index_body_visited, std::ofstream& GMATfile);
-		void output_GMAT_burn_objects(int& j, int& p, std::ofstream& GMATfile);
-		void output_GMAT_create_state_and_time_variables(int& j, int& p, std::ofstream& GMATfile);
-		void output_GMAT_create_interphase_control_variables(int& j, int& p, missionoptions& options, std::ofstream& GMATfile);
-		void output_GMAT_inter_phase_control_initial_guess(int& j, int& p, missionoptions& options, std::ofstream& GMATfile);
-		void output_GMAT_propagate_phase_forward_and_back(int& j, int& p, vector<Astrodynamics::body>& missionbodies, int& index_body_visited, vector<string>& SC_created, int& index_SC, missionoptions& options, std::ofstream& GMATfile);
+		void output_GMAT_spacecraft(int& j, 
+									int& p,
+									vector<string>& SC_created,
+									int& index_SC, 
+									vector<EMTG::Astrodynamics::body>& missionbodies, 
+									int& index_body_visited, 
+									std::ofstream& GMATfile);
+
+		void output_GMAT_fueltank_and_thruster(	int& j,
+												int& p, 
+												vector<EMTG::Astrodynamics::body>& missionbodies,
+												int& index_body_visited, 
+												std::ofstream& GMATfile);
+
+		void output_GMAT_burn_objects(	int& j, 
+										int& p,
+										std::ofstream& GMATfile);
+
+		void output_GMAT_create_state_and_time_variables(	int& j,
+															int& p,
+															std::ofstream& GMATfile);
+
+		void output_GMAT_create_interphase_control_variables(	int& j,
+																int& p, 
+																missionoptions& options,
+																std::ofstream& GMATfile);
+
+		void output_GMAT_inter_phase_control_initial_guess(	int& j,
+															int& p,
+															missionoptions& options,
+															std::ofstream& GMATfile);
+
+		void output_GMAT_propagate_phase_forward_and_back(	int& j, 
+															int& p, 
+															vector<Astrodynamics::body>& missionbodies,
+															int& index_body_visited,
+															vector<string>& SC_created,
+															int& index_SC,
+															missionoptions& options,
+															std::ofstream& GMATfile);
 
 		//virtual method templates
 		virtual int evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
