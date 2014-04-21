@@ -1409,7 +1409,7 @@ namespace EMTG {
 														state_at_terminal_coast_midpoint,
 														Universe->mu,
 														Universe->LU,
-														-terminal_coast_duration * 86400 / 2.0,
+														-terminal_coast_duration / 2.0,
 														F,
 														G,
 														Ft,
