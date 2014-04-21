@@ -118,9 +118,11 @@ class MissionEvent(object):
                 CenterPointState = np.zeros(6)
                 CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
                 CenterPointState[3:6] *= TU
+                CenterPointStateAfterManeuver = copy.deepcopy(CenterPointState)
+                CenterPointStateAfterManeuver[3:6] += np.array(self.DeltaVorThrustVectorControl) * TU /LU
 
                 ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
-                ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
+                ForwardIntegrateObject.set_initial_value(CenterPointStateAfterManeuver).set_f_params(1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
                 StateHistoryForward = []
