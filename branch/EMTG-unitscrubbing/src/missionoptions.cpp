@@ -1748,7 +1748,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#whether or not to perform an outer loop warm start" << endl;
 		outputfile << "outerloop_warmstart " << this->outerloop_warmstart << endl;
 		outputfile << "#Re-evaluate the entire outerloop each generation? Otherwise read from the archive." << endl;
-		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
+		outputfile << "outerloop_reevaluate_full_population" << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
 		outputfile << endl;
