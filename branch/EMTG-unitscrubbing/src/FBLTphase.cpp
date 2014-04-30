@@ -1272,6 +1272,8 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			dVarrival[0] = 0;
 			dVarrival[1] = 0;
 			dVarrival[2] = 0;
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
 		}
 		else
 		{

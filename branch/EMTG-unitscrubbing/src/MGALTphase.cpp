@@ -1482,6 +1482,9 @@ namespace EMTG {
 				this->dVarrival[0] = 0;
 				this->dVarrival[1] = 0;
 				this->dVarrival[2] = 0;
+
+				this->RA_arrival = 0.0;
+				this->DEC_arrival = 0.0;
 			}
 			else
 			{

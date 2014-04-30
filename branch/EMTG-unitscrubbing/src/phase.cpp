@@ -867,7 +867,7 @@ namespace EMTG {
 
 					double vinf = math::norm(dVarrival, 3);
 					this->C3_arrival = vinf*vinf;
-				
+
 					return vinf;
 				}
 			case 2: //flyby with bounded v-infinity
@@ -900,6 +900,8 @@ namespace EMTG {
 				{
 					//the low-thrust rendezvous constraints are implicity satisfied because no terminal velocity vector is added to the target's velocity to find the spacecraft velocity
 					this->C3_arrival = 0;
+					this->DEC_arrival = 0.0;
+					this->RA_arrival = 0.0;
 					return 0;
 				}
 			case 4: //match v-infinity vector (impulsive)
