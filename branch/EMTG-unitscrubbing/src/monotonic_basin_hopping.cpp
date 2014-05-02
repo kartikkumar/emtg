@@ -715,7 +715,8 @@ namespace EMTG { namespace Solvers {
 				}
 			}
 
-			if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
+			//note: I do not trust SNOPT's "requested accuracy could not be achieved" return state - I prefer my own feasibility check
+			if (SNOPTproblem->getInform() <= 2 || feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
 				//Step 3.1: if the trial point is feasible, add it to the archive
 				Problem->unscale(Xtrial_scaled.data());
