@@ -8,6 +8,7 @@ class NSGAIIPlotOptions:
         self.UpperBounds = []
         self.LowerBounds = []
         self.TimeUnit = 0
+        self.EpochUnit = 0
 
 class NSGAIIpanel(wx.Panel):
     def __init__(self, parent, Population):
@@ -97,7 +98,7 @@ class NSGAIIpanel(wx.Panel):
             AxisOptionsBoxSizer.Add(CaxisSizer)
 
         #next we want checkboxes for any other plot options
-        self.lblTimeUnit = wx.StaticText(self, -1, "Display time unit")
+        self.lblTimeUnit = wx.StaticText(self, -1, "Display time unit", size=(200,-1))
         TimeUnitChoices = ['years','days']
         self.cmbTimeUnit = wx.ComboBox(self, -1, choices=TimeUnitChoices, style = wx.CB_READONLY)
         self.cmbTimeUnit.SetSelection(self.plotoptions.TimeUnit)
@@ -105,13 +106,21 @@ class NSGAIIpanel(wx.Panel):
         TimeUnitSizer = wx.BoxSizer(wx.HORIZONTAL)
         TimeUnitSizer.AddMany([self.lblTimeUnit, self.cmbTimeUnit])
 
+        self.lblEpochUnit = wx.StaticText(self, -1, "Display epoch unit", size=(200,-1))
+        EpochUnitChoices = ['TDB Gregorian','TDB MJD']
+        self.cmbEpochUnit = wx.ComboBox(self, -1, choices=EpochUnitChoices, style = wx.CB_READONLY)
+        self.cmbEpochUnit.SetSelection(self.plotoptions.EpochUnit)
+        self.cmbEpochUnit.Bind(wx.EVT_COMBOBOX, self.ChangeEpochUnit)
+        EpochUnitSizer = wx.BoxSizer(wx.HORIZONTAL)
+        EpochUnitSizer.AddMany([self.lblEpochUnit, self.cmbEpochUnit])
+
 
         self.PlotOptionsBox = wx.StaticBox(self, -1, "Plot Options", size = (300, 300))
         font = self.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.PlotOptionsBox.SetFont(font)
         PlotOptionsSizer = wx.StaticBoxSizer(self.PlotOptionsBox, wx.VERTICAL)
-        PlotOptionsSizer.Add(TimeUnitSizer)
+        PlotOptionsSizer.AddMany([TimeUnitSizer, EpochUnitSizer])
         
         #finally we want a button to make the plot
         self.btnPlotPopulation = wx.Button(self, -1, "Plot Population")
@@ -165,6 +174,9 @@ class NSGAIIpanel(wx.Panel):
     def ChangeTimeUnit(self, event):
         self.plotoptions.TimeUnit = self.cmbTimeUnit.GetSelection()
 
+    def ChangeEpochUnit(self, event):
+        self.plotoptions.EpochUnit = self.cmbEpochUnit.GetSelection()
+
     def ClickPlotPopulation(self, event):
         #first assemble the ordered list of objectives
         #note that if C is set but not Z, throw an error
@@ -191,4 +203,4 @@ class NSGAIIpanel(wx.Panel):
                 errordlg.Destroy()
             
             else:
-                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit)
+                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit)
