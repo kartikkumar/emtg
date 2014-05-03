@@ -100,6 +100,32 @@ class NSGAII_outerloop_solution(object):
             elif input_cell[column_index] != '': #this entry is a member of the inner-loop decision vector
                 self.Xinner.append(float(input_cell[column_index]))
 
+    def plot_solution(self, PopulationAxes, PopulationFigure, ordered_list_of_objectives, colorbar, lowerbounds, upperbounds):
+        if len(ordered_list_of_objectives) == 2: #2D
+            self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
+        elif len(ordered_list_of_objectives) == 3: #3D
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
+        else: #4D
+            if self.colorbar is None:
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
+                colorbar = PopulationFigure.colorbar(self.point)
+            else:
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
+
+        self.picker = self.point.figure.canvas.mpl_connect('pick_event', self.onpick)
+
+    def onpick(self, event):
+        #description = []
+        #for objective_index in ordered_list_of_objectives:
+        #    description = description + self.objective_column_headers[objective_index] + ': ' + str(
+        ind = event.ind[0]
+        x, y, z = event.artist._offsets3d
+        print self.description
+        #print self.description, x[ind], y[ind], z[ind]
+        #print ind
+
 
 #top-level container of NSGAII_outerloop_solution objects
 class NSGAII_outerloop_population(object):
@@ -116,6 +142,7 @@ class NSGAII_outerloop_population(object):
         self.objective_column_headers = []
         self.number_of_feasible_solutions = []
         self.points_array = []
+        self.ordered_list_of_objectives = []
 
     #method to read a population file
     def parse_population_file(self, population_file_name):
@@ -165,8 +192,9 @@ class NSGAII_outerloop_population(object):
     #input is an ordered list of objectives, [x, y, z, color]. If there are two objectives, a monochrome 2D plot will be shown. If there are three objectives, a monochrome 3D plot will be shown.
     #if there are four, a colored 3D plot will be shown. If there are more than four there will be an error message.
     def plot_population(self, ordered_list_of_objectives):
+        self.ordered_list_of_objectives = ordered_list_of_objectives
         #first check to see if the correct number of objective function indices were supplied
-        if len(ordered_list_of_objectives) < 2 or len(ordered_list_of_objectives) > 4:
+        if len(self.ordered_list_of_objectives) < 2 or len(self.ordered_list_of_objectives) > 4:
             print "NSGAII_outerloop_population::plot_population ERROR. You must specify between two and four objective functions to plot."
             return
 
@@ -177,10 +205,10 @@ class NSGAII_outerloop_population(object):
         else:
             self.PopulationAxes = self.PopulationFigure.add_subplot(111, projection='3d')
         
-        self.PopulationAxes.set_xlabel(self.objective_column_headers[ordered_list_of_objectives[0]])
-        self.PopulationAxes.set_ylabel(self.objective_column_headers[ordered_list_of_objectives[1]])
+        self.PopulationAxes.set_xlabel(self.objective_column_headers[self.ordered_list_of_objectives[0]])
+        self.PopulationAxes.set_ylabel(self.objective_column_headers[self.ordered_list_of_objectives[1]])
         if len(ordered_list_of_objectives) > 2:
-            self.PopulationAxes.set_zlabel(self.objective_column_headers[ordered_list_of_objectives[2]])
+            self.PopulationAxes.set_zlabel(self.objective_column_headers[self.ordered_list_of_objectives[2]])
             self.PopulationAxes.autoscale_view(tight=True, scalex=True, scaley=True, scalez=True)
         else:
             self.PopulationAxes.autoscale_view(tight=True, scalex=True, scaley=True)
@@ -188,10 +216,10 @@ class NSGAII_outerloop_population(object):
 
         #build up a list of objective values to be plotted
         self.objective_values_matrix = []
-        for objective_index in range(0, len(ordered_list_of_objectives)):
+        for objective_index in range(0, len(self.ordered_list_of_objectives)):
             objective_values_vector = []
             for solution in self.solutions:
-                if max(solution.objective_values) < 1.0e+99:
+                if max(solution.objective_values) < 1.0e+99 and solution.objective_values[2] >= 1350.0:
                     objective_values_vector.append(copy.deepcopy(solution.objective_values[objective_index]))
             self.objective_values_matrix.append(np.array(objective_values_vector))
 
@@ -203,36 +231,69 @@ class NSGAII_outerloop_population(object):
             self.lowerbounds.append(self.objective_values_matrix[objective_index].min())
 
         #plot each solution
-        self.plot_solution_points(ordered_list_of_objectives)
+        self.plot_solution_points()
 
         self.PopulationFigure.show()
 
-    def plot_solution_points(self, ordered_list_of_objectives):
+    def plot_solution_points(self):
         self.colorbar = None
         self.solution_names = []
         for solution in self.solutions:
-            if max(solution.objective_values) < 1.0e+99:
+            if max(solution.objective_values) < 1.0e+99 and solution.objective_values[2] >= 1350.0:
                 self.solution_names.append(solution.description)
-                if len(ordered_list_of_objectives) == 2: #2D
-                    self.point = self.PopulationAxes.scatter(solution.objective_values[ordered_list_of_objectives[0]], solution.objective_values[ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=5)
-                elif len(ordered_list_of_objectives) == 3: #3D
-                        self.point = self.PopulationAxes.scatter(solution.objective_values[ordered_list_of_objectives[0]], solution.objective_values[ordered_list_of_objectives[1]], solution.objective_values[ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=5)
+                #solution.plot_solution(self.PopulationAxes, self.PopulationFigure, ordered_list_of_objectives, self.colorbar, self.lowerbounds, self.upperbounds)
+                if len(self.ordered_list_of_objectives) == 2: #2D
+                    solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
+                elif len(self.ordered_list_of_objectives) == 3: #3D
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
                 else: #4D
                     if self.colorbar is None:
-                        self.point = self.PopulationAxes.scatter(solution.objective_values[ordered_list_of_objectives[0]], solution.objective_values[ordered_list_of_objectives[1]], solution.objective_values[ordered_list_of_objectives[2]], s=20, c=solution.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=5)
-                        self.point.set_clim([self.lowerbounds[-1],self.upperbounds[-1]])
-                        self.colorbar = self.PopulationFigure.colorbar(self.point)
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
+                        solution.point.set_clim(vmin = self.lowerbounds[-1], vmax = self.upperbounds[-1])
+                        self.colorbar = self.PopulationFigure.colorbar(solution.point)
                     else:
-                        self.point = plotaxes.scatter(solution.objective_values[ordered_list_of_objectives[0]], solution.objective_values[ordered_list_of_objectives[1]], solution.objective_values[ordered_list_of_objectives[2]], s=20, c=solution.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=5)
-                        self.point.set_clim([self.lowerbounds[-1],self.upperbounds[-1]])
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
+                        solution.point.set_clim(vmin = self.lowerbounds[-1], vmax = self.upperbounds[-1])
+
 
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
+        if len(self.ordered_list_of_objectives) == 4:
+            self.updater = self.PopulationFigure.canvas.mpl_connect('draw_event',self.force_update)
+    
+    
+    def force_update(self, event):
+        for solution in self.solutions:
+            solution.point.changed()
 
     def onpick(self, event):
         #description = []
         #for objective_index in ordered_list_of_objectives:
         #    description = description + self.objective_column_headers[objective_index] + ': ' + str(
         ind = event.ind[0]
-        print ind
-        x, y, z = event.artist._offsets3d
-        print self.solution_names[ind], x[ind], y[ind], z[ind]
+        if len(self.ordered_list_of_objectives) == 2: #2D
+            print '2D picker not implemented'
+        elif len(self.ordered_list_of_objectives) == 3: #3D plot
+            x, y, z = event.artist._offsets3d
+
+            candidate_solution_indices_per_objective = []
+            idx = np.where(self.objective_values_matrix[0] == x[ind])
+            idy = np.where(self.objective_values_matrix[1] == y[ind])
+            idz = np.where(self.objective_values_matrix[2] == z[ind])
+
+            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))]
+            print self.objective_column_headers[self.ordered_list_of_objectives[0]], ': ', x[ind]
+            print self.objective_column_headers[self.ordered_list_of_objectives[1]], ': ', y[ind]
+            print self.objective_column_headers[self.ordered_list_of_objectives[2]], ': ', z[ind]
+        else:
+            x, y, z = event.artist._offsets3d
+
+            candidate_solution_indices_per_objective = []
+            idx = np.where(self.objective_values_matrix[0] == x[ind])
+            idy = np.where(self.objective_values_matrix[1] == y[ind])
+            idz = np.where(self.objective_values_matrix[2] == z[ind])
+
+            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))]
+            print self.objective_column_headers[self.ordered_list_of_objectives[0]], ': ', x[ind]
+            print self.objective_column_headers[self.ordered_list_of_objectives[1]], ': ', y[ind]
+            print self.objective_column_headers[self.ordered_list_of_objectives[2]], ': ', z[ind]
+            print self.objective_column_headers[self.ordered_list_of_objectives[3]], ': ', self.objective_values_matrix[3][np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))][0]
