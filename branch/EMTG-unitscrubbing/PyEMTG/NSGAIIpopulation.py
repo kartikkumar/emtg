@@ -252,11 +252,7 @@ class NSGAII_outerloop_population(object):
             self.PopulationAxes.set_xlabel('Flight time (years)')
         elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
             self.PopulationAxes.set_xlabel('Launch Epoch (TDB Gregorian)')
-            #self.PopulationAxes.w_xaxis.set_major_locator(ticker.FixedLocator(some_dates)) # I want all the dates on my xaxis
             self.PopulationAxes.w_xaxis.set_major_formatter(ticker.FuncFormatter(self.format_date))
-            for tl in self.PopulationAxes.w_xaxis.get_ticklabels(): # re-create what autofmt_xdate but with w_xaxis
-                   tl.set_ha('right')
-                   tl.set_rotation(30)     
         else:
             self.PopulationAxes.set_xlabel(self.objective_column_headers[self.ordered_list_of_objectives[0]])
 
@@ -265,9 +261,6 @@ class NSGAII_outerloop_population(object):
         elif self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
             self.PopulationAxes.set_ylabel('Launch Epoch (TDB Gregorian)')
             self.PopulationAxes.w_yaxis.set_major_formatter(ticker.FuncFormatter(self.format_date))
-            #for tl in self.PopulationAxes.w_yaxis.get_ticklabels(): # re-create what autofmt_xdate but with w_xaxis
-                   #tl.set_ha('right')
-                   #tl.set_rotation(30) 
         else:
             self.PopulationAxes.set_ylabel(self.objective_column_headers[self.ordered_list_of_objectives[1]])
 
@@ -277,9 +270,6 @@ class NSGAII_outerloop_population(object):
             elif self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
                 self.PopulationAxes.set_zlabel('Launch Epoch (TDB Gregorian)')
                 self.PopulationAxes.w_zaxis.set_major_formatter(ticker.FuncFormatter(self.format_date))
-                for tl in self.PopulationAxes.w_zaxis.get_ticklabels(): # re-create what autofmt_xdate but with w_xaxis
-                       tl.set_ha('right')
-                       tl.set_rotation(30) 
             else:
                 self.PopulationAxes.set_zlabel(self.objective_column_headers[self.ordered_list_of_objectives[2]])
             self.PopulationAxes.autoscale_view(tight=True, scalex=True, scaley=True, scalez=True)
