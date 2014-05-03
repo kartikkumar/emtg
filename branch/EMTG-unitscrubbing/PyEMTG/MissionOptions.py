@@ -27,6 +27,8 @@ class MissionOptions(object):
     outerloop_elitecount = 1 #how many elite individuals to retain
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
     outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
+    outerloop_warm_population = "none"
+    outerloop_warm_archive = "none"
     outerloop_reevaluate_full_population = 0
 
     #outer loop selectable options settings
@@ -303,6 +305,10 @@ class MissionOptions(object):
                         self.outerloop_useparallel = int(linecell[1])
                     elif choice == "outerloop_warmstart":
                         self.outerloop_warmstart = int(linecell[1])
+                    elif choice == "outerloop_warm_population":
+                        self.outerloop_warm_population = linecell[1]
+                    elif choice == "outerloop_warm_archive":
+                        self.outerloop_warm_archive = linecell[1]
                     elif choice == "outerloop_reevaluate_full_population":
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
@@ -788,6 +794,10 @@ class MissionOptions(object):
         outputfile.write("outerloop_useparallel " + str(self.outerloop_useparallel) + "\n")
         outputfile.write("#whether or not to perform an outer loop warm start\n")
         outputfile.write("outerloop_warmstart " + str(self.outerloop_warmstart) + "\n")
+        outputfile.write("#Population file for outerloop warm start (set to none if not warm starting)\n")
+        outputfile.write("outerloop_warm_population " + self.outerloop_warm_population + "\n")
+        outputfile.write("#Archive file for outerloop warm start (set to none if not warm starting)\n")
+        outputfile.write("outerloop_warm_archive " + self.outerloop_warm_archive + "\n")
         outputfile.write("#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.\n")
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")

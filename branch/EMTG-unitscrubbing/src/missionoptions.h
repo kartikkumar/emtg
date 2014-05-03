@@ -73,6 +73,8 @@ public:
 	int outerloop_elitecount; //how many elite individuals to retain
 	bool outerloop_useparallel; //whether or not to use the parallel outer-loop
 	int outerloop_warmstart; //if true, read "population.txt" and "solutions.txt"
+	string outerloop_warm_archive;
+	string outerloop_warm_population;
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 

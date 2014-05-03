@@ -201,17 +201,21 @@ int main(int argc, char* argv[])
 		NSGAII.set_populationsize(options.outerloop_popsize);
 		NSGAII.set_mutationrate(options.outerloop_mu);
 		NSGAII.set_max_generations(options.outerloop_genmax);
-		NSGAII.generatepop();
+		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+			NSGAII.read_archive(options.outerloop_warm_archive);
+
+		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+			NSGAII.readpop(options.outerloop_warm_population);
+		else
+			NSGAII.generatepop();
+
 		NSGAII.startclock();
 		NSGAII.evolve(options, TheUniverse);
 
-		//Step 3: evaluate the population, in this case meaning just get the names of the files
-		//NSGAII.evaluatepop(options, TheUniverse);
-
-		//Step 4: write out the population
+		//Step 3: write out the population
 		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.csv");
 
-		//Step 5: write out the archive
+		//Step 4: write out the archive
 		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.csv");
 	}
 	else

@@ -34,6 +34,8 @@ missionoptions::missionoptions() {
 	this->outerloop_vary_arrival_C3 = false;
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = 1;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
@@ -86,6 +88,8 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_vary_arrival_C3 = false;
 	this->outerloop_restrict_flight_time_lower_bound = false;
 	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = true;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
@@ -243,7 +247,19 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 			this->journey_central_body.push_back(temp);
 		}
 		return 0;
-	}	
+	}
+
+	if (choice == "outerloop_warm_archive")
+	{
+		inputfile >> this->outerloop_warm_archive;
+		return 0;
+	}
+
+	if (choice == "outerloop_warm_population")
+	{
+		inputfile >> this->outerloop_warm_population;
+		return 0;
+	}
 
 	inputfile >> value;
 
@@ -1747,6 +1763,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_useparallel " << this->outerloop_useparallel << endl;
 		outputfile << "#whether or not to perform an outer loop warm start" << endl;
 		outputfile << "outerloop_warmstart " << this->outerloop_warmstart << endl;
+		outputfile << "#Population file for outerloop warm start (set to none if not warm starting)" << endl;
+		outputfile << "outerloop_warm_population " << this->outerloop_warm_population << endl;
+		outputfile << "#Archive file for outerloop warm start (set to none if not warm starting)" << endl;
+		outputfile << "outerloop_warm_archive " << this->outerloop_warm_archive << endl;
 		outputfile << "#Re-evaluate the entire outerloop each generation? Otherwise read from the archive." << endl;
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
