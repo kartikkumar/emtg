@@ -1395,10 +1395,10 @@ namespace GeneticAlgorithm
 		//1b. assign pareto rank and crowding distance value to initial parent population using non-dominated sorting
 		this->parent_population = this->this_generation; //random initial parent population of size n based on copy of this->this_generation
 		std::stringstream popfilestream;
-		popfilestream << options.working_directory << "//NSGAII_initial_population.nsgaii";
+		popfilestream << options.working_directory << "//NSGAII_initial_population.NSGAII";
 		this->writepop(popfilestream.str());
 		popfilestream.clear();
-		this->write_archive(options.working_directory + "//NSGAII_archive.nsgaii");
+		this->write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 
 		this->non_dominated_sort(this->parent_population); // assigns local non-dominated front value to parent_population members
 
@@ -1415,7 +1415,7 @@ namespace GeneticAlgorithm
 		//2d. evaluate objectives for initial child population
 		this->this_generation = this->children_population;
 		this->evaluatepop(options, Universe);
-		this->write_archive(options.working_directory + "//NSGAII_archive.nsgaii");
+		this->write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 
 		this->children_population = this->this_generation;
 		this->current_generation = 1;
@@ -1443,7 +1443,7 @@ namespace GeneticAlgorithm
 
 			// print the current population to a file
 			std::stringstream popfilestream;
-			popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".nsgaii";
+			popfilestream << options.working_directory << "//NSGAII_population_gen_" << this->current_generation << ".NSGAII";
 			this->writepop(popfilestream.str());
 
 			//6. generate new offspring via genetic operators
@@ -1468,7 +1468,7 @@ namespace GeneticAlgorithm
 			this->children_population = this->this_generation;  
 
 			//7. write out the current archive in case we need to warm-start another GA later
-			this->write_archive(options.working_directory + "//NSGAII_archive.nsgaii");
+			this->write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 		}
 	}
 
@@ -1500,7 +1500,7 @@ namespace GeneticAlgorithm
 		objective_menu_descriptions.push_back("Thruster preference");
 		objective_menu_descriptions.push_back("Number of thrusters");
 		objective_menu_descriptions.push_back("Launch vehicle preference");
-		objective_menu_descriptions.push_back("Delivered mass to final target");
+		objective_menu_descriptions.push_back("Delivered mass to final target (kg)");
 		objective_menu_descriptions.push_back("Final journey mass increment (for maximizing sample return)");
 		objective_menu_descriptions.push_back("First journey departure C3 (km^2/s^2)");
 		objective_menu_descriptions.push_back("Final journey arrival C3 (km^2/s^2)");

@@ -2411,7 +2411,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#3: Thruster preference" << endl;
 		outputfile << "#4: Number of thrusters" << endl;
 		outputfile << "#5: Launch vehicle preference" << endl;
-		outputfile << "#6: Delivered mass to final target" << endl;
+		outputfile << "#6: Delivered mass to final target (kg)" << endl;
 		outputfile << "#7: Final journey mass increment (for maximizing sample return)" << endl;
 		outputfile << "#8: First journey departure C3 (km^2/s^2)" << endl;
 		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;

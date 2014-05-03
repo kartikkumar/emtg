@@ -1403,7 +1403,7 @@ class MissionOptions(object):
         outputfile.write("#3: Thruster preference\n")
         outputfile.write("#4: Number of thrusters\n")
         outputfile.write("#5: Launch vehicle preference\n")
-        outputfile.write("#6: Delivered mass to final target\n")
+        outputfile.write("#6: Delivered mass to final target (kg)\n")
         outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
         outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")

@@ -5,6 +5,8 @@ import Universe
 import BodyPicker
 import Archive
 import ArchivePanel
+import NSGAIIpopulation
+import NSGAIIpanel
 import numpy as np
 import OptionsNotebook
 import UniverseNotebook
@@ -126,6 +128,10 @@ class PyEMTG_interface(wx.Frame):
         elif self.mode == "archive":
             self.archivepanel.SetSize((MySize.x, MySize.y))
             self.archivepanel.Layout()
+
+        elif self.mode == "NSGAII":
+            self.NSGAIIpanel.SetSize((MySize.x, MySize.y))
+            self.NSGAIIpanel.Layout()
         
     def OnNewMission(self, e):
         #If the GUI has not yet loaded anything then create a new mission. Otherwise as for permission first.
@@ -167,6 +173,11 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = ""
                     self.archive = []
                     self.archivepanel.Destroy()
+
+                elif self.mode == "NSGAII":
+                    self.mode = ""
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
                 #attempt to open a new options file
                 self.dirname = self.homedir
@@ -219,6 +230,11 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = ""
                     self.archive = []
                     self.archivepanel.Destroy()
+
+                elif self.mode == "NSGAII":
+                    self.mode = ""
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
                 #attempt to open a new universe file
                 self.dirname = self.homedir
@@ -283,7 +299,7 @@ class PyEMTG_interface(wx.Frame):
         
     
     def OpenFile(self, e):
-        dlg = wx.FileDialog(self, "Open an EMTG file", self.dirname, "", "*.emtg*", wx.OPEN)
+        dlg = wx.FileDialog(self, "Open an EMTG file", self.dirname, "", "*.emtg*;*.NSGAII", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
@@ -296,7 +312,6 @@ class PyEMTG_interface(wx.Frame):
                 self.missionoptions = []
                 self.optionsnotebook.Destroy()
                 
-
             elif self.mode == "mission":
                 self.mission = []
                 self.missionpanel.Destroy()
@@ -308,6 +323,10 @@ class PyEMTG_interface(wx.Frame):
             elif self.mode == "archive":
                     self.archive = []
                     self.archivepanel.Destroy()
+
+            elif self.mode == "NSGAII":
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
             self.mode = ""
 
@@ -348,6 +367,15 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = "archive"
                     self.lblWelcome.Show(False)
                     self.InitializeArchiveProcessor()
+                    self.fileMenu.Enable(wx.ID_EDIT, True)
+                    self.fileMenu.Enable(wx.ID_SAVE, False)
+
+            elif fileparts[1] == "NSGAII":
+                self.NSGAII = NSGAIIpopulation.NSGAII_outerloop_population(os.path.join(self.dirname, self.filename))
+                if self.NSGAII.success == 1:
+                    self.mode = "NSGAII"
+                    self.lblWelcome.Show(False)
+                    self.InitializeNSGAIIPanel()
                     self.fileMenu.Enable(wx.ID_EDIT, True)
                     self.fileMenu.Enable(wx.ID_SAVE, False)
 
@@ -395,6 +423,10 @@ class PyEMTG_interface(wx.Frame):
         #create and size an Archive panel object
         self.archivepanel = ArchivePanel.ArchivePanel(self, self.archive)
         self.archivepanel.SetSize(self.GetSize())
+
+    def InitializeNSGAIIPanel(self):
+        self.NSGAIIpanel = NSGAIIpanel.NSGAIIpanel(self, self.NSGAII)
+        self.NSGAIIpanel.SetSize(self.GetSize())
         
     def InitializeMissionOptionsEditor(self):
         #create an options notebook object
