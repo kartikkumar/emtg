@@ -36,6 +36,7 @@
     <Compile Include="MissionEvent.py" />
     <Compile Include="MissionOptions.py" />
     <Compile Include="MissionPanel.py" />
+    <Compile Include="NSGAIIpanel.py" />
     <Compile Include="NSGAIIpopulation.py" />
     <Compile Include="OptionsNotebook.py" />
     <Compile Include="PlotOptions.py" />

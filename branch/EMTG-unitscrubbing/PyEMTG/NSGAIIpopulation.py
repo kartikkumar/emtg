@@ -32,6 +32,7 @@ class NSGAII_outerloop_solution(object):
         self.mission_sequence = []
         self.generation_found = [] #what generation was this solution found?
         self.timestamp = [] #at what time, in seconds from program start, was this solution found?
+        self.Legal_Solution = False
 
     #line parser
     def parse_input_line(self, input_line, column_headers):
@@ -194,10 +195,11 @@ class NSGAII_outerloop_population(object):
     #method to plot the population
     #input is an ordered list of objectives, [x, y, z, color]. If there are two objectives, a monochrome 2D plot will be shown. If there are three objectives, a monochrome 3D plot will be shown.
     #if there are four, a colored 3D plot will be shown. If there are more than four there will be an error message.
-    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None):
+    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1):
         self.ordered_list_of_objectives = ordered_list_of_objectives
         self.LowerBounds = LowerBounds
         self.UpperBounds = UpperBounds
+        self.TimeUnit = TimeUnit
         #first check to see if the correct number of objective function indices were supplied
         if len(self.ordered_list_of_objectives) < 2 or len(self.ordered_list_of_objectives) > 4:
             print "NSGAII_outerloop_population::plot_population ERROR. You must specify between two and four objective functions to plot."
@@ -206,22 +208,22 @@ class NSGAII_outerloop_population(object):
         self.PopulationFigure = matplotlib.pyplot.figure()
         self.PopulationFigure.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99)
         if len(ordered_list_of_objectives) == 2:
-            self.PopulationAxes = self.PopulationFigure.add_subplot(111, projection='2d')
+            self.PopulationAxes = self.PopulationFigure.add_subplot(111)
         else:
             self.PopulationAxes = self.PopulationFigure.add_subplot(111, projection='3d')
         
-        if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)':
+        if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
             self.PopulationAxes.set_xlabel('Flight time (years)')
         else:
             self.PopulationAxes.set_xlabel(self.objective_column_headers[self.ordered_list_of_objectives[0]])
 
-        if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)':
+        if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)' and self.TimeUnit == 0:
             self.PopulationAxes.set_ylabel('Flight time (years)')
         else:
             self.PopulationAxes.set_ylabel(self.objective_column_headers[self.ordered_list_of_objectives[1]])
 
         if len(ordered_list_of_objectives) > 2:
-            if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)':
+            if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)' and self.TimeUnit == 0:
                 self.PopulationAxes.set_zlabel('Flight time (years)')
             else:
                 self.PopulationAxes.set_zlabel(self.objective_column_headers[self.ordered_list_of_objectives[2]])
@@ -236,21 +238,21 @@ class NSGAII_outerloop_population(object):
             objective_values_vector = []
             for solution in self.solutions:
                 if max(solution.objective_values) < 1.0e+99:
-                    LegalSolutionFlag = True
+                    solution.Legal_Solution = True
                     if not (self.LowerBounds == None or self.UpperBounds == None):
                         #if bounds were supplied, check to see if the solution fits inside the bounds
                         for obj in range(0, len(self.ordered_list_of_objectives)):
-                            if solution.objective_values[obj] < self.UpperBounds[obj] or solution.objective_values[obj] > self.UpperBounds[obj]:
-                                LegalSolutionFlag = False
+                            if solution.objective_values[obj] < self.LowerBounds[obj] or solution.objective_values[obj] > self.UpperBounds[obj]:
+                                solution.Legal_Solution = False
                                 break
-                    if LegalSolutionFlag:
+                    if solution.Legal_Solution:
                         objective_values_vector.append(copy.deepcopy(solution.objective_values[objective_index]))
             self.objective_values_matrix.append(np.array(objective_values_vector))
 
         #determine upper and lower bounds on each objective
         self.upperbounds = []
         self.lowerbounds = []
-        for objective_index in range(0, len(ordered_list_of_objectives)):
+        for objective_index in range(0, len(self.ordered_list_of_objectives)):
             self.upperbounds.append(self.objective_values_matrix[objective_index].max())
             self.lowerbounds.append(self.objective_values_matrix[objective_index].min())
 
@@ -264,31 +266,23 @@ class NSGAII_outerloop_population(object):
         self.solution_names = []
         for solution in self.solutions:
             if max(solution.objective_values) < 1.0e+99:
-                LegalSolutionFlag = True
-                if not (self.LowerBounds == None or self.UpperBounds == None):
-                    #if bounds were supplied, check to see if the solution fits inside the bounds
-                    for obj in range(0, len(self.ordered_list_of_objectives)):
-                        if solution.objective_values[obj] < self.UpperBounds[obj] or solution.objective_values[obj] > self.UpperBounds[obj]:
-                            LegalSolutionFlag = False
-                            break
-                if LegalSolutionFlag:
-                    self.solution_names.append(solution.description)
-                    #solution.plot_solution(self.PopulationAxes, self.PopulationFigure, ordered_list_of_objectives, self.colorbar, self.lowerbounds, self.upperbounds)
-                    if len(self.ordered_list_of_objectives) == 2: #2D
-                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
-                    elif len(self.ordered_list_of_objectives) == 3: #3D
-                            solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
-                    else: #4D
-                        if self.colorbar is None:
-                            solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
-                            solution.point.set_clim(vmin = self.lowerbounds[-1], vmax = self.upperbounds[-1])
-                            if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)':
-                                self.colorbar = self.PopulationFigure.colorbar(solution.point, label='Flight time (years)')
-                            else:
-                                self.colorbar = self.PopulationFigure.colorbar(solution.point, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
+                self.solution_names.append(solution.description)
+                #solution.plot_solution(self.PopulationAxes, self.PopulationFigure, ordered_list_of_objectives, self.colorbar, self.lowerbounds, self.upperbounds)
+                if len(self.ordered_list_of_objectives) == 2: #2D
+                    solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
+                elif len(self.ordered_list_of_objectives) == 3: #3D
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
+                else: #4D
+                    if self.colorbar is None:
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
+                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
+                        if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
+                            self.colorbar = self.PopulationFigure.colorbar(solution.point, label='Flight time (years)')
                         else:
-                            solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
-                            solution.point.set_clim(vmin = self.lowerbounds[-1], vmax = self.upperbounds[-1])
+                            self.colorbar = self.PopulationFigure.colorbar(solution.point, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
+                    else:
+                        solution.point = self.PopulationAxes.scatter(solution.objective_values[self.ordered_list_of_objectives[0]], solution.objective_values[self.ordered_list_of_objectives[1]], solution.objective_values[self.ordered_list_of_objectives[2]], s=20, c=solution.objective_values[self.ordered_list_of_objectives[3]], marker='o', lw=0, picker=1)
+                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
 
 
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
@@ -298,7 +292,8 @@ class NSGAII_outerloop_population(object):
     
     def force_update(self, event):
         for solution in self.solutions:
-            solution.point.changed()
+            if solution.Legal_Solution:
+                solution.point.changed()
 
     def onpick(self, event):
         #description = []
@@ -335,9 +330,9 @@ class NSGAII_outerloop_population(object):
             x, y, z = event.artist._offsets3d
 
             candidate_solution_indices_per_objective = []
-            idx = np.where(self.objective_values_matrix[0] == x[ind])
-            idy = np.where(self.objective_values_matrix[1] == y[ind])
-            idz = np.where(self.objective_values_matrix[2] == z[ind])
+            idx = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[0]] == x[ind])
+            idy = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[1]] == y[ind])
+            idz = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[2]] == z[ind])
 
             print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))]
             if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)':
