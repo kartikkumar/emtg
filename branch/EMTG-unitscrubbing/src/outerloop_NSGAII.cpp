@@ -1262,7 +1262,7 @@ namespace GeneticAlgorithm
 		{
 			++linenumber;
 			char peek = inputfile.peek();
-			if (peek == '#' || peek == '\r' || peek == '\n') 
+			if (peek == '#' || peek == '\r' || peek == '\n' || peek == ',') 
 			{
 				//comment or blank line, do not parse
 				inputfile.getline(line_buffer, 2048);	
@@ -1339,7 +1339,8 @@ namespace GeneticAlgorithm
 
 					//fill in the inner-loop vector
 					for (size_t index = number_of_genes + 3 + this->number_of_objectives; index < linecell.size(); ++index)
-						this->archive_of_solutions.back().Xinner.push_back(atof(linecell[index].c_str()));
+						if (!(linecell[index] == ""))
+							this->archive_of_solutions.back().Xinner.push_back(atof(linecell[index].c_str()));
 				}
 			}
 		}

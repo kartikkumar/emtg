@@ -203,6 +203,9 @@ namespace EMTG {
 
 						//add the starting mass increment
 						this->state_at_beginning_of_phase[6] += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+						this->C3_departure = 0.0;
+						this->RA_departure = 0.0;
+						this->DEC_departure = 0.0;
 
 						this->dmdvinf = 0.0;
 					}
