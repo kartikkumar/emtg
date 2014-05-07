@@ -394,7 +394,7 @@ class NSGAII_outerloop_population(object):
             idy = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[1]] == y[ind])
             idz = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[2]] == z[ind])
 
-            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))]
+            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))[0]]
             if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
                 print 'Flight time (years)', ': ', x[ind] 
             elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
