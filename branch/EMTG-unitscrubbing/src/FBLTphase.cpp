@@ -920,7 +920,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 
 		//compute RA and DEC in the frame of the target body
 		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
-		math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
 
 		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
 
