@@ -449,6 +449,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabGlobal.txtnum_timesteps.Bind(wx.EVT_KILL_FOCUS,self.Changenum_timesteps)
         self.optionsnotebook.tabGlobal.cmbstep_size_distribution.Bind(wx.EVT_COMBOBOX,self.Changestep_size_distribution)
         self.optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.Bind(wx.EVT_KILL_FOCUS,self.Changestep_size_stdv_or_scale)
+        self.optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Bind(wx.EVT_COMBOBOX, self.Changecontrol_coordinate_system)
         self.optionsnotebook.tabGlobal.txtDLA_bounds_lower.Bind(wx.EVT_KILL_FOCUS,self.ChangeDLA_bounds_lower)
         self.optionsnotebook.tabGlobal.txtDLA_bounds_upper.Bind(wx.EVT_KILL_FOCUS,self.ChangeDLA_bounds_upper)
         self.optionsnotebook.tabGlobal.chkglobal_timebounded.Bind(wx.EVT_CHECKBOX,self.Changeglobal_timebounded)
@@ -720,6 +721,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changestep_size_stdv_or_scale(self, e):
         self.missionoptions.step_size_stdv_or_scale = eval(self.optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.GetValue())
+        self.missionoptions.update_global_options_panel(self.optionsnotebook)
+
+    def Changecontrol_coordinate_system(self, e):
+        self.missionoptions.control_coordinate_system = self.optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.GetSelection()
         self.missionoptions.update_global_options_panel(self.optionsnotebook)
 
     def ChangeDLA_bounds_lower(self, e):

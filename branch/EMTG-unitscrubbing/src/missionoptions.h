@@ -143,6 +143,7 @@ public:
 
 	//low thrust solver parameters
 	int num_timesteps; //number of timesteps per phase
+	int control_coordinate_system; //0: cartesian, 1: polar
 	int step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	int spiral_model_type; //0: Battin, 1: Edelbaum
 	double step_size_stdv_or_scale;

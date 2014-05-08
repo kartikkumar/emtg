@@ -41,6 +41,7 @@ missionoptions::missionoptions() {
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
 	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -95,6 +96,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
 	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -468,6 +470,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "num_timesteps") 
 	{
 		this->num_timesteps = (int) value;
+		return 0;
+	}
+	if (choice == "control_coordinate_system")
+	{
+		this->control_coordinate_system = (int) value;
 		return 0;
 	}
 	if (choice == "step_size_distribution")
@@ -1849,6 +1856,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "##low-thrust solver parameters" << endl;
 		outputfile << "#number of time steps per phase" << endl;
 		outputfile << "num_timesteps " << this->num_timesteps << endl;
+		outputfile << "#control_coordinate_system" << endl;
+		outputfile << "#0: Cartesian" << endl;
+		outputfile << "#1: Polar" << endl;
+		outputfile << "control_coordinate_system " << this->control_coordinate_system << endl;
 		outputfile << "#Distribution from which to draw the step sizes for each phase" << endl;
         outputfile << "#0: uniform" << endl;
         outputfile << "#1: Gaussian" << endl;

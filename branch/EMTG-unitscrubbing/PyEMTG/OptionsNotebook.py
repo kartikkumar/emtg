@@ -49,6 +49,10 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblstep_size_stdv_or_scale = wx.StaticText(self, -1, "Scale width/standard deviation")
         self.txtstep_size_stdv_or_scale = wx.TextCtrl(self, -1, "step_size_stdv_or_scale")
 
+        self.lblcontrol_coordinate_system = wx.StaticText(self, -1, "Control coordinate system")
+        control_coordinate_choices = ['Cartesian','Polar']
+        self.cmbcontrol_coordinate_system = wx.ComboBox(self, -1, choices = control_coordinate_choices, style=wx.CB_READONLY)
+
                 
         globaloptionsgrid.AddMany(  [self.lblMissionName, self.txtMissionName,
                                     self.lblMissionType, self.cmbMissionType,
@@ -58,7 +62,8 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                     self.lbllaunch_window_open_date, calendarbox,
                                     self.lblnum_timesteps, self.txtnum_timesteps,
                                     self.lblstep_size_distribution, self.cmbstep_size_distribution,
-                                    self.lblstep_size_stdv_or_scale, self.txtstep_size_stdv_or_scale])
+                                    self.lblstep_size_stdv_or_scale, self.txtstep_size_stdv_or_scale,
+                                    self.lblcontrol_coordinate_system, self.cmbcontrol_coordinate_system])
         globaloptionsgrid.SetFlexibleDirection(wx.BOTH)
 
         #constraint fields

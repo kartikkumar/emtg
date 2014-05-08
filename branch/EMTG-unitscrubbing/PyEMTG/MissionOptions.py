@@ -91,6 +91,8 @@ class MissionOptions(object):
 
     #low thrust solver parameters
     num_timesteps = 10 #number of timesteps per phase
+    control_coordinate_system = 0 #0: cartesian, 1: polar
+
     step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     step_size_stdv_or_scale = 1.0
     spiral_model_type = 1#0: Battin, 1: Edelbaum
@@ -451,6 +453,8 @@ class MissionOptions(object):
                     #low thrust solver parameters
                     elif choice ==  "num_timesteps":
                         self.num_timesteps = int(linecell[1])
+                    elif choice == "control_coordinate_system":
+                        self.control_coordinate_system = int(linecell[1])
                     elif choice ==  "step_size_distribution":
                         self.step_size_distribution = int(linecell[1])
                     elif choice ==  "step_size_stdv_or_scale":
@@ -880,6 +884,10 @@ class MissionOptions(object):
         outputfile.write("##low-thrust solver parameters\n")	
         outputfile.write("#number of time steps per phase\n")	
         outputfile.write("num_timesteps " + str(self.num_timesteps) + "\n")
+        outputfile.write("#control_coordinate_system\n")
+        outputfile.write("#0: Cartesian\n")
+        outputfile.write("#1: Polar\n")
+        outputfile.write("control_coordinate_system " + self.control_coordinate_system + '\n')
         outputfile.write("#Distribution from which to draw the step sizes for each phase\n")
         outputfile.write("#0: uniform\n")
         outputfile.write("#1: Gaussian\n")
@@ -1505,6 +1513,7 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtnum_timesteps.SetValue(str(self.num_timesteps))
         optionsnotebook.tabGlobal.cmbstep_size_distribution.SetSelection(self.step_size_distribution)
         optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.SetValue(str(self.step_size_stdv_or_scale))
+        optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.SetSelection(self.control_coordinate_system)
         optionsnotebook.tabGlobal.txtDLA_bounds_lower.SetValue(str(self.DLA_bounds[0]))
         optionsnotebook.tabGlobal.txtDLA_bounds_upper.SetValue(str(self.DLA_bounds[1]))
         optionsnotebook.tabGlobal.chkglobal_timebounded.SetValue(self.global_timebounded)
@@ -1551,6 +1560,14 @@ class MissionOptions(object):
         else:
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(False)
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(False)
+
+        #control coordinate system is only shown for low-thrust mission types
+        if self.mission_type == 2 or self.mission_type == 3:
+            optionsnotebook.tabGlobal.lblcontrol_coordinate_system.Show(True)
+            optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Show(True)
+        else:
+            optionsnotebook.tabGlobal.lblcontrol_coordinate_system.Show(False)
+            optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Show(False)
 
         optionsnotebook.tabGlobal.Layout()
         optionsnotebook.tabSolver.SetupScrolling()
