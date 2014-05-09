@@ -1568,6 +1568,107 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 	return;
 }
 
+	//functions to convert betwen cartesian and polar initial guesses
+	void mission::convert_cartesian_solution_to_polar(const vector<double>& initialguess)
+	{
+		if (this->options.mission_type == 2 || this->options.mission_type == 3)
+		{
+			int Xindex = 0;
+			vector<double> new_initial_guess;
+			while (Xindex < initialguess.size())
+			{
+				if (!(this->Xdescriptions[Xindex].find("step") < 1024)) //non-control parameters
+				{
+					new_initial_guess.push_back(initialguess[Xindex]);
+					++Xindex;
+				}
+				else
+				{
+					//convert from cartesian to polar
+					double u_x = initialguess[Xindex];
+					double u_y = initialguess[Xindex + 1];
+					double u_z = initialguess[Xindex + 2];
+
+					Xindex += 3;
+
+					double throttle = sqrt(u_x*u_x + u_y*u_y + u_z*u_z);
+					double theta = atan2(u_y, u_x);
+					double phi = asin(u_z / throttle);
+
+					new_initial_guess.push_back(throttle);
+					new_initial_guess.push_back(theta / math::TwoPI);
+					new_initial_guess.push_back((cos(phi) + 1) / 2.0);
+
+					//if this is a VSI mission we leave the Isp for this time-step unchanged
+					if (this->options.engine_type == 4 || this->options.engine_type == 12 || this->options.engine_type == 13)
+					{
+						new_initial_guess.push_back(initialguess[Xindex]);
+						++Xindex;
+					}
+				}
+			}
+
+			this->options.current_trialX = new_initial_guess;
+		}
+		else
+		{
+			std::cout << "Converting between cartesian and polar coordinates only works for MGALT and FBLT mission types" << std::endl;
+			throw 98;
+		}
+
+		return;
+	}
+
+	void mission::convert_polar_solution_to_cartesian(const vector<double>& initialguess)
+	{
+		if (this->options.mission_type == 2 || this->options.mission_type == 3)
+		{
+			int Xindex = 0;
+			vector<double> new_initial_guess;
+			while (Xindex < initialguess.size())
+			{
+				if (!(this->Xdescriptions[Xindex].find("step") < 1024)) //non-control parameters
+				{
+					new_initial_guess.push_back(initialguess[Xindex]);
+					++Xindex;
+				}
+				else
+				{
+					//convert from cartesian to polar
+					double throttle = initialguess[Xindex];
+					double theta = initialguess[Xindex + 1] * math::TwoPI;
+					double cosphi = 2 * initialguess[Xindex + 2] - 1;
+					double sinphi = sqrt(1.0 - cosphi*cosphi);
+
+					Xindex += 3;
+
+					double u_x = throttle * cos(theta) * cosphi;
+					double u_y = throttle * sin(theta) * cosphi;
+					double u_z = throttle * sinphi;
+
+					new_initial_guess.push_back(u_x);
+					new_initial_guess.push_back(u_y);
+					new_initial_guess.push_back(u_z);
+
+					//if this is a VSI mission we leave the Isp for this time-step unchanged
+					if (this->options.engine_type == 4 || this->options.engine_type == 12 || this->options.engine_type == 13)
+					{
+						new_initial_guess.push_back(initialguess[Xindex]);
+						++Xindex;
+					}
+				}
+			}
+
+			this->options.current_trialX = new_initial_guess;
+		}
+		else
+		{
+			std::cout << "Converting between cartesian and polar coordinates only works for MGALT and FBLT mission types" << std::endl;
+			throw 98;
+		}
+
+		return;
+	}
 
 	//function to find constraint/objective function dependencies due to an escape spiral anywhere in the mission
 	void mission::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,

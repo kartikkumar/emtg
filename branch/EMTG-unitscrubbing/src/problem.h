@@ -60,7 +60,8 @@ public:
 	virtual int output() = 0;
 	virtual vector<double> create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions) = 0;
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess) = 0;
-	
+	virtual void convert_cartesian_solution_to_polar(const vector<double>& initialguess) = 0;
+	virtual void convert_polar_solution_to_cartesian(const vector<double>& initialguess) = 0;
 	//performance characteristics function
 	//used to extract various pieces of mission data for a multi-objective GA
 	virtual void extract_objective_function_values(std::vector<double>& objective_functions) {};

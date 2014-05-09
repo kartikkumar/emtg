@@ -92,7 +92,7 @@ class MissionOptions(object):
     #low thrust solver parameters
     num_timesteps = 10 #number of timesteps per phase
     control_coordinate_system = 0 #0: cartesian, 1: polar
-
+    initial_guess_control_coordinate_system = 0 #0: cartesian, 1: polar
     step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     step_size_stdv_or_scale = 1.0
     spiral_model_type = 1#0: Battin, 1: Edelbaum
@@ -152,6 +152,8 @@ class MissionOptions(object):
         
     #minimum dry mass constraint and related parameters
     minimum_dry_mass = 0 #in kg
+    enable_maximum_propellant_mass_constraint = 0
+    maximum_propellant_mass = 1000.0
     post_mission_delta_v = 0.0 #in km/s
     post_mission_Isp = 3000.0 #in s
     propellant_margin = 0.0 #percent
@@ -455,6 +457,8 @@ class MissionOptions(object):
                         self.num_timesteps = int(linecell[1])
                     elif choice == "control_coordinate_system":
                         self.control_coordinate_system = int(linecell[1])
+                    elif choice == "initial_guess_control_coordinate_system":
+                        self.initial_guess_control_coordinate_system = int(linecell[1])
                     elif choice ==  "step_size_distribution":
                         self.step_size_distribution = int(linecell[1])
                     elif choice ==  "step_size_stdv_or_scale":
@@ -465,6 +469,10 @@ class MissionOptions(object):
                     #vehicle parameters
                     elif choice == "maximum_mass":
                         self.maximum_mass = float(linecell[1])
+                    elif choice == "enable_maximum_propellant_mass_constraint":
+                        self.enable_maximum_propellant_mass_constraint = int(linecell[1])
+                    elif choice == "maximum_propellant_mass":
+                        self.maximum_propellant_mass = float(linecell[1])
                     elif choice == "LV_margin":
                         self.LV_margin = float(linecell[1])
                     elif choice == "LV_adapter_mass":
@@ -884,10 +892,14 @@ class MissionOptions(object):
         outputfile.write("##low-thrust solver parameters\n")	
         outputfile.write("#number of time steps per phase\n")	
         outputfile.write("num_timesteps " + str(self.num_timesteps) + "\n")
-        outputfile.write("#control_coordinate_system\n")
+        outputfile.write("#Control coordinate system\n")
         outputfile.write("#0: Cartesian\n")
         outputfile.write("#1: Polar\n")
-        outputfile.write("control_coordinate_system " + self.control_coordinate_system + '\n')
+        outputfile.write("control_coordinate_system " + str(self.control_coordinate_system) + '\n')
+        outputfile.write("#Initial guess control coordinate system\n")
+        outputfile.write("#0: Cartesian\n")
+        outputfile.write("#1: Polar\n")
+        outputfile.write("initial_guess_control_coordinate_system " + str(self.initial_guess_control_coordinate_system) + '\n')
         outputfile.write("#Distribution from which to draw the step sizes for each phase\n")
         outputfile.write("#0: uniform\n")
         outputfile.write("#1: Gaussian\n")
@@ -1054,6 +1066,10 @@ class MissionOptions(object):
         outputfile.write("allow_initial_mass_to_vary " + str(self.allow_initial_mass_to_vary) + "\n")
         outputfile.write("#Minimum dry mass\n")
         outputfile.write("minimum_dry_mass " + str(self.minimum_dry_mass) + "\n")
+        outputfile.write("#Enable maximum propellant mass constraint?\n")
+        outputfile.write("enable_maximum_propellant_mass_constraint " + str(self.enable_maximum_propellant_mass_constraint) + "\n")
+        outputfile.write("#Maximum propellant mass (kg)\n")
+        outputfile.write("maximum_propellant_mass " + str(self.maximum_propellant_mass) + "\n")
         outputfile.write("#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)\n")
         outputfile.write("post_mission_delta_v " + str(self.post_mission_delta_v) + "\n")
         outputfile.write("#Isp used to compute propellant for post-mission delta-, in seconds\n")
@@ -2139,6 +2155,8 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtpropellant_margin.SetValue(str(self.propellant_margin))
         optionsnotebook.tabSpacecraft.txtpower_margin.SetValue(str(self.power_margin))
         optionsnotebook.tabSpacecraft.txtLV_margin.SetValue(str(self.LV_margin))
+        optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.SetValue(self.enable_maximum_propellant_mass_constraint)
+        optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.SetValue(str(self.maximum_propellant_mass))
         optionsnotebook.tabSpacecraft.cmbengine_type.SetSelection(self.engine_type)
         optionsnotebook.tabSpacecraft.txtnumber_of_engines.SetValue(str(self.number_of_engines))
         optionsnotebook.tabSpacecraft.cmbthrottle_logic_mode.SetSelection(self.throttle_logic_mode)
@@ -2178,12 +2196,19 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtpower_decay_rate.SetValue(str(self.power_decay_rate))
 
         #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible
-        if self.minimum_dry_mass > 0.0:
+        if self.minimum_dry_mass > 0.0 or self.enable_maximum_propellant_mass_constraint > 0:
             optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(True)
             optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(True)
         else:
             optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(False)
             optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(False)
+
+        if self.enable_maximum_propellant_mass_constraint:
+            optionsnotebook.tabSpacecraft.lblmaximum_propellant_mass.Show(True)
+            optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Show(True)
+        else:
+            optionsnotebook.tabSpacecraft.lblmaximum_propellant_mass.Show(False)
+            optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Show(False)
 
         #switch various spacecraft fields visible and invisible depending on the mission type
         #launch vehicle types
@@ -2711,6 +2736,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbderivative_type.SetSelection(self.derivative_type)
         optionsnotebook.tabSolver.chkcheck_derivatives.SetValue(self.check_derivatives)
         optionsnotebook.tabSolver.chkseed_MBH.SetValue(self.seed_MBH)
+        optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.SetSelection(self.initial_guess_control_coordinate_system)
         optionsnotebook.tabSolver.chkinterpolate_initial_guess.SetValue(self.interpolate_initial_guess)
         optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.SetValue(str(self.initial_guess_num_timesteps))
         optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.SetSelection(self.initial_guess_step_size_distribution)
@@ -3023,6 +3049,16 @@ class MissionOptions(object):
                 optionsnotebook.tabSolver.lblinitial_guess_step_size_stdv_or_scale.Show(True)
                 optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.Show(True)
         
+
+        #control coordinate system is only shown for low-thrust mission types with MBH or SNOPT
+        if (self.mission_type == 2 or self.mission_type == 3) and ( (self.run_inner_loop == 2 and self.seed_MBH == 1) or self.run_inner_loop == 4):
+            optionsnotebook.tabSolver.lblinitial_guess_control_coordinate_system.Show(True)
+            optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Show(True)
+        else:
+            optionsnotebook.tabSolver.lblinitial_guess_control_coordinate_system.Show(False)
+            optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Show(False)
+
+
         #outer-loop solver options
 
                                                                                 

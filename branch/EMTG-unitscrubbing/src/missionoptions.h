@@ -47,6 +47,8 @@ public:
 	// If you add new fields to the missionoptions class, make sure that you also add:
 	// 1. code to READ values into the field in missionoptions::parse_options_file(string filename)
 	// 2. code to WRITE the field out to the disk in missionoptions::print_options_file(string filename)
+	// 3. code to READ and WRITE the field in PyEMTG
+	// 4. a GUI widget to allow the user to modify the field in PyEMTG
 	//
 	//****************************************************************************************
 
@@ -144,6 +146,7 @@ public:
 	//low thrust solver parameters
 	int num_timesteps; //number of timesteps per phase
 	int control_coordinate_system; //0: cartesian, 1: polar
+	int initial_guess_control_coordinate_system; //0: cartesian, 1: polar
 	int step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	int spiral_model_type; //0: Battin, 1: Edelbaum
 	double step_size_stdv_or_scale;
@@ -213,6 +216,8 @@ public:
 
 	//terminal constraints
 	double minimum_dry_mass; //in kg
+	bool enable_maximum_propellant_mass_constraint;
+	double maximum_propellant_mass; // in kg
 	double post_mission_delta_v; //in km/s
 	double post_mission_Isp; //in s, Isp for post_mission_delta_v
 	double propellant_margin; //percent of propellant to be held as margin over the nominal propellant load

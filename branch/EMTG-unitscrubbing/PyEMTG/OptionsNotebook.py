@@ -52,7 +52,6 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblcontrol_coordinate_system = wx.StaticText(self, -1, "Control coordinate system")
         control_coordinate_choices = ['Cartesian','Polar']
         self.cmbcontrol_coordinate_system = wx.ComboBox(self, -1, choices = control_coordinate_choices, style=wx.CB_READONLY)
-
                 
         globaloptionsgrid.AddMany(  [self.lblMissionName, self.txtMissionName,
                                     self.lblMissionType, self.cmbMissionType,
@@ -212,7 +211,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         #terminal constraint/margining fields
         constraintsgrid = wx.FlexGridSizer(4,2,5,5)
-        constraintsgridtitle = wx.StaticText(self, -1, "Margins")
+        constraintsgridtitle = wx.StaticText(self, -1, "Margins and Constraints")
 
         self.lblpost_mission_Isp = wx.StaticText(self, -1, "Isp for post-mission delta-v (s)")
         self.txtpost_mission_Isp = wx.TextCtrl(self, -1, "post_mission_Isp")
@@ -226,10 +225,18 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblLV_margin = wx.StaticText(self, -1, "Launch vehicle margin (fraction)")
         self.txtLV_margin = wx.TextCtrl(self, -1, "LV_margin")
 
-        constraintsgrid.AddMany([self.lblpost_mission_Isp, self.txtpost_mission_Isp,
-                                 self.lblpropellant_margin, self.txtpropellant_margin,
+        self.lblenable_maximum_propellant_constraint = wx.StaticText(self, -1, "Enable maximum propellant constraint?")
+        self.chkenable_propellant_mass_constraint = wx.CheckBox(self, -1)
+
+        self.lblmaximum_propellant_mass = wx.StaticText(self, -1, "Maximum propellant mass (kg)")
+        self.txtmaximum_propellant_mass = wx.TextCtrl(self, -1, "maximum_propellant_mass")
+
+        constraintsgrid.AddMany([self.lblpropellant_margin, self.txtpropellant_margin,
                                  self.lblpower_margin, self.txtpower_margin,
-                                 self.lblLV_margin, self.txtLV_margin])
+                                 self.lblLV_margin, self.txtLV_margin,
+                                 self.lblenable_maximum_propellant_constraint, self.chkenable_propellant_mass_constraint,
+                                 self.lblmaximum_propellant_mass, self.txtmaximum_propellant_mass,
+                                 self.lblpost_mission_Isp, self.txtpost_mission_Isp])
 
         constraintsbox = wx.BoxSizer(wx.VERTICAL)
         constraintsbox.AddMany([constraintsgridtitle, constraintsgrid])
@@ -750,6 +757,10 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         
         self.lblseed_MBH = wx.StaticText(self, -1, "Seed MBH?")
         self.chkseed_MBH = wx.CheckBox(self, -1)
+
+        self.lblinitial_guess_control_coordinate_system = wx.StaticText(self, -1, "Initial guess control coordinate system")
+        control_coordinate_choices = ['Cartesian','Polar']
+        self.cmbinitial_guess_control_coordinate_system = wx.ComboBox(self, -1, choices = control_coordinate_choices, style=wx.CB_READONLY)
         
         self.lblinterpolate_initial_guess = wx.StaticText(self, -1, "Interpolate initial guess?")
         self.chkinterpolate_initial_guess = wx.CheckBox(self, -1)
@@ -790,6 +801,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblderivative_type, self.cmbderivative_type,
                                 self.lblcheck_derivatives, self.chkcheck_derivatives,
                                 self.lblseed_MBH, self.chkseed_MBH,
+                                self.lblinitial_guess_control_coordinate_system, self.cmbinitial_guess_control_coordinate_system,
                                 self.lblinterpolate_initial_guess, self.chkinterpolate_initial_guess,
                                 self.lblinitial_guess_num_timesteps, self.txtinitial_guess_num_timesteps,
                                 self.lblinitial_guess_step_size_distribution, self.cmbinitial_guess_step_size_distribution,

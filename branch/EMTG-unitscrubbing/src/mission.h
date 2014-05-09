@@ -63,6 +63,11 @@ public:
 	//function to interpolate an initial guess
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess);
 
+	//functions to convert initial guess between cartesian and polar coordinates
+	virtual void convert_cartesian_solution_to_polar(const vector<double>& initialguess);
+	virtual void convert_polar_solution_to_cartesian(const vector<double>& initialguess);
+
+
 	//function to find constraint/objective function dependencies due to an spiral anywhere in the mission
 	void find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
 												vector<double>* Xlowerbounds,

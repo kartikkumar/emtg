@@ -42,6 +42,9 @@ missionoptions::missionoptions() {
 	this->FD_stepsize = 1.5e-8;
 	this->FD_stepsize_coarse = 1.5e-3;
 	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0; 
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -97,6 +100,9 @@ missionoptions::missionoptions(string optionsfile) {
 	this->FD_stepsize = 1.5e-8;
 	this->FD_stepsize_coarse = 1.5e-3;
 	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0;
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -477,6 +483,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->control_coordinate_system = (int) value;
 		return 0;
 	}
+	if (choice == "initial_guess_control_coordinate_system")
+	{
+		this->initial_guess_control_coordinate_system = (int) value;
+		return 0;
+	}
 	if (choice == "step_size_distribution")
 	{
 		this->step_size_distribution = (int) value;
@@ -675,6 +686,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "minimum_dry_mass") {
 		this->minimum_dry_mass = value;
 		return 0;
+	}
+	if (choice == "enable_maximum_propellant_mass_constraint")
+	{
+		this->enable_maximum_propellant_mass_constraint = (bool)value;
+		return 0;
+	}
+	if (choice == "maximum_propellant_mass")
+	{
+		this->maximum_propellant_mass = value;
 	}
 	if (choice == "post_mission_delta_v") {
 		this->post_mission_delta_v = value;
@@ -1856,10 +1876,14 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "##low-thrust solver parameters" << endl;
 		outputfile << "#number of time steps per phase" << endl;
 		outputfile << "num_timesteps " << this->num_timesteps << endl;
-		outputfile << "#control_coordinate_system" << endl;
+		outputfile << "#Control coordinate system" << endl;
 		outputfile << "#0: Cartesian" << endl;
 		outputfile << "#1: Polar" << endl;
 		outputfile << "control_coordinate_system " << this->control_coordinate_system << endl;
+		outputfile << "#Initial guess control coordinate system" << endl;
+		outputfile << "#0: Cartesian" << endl;
+		outputfile << "#1: Polar" << endl;
+		outputfile << "initial_guess_control_coordinate_system " << this->initial_guess_control_coordinate_system << endl;
 		outputfile << "#Distribution from which to draw the step sizes for each phase" << endl;
         outputfile << "#0: uniform" << endl;
         outputfile << "#1: Gaussian" << endl;
@@ -2029,6 +2053,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "allow_initial_mass_to_vary " << allow_initial_mass_to_vary << endl;
 		outputfile << "#Minimum dry mass" << endl;
 		outputfile << "minimum_dry_mass " << this->minimum_dry_mass << endl;
+		outputfile << "#Enable maximum propellant mass constraint?" << endl;
+		outputfile << "enable_maximum_propellant_mass_constraint " << (int) this->enable_maximum_propellant_mass_constraint << endl;
+		outputfile << "#Maximum propellant mass (kg)" << endl;
+		outputfile << "maximum_propellant_mass " << this->maximum_propellant_mass << endl;
 		outputfile << "#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)" << endl;
 		outputfile << "post_mission_delta_v " << this->post_mission_delta_v << endl;
 		outputfile << "#Isp used to compute propellant for post-mission delta-, in seconds" << endl;

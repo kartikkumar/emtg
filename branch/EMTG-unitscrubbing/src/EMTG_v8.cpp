@@ -301,9 +301,17 @@ int main(int argc, char* argv[])
 						//if we are interpolating an initial guess to change the resolution
 						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
 						{
-							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
+							TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
 						}
-						
+
+						//convert coordinate systems if applicable
+						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+						{
+							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+						}	
 					}
 					else if (options.run_inner_loop == 2)
 					{
@@ -312,6 +320,14 @@ int main(int argc, char* argv[])
 						if (options.interpolate_initial_guess && options.seed_MBH)
 							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
 
+						//convert coordinate systems if applicable
+						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+						{
+							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+						}
 					}
 
 					

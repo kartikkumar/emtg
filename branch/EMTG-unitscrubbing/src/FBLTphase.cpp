@@ -650,69 +650,107 @@ int FBLT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerb
 	//**************************************************************************
 	//next, we need to include the decision variables and constraints for each burn
 	//now, for each timestep
-	for (int w=0; w < options->num_timesteps; ++w)
+	if (options->control_coordinate_system == 0) //Cartesian control
 	{
-		stringstream stepstream;
-		stepstream << w;
-		//u_x
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_x");
-
-		//u_y
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_y");
-
-		//u_z
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_z");
-		
-		//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
-		if (options->engine_type == 4 || options->engine_type == 13)
+		for (int w = 0; w < options->num_timesteps; ++w)
 		{
-			Xlowerbounds->push_back(options->IspLT_minimum);
-			Xupperbounds->push_back(options->IspLT);
-			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-		}
-		else if (options->engine_type == 12)
-		{
-			Xlowerbounds->push_back(3000.0);
-			Xupperbounds->push_back(5000.0);
-			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-		}
+			stringstream stepstream;
+			stepstream << w;
+			//u_x
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_x");
 
-		//and the throttle magnitude constraint
-		//throttle = 0
-		//note, if this is the last phase in a journey which ends in a low-thrust rendezvous, we want to force thrust-on
-		//to prevent the "unacknowledged arrival" behavior"
-		if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 3)
-			Flowerbounds->push_back(0.1);
-		else
-			Flowerbounds->push_back(0.0);
-		Fupperbounds->push_back(1.0);
-		Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
+			//u_y
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_y");
 
-		//Jacobian entries for the throttle magnitude constraint
-		//The throttle magnitude constraint is dependent only on the preceding three throttle components
-		vector<int> step_G_indices;
-		vector<double> dummyvalues(3);
-		int vary_Isp_flag = (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13) ? 1 : 0;
-		for (size_t entry = Xdescriptions->size() - 1 - vary_Isp_flag; entry > Xdescriptions->size() - 4 - vary_Isp_flag; --entry)
-		{
-			iGfun->push_back(Fdescriptions->size() - 1);
-			jGvar->push_back(entry);
-			stringstream EntryNameStream;
-			EntryNameStream << "Derivative of " << prefix + "step " << w << " throttle magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-			Gdescriptions->push_back(EntryNameStream.str());
+			//u_z
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_z");
 
-			//store the position in the G vector
-			step_G_indices.push_back(iGfun->size() - 1);
+			//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
+			if (options->engine_type == 4 || options->engine_type == 13)
+			{
+				Xlowerbounds->push_back(options->IspLT_minimum);
+				Xupperbounds->push_back(options->IspLT);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+			else if (options->engine_type == 12)
+			{
+				Xlowerbounds->push_back(3000.0);
+				Xupperbounds->push_back(5000.0);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+
+			//and the throttle magnitude constraint
+			//throttle = 0
+			//note, if this is the last phase in a journey which ends in a low-thrust rendezvous, we want to force thrust-on
+			//to prevent the "unacknowledged arrival" behavior"
+			if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 3)
+				Flowerbounds->push_back(0.1);
+			else
+				Flowerbounds->push_back(0.0);
+			Fupperbounds->push_back(1.0);
+			Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
+
+			//Jacobian entries for the throttle magnitude constraint
+			//The throttle magnitude constraint is dependent only on the preceding three throttle components
+			vector<int> step_G_indices;
+			vector<double> dummyvalues(3);
+			int vary_Isp_flag = (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13) ? 1 : 0;
+			for (size_t entry = Xdescriptions->size() - 1 - vary_Isp_flag; entry > Xdescriptions->size() - 4 - vary_Isp_flag; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix + "step " << w << " throttle magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+
+				//store the position in the G vector
+				step_G_indices.push_back(iGfun->size() - 1);
+			}
+			control_vector_G_indices.push_back(step_G_indices);
 		}
-		control_vector_G_indices.push_back(step_G_indices);
 	}
+	else if (options->control_coordinate_system == 1) //Polar control
+	{
+		for (int w = 0; w < options->num_timesteps; ++w)
+		{
+			stringstream stepstream;
+			stepstream << w;
+			//u_x
+			Xlowerbounds->push_back(1.0e-10);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_Throttle");
 
+			//u_y
+			Xlowerbounds->push_back(0.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_u");
+
+			//u_z
+			Xlowerbounds->push_back(0.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_v");
+
+			//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
+			if (options->engine_type == 4 || options->engine_type == 13)
+			{
+				Xlowerbounds->push_back(options->IspLT_minimum);
+				Xupperbounds->push_back(options->IspLT);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+			else if (options->engine_type == 12)
+			{
+				Xlowerbounds->push_back(3000.0);
+				Xupperbounds->push_back(5000.0);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+		}
+	}
 
 
 

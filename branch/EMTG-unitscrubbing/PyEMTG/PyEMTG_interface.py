@@ -482,6 +482,8 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Bind(wx.EVT_KILL_FOCUS, self.Changeparking_orbit_altitude)
         self.optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Bind(wx.EVT_KILL_FOCUS, self.Changeparking_orbit_inclination)
         self.optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_Isp)
+        self.optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.Bind(wx.EVT_CHECKBOX, self.Changeenable_maximum_propellant_mass_constraint)
+        self.optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Bind(wx.EVT_KILL_FOCUS, self.Changemaximum_propellant_mass)
         self.optionsnotebook.tabSpacecraft.txtpropellant_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepropellant_margin)
         self.optionsnotebook.tabSpacecraft.txtpower_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepower_margin)
         self.optionsnotebook.tabSpacecraft.txtLV_margin.Bind(wx.EVT_KILL_FOCUS, self.ChangeLV_margin)
@@ -642,6 +644,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.cmbderivative_type.Bind(wx.EVT_COMBOBOX, self.Changederivative_type)
         self.optionsnotebook.tabSolver.chkcheck_derivatives.Bind(wx.EVT_CHECKBOX, self.ChangeCheckDerivatives)
         self.optionsnotebook.tabSolver.chkseed_MBH.Bind(wx.EVT_CHECKBOX, self.ChangeSeedMBH)
+        self.optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Bind(wx.EVT_COMBOBOX, self.Changeinitial_guess_control_coordinate_system)
         self.optionsnotebook.tabSolver.chkinterpolate_initial_guess.Bind(wx.EVT_CHECKBOX, self.ChangeInterpolateInitialGuess)
         self.optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_num_timesteps)
         self.optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.Bind(wx.EVT_COMBOBOX, self.Changeinitial_guess_step_size_distribution)
@@ -842,6 +845,14 @@ class PyEMTG_interface(wx.Frame):
 
     def Changepost_mission_Isp(self, e):
         self.missionoptions.post_mission_Isp = eval(self.optionsnotebook.tabSpacecraft.txtpost_mission_Isp.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeenable_maximum_propellant_mass_constraint(self, e):
+        self.missionoptions.enable_maximum_propellant_mass_constraint = self.optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.GetValue()
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changemaximum_propellant_mass(self, e):
+        self.missionoptions.maximum_propellant_mass = eval(self.optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
     def Changepropellant_margin(self, e):
@@ -1551,6 +1562,10 @@ class PyEMTG_interface(wx.Frame):
         
     def ChangeSeedMBH(self, e):
         self.missionoptions.seed_MBH = int(self.optionsnotebook.tabSolver.chkseed_MBH.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changeinitial_guess_control_coordinate_system(self, e):
+        self.missionoptions.initial_guess_control_coordinate_system = self.optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.GetSelection()
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
     
     def ChangeInterpolateInitialGuess(self, e):
