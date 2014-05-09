@@ -695,6 +695,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "maximum_propellant_mass")
 	{
 		this->maximum_propellant_mass = value;
+		return 0;
 	}
 	if (choice == "post_mission_delta_v") {
 		this->post_mission_delta_v = value;
@@ -2059,7 +2060,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "maximum_propellant_mass " << this->maximum_propellant_mass << endl;
 		outputfile << "#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)" << endl;
 		outputfile << "post_mission_delta_v " << this->post_mission_delta_v << endl;
-		outputfile << "#Isp used to compute propellant for post-mission delta-, in seconds" << endl;
+		outputfile << "#Isp used to compute propellant for post-mission delta-v, in seconds" << endl;
 		outputfile << "post_mission_Isp " << this->post_mission_Isp << endl;
 		outputfile << "#Propellant margin, as a fraction of nominal propellant load" << endl;
 		outputfile << "propellant_margin " << this->propellant_margin << endl;

@@ -35,6 +35,10 @@ outerloop_ntrials 1
 outerloop_useparallel 0
 #whether or not to perform an outer loop warm start
 outerloop_warmstart 0
+#Population file for outerloop warm start (set to none if not warm starting)
+outerloop_warm_population none
+#Archive file for outerloop warm start (set to none if not warm starting)
+outerloop_warm_archive none
 #Re-evaluate the entire outerloop each generation? Otherwise read from the archive.
 outerloop_reevaluate_full_population 0
 #Quiet outer-loop?
@@ -105,10 +109,24 @@ initial_guess_step_size_stdv_or_scale 10.0
 #1: zero-control for resets, random perturbations for hops
 #2: always use zero-control guess except when seeded
 MBH_zero_control_initial_guess 0
+#Enable two-step MBH?
+MBH_two_step 0
+#'Fine' finite differencing step size
+FD_stepsize 1.5e-08
+#'Coarse' finite differencing step size
+FD_stepsize_coarse 0.0001
 
 ##low-thrust solver parameters
 #number of time steps per phase
 num_timesteps 20
+#Control coordinate system
+#0: Cartesian
+#1: Polar
+control_coordinate_system 0
+#Initial guess control coordinate system
+#0: Cartesian
+#1: Polar
+initial_guess_control_coordinate_system 0
 #Distribution from which to draw the step sizes for each phase
 #0: uniform
 #1: Gaussian
@@ -127,7 +145,7 @@ spiral_model_type 1
 #1: SPICE (default to static if no SPICE file supplied for a body)
 ephemeris_source 1
 #Universe folder
-universe_folder C:\Users\jaengla2\Documents\Projects\EMTG\EMTGv8\trunk\Universe
+universe_folder C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\Universe\
 #SPICE leap seconds kernel - required for SPICE to work
 SPICE_leap_seconds_kernel naif0009.tls
 #SPICE_reference_frame_kernel
@@ -258,6 +276,10 @@ EP_dry_mass 0.0
 allow_initial_mass_to_vary 0
 #Minimum dry mass
 minimum_dry_mass 0.0
+#Enable maximum propellant mass constraint?
+enable_maximum_propellant_mass_constraint 0
+#Maximum propellant mass (kg)
+maximum_propellant_mass 1000.0
 #Post-mission delta-v, in km/s (alternatively defined as delta-v margin)
 post_mission_delta_v 0.0
 #Isp used to compute propellant for post-mission delta-, in seconds
@@ -273,13 +295,12 @@ mission_name Default
 #1: MGA-DSM
 #2: MGA-LT
 #3: FBLT
-#4: FBLT-S
-#5: MGA-NDSM
-#6: DTLT
-#7: solver chooses (MGA, MGA-DSM)
-#8: solver chooses (MGA, MGA-LT)
-#9: solver chooses (MGA-DSM, MGA-LT)
-#10: solver chooses (MGA, MGA-DSM, MGA-LT)
+#4: MGA-NDSM
+#5: DTLT
+#6: solver chooses (MGA, MGA-DSM)
+#7: solver chooses (MGA, MGA-LT)
+#8: solver chooses (MGA-DSM, MGA-LT)
+#9: solver chooses (MGA, MGA-DSM, MGA-LT)
 mission_type 2
 #number of journeys (user-defined endpoints)
 #Each journey has a central body and two boundary points
@@ -481,10 +502,11 @@ outerloop_journey_flyby_sequence_choices
 #3: Thruster preference
 #4: Number of thrusters
 #5: Launch vehicle preference
-#6: Delivered mass to final target
+#6: Delivered mass to final target (kg)
 #7: Final journey mass increment (for maximizing sample return)
 #8: First journey departure C3 (km^2/s^2)
 #9: Final journey arrival C3 (km^2/s^2)
+#10: Total delta-v (km/s)
 outerloop_objective_function_choices 2 6
 
 ##output format settings
