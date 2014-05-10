@@ -11,6 +11,7 @@
 #include "mission.h"
 #include "integerGA.h"
 #include "outerloop_NSGAII.h"
+#include "outerloop_SGA.h"
 
 
 #include "universe.h"
@@ -166,29 +167,39 @@ int main(int argc, char* argv[])
 	boost::mpi::communicator MPIWorld;
 #endif
 
-	if (options.run_outerloop && options.outerloop_objective_function_choices.size() == 0)
+	if (options.run_outerloop && options.outerloop_objective_function_choices.size() == 1)
 	{
-		// TODO call to outer-loop GA
+		//Step 1: instantiate an SGA object
+#ifdef EMTG_MPI
+		GeneticAlgorithm::outerloop_SGA SGA(options, &MPIEnvironment, &MPIWorld);
+#else
+		GeneticAlgorithm::outerloop_SGA SGA(options);
+#endif
 
-		//Step 1: instantiate a random number generator
-		boost::mt19937 RNG;
-		RNG.seed(std::time(0));
+		//Step 2: generate a random population
+		SGA.set_populationsize(options.outerloop_popsize);
+		SGA.set_mutationrate(options.outerloop_mu);
+		SGA.set_max_generations(options.outerloop_genmax);
+		SGA.set_CR(options.outerloop_CR);
+		SGA.set_elitecount(options.outerloop_elitecount);
+		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+			SGA.read_archive(options.outerloop_warm_archive);
 
-		//Step 2: instantiate a GA object
-		integerGA outerloop(&options, TheUniverse, RNG);
+		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+			SGA.readpop(options.outerloop_warm_population);
+		else
+			SGA.generatepop();
 
-		//Step 3: make sure that output files are defined
-		if (options.solutions_file == "")
-			options.solutions_file = options.working_directory + "//solutions.txt";
-		if (options.population_file == "")
-			options.population_file = options.working_directory + "//population.txt";
-		if (options.convergence_file == "")
-			options.convergence_file = options.working_directory + "//convergence.txt";
+		SGA.startclock();
+		SGA.evolve(options, TheUniverse);
 
-		//Step 4: run the GA
-		outerloop.evolve(&options, TheUniverse);
+		//Step 3: write out the population
+		SGA.writepop(options.working_directory + "//SGA_final_population.SGA");
+
+		//Step 4: write out the archive
+		SGA.write_archive(options.working_directory + "//SGA_archive.SGA");
 	}
-	else if (options.run_outerloop && options.outerloop_objective_function_choices.size() > 0)
+	else if (options.run_outerloop && options.outerloop_objective_function_choices.size() > 1)
 	{
 		//Step 1: instantiate an NSGA-II object
 #ifdef EMTG_MPI
@@ -201,6 +212,7 @@ int main(int argc, char* argv[])
 		NSGAII.set_populationsize(options.outerloop_popsize);
 		NSGAII.set_mutationrate(options.outerloop_mu);
 		NSGAII.set_max_generations(options.outerloop_genmax);
+		NSGAII.set_CR(options.outerloop_CR);
 		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
 			NSGAII.read_archive(options.outerloop_warm_archive);
 
@@ -213,10 +225,10 @@ int main(int argc, char* argv[])
 		NSGAII.evolve(options, TheUniverse);
 
 		//Step 3: write out the population
-		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.csv");
+		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.NSGAII");
 
 		//Step 4: write out the archive
-		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.csv");
+		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 	}
 	else
 	{

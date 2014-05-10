@@ -503,6 +503,7 @@
     <ClCompile Include="src\AmsterdamRootFinder.cpp" />
     <ClCompile Include="src\body.cpp" />
     <ClCompile Include="src\bplane.cpp" />
+    <ClCompile Include="src\EMTG_outerloop_solution.cpp" />
     <ClCompile Include="src\EMTG_v8.cpp" />
     <ClCompile Include="src\EMTG_WORHP_interface.cpp" />
     <ClCompile Include="src\engine_model.cpp" />
@@ -531,6 +532,7 @@
     <ClCompile Include="src\monotonic_basin_hopping.cpp" />
     <ClCompile Include="src\orbit_element_conversions.cpp" />
     <ClCompile Include="src\outerloop_NSGAII.cpp" />
+    <ClCompile Include="src\outerloop_SGA.cpp" />
     <ClCompile Include="src\phase.cpp" />
     <ClCompile Include="src\powered_flyby.cpp" />
     <ClCompile Include="src\problem.cpp" />
@@ -556,6 +558,7 @@
     <ClInclude Include="src\EMTG_debug.h" />
     <ClInclude Include="src\EMTG_math.h" />
     <ClInclude Include="src\EMTG_Matrix.h" />
+    <ClInclude Include="src\EMTG_outerloop_solution.h" />
     <ClInclude Include="src\EMTG_WORHP_interface.h" />
     <ClInclude Include="src\equations_of_motion.h" />
     <ClInclude Include="src\FBLTphase.h" />
@@ -576,6 +579,7 @@
     <ClInclude Include="src\mjd_to_mdyhms.h" />
     <ClInclude Include="src\monotonic_basin_hopping.h" />
     <ClInclude Include="src\outerloop_NSGAII.h" />
+    <ClInclude Include="src\outerloop_SGA.h" />
     <ClInclude Include="src\phase.h" />
     <ClInclude Include="src\problem.h" />
     <ClInclude Include="src\quicksort.h" />

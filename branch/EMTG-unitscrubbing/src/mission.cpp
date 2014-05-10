@@ -1037,7 +1037,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 				G[dry_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
 		}
 	}
-	else dry_mass = current_state[6];
+	else dry_mass = current_state[6] - (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * options.propellant_margin;
 
 	//evaluate, if applicable, the propellant mass constraint
 	if (options.enable_maximum_propellant_mass_constraint)
@@ -1093,7 +1093,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 				G[propellant_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
 		}*/
 	}
-	else total_propellant_mass = FirstJourney->phases[0].state_at_beginning_of_phase[0] - current_state[6];
+	else total_propellant_mass = (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * (1.0 + options.propellant_margin);
 
 	switch (options.objective_type)
 	{
