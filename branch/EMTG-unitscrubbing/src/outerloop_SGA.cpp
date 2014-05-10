@@ -181,7 +181,10 @@ namespace GeneticAlgorithm
 		}
 
 		if (mutated_flag)
+		{
 			Individual->description.clear();
+			Individual->Xinner.clear();
+		}
 	}
 
 	//GA selection function
@@ -198,7 +201,7 @@ namespace GeneticAlgorithm
 		parent_pool_indices.push_back(IntegerDistribution(this->RNG));
 		parent_pool.push_back(this->this_generation[parent_pool_indices[0]]);
 
-		for (int k = 1; k < tournamentsize; ++k)
+		for (int k = 1; k < this->tournamentsize; ++k)
 		{
 			bool flag; 
 			do
@@ -206,7 +209,7 @@ namespace GeneticAlgorithm
 				flag = false;
 				candidate_parent_index = IntegerDistribution(RNG);
 
-				for (int q = 0; q < k - 1; ++q) //check to see if we're in the parent pool
+				for (int q = 0; q < parent_pool_indices.size(); ++q) //check to see if we're in the parent pool
 				{
 					if (candidate_parent_index == parent_pool_indices[q]) //if this index is already in the parent pool, turn on the flag
 						flag = 1;

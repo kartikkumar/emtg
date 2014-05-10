@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
 		SGA.set_max_generations(options.outerloop_genmax);
 		SGA.set_CR(options.outerloop_CR);
 		SGA.set_elitecount(options.outerloop_elitecount);
+		SGA.set_tournament_size(options.outerloop_tournamentsize);
 		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
 			SGA.read_archive(options.outerloop_warm_archive);
 
