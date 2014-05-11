@@ -41,6 +41,7 @@ namespace GeneticAlgorithm
 		EMTG::missionoptions parse_outer_loop_decision_vector();
 		void set_data_pointers(void* optionspointer, void* Universepointer);
 		void write_csv_line(std::string outputfile);
+		void clear_innerloop_solution();
 
 		//fields
 		std::vector<int> X;

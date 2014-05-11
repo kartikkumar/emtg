@@ -515,7 +515,6 @@
     <ClCompile Include="src\frame.cpp" />
     <ClCompile Include="src\GMAT_interface.cpp" />
     <ClCompile Include="src\insertion_burn.cpp" />
-    <ClCompile Include="src\integerGA.cpp" />
     <ClCompile Include="src\interpolator.cpp" />
     <ClCompile Include="src\journey.cpp" />
     <ClCompile Include="src\kepler_lagrange_laguerre_conway.cpp" />
@@ -564,7 +563,6 @@
     <ClInclude Include="src\FBLTphase.h" />
     <ClInclude Include="src\file_utilities.h" />
     <ClInclude Include="src\frame.h" />
-    <ClInclude Include="src\integerGA.h" />
     <ClInclude Include="src\interpolator.h" />
     <ClInclude Include="src\journey.h" />
     <ClInclude Include="src\kepler_lagrange_laguerre_conway.h" />

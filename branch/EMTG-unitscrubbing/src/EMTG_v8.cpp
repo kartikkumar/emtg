@@ -9,7 +9,6 @@
 
 #include "missionoptions.h"
 #include "mission.h"
-#include "integerGA.h"
 #include "outerloop_NSGAII.h"
 #include "outerloop_SGA.h"
 

@@ -373,4 +373,15 @@ namespace GeneticAlgorithm
 
 		outputfile.close();
 	}
+
+	void EMTG_outerloop_solution::clear_innerloop_solution()
+	{
+		this->Xinner.clear();
+		this->description.clear();
+		
+		for (int obj = 0; obj < this->fitness_values.size(); ++obj)
+			this->fitness_values[obj] = 1.0e+100;
+
+		this->innerloop_fitness = 1.0e+100;
+	}
 }

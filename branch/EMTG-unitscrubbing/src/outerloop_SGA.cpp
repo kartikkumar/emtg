@@ -181,10 +181,7 @@ namespace GeneticAlgorithm
 		}
 
 		if (mutated_flag)
-		{
-			Individual->description.clear();
-			Individual->Xinner.clear();
-		}
+			Individual->clear_innerloop_solution();
 	}
 
 	//GA selection function

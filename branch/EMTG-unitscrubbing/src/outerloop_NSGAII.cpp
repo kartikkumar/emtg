@@ -402,8 +402,7 @@ namespace GeneticAlgorithm
 			}
 			if (mutated_flag)
 			{
-				population[individual].description.clear();
-				population[individual].Xinner.clear();
+				population[individual].clear_innerloop_solution();
 			}
 		}
 	}
