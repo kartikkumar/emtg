@@ -77,7 +77,7 @@ namespace EMTG {
 
 				try
 				{
-					this->evaluate(&this->Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 				}
 				catch (int e)
 				{
@@ -131,7 +131,7 @@ namespace EMTG {
 				
 				try
 				{
-					this->evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 				}
 				catch (int e)
 				{
@@ -161,9 +161,9 @@ namespace EMTG {
 					if (solver.BestConstraintNorm < options.snopt_feasibility_tolerance && solver.BestObjectiveValue < bestJ)
 					{
 						bestJ = solver.BestObjectiveValue;
-						unscale(solver.BestX.data());
-						Xopt = X;
-						evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+						this->unscale(solver.BestX.data());
+						this->Xopt = X;
+						this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 
 						this->output();
 					}
@@ -196,13 +196,13 @@ namespace EMTG {
 
 				unscale(&(solver.Xtrial_scaled[0]));
 
-				Xopt = X;
+				this->Xopt = X;
 
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 			
 				try
 				{
-					evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 				}
 				catch (int errorcode)
 				{

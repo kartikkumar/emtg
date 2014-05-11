@@ -2309,6 +2309,8 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
 			case 10: //delta-V
 				objective_functions[objective] = this->current_deltaV;
+			case 11: //inner-loop objective function
+				objective_functions[objective] = this->F[0];
 			}
 		}
 	}

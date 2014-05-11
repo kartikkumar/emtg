@@ -1442,6 +1442,7 @@ class MissionOptions(object):
         outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
         outputfile.write("#10: Total delta-v (km/s)\n")
+        outputfile.write("#11: Inner-loop objective (whatever it was)\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
