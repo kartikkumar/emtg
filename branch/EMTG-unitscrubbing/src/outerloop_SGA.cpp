@@ -404,12 +404,6 @@ namespace GeneticAlgorithm
 			this->this_generation[unevaluated_individuals_indices[individual]].timestamp = std::time(NULL) - this->tstart;
 			this->this_generation[unevaluated_individuals_indices[individual]].generation_found = this->current_generation;
 		}
-
-		std::stringstream generation_note_stream;
-		generation_note_stream << "Evaluated_population_generation" << this->current_generation;
-		std::ofstream generation_note(generation_note_stream.str() + ".txt", ios::trunc);
-		generation_note << "Finished evaluating generation " << this->current_generation << std::endl;
-		generation_note.close();
 #endif
 
 		//unwrap the results into the main population vector and add each solution to the archive IFF it is unique
@@ -524,6 +518,9 @@ namespace GeneticAlgorithm
 		char line_buffer[2048];
 		std::vector<std::string> linecell;
 		int number_of_genes = 0;
+
+		this->current_generation = 0;
+		this->stall_generation = 0;
 
 		if (!inputfile.is_open())
 		{
@@ -740,7 +737,7 @@ namespace GeneticAlgorithm
 					this->archive_of_solutions.push_back(EMTG_outerloop_solution(Xtemp, this->number_of_objectives));
 
 					//fill in the description, generation found, and timestamp
-					this->archive_of_solutions.back().description = atoi(linecell[number_of_genes].c_str());
+					this->archive_of_solutions.back().description = linecell[number_of_genes].c_str();
 					this->archive_of_solutions.back().generation_found = atoi(linecell[number_of_genes + 1].c_str());
 					this->archive_of_solutions.back().timestamp = atoi(linecell[number_of_genes + 2].c_str());
 
