@@ -847,7 +847,7 @@ namespace GeneticAlgorithm
 
 				//add the elite individuals
 				else
-					this->children_population[individual] = this->this_generation[this->popsize - 1 - individual];
+					this->children_population[individual] = this->archive_of_solutions[this->popsize - 1 - individual];
 			}
 
 #ifdef EMTG_MPI

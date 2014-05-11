@@ -293,7 +293,7 @@ class NSGAII_outerloop_population(object):
                 if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
                     X = solution.objective_values[self.ordered_list_of_objectives[0]] / 365.25
                 elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                    X = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[objective_index] + 2400000.5).GetTicks()))
+                    X = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[0] + 2400000.5).GetTicks()))
                 else:
                     X = solution.objective_values[self.ordered_list_of_objectives[0]]
 
@@ -369,21 +369,24 @@ class NSGAII_outerloop_population(object):
             if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
                 print 'Flight time (years)', ': ', x[ind] 
             elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                print 'Launch Epoch (TDB Gregorian):', wx.DateTimeFromJDN(solution.objective_values[0] + 2400000.5)
+                dt = datetime.datetime.fromordinal(int(x[ind]))
+                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
             else:
                 print self.objective_column_headers[self.ordered_list_of_objectives[0]], ': ', x[ind]
         
             if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)' and self.TimeUnit == 0:
                 print 'Flight time (years)', ': ', y[ind] 
             elif self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                print 'Launch Epoch (TDB Gregorian):', wx.DateTimeFromJDN(solution.objective_values[1] + 2400000.5)
+                dt = datetime.datetime.fromordinal(int(y[ind]))
+                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
             else:
                 print self.objective_column_headers[self.ordered_list_of_objectives[1]], ': ', y[ind]
 
             if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)' and self.TimeUnit == 0:
                 print 'Flight time (years)', ': ', z[ind] 
             elif self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                print 'Launch Epoch (TDB Gregorian):', wx.DateTimeFromJDN(solution.objective_values[2] + 2400000.5)
+                dt = datetime.datetime.fromordinal(int(z[ind]))
+                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
             else:
                 print self.objective_column_headers[self.ordered_list_of_objectives[2]], ': ', z[ind]
         else:
