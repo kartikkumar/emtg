@@ -60,17 +60,17 @@ namespace GeneticAlgorithm
 		//members
 
 		//comparators
-		bool operator>(EMTG_outerloop_solution OtherSolution);
-		bool operator<(EMTG_outerloop_solution OtherSolution);
-		bool operator>=(EMTG_outerloop_solution OtherSolution);
-		bool operator<=(EMTG_outerloop_solution OtherSolution);
-		bool operator==(EMTG_outerloop_solution OtherSolution);
-		bool compare_objective_greaterthan(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
-		bool compare_objective_greaterthanorequalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
-		bool compare_objective_lessthan(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
-		bool compare_objective_lessthanorequalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
-		bool compare_objective_equalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit);
-		bool compare_description(EMTG_outerloop_solution& OtherSolution);
+		bool operator>(const EMTG_outerloop_solution OtherSolution) const;
+		bool operator<(const EMTG_outerloop_solution& OtherSolution) const;
+		bool operator>=(const EMTG_outerloop_solution OtherSolution) const;
+		bool operator<=(const EMTG_outerloop_solution OtherSolution) const;
+		bool operator==(const EMTG_outerloop_solution OtherSolution) const;
+		bool compare_objective_greaterthan(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const;
+		bool compare_objective_greaterthanorequalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const;
+		bool compare_objective_lessthan(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const;
+		bool compare_objective_lessthanorequalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const;
+		bool compare_objective_equalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const;
+		bool compare_description(const EMTG_outerloop_solution& OtherSolution) const;
 
 	private:
 		//serialization code, if applicable

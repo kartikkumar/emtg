@@ -20,57 +20,57 @@ namespace GeneticAlgorithm
 		this->fitness_values.resize(number_of_objectives, 1.0e+100);
 	}
 
-	bool EMTG_outerloop_solution::operator>(EMTG_outerloop_solution OtherSolution)
+	bool EMTG_outerloop_solution::operator>(const EMTG_outerloop_solution OtherSolution) const
 	{
 		return this->compare_objective_greaterthan(OtherSolution, 0, 1.0e-6);
 	}
 
-	bool EMTG_outerloop_solution::operator<(EMTG_outerloop_solution OtherSolution)
+	bool EMTG_outerloop_solution::operator<(const EMTG_outerloop_solution& OtherSolution) const
 	{
 		return this->fitness_values[0] < OtherSolution.fitness_values[0];
 	}
 
-	bool EMTG_outerloop_solution::operator>=(EMTG_outerloop_solution OtherSolution)
+	bool EMTG_outerloop_solution::operator>=(const EMTG_outerloop_solution OtherSolution) const
 	{
 		return this->compare_objective_greaterthanorequalto(OtherSolution, 0, 1.0e-6);
 	}
 
-	bool EMTG_outerloop_solution::operator<=(EMTG_outerloop_solution OtherSolution)
+	bool EMTG_outerloop_solution::operator<=(const EMTG_outerloop_solution OtherSolution) const
 	{
 		return this->compare_objective_lessthanorequalto(OtherSolution, 0, 1.0e-6);
 	}
 
-	bool EMTG_outerloop_solution::operator==(EMTG_outerloop_solution OtherSolution)
+	bool EMTG_outerloop_solution::operator==(const EMTG_outerloop_solution OtherSolution) const
 	{
 		return this->compare_objective_equalto(OtherSolution, 0, 1.0e-6);
 	}
 
-	bool EMTG_outerloop_solution::compare_objective_greaterthan(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit)
+	bool EMTG_outerloop_solution::compare_objective_greaterthan(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const
 	{
 		return (this->fitness_values[index] - OtherSolution.fitness_values[index] > tolfit ? true : false);
 	}
 
-	bool EMTG_outerloop_solution::compare_objective_greaterthanorequalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit)
+	bool EMTG_outerloop_solution::compare_objective_greaterthanorequalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const
 	{
 		return (this->fitness_values[index] - OtherSolution.fitness_values[index] >= tolfit ? true : false);
 	}
 
-	bool EMTG_outerloop_solution::compare_objective_lessthan(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit)
+	bool EMTG_outerloop_solution::compare_objective_lessthan(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const
 	{
 		return (this->fitness_values[index] - OtherSolution.fitness_values[index] < tolfit ? true : false);
 	}
 
-	bool EMTG_outerloop_solution::compare_objective_lessthanorequalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit)
+	bool EMTG_outerloop_solution::compare_objective_lessthanorequalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const
 	{
 		return (this->fitness_values[index] - OtherSolution.fitness_values[index] <= tolfit ? true : false);
 	}
 
-	bool EMTG_outerloop_solution::compare_objective_equalto(EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit)
+	bool EMTG_outerloop_solution::compare_objective_equalto(const EMTG_outerloop_solution& OtherSolution, size_t index, const double& tolfit) const
 	{
 		return (fabs(this->fitness_values[index] - OtherSolution.fitness_values[index]) < tolfit ? true : false);
 	}
 
-	bool EMTG_outerloop_solution::compare_description(EMTG_outerloop_solution& OtherSolution)
+	bool EMTG_outerloop_solution::compare_description(const EMTG_outerloop_solution& OtherSolution) const
 	{
 		return (this->description == OtherSolution.description ? true : false);
 	}
