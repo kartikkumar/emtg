@@ -1491,7 +1491,7 @@ namespace EMTG {
 		math::Matrix<double> rot_in_vec(3,1);
 
 		//construct the rotation matrix from ICRF to the local frame
-		Universe->LocalFrame.construct_rotation_matrices(current_epoch_MJD / 86400.0 + 2400000.5);
+		Universe->LocalFrame.construct_rotation_matrices(current_epoch_MJD + 2400000.5);
 
 		//open the output file
 		ofstream outputfile(options->outputfile.c_str(), ios::out | ios::app);

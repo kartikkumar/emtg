@@ -1566,13 +1566,22 @@ namespace EMTG {
 				event_type = "match-vinf";
 
 			//compute RA and DEC in the frame of the target body
-			this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
-			math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
-			math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+			if (options->destination_list[j][1] > 0)
+			{
+				this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+				math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+				math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
 
-			this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+				this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
 
-			this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+				this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+			}
+			else
+			{
+				this->RA_arrival = 0.0;
+				this->DEC_arrival = 0.0;
+			}
+			
 	
 			double dV_arrival_mag;
 			if (options->journey_arrival_type[j] == 2)
