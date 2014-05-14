@@ -420,8 +420,8 @@ class MissionEvent(object):
                     timehistory.append(TimeLine + self.JulianDate * 86400)
 
         else:
-            statehistory = np.array(self.SpacecraftState[0:6])
-            accelhistory = np.array([0.0, 0.0, 0.0])
-            timehistory = self.JulianDate * 86400
+            statehistory.append(np.array(self.SpacecraftState[0:6]) * 1000.0)
+            accelhistory.append(np.array([0.0, 0.0, 0.0]))
+            timehistory.append(self.JulianDate * 86400)
 
         return timehistory, statehistory, accelhistory

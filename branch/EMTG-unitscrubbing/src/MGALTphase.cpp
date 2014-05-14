@@ -1579,7 +1579,7 @@ namespace EMTG {
 			{
 				dV_arrival_mag = sqrt(this->C3_arrival);
 			}
-			else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3)
+			else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 7)
 			{
 				dV_arrival_mag = 0;
 				this->dVarrival[0] = 0;

@@ -715,9 +715,9 @@ namespace EMTG {
 		if (options->journey_arrival_type[j] == 7)//for journeys which end in a spiral
 		{
 			//journeys which end with a spiral have no terminal velocity vector
-			this->C3_arrival = 0;
-			this->RA_arrival = 0;
-			this->DEC_arrival = 0;
+			this->C3_arrival = 0.0;
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
 
 			//*******************************************************
 			//Step 4: compute the state pre-arrival
