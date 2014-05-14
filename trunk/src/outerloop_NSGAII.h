@@ -95,12 +95,12 @@ namespace GeneticAlgorithm
 	{
 		private:
 			//methods
-			std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::select(const std::vector<EMTG_outerloop_solution> &parent_population);
-			std::vector< EMTG_outerloop_solution >  outerloop_NSGAII::crossover_uniformInt(std::vector<EMTG_outerloop_solution> &parent_pool);
-			void outerloop_NSGAII::mutate(std::vector< EMTG_outerloop_solution > &population);
-			void outerloop_NSGAII::non_dominated_sort(std::vector<EMTG_outerloop_solution> &population);
-			void outerloop_NSGAII::assign_crowding_distance(std::vector< EMTG_outerloop_solution > &local_front);
-			void outerloop_NSGAII::filter_population();
+			std::vector< EMTG_outerloop_solution >  select(const std::vector<EMTG_outerloop_solution> &parent_population);
+			std::vector< EMTG_outerloop_solution >  crossover_uniformInt(std::vector<EMTG_outerloop_solution> &parent_pool);
+			void mutate(std::vector< EMTG_outerloop_solution > &population);
+			void non_dominated_sort(std::vector<EMTG_outerloop_solution> &population);
+			void assign_crowding_distance(std::vector< EMTG_outerloop_solution > &local_front);
+			void filter_population();
 
 			//distributions
 			std::vector< boost::uniform_int<> > random_integer;
