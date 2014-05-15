@@ -154,10 +154,10 @@ class NSGAIIpanel(wx.Panel):
         self.plotoptions.UpperBounds[0] = eval(self.objective_upperbound_fields[0].GetValue())
 
     def ChangeYLowerBound(self, event):
-        self.plotoptions.LowerBounds[1] = eval(self.objective_lowerbound_fields[2].GetValue())
+        self.plotoptions.LowerBounds[1] = eval(self.objective_lowerbound_fields[1].GetValue())
 
     def ChangeYUpperBound(self, event):
-        self.plotoptions.UpperBounds[1] = eval(self.objective_upperbound_fields[2].GetValue())
+        self.plotoptions.UpperBounds[1] = eval(self.objective_upperbound_fields[1].GetValue())
 
     def ChangeZLowerBound(self, event):
         self.plotoptions.LowerBounds[2] = eval(self.objective_lowerbound_fields[2].GetValue())
