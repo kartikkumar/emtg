@@ -8,7 +8,11 @@
 #include "MGADSMphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
+
+#ifdef _EMTG_proprietary
 #include "Lambert.h"
+#endif
+
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -398,6 +402,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
+#ifdef _EMTG_proprietary
 	EMTG::Astrodynamics::Lambert (	this->state_before_burn,
 									boundary2_state,
 									time_after_burn,
@@ -423,6 +428,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 										0,
 										lambert_v1,
 										lambert_v2);
+#endif
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)

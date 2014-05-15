@@ -9,7 +9,11 @@
 #include "MGAphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
+
+#ifdef _EMTG_proprietary
 #include "Lambert.h"
+#endif
+
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -152,6 +156,7 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 								options);
 
 	//Step 5: solve Lambert's problem between the planets
+#ifdef _EMTG_proprietary
 	EMTG::Astrodynamics::Lambert (boundary1_state,
 									boundary2_state,
 									TOF,
@@ -160,6 +165,7 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 									0, 
 									lambert_v1,
 									lambert_v2);
+
 
 	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
 
@@ -172,6 +178,7 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 										0,
 										lambert_v1, 
 										lambert_v2);
+#endif
 
 	//Step 6: compute all parameters of the first event of the phase
 	//if this is the first phase in the journey, compute RA and DEC. Otherwise process the flyby at the beginning of the phase

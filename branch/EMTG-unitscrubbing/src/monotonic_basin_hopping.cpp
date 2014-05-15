@@ -674,7 +674,7 @@ namespace EMTG { namespace Solvers {
 			int ransnopt = slide();
 
 			//Step 3: determine if the new trial point is feasible and if so, operate on it
-			double feasibility = check_feasibility();
+			double feasibility = this->check_feasibility();
 
 			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
 			if (Problem->options.MBH_two_step && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
