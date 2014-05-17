@@ -1204,6 +1204,7 @@ class MissionOptions(object):
         outputfile.write("#3: flyby (only valid for successive journeys)\n")
         outputfile.write("#4: flyby with fixed v-infinity-out (only valid for successive journeys)\n")
         outputfile.write("#5: spiral-out from circular orbit (low-thrust missions only)\n")
+        outputfile.write("#6: zero-turn flyby (for small bodies)\n")
         outputfile.write("journey_departure_type")
         for j in range (0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_departure_type))
@@ -2044,14 +2045,20 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_initial_velocity1.Show(False)
             optionsnotebook.tabJourney.txtjourney_initial_velocity2.Show(False)
 
-        if self.Journeys[self.ActiveJourney].journey_departure_type == 3 or self.Journeys[self.ActiveJourney].journey_departure_type == 4:
+        if self.Journeys[self.ActiveJourney].journey_departure_type == 3 or self.Journeys[self.ActiveJourney].journey_departure_type == 4 or self.Journeys[self.ActiveJourney].journey_departure_type == 6:
             optionsnotebook.tabJourney.lbljourney_wait_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_upper.Show(False)
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
         else:
             optionsnotebook.tabJourney.lbljourney_wait_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_upper.Show(True)
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(True)
 
         if self.Journeys[self.ActiveJourney].journey_arrival_type == 4 or self.Journeys[self.ActiveJourney].journey_arrival_type == 5:
             optionsnotebook.tabJourney.lbljourney_final_velocity.Show(True)

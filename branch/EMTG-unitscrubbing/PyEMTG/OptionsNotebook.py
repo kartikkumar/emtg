@@ -470,7 +470,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lbljourney_departure_type = wx.StaticText(self, -1, "Journey departure type")
         journey_departure_type_choices = ['0: launch or direct insertion','1: depart from parking orbit','2: free direct departure',
-                                        '3: flyby','4: flyby with fixed v-infinity-out','5: Spiral-out from circular orbit']
+                                        '3: flyby','4: flyby with fixed v-infinity-out','5: Spiral-out from circular orbit','6: zero-turn flyby (for small bodies)']
         self.cmbjourney_departure_type = wx.ComboBox(self, -1, choices=journey_departure_type_choices, style=wx.CB_READONLY)
 
         self.lbljourney_initial_velocity = wx.StaticText(self, -1, "Journey initial velocity vector")

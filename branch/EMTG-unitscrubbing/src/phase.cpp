@@ -58,7 +58,7 @@ namespace EMTG {
 			this->Body2 = &Universe->bodies[boundary2_location_code - 1];
 
 		//we need to know if we are the first phase of the journey and the journey does not start with a flyby
-		if (p == 0 && !(options->journey_departure_type[j] == 3))
+		if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			//Step 1: extract the journey start epoch
 			//if this is the first journey, the first decision variable is the starting epoch
@@ -422,7 +422,80 @@ namespace EMTG {
 				//Step 4.3.3 fill in the new mass
 				this->state_at_beginning_of_phase[6] = this->spiral_escape_mass_after;
 			}
+
 		}//end departure code
+		else if (options->journey_departure_type[j] == 6)
+		{
+			//for first-phase zero-turn flybys
+			//there are no decision variables or constraints
+
+			//step 3.1 compute incoming v_infinity at flyby
+			if (p == 0)
+				this->locate_boundary_point(this->boundary1_location_code,
+				options->journey_departure_type[j],
+				true,
+				Universe,
+				boundary1_state,
+				current_state + 3,
+				*current_epoch,
+				X,
+				Xindex,
+				F,
+				Findex,
+				G,
+				Gindex,
+				needG,
+				j,
+				p,
+				options);
+
+			for (int k = 0; k < 3; ++k)
+				this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
+
+			//Step 3.2 extract V_infinity_out from decision vector and apply equal v-infinity constraint
+			for (int k = 0; k < 3; ++k)
+			{
+				this->V_infinity_out(k) = X[*Xindex];
+				++(*Xindex);
+				
+				double v_infinity_in_k = this->V_infinity_in(k);
+
+				F[*Findex] = (this->V_infinity_out(k) - v_infinity_in_k) / v_infinity_in_k;
+				++(*Findex);
+
+				if (options->derivative_type > 0 && needG)
+				{
+					G[flyby_velocity_magnitude_constraint_G_indices[k * 2]] = 1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2];
+					G[flyby_velocity_magnitude_constraint_G_indices[k * 2 + 1]] = -1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2 + 1];
+				}
+			}
+
+			this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();
+			this->C3_departure = this->flyby_outgoing_v_infinity*this->flyby_outgoing_v_infinity;
+
+			this->flyby_altitude = 0.0;
+			this->flyby_turn_angle = 0.0;
+			this->dV_departure_magnitude = 0.0;
+
+			//calculate the b-plane parameters, check the periapse altitude
+			this->BoundaryR.assign_all(boundary1_state);
+			this->BoundaryV.assign_all(boundary1_state + 3);
+
+
+
+			//store the state at the beginning of the phase, post-flyby
+			for (int k = 0; k < 3; ++k)
+			{
+				this->state_at_beginning_of_phase[k] = boundary1_state[k];
+				this->state_at_beginning_of_phase[k + 3] = boundary1_state[k + 3] + V_infinity_out(k);
+			}
+
+			//store the mass
+			if (p == 0)
+				this->state_at_beginning_of_phase[6] = current_state[6] + options->journey_starting_mass_increment[j];
+			else
+				this->state_at_beginning_of_phase[6] = current_state[6];
+		}
 		else
 		{
 			//there is no alternate step 2
@@ -1796,7 +1869,7 @@ namespace EMTG {
 		}
 
 		//next, we need to know if we are the first phase in the journey and the journey does not start with a flyby
-		if (p == 0 && !(options->journey_departure_type[j] == 3))
+		if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			//if we are the first phase, we also need to know if we are the first journey
 			if (j == 0)
@@ -1988,7 +2061,7 @@ namespace EMTG {
 			}
 
 			//then we have up to four variables to parameterize the departure
-			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)))
+			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)))
 			{
 				if (!(options->journey_departure_type[j] == 5 || options->journey_departure_type[j] == 2)) //for journeys that do not start from a spiral or a free direct departure
 				{
@@ -2073,90 +2146,214 @@ namespace EMTG {
 				Xdescriptions->push_back(prefix + "initial velocity increment z");
 			}
 
-
-			//we must encode a flyby velocity match constraint
-			Flowerbounds->push_back(-math::SMALL);
-			Fupperbounds->push_back(math::SMALL);
-			Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity must match at the flyby");
-
-			//Jacobian entry (nonlinear) for the flyby velocity match constraint
-			//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
-			//
-			//Initial velocity:
-			for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+			if (p == 0 && options->journey_departure_type[j] == 6) //constraints for a zero-turn flyby
 			{
-				if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_x must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby X velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_constraints_X_indices.push_back(entry);
-					flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry-2);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-2 << "]: " << (*Xdescriptions)[entry-2];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry-2);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry-2] - (*Xlowerbounds)[entry-2]);
+						break;
+					}
+				}
+
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_y must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby Y velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry+1);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry+1);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry+1] - (*Xlowerbounds)[entry+1]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry-1);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry-1);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry-1] - (*Xlowerbounds)[entry-1]);
+						break;
+					}
+				}
+
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_z must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby Z velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry+2);
+						stringstream entryNameStream;
+						entryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
+						Gdescriptions->push_back(entryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry+2);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry+2] - (*Xlowerbounds)[entry+2]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						break;
+					}
 				}
 			}
-			//Terminal velocity:
-			int foundcount = 0;
-			for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+			else //constraints for other types of flyby
 			{
-				if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_constraints_X_indices.push_back(entry);
-					flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-					++foundcount;
-				}
-				if (foundcount >= 3)
-					break;
-			}
+				//we must encode a flyby velocity match constraint
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity must match at the flyby");
 
-			//we also need to encode a no-collision constraint
-			if (Universe->bodies[boundary1_location_code-1].mass < 1.0e+25)
-				Flowerbounds->push_back(-10.0);
-			else
-				Flowerbounds->push_back(-300.0);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "flyby altitude constraint (above minimum altitude but below [10x/300x] altitude for [rocky/gas] planets");
-		
-			//Jacobian entry (nonlinear) for the flyby no-collision constraint
-			//the no-collision constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
-			//
-			//Initial velocity:
-			for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-			{
-				if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+				//Jacobian entry (nonlinear) for the flyby velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+					}
 				}
-			}
-			//Terminal velocity:
-			foundcount = 0;
-			for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
-			{
-				if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+				//Terminal velocity:
+				int foundcount = 0;
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					++foundcount;
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						++foundcount;
+					}
+					if (foundcount >= 3)
+						break;
 				}
-				if (foundcount >= 3)
-					break;
+
+				//we also need to encode a no-collision constraint
+				if (Universe->bodies[boundary1_location_code - 1].mass < 1.0e+25)
+					Flowerbounds->push_back(-10.0);
+				else
+					Flowerbounds->push_back(-300.0);
+				Fupperbounds->push_back(0.0);
+				Fdescriptions->push_back(prefix + "flyby altitude constraint (above minimum altitude but below [10x/300x] altitude for [rocky/gas] planets");
+
+				//Jacobian entry (nonlinear) for the flyby no-collision constraint
+				//the no-collision constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+					}
+				}
+				//Terminal velocity:
+				foundcount = 0;
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						++foundcount;
+					}
+					if (foundcount >= 3)
+						break;
+				}
 			}
 		}
 	}

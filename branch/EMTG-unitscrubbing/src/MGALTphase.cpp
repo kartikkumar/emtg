@@ -767,23 +767,6 @@ namespace EMTG {
 					//derivative with respect to z component of terminal velocity
 					G[terminal_velocity_constraint_G_indices[2]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[2] * X[terminal_velocity_constraint_X_indices[2]] / C3_desired;
 				}
-				/*if ( needG && options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
-				{
-					double Vx = X[arrival_declination_constraint_X_indices[0]];
-					double Vy = X[arrival_declination_constraint_X_indices[1]];
-					double Vz = X[arrival_declination_constraint_X_indices[2]];
-					double A = sqrt(Vx*Vx + Vy*Vy);
-					double B = Vx*Vx + Vy*Vy + Vz*Vz;
-
-					//derivative with respect to x component of terminal velocity
-					G[arrival_declination_constraint_G_indices[0]] = arrival_declination_constraint_X_scale_ranges[0] * Vx*Vz / (A*B) / options->journey_arrival_declination_bounds[j][1];
-
-					//derivative with respect to y component of terminal velocity
-					G[arrival_declination_constraint_G_indices[1]] = arrival_declination_constraint_X_scale_ranges[0] * Vy*Vz / (A*B) / options->journey_arrival_declination_bounds[j][1];
-
-					//derivative with respect to z component of terminal velocity
-					G[arrival_declination_constraint_G_indices[2]] = arrival_declination_constraint_X_scale_ranges[0] * -A/B / options->journey_arrival_declination_bounds[j][1];
-				}*/
 				else if (needG && options->journey_arrival_type[j] == 6)
 				{
 					double r = math::norm(boundary2_state, 3) / Universe->LU;

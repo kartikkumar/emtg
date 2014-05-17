@@ -1231,18 +1231,17 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 					
 		this->journey_departure_type.push_back((int) value);
 
-		if (value > 5 || value < 0)
+		if (value > 6 || value < 0)
 		{
 			errorstream << "Invalid journey departure type, journey 1" << endl;
 			this->error_message = errorstream.str();
-
 		}
 					
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> value;
 			this->journey_departure_type.push_back((int) value);
 
-			if (value > 5 || value < 0)
+			if (value > 6 || value < 0)
 			{
 				errorstream << "Invalid journey departure type, journey " << k+1 << endl;
 				this->error_message = errorstream.str();
@@ -2188,6 +2187,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#3: flyby (only valid for successive journeys)" << endl;
 		outputfile << "#4: flyby with fixed v-infinity-out (only valid for successive journeys)" << endl;
 		outputfile << "#5: spiral-out from circular orbit (low-thrust missions only)" << endl;
+		outputfile << "#6: zero-turn flyby (for small bodies)" << endl;
 		outputfile << "journey_departure_type";
 		for (int j = 0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_departure_type[j];
@@ -2200,6 +2200,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#4: match final v-infinity vector" << endl;
 		outputfile << "#5: match final v-infinity vector (low-thrust)" << endl;
 		outputfile << "#6: escape (E = 0)" << endl;
+		outputfile << "#7: capture spiral" << endl;
 		outputfile << "journey_arrival_type";
 		for (int j = 0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_arrival_type[j];
