@@ -810,6 +810,8 @@ namespace GeneticAlgorithm
 		std::sort(this->this_generation.begin(), this->this_generation.end());
 		this->children_population.resize(this->popsize);
 
+		this->current_generation = options.outerloop_warmstart;
+
 		// Main loop
 		//**************
 		while (this->current_generation <= this->genmax)

@@ -1061,7 +1061,7 @@ namespace GeneticAlgorithm
 		this->write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 
 		this->children_population = this->this_generation;
-		this->current_generation = 1;
+		this->current_generation = options.outerloop_warmstart + 1;
 		
 
 		// Main loop

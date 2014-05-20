@@ -115,28 +115,30 @@ int main(int argc, char* argv[])
 	//print the options file to the new directory
 	options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
 	
-
-	//load all ephemeris data
+	//load all ephemeris data if using SPICE
 	vector<fs::path> SPICE_files;
-	EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
-	EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
-
 	string filestring;
-	for (size_t k = 0; k < SPICE_files.size(); ++k)
-	{
-		filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
-		furnsh_c(filestring.c_str());
+	if (options.ephemeris_source == 1)
+	{	
+		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
+		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
+
+		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		{
+			filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
+			furnsh_c(filestring.c_str());
+		}
+
+		//SPICE reference frame kernel
+		string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
+		string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
+		furnsh_c(leapsecondstring.c_str());
+		furnsh_c(referenceframestring.c_str());
+
+		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
+		errprt_c("SET", 100, "NONE");
+		erract_c("SET", 100, "RETURN");
 	}
-
-	//SPICE reference frame kernel
-	string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
-	string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
-	furnsh_c(leapsecondstring.c_str());
-	furnsh_c(referenceframestring.c_str());
-
-	//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-	errprt_c ("SET", 100, "NONE");
-	erract_c ("SET", 100, "RETURN");
 
 	//create a vector of universes for each journey
 	boost::ptr_vector<EMTG::Astrodynamics::universe> TheUniverse;
@@ -388,15 +390,17 @@ int main(int argc, char* argv[])
 
 	//unload SPICE
 
-
-	for (size_t k = 0; k < SPICE_files.size(); ++k)
+	if (options.ephemeris_source == 1)
 	{
-		filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
-		unload_c(filestring.c_str());
-	}
+		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		{
+			filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
+			unload_c(filestring.c_str());
+		}
 
-	unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
-	unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());	
+		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
+		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());
+	}
 
 #ifndef BACKGROUND_MODE
 	std::cout << "EMTG run complete. Press enter to close window." << endl;
