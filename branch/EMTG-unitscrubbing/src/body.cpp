@@ -134,8 +134,11 @@ namespace EMTG {namespace Astrodynamics {
 					V[1] = ECC; 
 					V[2] = INC;
 					V[3] = RAAN;
-					V[4] = AOP; 
-					V[5] = E;
+					V[4] = AOP;
+
+					true_anomaly = 2.0*atan(sqrt((1.0 + ECC) / (1.0 - ECC))*tan(E / 2.0));
+					V[5] = true_anomaly;
+
 
 					COE2inertial(V, universe_mu, state);
 
