@@ -50,6 +50,7 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
+    lazy_race_tree_allow_duplicates = 0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -317,6 +318,8 @@ class MissionOptions(object):
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
                         self.quiet_outerloop = int(linecell[1])
+                    elif choice == "lazy_race_tree_allow_duplicates":
+                        self.lazy_race_tree_allow_duplicates = int(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -782,7 +785,10 @@ class MissionOptions(object):
         outputfile.write("\n")
 
         outputfile.write("##outer-loop solver settings\n")
-        outputfile.write("#whether or not to run the outer-loop\n")
+        outputfile.write("#Do you want to run an outer-loop?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: Genetic algorithm (number of objective functions determines which GA to run)\n")
+        outputfile.write("#2: lazy race-tree search\n")
         outputfile.write("run_outerloop " + str(self.run_outerloop) + "\n")
         outputfile.write("#outer-loop population size\n")	
         outputfile.write("outerloop_popsize " + str(self.outerloop_popsize) + "\n")
@@ -814,6 +820,10 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
+        outputfile.write("#Allow duplicates in lazy race-tree search?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("lazy_race_tree_allow_duplicates " + str(self.lazy_race_tree_allow_duplicates) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -3070,7 +3080,7 @@ class MissionOptions(object):
         #outer-loop solver options
 
                                                                                 
-        optionsnotebook.tabSolver.chkrun_outerloop.SetValue(self.run_outerloop)
+        optionsnotebook.tabSolver.cmbrun_outerloop.SetSelection(self.run_outerloop)
         optionsnotebook.tabSolver.txtouterloop_popsize.SetValue(str(self.outerloop_popsize))
         optionsnotebook.tabSolver.txtouterloop_genmax.SetValue(str(self.outerloop_genmax))
         optionsnotebook.tabSolver.txtouterloop_tournamentsize.SetValue(str(self.outerloop_tournamentsize))

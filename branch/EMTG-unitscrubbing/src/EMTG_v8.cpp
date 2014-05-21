@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
 	boost::mpi::communicator MPIWorld;
 #endif
 
-	if (options.run_outerloop && options.outerloop_objective_function_choices.size() == 1)
+	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
 	{
 		//Step 1: instantiate an SGA object
 #ifdef EMTG_MPI
@@ -201,7 +201,7 @@ int main(int argc, char* argv[])
 		//Step 4: write out the archive
 		SGA.write_archive(options.working_directory + "//SGA_archive.SGA");
 	}
-	else if (options.run_outerloop && options.outerloop_objective_function_choices.size() > 1)
+	else if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() > 1)
 	{
 		//Step 1: instantiate an NSGA-II object
 #ifdef EMTG_MPI
@@ -231,6 +231,23 @@ int main(int argc, char* argv[])
 
 		//Step 4: write out the archive
 		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
+	}
+	else if (options.run_outerloop == 2)
+	{
+		//call lazy race-tree search
+
+		//I suggest putting this in a separate source file but here is the general outline:
+
+		//1. pick a starting body (maybe this is an input? maybe you arrange it so you always start from the first body in the list?)
+
+		//2. farm out and evaluate earliest arrival date trajectories with constrained dry mass to every body in the list except the one that you started from
+
+		//3. pick the cheapest
+
+		//4. repeat from (2), checking to make sure there are no duplicates. Only check for duplicates if the options.lazy_race_tree_allow_duplicates is set to 0.
+		//(this is so that we can use lazy race-tree for a GTOC6 type problem that allows duplicates at some later date)
+
+		//if you need to add stuff in the options file search for lazy race-tree in missionoptions.cpp
 	}
 	else
 	{

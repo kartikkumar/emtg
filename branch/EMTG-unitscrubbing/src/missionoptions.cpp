@@ -37,6 +37,7 @@ missionoptions::missionoptions() {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = 1;
+	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -95,6 +96,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = true;
+	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -300,7 +302,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	//outer loop solver settings
 	if (choice ==  "run_outerloop") 
 	{
-		this->run_outerloop = (bool) value;
+		this->run_outerloop = (int) value;
 		return 0;
 	}
 	if (choice == "outerloop_popsize")
@@ -366,6 +368,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "quiet_outerloop")
 	{
 		this->quiet_outerloop = (bool) value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_allow_duplicates")
+	{
+		this->lazy_race_tree_allow_duplicates = (bool)value;
 		return 0;
 	}
 
@@ -1766,7 +1773,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 
 		outputfile << "##outer-loop solver settings" << endl;
-		outputfile << "#whether or not to run the outer-loop" << endl;
+		outputfile << "#Do you want to run an outer-loop?" << endl;
+		outputfile << "#0: no" << endl;
+		outputfile << "#1: Genetic algorithm (number of objective functions determines which GA to run)" << endl;
+		outputfile << "#2: lazy race-tree search" << endl;
 		outputfile << "run_outerloop " << this->run_outerloop << endl;
 		outputfile << "#outer-loop population size" << endl;
 		outputfile << "outerloop_popsize " << this->outerloop_popsize << endl;
@@ -1798,7 +1808,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
+		outputfile << "#Allow duplicates in lazy race-tree search?" << endl;
+		outputfile << "#0: no" << endl;
+		outputfile << "#1: yes" << endl;
+		outputfile << "lazy_race_tree_allow_duplicates " << this->lazy_race_tree_allow_duplicates << endl;
 		outputfile << endl;
+
 
 		outputfile << "##inner-loop solver settings" << endl;
 		outputfile << "#NLP solver type" << endl;

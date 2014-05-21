@@ -63,7 +63,7 @@ public:
 	double AU;
 
 	//outer loop solver settings
-	bool run_outerloop; //whether or not to run the outer loop; if false
+	int run_outerloop; //whether or not to run the outer loop; if false
 	int outerloop_popsize; //population size
 	int outerloop_genmax; //number of generations
 	int outerloop_tournamentsize; //tournament size for selection
@@ -79,6 +79,9 @@ public:
 	string outerloop_warm_population;
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
+
+	//lazy race-tree search options
+	bool lazy_race_tree_allow_duplicates;
 
 	//outer loop selectable options settings
 	bool outerloop_vary_power;

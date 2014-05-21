@@ -811,7 +811,8 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         outerloopgrid = wx.GridSizer(11,2,0,0)
         
         self.lblrun_outerloop = wx.StaticText(self, -1, "Run outer-loop GA?")
-        self.chkrun_outerloop = wx.CheckBox(self, -1)
+        outerloop_choices = ["None","Genetic Algorithm","Lazy Race-Tree Search"]
+        self.cmbrun_outerloop = wx.ComboBox(self, -1, choices=outerloop_choices, style = wx.CB_READONLY)
         
         self.lblouterloop_popsize = wx.StaticText(self, -1, "Population size")
         self.txtouterloop_popsize = wx.TextCtrl(self, -1, "outerloop_popsize")
@@ -846,7 +847,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblouterloop_warmstart = wx.StaticText(self, -1, "Warm-start the outer-loop?")
         self.txtouterloop_warmstart = wx.TextCtrl(self, -1, "outerloop_warmstart")
         
-        outerloopgrid.AddMany([self.lblrun_outerloop, self.chkrun_outerloop,
+        outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
                                self.lblouterloop_genmax, self.txtouterloop_genmax,
                                self.lblouterloop_tournamentsize, self.txtouterloop_tournamentsize,

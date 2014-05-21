@@ -651,7 +651,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_step_size_stdv_or_scale)
         self.optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Bind(wx.EVT_COMBOBOX, self.ChangeMBH_zero_control_initial_guess)
         
-        self.optionsnotebook.tabSolver.chkrun_outerloop.Bind(wx.EVT_CHECKBOX,self.Changerun_outerloop)
+        self.optionsnotebook.tabSolver.cmbrun_outerloop.Bind(wx.EVT_COMBOBOX,self.Changerun_outerloop)
         self.optionsnotebook.tabSolver.txtouterloop_popsize.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_popsize)
         self.optionsnotebook.tabSolver.txtouterloop_genmax.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_genmax)
         self.optionsnotebook.tabSolver.txtouterloop_tournamentsize.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_tournamentsize)
@@ -1589,7 +1589,7 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changerun_outerloop(self, e):
-        self.missionoptions.run_outerloop=int(self.optionsnotebook.tabSolver.chkrun_outerloop.GetValue())
+        self.missionoptions.run_outerloop = int(self.optionsnotebook.tabSolver.cmbrun_outerloop.GetSelection())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changeouterloop_popsize(self, e):
