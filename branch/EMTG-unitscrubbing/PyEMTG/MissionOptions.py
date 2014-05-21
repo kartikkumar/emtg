@@ -1598,7 +1598,7 @@ class MissionOptions(object):
             optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Show(False)
 
         optionsnotebook.tabGlobal.Layout()
-        optionsnotebook.tabSolver.SetupScrolling()
+        optionsnotebook.tabGlobal.SetupScrolling()
 
     def update_journey_options_panel(self, optionsnotebook):
         optionsnotebook.tabJourney.Journeylist = []
@@ -2149,7 +2149,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.btnjourney_perturbation_bodies.Show(False)
 
         optionsnotebook.tabJourney.Layout()
-        optionsnotebook.tabSolver.SetupScrolling()
+        optionsnotebook.tabJourney.SetupScrolling()
 
     def update_spacecraft_options_panel(self, optionsnotebook):
         optionsnotebook.tabSpacecraft.txtmaximum_mass.SetValue(str(self.maximum_mass))
@@ -2721,7 +2721,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabSpacecraft.Layout()
-        optionsnotebook.tabSolver.SetupScrolling()
+        optionsnotebook.tabSpacecraft.SetupScrolling()
 
 
 
@@ -3091,7 +3091,8 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_ntrials.SetValue(str(self.outerloop_ntrials))
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
-        
+        optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.SetValue(self.lazy_race_tree_allow_duplicates)
+
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(True)
@@ -3113,6 +3114,31 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(True)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(True)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
+            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
+        elif self.run_outerloop == 2:
+            optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_tournamentsize.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_CR.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_mu.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_stallmax.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_tolfit.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_ntrials.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_elitecount.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_warmstart.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_popsize.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_genmax.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_tournamentsize.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_CR.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_mu.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_stallmax.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_tolfit.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(True)
+            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3134,6 +3160,8 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
+            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()
@@ -3166,7 +3194,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabPhysics.Layout()
-        optionsnotebook.tabSolver.SetupScrolling()
+        optionsnotebook.tabPhysics.SetupScrolling()
 
 
     def update_output_options_panel(self, optionsnotebook):

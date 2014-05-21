@@ -846,6 +846,9 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         
         self.lblouterloop_warmstart = wx.StaticText(self, -1, "Warm-start the outer-loop?")
         self.txtouterloop_warmstart = wx.TextCtrl(self, -1, "outerloop_warmstart")
+
+        self.lbllazy_race_tree_allow_duplicates = wx.StaticText(self, -1, "Allow duplicates in lazy race-tree search?")
+        self.chklazy_race_tree_allow_duplicates = wx.CheckBox(self, -1)
         
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
@@ -857,7 +860,8 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lblouterloop_tolfit, self.txtouterloop_tolfit,
                                self.lblouterloop_ntrials, self.txtouterloop_ntrials,
                                self.lblouterloop_elitecount, self.txtouterloop_elitecount,
-                               self.lblouterloop_warmstart, self.txtouterloop_warmstart])
+                               self.lblouterloop_warmstart, self.txtouterloop_warmstart,
+                               self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)
