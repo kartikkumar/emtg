@@ -550,13 +550,13 @@ namespace Kepler
 				double sE = sin(E);
 
 				//Kepler's equation for an elliptical orbit
-				double F = ECC*sE - E - MN;
+				double F = E - ECC*sE - MN;
 
 				//derivative with respect to E
-				double dF = ECC*cE - 1;
+				double dF = -ECC*cE + 1;
 
 				//second derivative with respect to E
-				double ddF = -ECC*sE;
+				double ddF = ECC*sE;
 
 				//Laguerre-Conway update
 				int sgn = dF >= 0 ? 1 : -1;
@@ -584,13 +584,13 @@ namespace Kepler
 				double sH = sinh(H);
 
 				//Kepler's equation for a hyperbolic orbit
-				double F = ECC*sH - H - MN;
+				double F = H - ECC*sH - MN;
 
 				//derivative with respect to deltaH
-				double dF = ECC*cH - 1;
+				double dF = -ECC*cH + 1;
 
 				//second derivative with respect to deltaH
-				double ddF = ECC*sH;
+				double ddF = -ECC*sH;
 
 				//Laguerre-Conway update
 				int sgn = dF >= 0 ? 1 : -1;

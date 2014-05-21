@@ -150,9 +150,9 @@ int main(int argc, char* argv[])
 
 		universenamestream << options.journey_central_body[j] + "_Journey_" << j << ".universe_output";
 
-		TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
+		//TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
 
-		cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
+		//cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
 
 		if (TheUniverse[j].TU > options.TU)
 			options.TU = TheUniverse[j].TU;
