@@ -29,6 +29,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "lazy_race_tree_search.h"
 
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
@@ -234,20 +235,8 @@ int main(int argc, char* argv[])
 	}
 	else if (options.run_outerloop == 2)
 	{
-		//call lazy race-tree search
+		LRTS(&options, TheUniverse);
 
-		//I suggest putting this in a separate source file but here is the general outline:
-
-		//1. pick a starting body (maybe this is an input? maybe you arrange it so you always start from the first body in the list?)
-
-		//2. farm out and evaluate earliest arrival date trajectories with constrained dry mass to every body in the list except the one that you started from
-
-		//3. pick the cheapest
-
-		//4. repeat from (2), checking to make sure there are no duplicates. Only check for duplicates if the options.lazy_race_tree_allow_duplicates is set to 0.
-		//(this is so that we can use lazy race-tree for a GTOC6 type problem that allows duplicates at some later date)
-
-		//if you need to add stuff in the options file search for lazy race-tree in missionoptions.cpp
 	}
 	else
 	{
