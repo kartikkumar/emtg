@@ -50,5 +50,5 @@ void handler(int sig) {
 
 namespace EMTG{
 
-	void LRTS(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in);
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in);
 }

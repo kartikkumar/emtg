@@ -1,7 +1,7 @@
 #include "lazy_race_tree_search.h"
 
 namespace EMTG{
-	void LRTS(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in)
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in)
 	{
 		//call lazy race-tree search
 
@@ -24,6 +24,7 @@ namespace EMTG{
 		//SPECIFY STARTING ASTEROID ID
 
 		double time_left = 6.0 * 365.25 * 86400.0;
+		double current_cost;
 		int sequence_length = 3;
 		int num_bodies_left_to_evaluate = 3;
 		int starting_body_ID;
@@ -101,7 +102,7 @@ namespace EMTG{
 				outputfile.close();
 
 				//TRY CATCH - IF MISSION IS INFEASIBLE JUST MOVE TO THE NEXT MISSION
-				double cost;
+				
 				EMTG::mission branch_mission(&branch_options, TheUniverse_in);
 
 				try{
@@ -111,8 +112,8 @@ namespace EMTG{
 				{
 					getchar();
 				}
-				cost = branch_mission.F[0];
-
+				current_cost = branch_mission.best_cost;
+				
 				//PLACE CURRENT FLIGHT TIME INTO THE TIME TO GET TO EACH BODY VECTOR
 				
 

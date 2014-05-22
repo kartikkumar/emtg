@@ -82,6 +82,7 @@ public:
 	vector<double> F; //constraint vector
 	vector<double> G; //nonlinear Jacobian vector
 	vector<double> A; //linear Jacobian vector
+	double best_cost;
 	int total_number_of_constraints; //total number of nonlinear constraints
 	int total_number_of_NLP_parameters; //total number of NLP parameters
 	vector<double> Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds;

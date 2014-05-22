@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
 	}
 	else if (options.run_outerloop == 2)
 	{
-		LRTS(&options, TheUniverse);
+		lazy_race_tree_search(&options, TheUniverse);
 
 	}
 	else

@@ -766,6 +766,7 @@ namespace EMTG { namespace Solvers {
 					Xbest_scaled = this->Xtrial_scaled; 
 					Problem->unscale(this->Xbest_scaled.data());
 					Problem->Xopt = Problem->X; //we store the unscaled Xbest
+					Problem->best_cost = fbest;
 
 					if (!Problem->options.quiet_basinhopping)
 						cout << "New global best" << endl;
