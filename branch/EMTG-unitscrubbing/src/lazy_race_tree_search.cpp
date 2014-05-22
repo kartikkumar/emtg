@@ -23,10 +23,7 @@ namespace EMTG{
 		
 		//SPECIFY STARTING ASTEROID ID
 
-		//Instantiate a mission object
-		EMTG::mission branch_mission(options, TheUniverse_in);
-
-		double time_left = 6.0 * 31557600.0;
+		double time_left = 6.0 * 365.25 * 86400.0;
 		int sequence_length = 3;
 		int num_bodies_left_to_evaluate = 3;
 		int starting_body_ID;
@@ -48,15 +45,25 @@ namespace EMTG{
 			std::fill(time_to_get_to_each_body_in_branch.begin(), time_to_get_to_each_body_in_branch.end(), 0.0);
 
 			//Loop over branches in the level
-			for (size_t j = 0; j < num_bodies_left_to_evaluate; ++j)
+			for (size_t body = 0; body < num_bodies_left_to_evaluate; ++body)
 			{
 				//CHANGE DESTINATION LIST (WE ONLY EVER HAVE ONE JOURNEY, ONE PHASE)
-				options->destination_list[0][0] = target_sequence[0];
-				options->destination_list[0][1] = target_sequence[1];
+				missionoptions branch_options = *options;
+
+				branch_options.destination_list[0][0] = target_sequence[0];
+				branch_options.destination_list[0][1] = target_sequence[1];
+				
+				vector<int> journey_sequence;
+				journey_sequence.push_back(branch_options.destination_list[0][0]);
+				journey_sequence.push_back(branch_options.destination_list[0][1]);
+				branch_options.sequence.push_back(journey_sequence);
+				branch_options.number_of_phases[0] = journey_sequence.size() - 1;
+				vector<int> journey_phase_type(journey_sequence.size() - 1, branch_options.mission_type);
+				branch_options.phase_type.push_back(journey_phase_type);
 
 				ostringstream mission_name_stream;
 				mission_name_stream << options->destination_list[0][0] << "_" << options->destination_list[0][1];
-				options->mission_name = mission_name_stream.str();
+				branch_options.mission_name = mission_name_stream.str();
 
 				//current time
 				ptime now = second_clock::local_time();
@@ -65,12 +72,12 @@ namespace EMTG{
 
 
 				//define a new working directory
-				options->working_directory = "..//EMTG_v8_results//" + options->mission_name + "_" + timestream.str();
+				branch_options.working_directory = "..//EMTG_v8_results//" + options->mission_name + "_" + timestream.str();
 				//create the working directory
 				try
 				{
-					path p(options->working_directory);
-					path puniverse(options->working_directory + "/Universe");
+					path p(branch_options.working_directory);
+					path puniverse(branch_options.working_directory + "/Universe");
 					boost::filesystem::create_directories(p);
 					boost::filesystem::create_directories(puniverse);
 				}
@@ -81,8 +88,8 @@ namespace EMTG{
 
 
 				//print the options file to the new directory
-				options->print_options_file(options->working_directory + "//" + options->mission_name + ".emtgopt");
-				string outputfilestring = options->working_directory + "//" + options->mission_name + "_batch_summary.emtgbatch";
+				branch_options.print_options_file(branch_options.working_directory + "//" + options->mission_name + ".emtgopt");
+				string outputfilestring = branch_options.working_directory + "//" + options->mission_name + "_batch_summary.emtgbatch";
 				std::ofstream outputfile(outputfilestring.c_str(), ios::trunc);
 				outputfile.width(30); outputfile << left << "Sequence";
 				outputfile.width(3); outputfile << " | ";
@@ -95,6 +102,8 @@ namespace EMTG{
 
 				//TRY CATCH - IF MISSION IS INFEASIBLE JUST MOVE TO THE NEXT MISSION
 				double cost;
+				EMTG::mission branch_mission(&branch_options, TheUniverse_in);
+
 				try{
 					branch_mission.optimize();
 				}

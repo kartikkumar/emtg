@@ -164,10 +164,7 @@ namespace EMTG {
 						{
 							double expfun = exp(-vinf_out * 1000 / (options->IspDS * options->g0));
 
-							double initialmass = options->maximum_mass * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (options->maximum_mass + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -initialmass * 1000 / (options->IspDS * options->g0) * expfun;
@@ -178,20 +175,14 @@ namespace EMTG {
 						double expfun = exp(-vinf_out * 1000 / (options->IspChem * options->g0));
 						if (j > 0)
 						{
-							double initialmass = current_state[6] * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (current_state[6] + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -initialmass * 1000 / (options->IspChem * options->g0) * expfun;
 						}
 						else
 						{
-							double initialmass = options->maximum_mass * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (current_state[6] + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -options->maximum_mass * 1000 / (options->IspChem * options->g0) * expfun;
