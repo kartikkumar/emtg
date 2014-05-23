@@ -31,7 +31,16 @@ using namespace boost::filesystem;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 
+#ifndef _LAZY_RACE_TREE_SEARCH
+#define _LAZY_RACE_TREE_SEARCH
+
 namespace EMTG{
 
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in);
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location);
+
+	void load_asteroid_list(std::string & asteroid_filename, std::vector <int> & asteroid_list);
+
+	void write_branch_summary(EMTG::mission & branch_mission, EMTG::missionoptions & branch_options, std::string & tree_summary_file_location, int & tree_level, const int & branch);
 }
+
+#endif
