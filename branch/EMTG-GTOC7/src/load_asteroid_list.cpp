@@ -1,3 +1,5 @@
+//Donald Ellison May 23rd 2014
+
 #include "lazy_race_tree_search.h"
 
 namespace EMTG{
