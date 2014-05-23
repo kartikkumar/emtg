@@ -23,7 +23,9 @@ namespace EMTG{
 		int failures_in_current_level = 0;
 		int tree_level = 0;
 		
-
+		//This flag controls a hack objective function since the true "arrive as early as possible" objective function does not work well
+		//This DOES NOT include the wait time in the SNOPT objective function, it just adds it at the end so that the 
+		//tree search makes the decision to go with the asteroid that it gets to on the earliest calendar date
 		bool include_wait_time_in_cost = true;
 
 		std::vector <double> cost_to_get_to_each_body_in_level(num_asteroids, 0.0);
