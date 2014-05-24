@@ -1599,19 +1599,19 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Changelazy_race_tree_allow_duplicates(self, e):
-        self.missionoptions.lazy_race_tree_allow_duplicates = int(self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.GetValue)
+        self.missionoptions.lazy_race_tree_allow_duplicates = int(self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Changelazy_race_tree_target_list_file(self, e):
-        self.missionoptions.lazy_race_tree_target_list_file = self.optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.GetValue
+        self.missionoptions.lazy_race_tree_target_list_file = self.optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.GetValue()
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Changelazy_race_tree_start_location_ID(self, e):
-        self.missionoptions.lazy_race_tree_start_location_ID = int(self.optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.GetValue)
+        self.missionoptions.lazy_race_tree_start_location_ID = int(self.optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Changelazy_race_tree_maximum_duration(self, e):
-        self.missionoptions.lazy_race_tree_maximum_duration = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.GetValue)
+        self.missionoptions.lazy_race_tree_maximum_duration = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Clicklazy_race_tree_target_list_file(self, e):
