@@ -103,7 +103,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	}
 
 	//we need to know if we are the first phase of the journey and the journey does not start with a flyby
-	if (p == 0 && !(options->journey_departure_type[j] == 3))
+	if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 	{
 		//Step 1: extract the journey start epoch
 		//if this is the first journey, the first decision variable is the starting epoch
@@ -302,6 +302,60 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 			else
 				state_at_beginning_of_phase[6] = current_state[6] * exp(-dVmag[0] * 1000/ (options->IspDS * options->g0));
 		}
+	}
+	else if (options->journey_departure_type[j] == 6)
+	{
+		//for first-phase zero-turn flybys
+		//there are no decision variables or constraints
+
+		//step 3.1 compute incoming v_infinity at flyby
+		if (p == 0)
+			this->locate_boundary_point(this->boundary1_location_code,
+			options->journey_departure_type[j],
+			true,
+			Universe,
+			boundary1_state,
+			current_state + 3,
+			*current_epoch,
+			X,
+			Xindex,
+			F,
+			Findex,
+			G,
+			Gindex,
+			needG,
+			j,
+			p,
+			options);
+
+		for (int k = 0; k < 3; ++k)
+			this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
+		this->V_infinity_out = this->V_infinity_in;
+		
+		this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();
+		this->C3_departure = this->flyby_outgoing_v_infinity*this->flyby_outgoing_v_infinity;
+
+		this->flyby_altitude = 0.0;
+		this->flyby_turn_angle = 0.0;
+		this->dV_departure_magnitude = 0.0;
+
+		//calculate the b-plane parameters, check the periapse altitude
+		this->BoundaryR.assign_all(boundary1_state);
+		this->BoundaryV.assign_all(boundary1_state + 3);
+
+
+
+		//store the state at the beginning of the phase, post-flyby
+		for (int k = 0; k < 6; ++k)
+		{
+			this->state_at_beginning_of_phase[k] = current_state[k];
+		}
+
+		//store the mass
+		if (p == 0)
+			this->state_at_beginning_of_phase[6] = current_state[6] + options->journey_starting_mass_increment[j];
+		else
+			this->state_at_beginning_of_phase[6] = current_state[6];
 	}
 	else
 	{
@@ -834,249 +888,254 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 	//first, we need to know if we are the first phase in the journey
 	if (p == 0)
 	{
-		//if we are the first phase, we also need to know if we are the first journey
-		if (j == 0)
+		//do not encode time variables for phases starting in a flyby
+		if (!(options->journey_departure_type[j] == 6))
 		{
-			//if so, then the first decision variable is the launch epoch in MJD
-			Xlowerbounds->push_back(options->launch_window_open_date + options->journey_wait_time_bounds[j][0]);
-			Xupperbounds->push_back(options->launch_window_open_date + options->journey_wait_time_bounds[j][1]);
-			Xdescriptions->push_back(prefix + "launch epoch (MJD)");
-		}
-		else
-		{
-			//if we are not the first journey, are we starting from the boundary of a sphere of influence?
-			//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
-			if (!(options->sequence[j-1][p+1] == -1 || boundary1_location_code == -1))
+
+			//if we are the first phase, we also need to know if we are the first journey
+			if (j == 0)
 			{
-				Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
-				Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
-				Xdescriptions->push_back(prefix + "stay time (days)");
-			}
-		}
-
-		if  (boundary1_location_code == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
-		{
-			vector<string> CartesianElementNames;
-			CartesianElementNames.push_back("x (km)");
-			CartesianElementNames.push_back("y (km)");
-			CartesianElementNames.push_back("z (km)");
-			CartesianElementNames.push_back("xdot (km/s)");
-			CartesianElementNames.push_back("ydot (km/s)");
-			CartesianElementNames.push_back("zdot (km/s)");
-
-			vector<string> ClassicalOrbitElementNames;
-			ClassicalOrbitElementNames.push_back("SMA (km)");
-			ClassicalOrbitElementNames.push_back("ECC (km)");
-			ClassicalOrbitElementNames.push_back("INC (rad)");
-			ClassicalOrbitElementNames.push_back("RAAN (rad)");
-			ClassicalOrbitElementNames.push_back("AOP (rad)");
-			ClassicalOrbitElementNames.push_back("TA (rad)");
-
-			for (int k = 0; k < 6; ++k)
-			{
-				if (options->journey_departure_elements_vary_flag[j][k])
-				{
-					Xlowerbounds->push_back(options->journey_departure_elements_bounds[j][k][0]);
-					Xupperbounds->push_back(options->journey_departure_elements_bounds[j][k][1]);
-					if (options->journey_departure_elements_type[j])
-						Xdescriptions->push_back(prefix + " left boundary point " + ClassicalOrbitElementNames[k]);
-					else
-						Xdescriptions->push_back(prefix + " left boundary point " + CartesianElementNames[k]);
-				}
-			}
-
-			//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
-			//then there must be a nonlinear constraint to prevent this
-			if (options->journey_departure_elements_type[j]) //classical orbit elements
-			{
-				//this constraint is applied if we are varying SMA or ECC
-				if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1])
-				{
-					Flowerbounds->push_back(0.0);
-					Fupperbounds->push_back(math::LARGE);
-					Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
-
-					//this constraint has derivatives with respect to SMA, ECC, and TA
-					//only create a derivative entry with respect to an orbit element if that element is being varied
-					if (options->journey_departure_elements_vary_flag[j][0]) //SMA
-					{
-						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-						{
-							if ((*Xdescriptions)[entry].find("left boundary point SMA") < 1024)
-							{
-								iGfun->push_back(Fdescriptions->size() - 1);
-								jGvar->push_back(entry);
-								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-								Gdescriptions->push_back(EntryNameStream.str());
-								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-							}
-						}
-					}
-					if (options->journey_departure_elements_vary_flag[j][1]) //ECC
-					{
-						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-						{
-							if ((*Xdescriptions)[entry].find("left boundary point ECC") < 1024)
-							{
-								iGfun->push_back(Fdescriptions->size() - 1);
-								jGvar->push_back(entry);
-								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-								Gdescriptions->push_back(EntryNameStream.str());
-								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-							}
-						}
-					}
-					if (options->journey_departure_elements_vary_flag[j][5]) //TA
-					{
-						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-						{
-							if ((*Xdescriptions)[entry].find("left boundary point TA") < 1024)
-							{
-								iGfun->push_back(Fdescriptions->size() - 1);
-								jGvar->push_back(entry);
-								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-								Gdescriptions->push_back(EntryNameStream.str());
-								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-							}
-						}
-					}
-				}
-			}
-			else //cartesian orbit elements
-			{
-				//this constraint is applied if we are varying x, y, or z
-				if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1] || options->journey_departure_elements_vary_flag[j][2])
-				{
-					Flowerbounds->push_back(0.0);
-					Fupperbounds->push_back(math::LARGE);
-					Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
-				}
-
-				//this constraint has derivatives with respect to x, y, and z
-				//only create a derivative entry with respect to an orbit element if that element is being varied
-				if (options->journey_departure_elements_vary_flag[j][0]) //x
-				{
-					for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-					{
-						if ((*Xdescriptions)[entry].find("left boundary point x (km)") < 1024)
-						{
-							iGfun->push_back(Fdescriptions->size() - 1);
-							jGvar->push_back(entry);
-							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-							Gdescriptions->push_back(EntryNameStream.str());
-							left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-							left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-							left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-						}
-					}
-				}
-				if (options->journey_departure_elements_vary_flag[j][1]) //y
-				{
-					for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-					{
-						if ((*Xdescriptions)[entry].find("left boundary point y (km)") < 1024)
-						{
-							iGfun->push_back(Fdescriptions->size() - 1);
-							jGvar->push_back(entry);
-							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-							Gdescriptions->push_back(EntryNameStream.str());
-							left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-							left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-							left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-						}
-					}
-				}
-				if (options->journey_departure_elements_vary_flag[j][2]) //z
-				{
-					for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-					{
-						if ((*Xdescriptions)[entry].find("left boundary point z (km)") < 1024)
-						{
-							iGfun->push_back(Fdescriptions->size() - 1);
-							jGvar->push_back(entry);
-							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-							Gdescriptions->push_back(EntryNameStream.str());
-							left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
-							left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
-							left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-						}
-					}
-				}
-			}
-		}
-		//if we are starting at periapse of an arrival hyperbola, we must choose the orbit elements of the initial capture orbit
-		//this will be done as [rp, ra, inc, raan, aop, 0]
-		//note the true anomaly is always zero because we always capture into the periapse of our desired orbit
-		else if (boundary1_location_code == -2)
-		{
-			Xlowerbounds->push_back(Universe->minimum_safe_distance);
-			Xupperbounds->push_back(10 * Universe->minimum_safe_distance);
-			Xdescriptions->push_back(prefix + "left boundary periapse distance");
-
-			Xlowerbounds->push_back(Universe->minimum_safe_distance);
-			Xupperbounds->push_back(Universe->r_SOI);
-			Xdescriptions->push_back(prefix + "left boundary apoapse distance");
-
-			Xlowerbounds->push_back(-2 * EMTG::math::PI);
-			Xupperbounds->push_back(2 * EMTG::math::PI);
-			Xdescriptions->push_back(prefix + "left boundary inclination");
-
-			Xlowerbounds->push_back(-2 * EMTG::math::PI);
-			Xupperbounds->push_back(2 * EMTG::math::PI);
-			Xdescriptions->push_back(prefix + "left boundary RAAN");
-
-			Xlowerbounds->push_back(-2 * EMTG::math::PI);
-			Xupperbounds->push_back(2 * EMTG::math::PI);
-			Xdescriptions->push_back(prefix + "left boundary AOP");
-
-			Flowerbounds->push_back(-EMTG::math::LARGE);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "left boundary rp < ra");
-
-			Flowerbounds->push_back(-EMTG::math::LARGE);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "incoming orbit must be a hyperbola, i.e. v_periapse > v_escape");
-		}
-
-		//then we have three variables to parameterize the departure velocity, only for phases where there is a departure velocity
-		//we do NOT encode a departure velocity for successive phases which start at the boundary of an SOI (that would be too many degrees of freedom)
-		//we do NOT encode a departure velocity for phases which start from an inbound hyperbola because we are encoding the capture state instead
-		if ((j == 0 || !(options->journey_departure_type[j] == 3)) && !(boundary1_location_code == -2))
-		{
-			//First, we have outgoing velocity
-			Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);
-			Xupperbounds->push_back(options->journey_initial_impulse_bounds[j][1]);
-			Xdescriptions->push_back(prefix + "magnitude of outgoing velocity asymptote");
-
-			//then we have the angles defining the departure asymptote
-			Xlowerbounds->push_back(-math::PI);
-			Xupperbounds->push_back(math::PI);
-			Xdescriptions->push_back(prefix + "RA of departure asymptote");
-
-			if (j == 0 && boundary1_location_code > 0) //if this is the first journey and we are leaving from a planet, i.e. if this is a launch
-			{
-				Xlowerbounds->push_back(options->DLA_bounds[0] * math::PI / 180.0);
-				Xupperbounds->push_back(options->DLA_bounds[1] * math::PI / 180.0);
+				//if so, then the first decision variable is the launch epoch in MJD
+				Xlowerbounds->push_back(options->launch_window_open_date + options->journey_wait_time_bounds[j][0]);
+				Xupperbounds->push_back(options->launch_window_open_date + options->journey_wait_time_bounds[j][1]);
+				Xdescriptions->push_back(prefix + "launch epoch (MJD)");
 			}
 			else
 			{
-				Xlowerbounds->push_back(-math::PI / 2.0);
-				Xupperbounds->push_back(math::PI / 2.0);
+				//if we are not the first journey, are we starting from the boundary of a sphere of influence?
+				//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
+				if (!(options->sequence[j - 1][p + 1] == -1 || boundary1_location_code == -1))
+				{
+					Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
+					Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
+					Xdescriptions->push_back(prefix + "stay time (days)");
+				}
 			}
 
-			Xdescriptions->push_back(prefix + "DEC of departure asymptote");
+			if (boundary1_location_code == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
+			{
+				vector<string> CartesianElementNames;
+				CartesianElementNames.push_back("x (km)");
+				CartesianElementNames.push_back("y (km)");
+				CartesianElementNames.push_back("z (km)");
+				CartesianElementNames.push_back("xdot (km/s)");
+				CartesianElementNames.push_back("ydot (km/s)");
+				CartesianElementNames.push_back("zdot (km/s)");
+
+				vector<string> ClassicalOrbitElementNames;
+				ClassicalOrbitElementNames.push_back("SMA (km)");
+				ClassicalOrbitElementNames.push_back("ECC (km)");
+				ClassicalOrbitElementNames.push_back("INC (rad)");
+				ClassicalOrbitElementNames.push_back("RAAN (rad)");
+				ClassicalOrbitElementNames.push_back("AOP (rad)");
+				ClassicalOrbitElementNames.push_back("TA (rad)");
+
+				for (int k = 0; k < 6; ++k)
+				{
+					if (options->journey_departure_elements_vary_flag[j][k])
+					{
+						Xlowerbounds->push_back(options->journey_departure_elements_bounds[j][k][0]);
+						Xupperbounds->push_back(options->journey_departure_elements_bounds[j][k][1]);
+						if (options->journey_departure_elements_type[j])
+							Xdescriptions->push_back(prefix + " left boundary point " + ClassicalOrbitElementNames[k]);
+						else
+							Xdescriptions->push_back(prefix + " left boundary point " + CartesianElementNames[k]);
+					}
+				}
+
+				//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
+				//then there must be a nonlinear constraint to prevent this
+				if (options->journey_departure_elements_type[j]) //classical orbit elements
+				{
+					//this constraint is applied if we are varying SMA or ECC
+					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1])
+					{
+						Flowerbounds->push_back(0.0);
+						Fupperbounds->push_back(math::LARGE);
+						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+
+						//this constraint has derivatives with respect to SMA, ECC, and TA
+						//only create a derivative entry with respect to an orbit element if that element is being varied
+						if (options->journey_departure_elements_vary_flag[j][0]) //SMA
+						{
+							for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+							{
+								if ((*Xdescriptions)[entry].find("left boundary point SMA") < 1024)
+								{
+									iGfun->push_back(Fdescriptions->size() - 1);
+									jGvar->push_back(entry);
+									stringstream EntryNameStream;
+									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									Gdescriptions->push_back(EntryNameStream.str());
+									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+									left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+								}
+							}
+						}
+						if (options->journey_departure_elements_vary_flag[j][1]) //ECC
+						{
+							for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+							{
+								if ((*Xdescriptions)[entry].find("left boundary point ECC") < 1024)
+								{
+									iGfun->push_back(Fdescriptions->size() - 1);
+									jGvar->push_back(entry);
+									stringstream EntryNameStream;
+									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									Gdescriptions->push_back(EntryNameStream.str());
+									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+									left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+								}
+							}
+						}
+						if (options->journey_departure_elements_vary_flag[j][5]) //TA
+						{
+							for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+							{
+								if ((*Xdescriptions)[entry].find("left boundary point TA") < 1024)
+								{
+									iGfun->push_back(Fdescriptions->size() - 1);
+									jGvar->push_back(entry);
+									stringstream EntryNameStream;
+									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									Gdescriptions->push_back(EntryNameStream.str());
+									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+									left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+								}
+							}
+						}
+					}
+				}
+				else //cartesian orbit elements
+				{
+					//this constraint is applied if we are varying x, y, or z
+					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1] || options->journey_departure_elements_vary_flag[j][2])
+					{
+						Flowerbounds->push_back(0.0);
+						Fupperbounds->push_back(math::LARGE);
+						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+					}
+
+					//this constraint has derivatives with respect to x, y, and z
+					//only create a derivative entry with respect to an orbit element if that element is being varied
+					if (options->journey_departure_elements_vary_flag[j][0]) //x
+					{
+						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+						{
+							if ((*Xdescriptions)[entry].find("left boundary point x (km)") < 1024)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(entry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+							}
+						}
+					}
+					if (options->journey_departure_elements_vary_flag[j][1]) //y
+					{
+						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+						{
+							if ((*Xdescriptions)[entry].find("left boundary point y (km)") < 1024)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(entry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+							}
+						}
+					}
+					if (options->journey_departure_elements_vary_flag[j][2]) //z
+					{
+						for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+						{
+							if ((*Xdescriptions)[entry].find("left boundary point z (km)") < 1024)
+							{
+								iGfun->push_back(Fdescriptions->size() - 1);
+								jGvar->push_back(entry);
+								stringstream EntryNameStream;
+								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								Gdescriptions->push_back(EntryNameStream.str());
+								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
+								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
+								left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+							}
+						}
+					}
+				}
+			}
+			//if we are starting at periapse of an arrival hyperbola, we must choose the orbit elements of the initial capture orbit
+			//this will be done as [rp, ra, inc, raan, aop, 0]
+			//note the true anomaly is always zero because we always capture into the periapse of our desired orbit
+			else if (boundary1_location_code == -2)
+			{
+				Xlowerbounds->push_back(Universe->minimum_safe_distance);
+				Xupperbounds->push_back(10 * Universe->minimum_safe_distance);
+				Xdescriptions->push_back(prefix + "left boundary periapse distance");
+
+				Xlowerbounds->push_back(Universe->minimum_safe_distance);
+				Xupperbounds->push_back(Universe->r_SOI);
+				Xdescriptions->push_back(prefix + "left boundary apoapse distance");
+
+				Xlowerbounds->push_back(-2 * EMTG::math::PI);
+				Xupperbounds->push_back(2 * EMTG::math::PI);
+				Xdescriptions->push_back(prefix + "left boundary inclination");
+
+				Xlowerbounds->push_back(-2 * EMTG::math::PI);
+				Xupperbounds->push_back(2 * EMTG::math::PI);
+				Xdescriptions->push_back(prefix + "left boundary RAAN");
+
+				Xlowerbounds->push_back(-2 * EMTG::math::PI);
+				Xupperbounds->push_back(2 * EMTG::math::PI);
+				Xdescriptions->push_back(prefix + "left boundary AOP");
+
+				Flowerbounds->push_back(-EMTG::math::LARGE);
+				Fupperbounds->push_back(0.0);
+				Fdescriptions->push_back(prefix + "left boundary rp < ra");
+
+				Flowerbounds->push_back(-EMTG::math::LARGE);
+				Fupperbounds->push_back(0.0);
+				Fdescriptions->push_back(prefix + "incoming orbit must be a hyperbola, i.e. v_periapse > v_escape");
+			}
+
+			//then we have three variables to parameterize the departure velocity, only for phases where there is a departure velocity
+			//we do NOT encode a departure velocity for successive phases which start at the boundary of an SOI (that would be too many degrees of freedom)
+			//we do NOT encode a departure velocity for phases which start from an inbound hyperbola because we are encoding the capture state instead
+			if ((j == 0 || !(options->journey_departure_type[j] == 3)) && !(boundary1_location_code == -2))
+			{
+				//First, we have outgoing velocity
+				Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);
+				Xupperbounds->push_back(options->journey_initial_impulse_bounds[j][1]);
+				Xdescriptions->push_back(prefix + "magnitude of outgoing velocity asymptote");
+
+				//then we have the angles defining the departure asymptote
+				Xlowerbounds->push_back(-math::PI);
+				Xupperbounds->push_back(math::PI);
+				Xdescriptions->push_back(prefix + "RA of departure asymptote");
+
+				if (j == 0 && boundary1_location_code > 0) //if this is the first journey and we are leaving from a planet, i.e. if this is a launch
+				{
+					Xlowerbounds->push_back(options->DLA_bounds[0] * math::PI / 180.0);
+					Xupperbounds->push_back(options->DLA_bounds[1] * math::PI / 180.0);
+				}
+				else
+				{
+					Xlowerbounds->push_back(-math::PI / 2.0);
+					Xupperbounds->push_back(math::PI / 2.0);
+				}
+
+				Xdescriptions->push_back(prefix + "DEC of departure asymptote");
+			}
 		}
 	}
 	else
@@ -1308,6 +1367,17 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 
