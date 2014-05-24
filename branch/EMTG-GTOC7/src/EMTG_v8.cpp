@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
 		//This file name should be specified in options structure via the GUI
 		//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
 
-		std::string asteroid_filename = "Koronis.txt"; //POSSIBLE OPTIONS STRUCTURE INCLUSION
+		std::string asteroid_filename = options.lazy_race_tree_target_list_file;
 
 
 		std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched

@@ -82,6 +82,10 @@ public:
 
 	//lazy race-tree search options
 	bool lazy_race_tree_allow_duplicates;
+	string lazy_race_tree_target_list_file;
+	int lazy_race_tree_start_location_ID;
+	double lazy_race_tree_maximum_duration;
+
 
 	//outer loop selectable options settings
 	bool outerloop_vary_power;

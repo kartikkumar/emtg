@@ -662,6 +662,12 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtouterloop_ntrials.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_ntrials)
         self.optionsnotebook.tabSolver.txtouterloop_elitecount.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_elitecount)
         self.optionsnotebook.tabSolver.txtouterloop_warmstart.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_warmstart)
+
+        self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Bind(wx.EVT_CHECKBOX, self.Changelazy_race_tree_allow_duplicates)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_target_list_file)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_start_location_ID)
+        self.optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Bind(wx.EVT_BUTTON, self.Clicklazy_race_tree_target_list_file)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_maximum_duration)
         
         self.optionsnotebook.tabSolver.txttrialX.Bind(wx.EVT_KILL_FOCUS,self.ChangetrialX)
         self.optionsnotebook.tabSolver.btntrialX.Bind(wx.EVT_BUTTON, self.ClickTrialXButton)
@@ -1594,6 +1600,32 @@ class PyEMTG_interface(wx.Frame):
 
     def Changelazy_race_tree_allow_duplicates(self, e):
         self.missionoptions.lazy_race_tree_allow_duplicates = int(self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.GetValue)
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_target_list_file(self, e):
+        self.missionoptions.lazy_race_tree_target_list_file = self.optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.GetValue
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_start_location_ID(self, e):
+        self.missionoptions.lazy_race_tree_start_location_ID = int(self.optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.GetValue)
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_maximum_duration(self, e):
+        self.missionoptions.lazy_race_tree_maximum_duration = float(self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.GetValue)
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Clicklazy_race_tree_target_list_file(self, e):
+        #call dialog to choose destination list
+        dlg = wx.FileDialog(self, "Choose a lazy race-tree search input file", self.dirname, "", "*.txt", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+        else:
+            filename = "none"
+
+        dlg.Destroy()
+
+        self.missionoptions.lazy_race_tree_target_list_file = filename
+
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changeouterloop_popsize(self, e):

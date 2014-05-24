@@ -849,6 +849,20 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lbllazy_race_tree_allow_duplicates = wx.StaticText(self, -1, "Allow duplicates in lazy race-tree search?")
         self.chklazy_race_tree_allow_duplicates = wx.CheckBox(self, -1)
+
+        self.lbllazy_race_tree_target_list_file = wx.StaticText(self, -1, "Lazy race-tree target list file")
+        self.txtlazy_race_tree_target_list_file = wx.TextCtrl(self, -1, "lazy_race_tree_target_list_file")
+        self.btnlazy_race_tree_target_list_file = wx.Button(self, -1, "...")
+        lazy_race_tree_target_list_file_box = wx.BoxSizer(wx.HORIZONTAL)
+        lazy_race_tree_target_list_file_box.Add(self.txtlazy_race_tree_target_list_file)
+        lazy_race_tree_target_list_file_box.AddSpacer(5)
+        lazy_race_tree_target_list_file_box.Add(self.btnlazy_race_tree_target_list_file)
+
+        self.lbllazy_race_tree_start_location_ID = wx.StaticText(self, -1, "Lazy race-tree starting location ID")
+        self.txtlazy_race_tree_start_location_ID = wx.TextCtrl(self, -1, "lazy_race_tree_start_location_ID")
+
+        self.lbllazy_race_tree_maximum_duration = wx.StaticText(self, -1, "Lazy race-tree max duration (days)")
+        self.txtlazy_race_tree_maximum_duration = wx.TextCtrl(self, -1, "lazy_race_tree_maximum_duration")
         
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
@@ -861,7 +875,10 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lblouterloop_ntrials, self.txtouterloop_ntrials,
                                self.lblouterloop_elitecount, self.txtouterloop_elitecount,
                                self.lblouterloop_warmstart, self.txtouterloop_warmstart,
-                               self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates])
+                               self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates,
+                               self.lbllazy_race_tree_target_list_file, lazy_race_tree_target_list_file_box,
+                               self.lbllazy_race_tree_start_location_ID, self.txtlazy_race_tree_start_location_ID,
+                               self.lbllazy_race_tree_maximum_duration, self.txtlazy_race_tree_maximum_duration])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)

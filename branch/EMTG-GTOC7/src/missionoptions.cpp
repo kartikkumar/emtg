@@ -38,6 +38,9 @@ missionoptions::missionoptions() {
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = 1;
 	this->lazy_race_tree_allow_duplicates = 0;
+	this->lazy_race_tree_target_list_file = "none";
+	this->lazy_race_tree_start_location_ID = 1;
+	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -97,6 +100,9 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = true;
 	this->lazy_race_tree_allow_duplicates = 0;
+	this->lazy_race_tree_target_list_file = "none";
+	this->lazy_race_tree_start_location_ID = 1;
+	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -208,7 +214,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "universe_folder") {
 		inputfile >> this->universe_folder;
 		return 0;
-	}	
+	}
 	if (choice == "mission_name")
 	{
 		inputfile >> this->mission_name;
@@ -271,22 +277,28 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 
+	if (choice == "lazy_race_tree_target_list_file")
+	{
+		inputfile >> this->lazy_race_tree_target_list_file;
+		return 0;
+	}
+
 	inputfile >> value;
 
 	//problem type
 	if (choice == "problem_type")
 	{
-		this->problem_type = (int) value;
+		this->problem_type = (int)value;
 		return 0;
 	}
 
 	//physical constants
-	if (choice ==  "G") 
+	if (choice == "G")
 	{
 		this->G = value;
 		return 0;
 	}
-	if (choice ==  "g0") 
+	if (choice == "g0")
 	{
 		this->g0 = value;
 		return 0;
@@ -295,84 +307,94 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	//ephemeris settings
 	if (choice == "ephemeris_source")
 	{
-		this->ephemeris_source = (int) value;
+		this->ephemeris_source = (int)value;
 		return 0;
 	}
 
 	//outer loop solver settings
-	if (choice ==  "run_outerloop") 
+	if (choice == "run_outerloop")
 	{
-		this->run_outerloop = (int) value;
+		this->run_outerloop = (int)value;
 		return 0;
 	}
 	if (choice == "outerloop_popsize")
 	{
-		this->outerloop_popsize = (int) value;
+		this->outerloop_popsize = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_genmax") 
+	if (choice == "outerloop_genmax")
 	{
-		this->outerloop_genmax = (int) value;
+		this->outerloop_genmax = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_tournamentsize") 
+	if (choice == "outerloop_tournamentsize")
 	{
-		this->outerloop_tournamentsize = (int) value;
+		this->outerloop_tournamentsize = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_CR") 
+	if (choice == "outerloop_CR")
 	{
 		this->outerloop_CR = value;
 		return 0;
 	}
-	if (choice == "outerloop_mu") 
+	if (choice == "outerloop_mu")
 	{
 		this->outerloop_mu = value;
 		return 0;
 	}
-	if (choice == "outerloop_stallmax") 
+	if (choice == "outerloop_stallmax")
 	{
-		this->outerloop_stallmax = (int) value;
+		this->outerloop_stallmax = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_tolfit") 
+	if (choice == "outerloop_tolfit")
 	{
 		this->outerloop_tolfit = value;
 		return 0;
 	}
-	if (choice == "outerloop_ntrials") 
+	if (choice == "outerloop_ntrials")
 	{
-		this->outerloop_ntrials = (int) value;
+		this->outerloop_ntrials = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_elitecount") 
+	if (choice == "outerloop_elitecount")
 	{
-		this->outerloop_elitecount = (int) value;
+		this->outerloop_elitecount = (int)value;
 		return 0;
 	}
-	if (choice == "outerloop_useparallel") 
+	if (choice == "outerloop_useparallel")
 	{
-		this->outerloop_useparallel = (bool) value;
+		this->outerloop_useparallel = (bool)value;
 		return 0;
 	}
-	if (choice == "outerloop_warmstart") 
+	if (choice == "outerloop_warmstart")
 	{
-		this->outerloop_warmstart = (int) value;
+		this->outerloop_warmstart = (int)value;
 		return 0;
 	}
 	if (choice == "outerloop_reevaluate_full_population")
 	{
-		this->outerloop_reevaluate_full_population = (bool) value;
+		this->outerloop_reevaluate_full_population = (bool)value;
 		return 0;
 	}
 	if (choice == "quiet_outerloop")
 	{
-		this->quiet_outerloop = (bool) value;
+		this->quiet_outerloop = (bool)value;
 		return 0;
 	}
 	if (choice == "lazy_race_tree_allow_duplicates")
 	{
 		this->lazy_race_tree_allow_duplicates = (bool)value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_start_location_ID")
+	{
+		this->lazy_race_tree_start_location_ID = (int)value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_maximum_duration")
+	{
+		this->lazy_race_tree_maximum_duration = value;
 		return 0;
 	}
 
@@ -1808,10 +1830,19 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
+		outputfile << endl;
+
+		outputfile << "##Options for lazy race-tree search outer-loop" << endl;
 		outputfile << "#Allow duplicates in lazy race-tree search?" << endl;
 		outputfile << "#0: no" << endl;
 		outputfile << "#1: yes" << endl;
 		outputfile << "lazy_race_tree_allow_duplicates " << this->lazy_race_tree_allow_duplicates << endl;
+		outputfile << "#Lazy race-tree search target list file containing the indices of the bodies" << endl;
+		outputfile << "lazy_race_tree_target_list_file " << this->lazy_race_tree_target_list_file << endl;
+		outputfile << "#Starting location ID" << endl;
+		outputfile << "lazy_race_tree_start_location_ID " << this->lazy_race_tree_start_location_ID << endl;
+		outputfile << "#Maximum duration for lazy race-tree search (days)" << endl;
+		outputfile << "lazy_race_tree_maximum_duration " << this->lazy_race_tree_maximum_duration << endl;
 		outputfile << endl;
 
 

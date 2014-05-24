@@ -50,7 +50,12 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
+
+    #lazy race-tree search options
     lazy_race_tree_allow_duplicates = 0
+    lazy_race_tree_target_list_file = "none"
+    lazy_race_tree_start_location_ID = 1
+    lazy_race_tree_maximum_duration = 3000
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -318,8 +323,16 @@ class MissionOptions(object):
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
                         self.quiet_outerloop = int(linecell[1])
+
+                    #lazy race-tree search
                     elif choice == "lazy_race_tree_allow_duplicates":
                         self.lazy_race_tree_allow_duplicates = int(linecell[1])
+                    elif choice == "lazy_race_tree_target_list_file":
+                        self.lazy_race_tree_target_list_file = linecell[1]
+                    elif choice == "lazy_race_tree_start_location_ID":
+                        self.lazy_race_tree_start_location_ID = int(linecell[1])
+                    elif choice == "lazy_race_tree_maximum_duration":
+                        self.lazy_race_tree_maximum_duration = float(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -820,10 +833,21 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
+        outputfile.write("\n")
+
+
+
+        outputfile.write("##Options for lazy race-tree search outer-loop\n")
         outputfile.write("#Allow duplicates in lazy race-tree search?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("lazy_race_tree_allow_duplicates " + str(self.lazy_race_tree_allow_duplicates) + "\n")
+        outputfile.write("#Lazy race-tree search target list file containing the indices of the bodies\n")
+        outputfile.write("lazy_race_tree_target_list_file " + str(self.lazy_race_tree_target_list_file) + "\n")
+        outputfile.write("#Starting location ID\n")
+        outputfile.write("lazy_race_tree_start_location_ID " + str(self.lazy_race_tree_start_location_ID) + "\n")
+        outputfile.write("#Maximum duration for lazy race-tree search (days)\n")
+        outputfile.write("lazy_race_tree_maximum_duration " + str(self.lazy_race_tree_maximum_duration) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -3092,6 +3116,9 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
         optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.SetValue(self.lazy_race_tree_allow_duplicates)
+        optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.SetValue(self.lazy_race_tree_target_list_file)
+        optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.SetValue(str(self.lazy_race_tree_start_location_ID))
+        optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.SetValue(str(self.lazy_race_tree_maximum_duration))
 
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
@@ -3116,6 +3143,13 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
         elif self.run_outerloop == 2:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3139,6 +3173,13 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(True)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(True)
+            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3162,6 +3203,13 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()

@@ -13,7 +13,7 @@ namespace EMTG{
 
 		
 
-		double time_left = 5.5 * 365.25 * 86400.0; //POSSIBLE OPTIONS STRUCTURE INCLUSION
+		double time_left = options->lazy_race_tree_maximum_duration * 86400.0; //POSSIBLE OPTIONS STRUCTURE INCLUSION
 		double current_cost;
 		double current_flight_time;
 		double current_mass;
@@ -37,7 +37,7 @@ namespace EMTG{
 
 		//POSSIBLE OPTIONS STRUCTURE INCLUSION
 		//The first asteroid in the list is assumed to be the one you are starting from
-		starting_body_ID = asteroid_list[0];
+		starting_body_ID = options->lazy_race_tree_start_location_ID;
 		asteroid_list.erase(asteroid_list.begin());
 		best_sequence.push_back(starting_body_ID);
 
