@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
 
 
 		//First load the list of asteroids from file
-		//EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
+		EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
 
 		//create the directory in the results folder where everything will go
 		boost::posix_time::ptime now = second_clock::local_time();

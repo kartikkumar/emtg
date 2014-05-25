@@ -37,10 +37,13 @@ using namespace boost::posix_time;
 namespace EMTG{
 
 	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location);
+	std::vector<int> filter_asteroid_list(int const & current_asteroid, double const & epoch, std::vector<int> & asteroid_list, boost::ptr_vector<Astrodynamics::universe> & myUniverse, missionoptions * options);
 
+	//ugh; why are we header declaring functions that aren't in the matching .cpp??? - Alex
 	void load_asteroid_list(std::string & asteroid_filename, std::vector <int> & asteroid_list);
-
 	void write_branch_summary(EMTG::mission & branch_mission, EMTG::missionoptions & branch_options, std::string & tree_summary_file_location, int & tree_level, const int & branch);
+	
+	
 }
 
 #endif

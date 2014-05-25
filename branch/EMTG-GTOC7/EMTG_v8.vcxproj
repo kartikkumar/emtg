@@ -233,14 +233,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\Projects\EMTGv8_proprietary;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\include;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)cspice\include;$(SolutionDir)boost;$(SolutionDir)src;$(SolutionDir)SNOPT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0\stage\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;$(Configuration)/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cspice.lib; vcf2c.lib;SNOPTdebug.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)cspice\lib;$(SolutionDir)boost\stage\lib;$(SolutionDir)src;$(SolutionDir)SNOPT;%(AdditionalIncludeDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cspice.lib;snopt.lib;vcf2c.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmtd.lib;libcmt.lib</IgnoreSpecificDefaultLibraries>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -327,20 +327,20 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>C:\Projects\EMTGv8_proprietary;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\include;SNOPT;src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)cspice\include;$(SolutionDir)boost;$(SolutionDir)src;$(SolutionDir)SNOPT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <TreatWarningAsError>false</TreatWarningAsError>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;$(Configuration)/;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cspice.lib;SNOPTrelease.lib;vcf2c.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)cspice\lib;$(SolutionDir)boost\stage\lib;$(SolutionDir)src;$(SolutionDir)SNOPT;%(AdditionalIncludeDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cspice.lib;snopt.lib;vcf2c.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;MSVCRTD.lib</IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <Profile>false</Profile>
@@ -496,10 +496,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\EMTGv8_proprietary\Lambert.cpp" />
-    <ClCompile Include="..\..\..\EMTGv8_proprietary\proprietary_functions.cpp" />
     <ClCompile Include="SNOPT\snfilewrapper.c" />
-    <ClCompile Include="SNOPT\snoptProblem.cc" />
+    <ClCompile Include="SNOPT\snoptProblem.cpp" />
     <ClCompile Include="src\AdaptiveConstrainedDiffEvolve.cpp" />
     <ClCompile Include="src\AmsterdamRootFinder.cpp" />
     <ClCompile Include="src\body.cpp" />
@@ -522,6 +520,7 @@
     <ClCompile Include="src\Kepler_Lagrange_Laguerre_Conway_Der.cpp" />
     <ClCompile Include="src\Lambert_AroraRussell.cpp" />
     <ClCompile Include="src\lazy_race_tree_search.cpp" />
+    <ClCompile Include="src\load_asteroid_list.cpp" />
     <ClCompile Include="src\LT_Spiral.cpp" />
     <ClCompile Include="src\MGADSMphase.cpp" />
     <ClCompile Include="src\MGALTphase.cpp" />
@@ -543,10 +542,9 @@
     <ClCompile Include="src\STM.cpp" />
     <ClCompile Include="src\universe.cpp" />
     <ClCompile Include="src\unpowered_flyby.cpp" />
+    <ClCompile Include="src\write_branch_summary.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\EMTGv8_proprietary\Lambert.h" />
-    <ClInclude Include="..\..\..\EMTGv8_proprietary\proprietary_functions.h" />
     <ClInclude Include="SNOPT\f2c.h" />
     <ClInclude Include="SNOPT\snfilewrapper.h" />
     <ClInclude Include="SNOPT\snopt.h" />
