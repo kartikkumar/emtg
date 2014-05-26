@@ -7,6 +7,8 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
+
+
 #include "missionoptions.h"
 #include "mission.h"
 #include "outerloop_NSGAII.h"
@@ -169,7 +171,7 @@ int main(int argc, char* argv[])
 	//next, it is time to start the outer-loop
 	//if we are running in parallel, start MPI
 #ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
+	boost::mpi::environment MPIEnvironment(argc, argv);
 	boost::mpi::communicator MPIWorld;
 #endif
 
@@ -264,17 +266,21 @@ int main(int argc, char* argv[])
 		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 		std::string branch_directory = "..//EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
 
-		//create the race tree directory 
-		try
-		{
-			path p(branch_directory);
-			boost::filesystem::create_directories(p);
+#ifdef EMTG_MPI
+		if (MPIWorld.rank() == 0) {
+#endif
+			//create the race tree directory 
+			try
+			{
+				path p(branch_directory);
+				boost::filesystem::create_directories(p);
+			} catch (std::exception &e)
+			{
+				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+			}
+#ifdef EMTG_MPI
 		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-		}
-
+#endif
 		//define where the summary file is going to go and create it
 		std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
 		std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
@@ -296,8 +302,11 @@ int main(int argc, char* argv[])
 		outputfile.close();
 
 		//Perform the lazy race tree search algorithm on the list of asteroids
+#ifdef EMTG_MPI
+		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location, &MPIEnvironment, &MPIWorld);
+#else
 		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location);
-
+#endif
 		//write the best sequence to file
 		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
 		outputfile << std::endl;

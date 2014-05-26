@@ -3,9 +3,20 @@
 
 
 #include "lazy_race_tree_search.h"
+#ifdef EMTG_MPI
+namespace boost {
+	namespace mpi {
+		template <> struct is_commutative<EMTG::pair_min, std::pair<int, double>> : mpl::true_{};
+	}
+}
+#endif
 
 namespace EMTG{
+#ifdef EMTG_MPI
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment MPIenvironment, boost::mpi::communicator world)
+#else
 	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location)
+#endif
 	{
 		
 		//make a copy of the options structure
@@ -14,6 +25,7 @@ namespace EMTG{
 		
 
 		double time_left = options->lazy_race_tree_maximum_duration * 86400.0; //POSSIBLE OPTIONS STRUCTURE INCLUSION
+		double time_to_remove = 0.0;
 		double current_cost;
 		double current_flight_time;
 		double current_mass;
@@ -43,14 +55,25 @@ namespace EMTG{
 		asteroid_list.erase(std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID));
 		best_sequence.push_back(starting_body_ID);
 
+#ifdef EMTG_MPI //this block of code lets each core pick its own subset of asteroids to play with
+		std::vector<int> my_asteroidlist;
+
+		for (int index = 0; index < asteroid_list.size(); ++index) {
+			if (index%(world.size()) == world.rank()) //this one belongs to me
+				my_asteroidlist.push_back(asteroid_list[index]);
+		}
+
+#endif
 
 		//Loop over levels in the tree
 		do
 		{
 			//filter from the full list to the sublist
-			
+#ifdef EMTG_MPI			
+			asteroid_sublist = filter_asteroid_list(starting_body_ID, branch_options.launch_window_open_date / 86400.0, my_asteroidlist, TheUniverse_in, options);
+#else
 			asteroid_sublist = filter_asteroid_list(starting_body_ID, branch_options.launch_window_open_date / 86400.0, asteroid_list, TheUniverse_in, options);
-			
+#endif
 			number_of_branches_in_current_level = asteroid_sublist.size(); 
 			
 			//we've run out of asteroids/hit a dead-end based on the current search 'ball'
@@ -71,7 +94,7 @@ namespace EMTG{
 			std::fill(wait_time_for_each_body_in_level.begin(), wait_time_for_each_body_in_level.end(), 1.0e+20);
 
 			
-			
+			failures_in_current_level = 0; //reset this for the new level
 
 			//Loop over branches in the level
 			for (size_t branch = 0; branch < number_of_branches_in_current_level; ++branch)
@@ -132,11 +155,6 @@ namespace EMTG{
 					//getchar();
 					current_cost = 1.0e+20;
 					++failures_in_current_level;
-
-					//if we fail to find any feasible solutions for every branch in the level
-					//then this is as far as this tree can go
-					if (failures_in_current_level == number_of_branches_in_current_level)
-						return;
 				}
 				
 				current_flight_time = branch_mission.Xopt[1];
@@ -157,35 +175,68 @@ namespace EMTG{
 
 			}//end branch loop
 
+#ifndef EMTG_MPI			
+			//if we fail to find any feasible solutions for every branch in the level
+			//then this is as far as this tree can go
+			if (failures_in_current_level == number_of_branches_in_current_level) {
+				return; //if we are not in MPI mode, then we've bottomed out this tree
+			}
+#endif
+
 			//DETERMINE WHICH BRANCH WAS "CHEAPEST" 
 			std::vector<double>::iterator best_cost_of_level = std::min_element(cost_to_get_to_each_body_in_level.begin(), cost_to_get_to_each_body_in_level.end());
 			
-			//std::cout << *best_cost_of_level << std::endl;
+#ifdef EMTG_MPI //now share our minimum across everyone and find the true minimum
+			std::pair<int, double> my_best = std::make_pair(world.rank(), *best_cost_of_level);
+			
+			std::pair<int, double> absolute_best = boost::mpi::all_reduce<std::pair<int, double>>(world, my_best, pair_min());
+			
+			//now we know who has the absolute best!
+			if (absolute_best.first == world.rank()) { //I have the best.  Note this is a HANGING if statement across code
+#endif
 
-			//find index of body that had the best cost
-			int next_starting_body_index = best_cost_of_level - cost_to_get_to_each_body_in_level.begin();
+				//find index of body that had the best cost
+				int next_starting_body_index = best_cost_of_level - cost_to_get_to_each_body_in_level.begin();
+				time_to_remove = wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index];
+				
+				//ALTER WET MASS
+				branch_options.maximum_mass = final_mass_for_each_body_in_level[next_starting_body_index];
 
-			//assign new starting body for the next level in the tree
-			//this is the body with the best cost function in the current level
-			starting_body_ID = asteroid_sublist[next_starting_body_index];
-			best_sequence.push_back(starting_body_ID);
+				//ALTER STARTING EPOCH
+				//time you waited after required 30 days + time it took to get to next body + 30 days required at the destination asteroid
+				branch_options.launch_window_open_date += wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index] + 30.0*86400.0;
 
+				//assign new starting body for the next level in the tree
+				//this is the body with the best cost function in the current level
+				starting_body_ID = asteroid_sublist[next_starting_body_index];
+#ifdef EMTG_MPI
+			}  //close the if statement, only when in MPI
+				
+			//share the time to remove
+			broadcast(world, time_to_remove, absolute_best.first);
+			
+			//broadcast updated final wetmass
+			broadcast(world, branch_options.maximum_mass, absolute_best.first);
+
+			//broadcast updated launch window opening date
+			broadcast(world, branch_options.launch_window_open_date, absolute_best.first);
+
+			//now need to broadcast out the best answer asteroid
+			broadcast(world, starting_body_ID, absolute_best.first);
+
+			
 			//the starting body that was just assigned should now be removed from the list of available targets
+			std::vector<int>::iterator tobeerased = std::find(my_asteroidlist.begin(), my_asteroidlist.end(), starting_body_ID);
+			if (tobeerased != my_asteroidlist.end())
+				my_asteroidlist.erase(tobeerased);
+#else
 			asteroid_list.erase(std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID));
-
+#endif
+			best_sequence.push_back(starting_body_ID);
+			
 			//REDUCE TIME_LEFT
 			//we are letting the probe go for 5.5 years after which it should probably stop
-			time_left -= wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index];
-			
-			//reduce number of bodies for the next branch
-			--number_of_branches_in_current_level;
-
-			//ALTER WET MASS
-			branch_options.maximum_mass = final_mass_for_each_body_in_level[next_starting_body_index];
-
-			//ALTER STARTING EPOCH
-			//time you waited after required 30 days + time it took to get to next body + 30 days required at the destination asteroid
-			branch_options.launch_window_open_date += wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index] + 30.0*86400.0;
+			time_left -= time_to_remove;
 
 			++tree_level;
 
@@ -197,6 +248,7 @@ namespace EMTG{
 
 
 	//epoch needs to be in MJD
+
 	std::vector<int> filter_asteroid_list(int const & current_asteroid, double const & epoch, std::vector<int> & asteroid_list, boost::ptr_vector<Astrodynamics::universe> & myUniverse, missionoptions * options) {
 
 		std::vector<int> filtered_asteroid_list;
@@ -227,4 +279,6 @@ namespace EMTG{
 		return filtered_asteroid_list;
 
 	}
+
+
 }//end EMTG namespace
