@@ -863,6 +863,12 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lbllazy_race_tree_maximum_duration = wx.StaticText(self, -1, "Lazy race-tree max duration (days)")
         self.txtlazy_race_tree_maximum_duration = wx.TextCtrl(self, -1, "lazy_race_tree_maximum_duration")
+
+        self.lbllazy_race_tree_radius = wx.StaticText(self, -1, "Lazy race-tree search radius (km)")
+        self.txtlazy_race_tree_radius = wx.TextCtrl(self, -1, "lazy_race_tree_radius")
+
+        self.lbllazy_race_tree_velocity_difference = wx.StaticText(self, -1, "Lazy race-tree search velocity difference (km/s)")
+        self.txtlazy_race_tree_velocity_difference = wx.TextCtrl(self, -1, "lazy_race_tree_velocity_difference")
         
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
@@ -878,7 +884,9 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates,
                                self.lbllazy_race_tree_target_list_file, lazy_race_tree_target_list_file_box,
                                self.lbllazy_race_tree_start_location_ID, self.txtlazy_race_tree_start_location_ID,
-                               self.lbllazy_race_tree_maximum_duration, self.txtlazy_race_tree_maximum_duration])
+                               self.lbllazy_race_tree_maximum_duration, self.txtlazy_race_tree_maximum_duration,
+                               self.lbllazy_race_tree_radius, self.txtlazy_race_tree_radius,
+                               self.lbllazy_race_tree_velocity_difference, self.txtlazy_race_tree_velocity_difference])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)

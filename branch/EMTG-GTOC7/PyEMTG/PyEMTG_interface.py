@@ -668,6 +668,8 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_start_location_ID)
         self.optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Bind(wx.EVT_BUTTON, self.Clicklazy_race_tree_target_list_file)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_maximum_duration)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_radius.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_radius)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_velocity_difference)
         
         self.optionsnotebook.tabSolver.txttrialX.Bind(wx.EVT_KILL_FOCUS,self.ChangetrialX)
         self.optionsnotebook.tabSolver.btntrialX.Bind(wx.EVT_BUTTON, self.ClickTrialXButton)
@@ -1616,7 +1618,7 @@ class PyEMTG_interface(wx.Frame):
 
     def Clicklazy_race_tree_target_list_file(self, e):
         #call dialog to choose destination list
-        dlg = wx.FileDialog(self, "Choose a lazy race-tree search input file", self.dirname, "", "*.txt", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose a lazy race-tree search input file", self.dirname, "", "*.asteroidlist ", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
         else:
@@ -1626,6 +1628,14 @@ class PyEMTG_interface(wx.Frame):
 
         self.missionoptions.lazy_race_tree_target_list_file = filename
 
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_radius(self, e):
+        self.missionoptions.lazy_race_tree_radius = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_radius.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_velocity_difference(self, e):
+        self.missionoptions.lazy_race_tree_velocity_difference = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changeouterloop_popsize(self, e):

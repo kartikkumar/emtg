@@ -271,7 +271,7 @@ namespace EMTG{
 			velocity_difference = std::abs(std::sqrt((current_asteroid_state[3])*(current_asteroid_state[3]) + (current_asteroid_state[4])*(current_asteroid_state[4]) + (current_asteroid_state[5])*(current_asteroid_state[5])) - std::sqrt((target_asteroid_state[3])*(target_asteroid_state[3]) + (target_asteroid_state[4])*(target_asteroid_state[4]) + (target_asteroid_state[5])*(target_asteroid_state[5])));
 
 			//should we include this point?
-			if (euclidean_distance < 100000000 && velocity_difference < 2.0) //update this to be pulling from the options file
+			if (euclidean_distance < options->lazy_race_tree_radius && velocity_difference < options->lazy_race_tree_velocity_difference) //update this to be pulling from the options file
 				filtered_asteroid_list.push_back(*asteroid);
 
 		}

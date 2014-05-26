@@ -41,6 +41,8 @@ missionoptions::missionoptions() {
 	this->lazy_race_tree_target_list_file = "none";
 	this->lazy_race_tree_start_location_ID = 1;
 	this->lazy_race_tree_maximum_duration = 3000.0;
+	this->lazy_race_tree_radius = 1.0e+8;
+	this->lazy_race_tree_velocity_difference = 2.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -103,6 +105,8 @@ missionoptions::missionoptions(string optionsfile) {
 	this->lazy_race_tree_target_list_file = "none";
 	this->lazy_race_tree_start_location_ID = 1;
 	this->lazy_race_tree_maximum_duration = 3000.0;
+	this->lazy_race_tree_radius = 1.0e+8;
+	this->lazy_race_tree_velocity_difference = 2.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -395,6 +399,16 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "lazy_race_tree_maximum_duration")
 	{
 		this->lazy_race_tree_maximum_duration = value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_radius")
+	{
+		this->lazy_race_tree_radius = value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_velocity_difference")
+	{
+		this->lazy_race_tree_velocity_difference = value;
 		return 0;
 	}
 
@@ -1843,6 +1857,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "lazy_race_tree_start_location_ID " << this->lazy_race_tree_start_location_ID << endl;
 		outputfile << "#Maximum duration for lazy race-tree search (days)" << endl;
 		outputfile << "lazy_race_tree_maximum_duration " << this->lazy_race_tree_maximum_duration << endl;
+		outputfile << "#Lazy race-tree search distance filter magnitude (km)" << endl;
+		outputfile << "lazy_race_tree_radius " << this->lazy_race_tree_radius << endl;
+		outputfile << "#Lazy race-tree search velocity filter magnitude (km/s)" << endl;
+		outputfile << "lazy_race_tree_velocity_difference " << this->lazy_race_tree_velocity_difference << endl;
 		outputfile << endl;
 
 

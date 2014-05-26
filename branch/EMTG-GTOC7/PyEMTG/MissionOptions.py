@@ -56,6 +56,8 @@ class MissionOptions(object):
     lazy_race_tree_target_list_file = "none"
     lazy_race_tree_start_location_ID = 1
     lazy_race_tree_maximum_duration = 3000
+    lazy_race_tree_radius = 1.0e+8
+    lazy_race_tree_velocity_difference = 2.0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -333,6 +335,10 @@ class MissionOptions(object):
                         self.lazy_race_tree_start_location_ID = int(linecell[1])
                     elif choice == "lazy_race_tree_maximum_duration":
                         self.lazy_race_tree_maximum_duration = float(linecell[1])
+                    elif choice == "lazy_race_tree_radius":
+                        self.lazy_race_tree_radius = float(linecell[1])
+                    elif choice == "lazy_race_tree_velocity_difference":
+                        self.lazy_race_tree_velocity_difference = float(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -848,6 +854,10 @@ class MissionOptions(object):
         outputfile.write("lazy_race_tree_start_location_ID " + str(self.lazy_race_tree_start_location_ID) + "\n")
         outputfile.write("#Maximum duration for lazy race-tree search (days)\n")
         outputfile.write("lazy_race_tree_maximum_duration " + str(self.lazy_race_tree_maximum_duration) + "\n")
+        outputfile.write("#Lazy race-tree search distance filter magnitude (km)\n")
+        outputfile.write("lazy_race_tree_radius " + str(self.lazy_race_tree_radius) + '\n')
+        outputfile.write("#Lazy race-tree search velocity filter magnitude (km/s)\n")
+        outputfile.write("lazy_race_tree_velocity_difference " + str(self.lazy_race_tree_velocity_difference) + '\n')
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -3119,6 +3129,8 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.SetValue(self.lazy_race_tree_target_list_file)
         optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.SetValue(str(self.lazy_race_tree_start_location_ID))
         optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.SetValue(str(self.lazy_race_tree_maximum_duration))
+        optionsnotebook.tabSolver.txtlazy_race_tree_radius.SetValue(str(self.lazy_race_tree_radius))
+        optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.SetValue(str(self.lazy_race_tree_velocity_difference))
 
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
@@ -3150,6 +3162,10 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
         elif self.run_outerloop == 2:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3180,6 +3196,10 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(True)
             optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(True)
             optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3210,6 +3230,10 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()

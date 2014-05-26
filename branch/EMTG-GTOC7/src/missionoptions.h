@@ -85,6 +85,8 @@ public:
 	string lazy_race_tree_target_list_file;
 	int lazy_race_tree_start_location_ID;
 	double lazy_race_tree_maximum_duration;
+	double lazy_race_tree_radius;
+	double lazy_race_tree_velocity_difference;
 
 
 	//outer loop selectable options settings
