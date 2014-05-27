@@ -290,10 +290,10 @@ int main(int argc, char* argv[])
 		outputfile.width(15); outputfile << "Branch #";
 		outputfile.width(35); outputfile << "Starting Asteroid EMTG Num ID";
 		outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
-		outputfile.width(25); outputfile << "Launch Window Open";
-		outputfile.width(20); outputfile << "Launch Epoch";
-		outputfile.width(20); outputfile << "Time of Flight";
-		outputfile.width(20); outputfile << "Arrival Epoch";
+		outputfile.width(30); outputfile << "Launch Window Open";
+		outputfile.width(25); outputfile << "Launch Epoch";
+		outputfile.width(25); outputfile << "Time of Flight";
+		outputfile.width(25); outputfile << "Arrival Epoch";
 		outputfile.width(20); outputfile << "Starting Wet mass";
 		outputfile.width(20); outputfile << "Final Wet mass";
 

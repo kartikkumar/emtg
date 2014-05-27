@@ -148,14 +148,6 @@ namespace EMTG{
 				
 				branch_mission.optimize();
 				
-				//if this branch was not feasible, then make its cost really big
-				if (branch_mission.number_of_solutions == 0)
-				{
-					//std::cout << "No feasible LRTS solution" << std::endl;
-					//getchar();
-					current_cost = 1.0e+20;
-					++failures_in_current_level;
-				}
 				
 				current_flight_time = branch_mission.Xopt[1];
 				current_mass = branch_mission.Xopt[2];
@@ -165,6 +157,15 @@ namespace EMTG{
 					current_cost = branch_mission.best_cost + current_wait_time/TheUniverse_in[0].TU; //only one journey, therefore, always first entry in universe vector
 				else
 					current_cost = branch_mission.best_cost;
+
+				//if this branch was not feasible, then make its cost really big
+				if (branch_mission.number_of_solutions == 0)
+				{
+					//std::cout << "No feasible LRTS solution" << std::endl;
+					//getchar();
+					current_cost = 1.0e+20;
+					++failures_in_current_level;
+				}
 
 				cost_to_get_to_each_body_in_level[branch] = current_cost;
 				time_to_get_to_each_body_in_level[branch] = current_flight_time;
@@ -240,7 +241,7 @@ namespace EMTG{
 
 			++tree_level;
 
-		}while (time_left > 0.0 && number_of_branches_in_current_level > 0);//end level loop
+		}while (time_left > 0.0 && number_of_branches_in_current_level > 0 && branch_options.maximum_mass > branch_options.minimum_dry_mass);//end level loop
 
 
 		
@@ -291,10 +292,10 @@ namespace EMTG{
 		outputfile.width(15); outputfile << branch;
 		outputfile.width(35); outputfile << branch_options.destination_list[0][0];
 		outputfile.width(35); outputfile << branch_options.destination_list[0][1];
-		outputfile.width(25); outputfile.precision(10); outputfile << branch_options.launch_window_open_date;
-		outputfile.width(20); outputfile.precision(10); outputfile << branch_mission.Xopt[0];
-		outputfile.width(20); outputfile.precision(10); outputfile << branch_mission.Xopt[1];
-		outputfile.width(20); outputfile.precision(10); outputfile << branch_mission.Xopt[0] + branch_mission.Xopt[1];
+		outputfile.width(30); outputfile.precision(15); outputfile << branch_options.launch_window_open_date;
+		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[0];
+		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[1];
+		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[0] + branch_mission.Xopt[1];
 		outputfile.width(20); outputfile << branch_options.maximum_mass;
 		outputfile.width(20); outputfile << branch_mission.Xopt[2];
 
