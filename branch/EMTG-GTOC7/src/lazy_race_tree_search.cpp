@@ -1,7 +1,7 @@
 //Donald Ellison and Ryne Beeson
 //May 22nd 2014
 
-#define EMTG_MPI
+
 
 #include "lazy_race_tree_search.h"
 #ifdef EMTG_MPI
