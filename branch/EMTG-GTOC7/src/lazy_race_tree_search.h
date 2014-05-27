@@ -18,12 +18,16 @@
 #include <fstream>
 #include <sstream>
 #include <utility>
+#include <functional>
 
 
 
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
 #include <boost/mpi/communicator.hpp>
+#include <boost/mpi/collectives.hpp>
+#include <boost/mpi/operations.hpp>
+#include <boost/serialization/utility.hpp>
 #endif
 
 using namespace std;
@@ -36,7 +40,7 @@ using namespace boost::posix_time;
 
 namespace EMTG{
 #ifdef EMTG_MPI
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment MPIenvironment, boost::mpi::communicator world);
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world);
 #else
 	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location);
 #endif
@@ -46,7 +50,7 @@ namespace EMTG{
 	
 	struct pair_min {
 
-		std::pair<int, double> operator() (const std::pair<int, double> & left, std::pair<int, double> right) { return ((left.second < right.second) ? (left) : (right)); }
+		std::pair<int, double> operator() (const std::pair<int, double> & left, const std::pair<int, double> & right) { return ((left.second < right.second) ? (left) : (right)); }
 
 	};
 

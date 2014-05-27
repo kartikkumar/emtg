@@ -1,6 +1,7 @@
 //Donald Ellison and Ryne Beeson
 //May 22nd 2014
 
+#define EMTG_MPI
 
 #include "lazy_race_tree_search.h"
 #ifdef EMTG_MPI
@@ -13,7 +14,7 @@ namespace boost {
 
 namespace EMTG{
 #ifdef EMTG_MPI
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment MPIenvironment, boost::mpi::communicator world)
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world)
 #else
 	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location)
 #endif
@@ -57,6 +58,7 @@ namespace EMTG{
 
 #ifdef EMTG_MPI //this block of code lets each core pick its own subset of asteroids to play with
 		std::vector<int> my_asteroidlist;
+		std::pair<int, double> my_best, absolute_best; //need these later, declared here because it is the first #ifdef available
 
 		for (int index = 0; index < asteroid_list.size(); ++index) {
 			if (index%(world.size()) == world.rank()) //this one belongs to me
@@ -75,12 +77,14 @@ namespace EMTG{
 			asteroid_sublist = filter_asteroid_list(starting_body_ID, branch_options.launch_window_open_date / 86400.0, asteroid_list, TheUniverse_in, options);
 #endif
 			number_of_branches_in_current_level = asteroid_sublist.size(); 
-			
+
+
+#ifndef EMTG_MPI //we only want to break if we're running solo; if we are MPI, we just want to recognize that we're "out"
 			//we've run out of asteroids/hit a dead-end based on the current search 'ball'
 			if (number_of_branches_in_current_level <= 0) {
 				break;
 			}
-
+#endif
 			//resize them to the subfilter
 			cost_to_get_to_each_body_in_level.resize(number_of_branches_in_current_level);
 			time_to_get_to_each_body_in_level.resize(number_of_branches_in_current_level);
@@ -97,7 +101,7 @@ namespace EMTG{
 			failures_in_current_level = 0; //reset this for the new level
 
 			//Loop over branches in the level
-			for (size_t branch = 0; branch < number_of_branches_in_current_level; ++branch)
+			for (size_t branch = 0; branch < number_of_branches_in_current_level && number_of_branches_in_current_level != 0; ++branch)
 			{
 				//CHANGE DESTINATION LIST (WE ONLY EVER HAVE ONE JOURNEY, ONE PHASE)
 				journey_sequence.clear();
@@ -188,9 +192,20 @@ namespace EMTG{
 			std::vector<double>::iterator best_cost_of_level = std::min_element(cost_to_get_to_each_body_in_level.begin(), cost_to_get_to_each_body_in_level.end());
 			
 #ifdef EMTG_MPI //now share our minimum across everyone and find the true minimum
-			std::pair<int, double> my_best = std::make_pair(world.rank(), *best_cost_of_level);
+			if (number_of_branches_in_current_level == 0) { //we didn't have any asteroids, so we skipped this round
+				my_best = std::make_pair(world.rank(), 1.0e+20);
+			} else {
+				my_best = std::make_pair(world.rank(), *best_cost_of_level);
+			}
+
 			
-			std::pair<int, double> absolute_best = boost::mpi::all_reduce<std::pair<int, double>>(world, my_best, pair_min());
+			/*if this node did not produce ANY feasible results, we are going to pretend that it was a zero-sized node.  We do this AFTER we've registered its 
+			correct objective function, etc.  This lines up with the later test that if *ALL* branches are zero-sized, we ran out of targets and we're done.  By
+			pretending we are a zero-sized branch, if ALL branches PRETEND too, that really means they all failed out, and we've equally hit a dead-end. */
+			if (failures_in_current_level == number_of_branches_in_current_level)
+				number_of_branches_in_current_level = 0; 
+			
+			absolute_best = boost::mpi::all_reduce<std::pair<int, double>>(world, my_best, pair_min());
 			
 			//now we know who has the absolute best!
 			if (absolute_best.first == world.rank()) { //I have the best.  Note this is a HANGING if statement across code
@@ -214,16 +229,19 @@ namespace EMTG{
 			}  //close the if statement, only when in MPI
 				
 			//share the time to remove
-			broadcast(world, time_to_remove, absolute_best.first);
+			boost::mpi::broadcast(world, time_to_remove, absolute_best.first);
 			
 			//broadcast updated final wetmass
-			broadcast(world, branch_options.maximum_mass, absolute_best.first);
+			boost::mpi::broadcast(world, branch_options.maximum_mass, absolute_best.first);
 
 			//broadcast updated launch window opening date
-			broadcast(world, branch_options.launch_window_open_date, absolute_best.first);
+			boost::mpi::broadcast(world, branch_options.launch_window_open_date, absolute_best.first);
 
 			//now need to broadcast out the best answer asteroid
-			broadcast(world, starting_body_ID, absolute_best.first);
+			boost::mpi::broadcast(world, starting_body_ID, absolute_best.first);
+
+			//we make the number_of_branches_in_current_level be the TOTAL number across ALL satellites so the WHILE loop can exit if we sum to zero.  Also doubles as a global check of failure due to a previous if-statement
+			number_of_branches_in_current_level = boost::mpi::all_reduce<int>(world,number_of_branches_in_current_level, std::plus<int>());
 
 			
 			//the starting body that was just assigned should now be removed from the list of available targets
@@ -236,7 +254,6 @@ namespace EMTG{
 			best_sequence.push_back(starting_body_ID);
 			
 			//REDUCE TIME_LEFT
-			//we are letting the probe go for 5.5 years after which it should probably stop
 			time_left -= time_to_remove;
 
 			++tree_level;

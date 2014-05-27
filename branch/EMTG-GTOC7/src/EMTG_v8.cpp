@@ -265,6 +265,7 @@ int main(int argc, char* argv[])
 		std::stringstream timestream;
 		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 		std::string branch_directory = "..//EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
+		path p(branch_directory);
 
 #ifdef EMTG_MPI
 		if (MPIWorld.rank() == 0) {
@@ -272,7 +273,7 @@ int main(int argc, char* argv[])
 			//create the race tree directory 
 			try
 			{
-				path p(branch_directory);
+				
 				boost::filesystem::create_directories(p);
 			} catch (std::exception &e)
 			{
@@ -284,7 +285,9 @@ int main(int argc, char* argv[])
 		//define where the summary file is going to go and create it
 		std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
 		std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
-
+#ifdef EMTG_MPI
+		if (MPIWorld.rank() == 0) {
+#endif
 		//set up header line in summary file
 		outputfile.width(15); outputfile << left << "Tree Level";
 		outputfile.width(15); outputfile << "Branch #";
@@ -300,12 +303,18 @@ int main(int argc, char* argv[])
 		outputfile << std::endl << std::endl;
 		//close the tree summary file
 		outputfile.close();
+#ifdef EMTG_MPI
+		}; //close the "root-node only" print if statement
 
 		//Perform the lazy race tree search algorithm on the list of asteroids
-#ifdef EMTG_MPI
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location, &MPIEnvironment, &MPIWorld);
+
+		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location, MPIEnvironment, MPIWorld);
 #else
 		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location);
+#endif
+
+#ifdef EMTG_MPI
+		if (MPIWorld.rank() == 0) {
 #endif
 		//write the best sequence to file
 		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
@@ -317,6 +326,10 @@ int main(int argc, char* argv[])
 			outputfile << ", " << best_sequence[i];
 
 		outputfile.close();
+
+#ifdef EMTG_MPI
+		}; //if root node only finish reporting
+#endif
 			
 	}
 
