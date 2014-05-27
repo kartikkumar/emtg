@@ -492,7 +492,7 @@ int main(int argc, char* argv[])
 
 #ifndef BACKGROUND_MODE
 	std::cout << "EMTG run complete. Press enter to close window." << endl;
-	std::cin.ignore();
+	//std::cin.ignore();
 #endif
 
 	return 0;
