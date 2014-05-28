@@ -284,11 +284,11 @@ namespace EMTG{
 
 
 		//determine where we are
-		myUniverse[0].bodies[current_asteroid].locate_body(epoch, current_asteroid_state, false, options);
+		myUniverse[0].bodies[current_asteroid-1].locate_body(epoch, current_asteroid_state, false, options);
 
 		for (std::vector<int>::iterator asteroid = asteroid_list.begin(); asteroid != asteroid_list.end(); ++asteroid) {
 
-			myUniverse[0].bodies[*asteroid].locate_body(epoch, target_asteroid_state, false, options);
+			myUniverse[0].bodies[(*asteroid)-1].locate_body(epoch, target_asteroid_state, false, options);
 
 			euclidean_distance = std::sqrt((current_asteroid_state[0] - target_asteroid_state[0])*(current_asteroid_state[0] - target_asteroid_state[0]) + (current_asteroid_state[1] - target_asteroid_state[1])*(current_asteroid_state[1] - target_asteroid_state[1]) + (current_asteroid_state[2] - target_asteroid_state[2])*(current_asteroid_state[2] - target_asteroid_state[2]));
 			velocity_difference = std::abs(std::sqrt((current_asteroid_state[3])*(current_asteroid_state[3]) + (current_asteroid_state[4])*(current_asteroid_state[4]) + (current_asteroid_state[5])*(current_asteroid_state[5])) - std::sqrt((target_asteroid_state[3])*(target_asteroid_state[3]) + (target_asteroid_state[4])*(target_asteroid_state[4]) + (target_asteroid_state[5])*(target_asteroid_state[5])));
