@@ -129,6 +129,8 @@ namespace EMTG{
 
 				//define a new working directory
 				branch_options.working_directory = branch_directory + branch_options.mission_name;
+
+#ifdef BRANCH_DATA_GENERATION
 				//create the working directory
 				try
 				{
@@ -143,7 +145,7 @@ namespace EMTG{
 
 				//print the options file to the new directory
 				branch_options.print_options_file(branch_options.working_directory + "//" + branch_options.mission_name + ".emtgopt");
-				
+#endif			
 				
 
 				EMTG::mission branch_mission(&branch_options, TheUniverse_in);

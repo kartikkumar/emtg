@@ -60,6 +60,8 @@ void handler(int sig) {
 }
 #endif
 
+#define BRANCH_DATA_GENERATION
+
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
@@ -87,7 +89,7 @@ int main(int argc, char* argv[])
 	if (!(options.file_status == 0))
 	{
 		cout << "Aborting program run." << endl;
-		cin.ignore();
+		//cin.ignore();
 		return 0;
 	}
 

@@ -632,8 +632,10 @@ namespace EMTG { namespace Solvers {
 
 		//print the archive header
 		string archive_file = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "archive.emtg_archive";
+#ifdef BRANCH_DATA_GENERATION
 		if (!Problem->options.quiet_basinhopping)
 			print_archive_header(archive_file);
+#endif
 
 		time_t tstart = time(NULL);
 
@@ -783,7 +785,9 @@ namespace EMTG { namespace Solvers {
 						F[0] = EMTG::math::LARGE;
 					}
 					Problem->options.outputfile = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + ".emtg";
+#ifdef BRANCH_DATA_GENERATION
 					Problem->output();
+#endif
 				}
 
 			}
