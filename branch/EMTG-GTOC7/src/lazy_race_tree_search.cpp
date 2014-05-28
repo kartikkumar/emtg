@@ -204,7 +204,13 @@ namespace EMTG{
 			pretending we are a zero-sized branch, if ALL branches PRETEND too, that really means they all failed out, and we've equally hit a dead-end. */
 			if (failures_in_current_level == number_of_branches_in_current_level)
 				number_of_branches_in_current_level = 0; 
+
+			//we make the number_of_branches_in_current_level be the TOTAL number across ALL satellites so the WHILE loop can exit if we sum to zero.  Also doubles as a global check of failure due to a previous if-statement
+			number_of_branches_in_current_level = boost::mpi::all_reduce<int>(world, number_of_branches_in_current_level, std::plus<int>());
 			
+			if (number_of_branches_in_current_level == 0) //everyone was empty OR failed out OR was some combination of the two.. regardless, we've hit a dead end.
+				return; //need to exit out at this stage, for fear of otherwise having ambiguous reduce next and multi-point broadcast
+
 			absolute_best = boost::mpi::all_reduce<std::pair<int, double>>(world, my_best, pair_min());
 			
 			//now we know who has the absolute best!
@@ -240,8 +246,7 @@ namespace EMTG{
 			//now need to broadcast out the best answer asteroid
 			boost::mpi::broadcast(world, starting_body_ID, absolute_best.first);
 
-			//we make the number_of_branches_in_current_level be the TOTAL number across ALL satellites so the WHILE loop can exit if we sum to zero.  Also doubles as a global check of failure due to a previous if-statement
-			number_of_branches_in_current_level = boost::mpi::all_reduce<int>(world,number_of_branches_in_current_level, std::plus<int>());
+			
 
 			
 			//the starting body that was just assigned should now be removed from the list of available targets
