@@ -60,7 +60,7 @@ void handler(int sig) {
 }
 #endif
 
-#define BRANCH_DATA_GENERATION
+
 
 int main(int argc, char* argv[]) 
 {

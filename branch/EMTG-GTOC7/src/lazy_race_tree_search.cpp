@@ -67,6 +67,12 @@ namespace EMTG{
 
 #endif
 
+		//We will most likely be receiving initial mothership arrival epochs, so we want to advance
+		//the launch_window_open_date ahead by 30 days to force the requisit stay time
+
+		branch_options.launch_window_open_date += 2592000.0;
+
+
 		//Loop over levels in the tree
 		do
 		{
