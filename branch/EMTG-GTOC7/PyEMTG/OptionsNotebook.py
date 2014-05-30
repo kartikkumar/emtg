@@ -864,10 +864,10 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbllazy_race_tree_maximum_duration = wx.StaticText(self, -1, "Lazy race-tree max duration (days)")
         self.txtlazy_race_tree_maximum_duration = wx.TextCtrl(self, -1, "lazy_race_tree_maximum_duration")
 
-        self.lbllazy_race_tree_radius = wx.StaticText(self, -1, "Lazy race-tree search radius (km)")
+        self.lbllazy_race_tree_radius = wx.StaticText(self, -1, "Lazy race-tree filter radius (km)")
         self.txtlazy_race_tree_radius = wx.TextCtrl(self, -1, "lazy_race_tree_radius")
 
-        self.lbllazy_race_tree_velocity_difference = wx.StaticText(self, -1, "Lazy race-tree search velocity difference (km/s)")
+        self.lbllazy_race_tree_velocity_difference = wx.StaticText(self, -1, "Lazy race-tree filter velocity difference (km/s)")
         self.txtlazy_race_tree_velocity_difference = wx.TextCtrl(self, -1, "lazy_race_tree_velocity_difference")
         
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
