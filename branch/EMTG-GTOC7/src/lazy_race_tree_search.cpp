@@ -7,7 +7,7 @@
 #ifdef EMTG_MPI
 namespace boost {
 	namespace mpi {
-		template <> struct is_commutative<EMTG::pair_min, std::pair<int, double>> : mpl::true_{};
+		template <> struct is_commutative< EMTG::pair_min, std::pair<int, double> > : mpl::true_{};
 	}
 }
 #endif
@@ -219,7 +219,7 @@ namespace EMTG{
 			if (number_of_branches_in_current_level == 0) //everyone was empty OR failed out OR was some combination of the two.. regardless, we've hit a dead end.
 				return; //need to exit out at this stage, for fear of otherwise having ambiguous reduce next and multi-point broadcast
 
-			absolute_best = boost::mpi::all_reduce<std::pair<int, double>>(world, my_best, pair_min());
+			absolute_best = boost::mpi::all_reduce< std::pair<int, double> >(world, my_best, pair_min());
 			
 			//now we know who has the absolute best!
 			if (absolute_best.first == world.rank()) { //I have the best.  Note this is a HANGING if statement across code
