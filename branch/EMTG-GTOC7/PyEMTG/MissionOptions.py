@@ -58,7 +58,7 @@ class MissionOptions(object):
     lazy_race_tree_maximum_duration = 3000
     lazy_race_tree_radius = 1.0e+8
     lazy_race_tree_velocity_difference = 2.0
-    lazy_race_tree_initial_flight_time_bound = 90.0
+    lazy_race_tree_final_flight_time_bound = 90.0
     lazy_race_tree_flight_time_increment = 90.0
     
     #outerloop objective settings
@@ -342,8 +342,8 @@ class MissionOptions(object):
                         self.lazy_race_tree_radius = float(linecell[1])
                     elif choice == "lazy_race_tree_velocity_difference":
                         self.lazy_race_tree_velocity_difference = float(linecell[1])
-                    elif choice == "lazy_race_tree_initial_flight_time_bound":
-                        self.lazy_race_tree_initial_flight_time_bound = float(linecell[1])
+                    elif choice == "lazy_race_tree_final_flight_time_bound":
+                        self.lazy_race_tree_final_flight_time_bound = float(linecell[1])
                     elif choice == "lazy_race_tree_flight_time_increment":
                         self.lazy_race_tree_flight_time_increment = float(linecell[1])
 
@@ -867,8 +867,8 @@ class MissionOptions(object):
         outputfile.write("lazy_race_tree_radius " + str(self.lazy_race_tree_radius) + "\n")
         outputfile.write("#Lazy race-tree search velocity filter magnitude (km/s)\n")
         outputfile.write("lazy_race_tree_velocity_difference " + str(self.lazy_race_tree_velocity_difference) + "\n")
-        outputfile.write("#Lazy race-tree search (mass mode) initial flight time upper bound (days)\n")
-        outputfile.write("lazy_race_tree_initial_flight_time_bound " + str(self.lazy_race_tree_initial_flight_time_bound) + "\n")
+        outputfile.write("#Lazy race-tree search (mass mode) final flight time upper bound (days)\n")
+        outputfile.write("lazy_race_tree_final_flight_time_bound " + str(self.lazy_race_tree_final_flight_time_bound) + "\n")
         outputfile.write("#Lazy race-tree search (mass mode) flight time increment (days)\n")
         outputfile.write("lazy_race_tree_flight_time_increment " + str(self.lazy_race_tree_flight_time_increment) + "\n")
         outputfile.write("\n")
@@ -3146,7 +3146,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.SetValue(str(self.lazy_race_tree_maximum_duration))
         optionsnotebook.tabSolver.txtlazy_race_tree_radius.SetValue(str(self.lazy_race_tree_radius))
         optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.SetValue(str(self.lazy_race_tree_velocity_difference))
-        optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.SetValue(str(self.lazy_race_tree_initial_flight_time_bound))
+        optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.SetValue(str(self.lazy_race_tree_final_flight_time_bound))
         optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.SetValue(str(self.lazy_race_tree_flight_time_increment))
 
         if self.run_outerloop == 1:
@@ -3183,8 +3183,8 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_initial_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(False)
         elif self.run_outerloop == 2:
@@ -3221,8 +3221,8 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(True)
             optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(True)
             optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_initial_flight_time_bound.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.Show(True)
+            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(True)
+            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(True)
             optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(True)
             optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(True)
         else:
@@ -3259,8 +3259,8 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_initial_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.Show(False)
+            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(False)
+            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(False)
             optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(False)
 

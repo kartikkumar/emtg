@@ -670,7 +670,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_maximum_duration)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_radius.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_radius)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_velocity_difference)
-        self.optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_initial_flight_time_bound)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_final_flight_time_bound)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_flight_time_increment)
         
         self.optionsnotebook.tabSolver.txttrialX.Bind(wx.EVT_KILL_FOCUS,self.ChangetrialX)
@@ -1641,8 +1641,8 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.lazy_race_tree_velocity_difference = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
-    def Changelazy_race_tree_initial_flight_time_bound(self, e):
-        self.missionoptions.lazy_race_tree_initial_flight_time_bound = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.GetValue())
+    def Changelazy_race_tree_final_flight_time_bound(self, e):
+        self.missionoptions.lazy_race_tree_final_flight_time_bound = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def Changelazy_race_tree_flight_time_increment(self, e):
