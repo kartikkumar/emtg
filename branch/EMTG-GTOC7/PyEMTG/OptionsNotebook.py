@@ -869,6 +869,12 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lbllazy_race_tree_velocity_difference = wx.StaticText(self, -1, "Lazy race-tree filter velocity difference (km/s)")
         self.txtlazy_race_tree_velocity_difference = wx.TextCtrl(self, -1, "lazy_race_tree_velocity_difference")
+
+        self.lbllazy_race_tree_initial_flight_time_bound = wx.StaticText(self, -1, "Lazy race-tree search (mass mode) initial flight time upper bound (days)")
+        self.txtlazy_race_tree_initial_flight_time_bound = wx.TextCtrl(self, -1, "lazy_race_tree_initial_flight_time_bound")
+
+        self.lbllazy_race_tree_flight_time_increment = wx.StaticText(self, -1, "Lazy race-tree search (mass mode) flight time increment (days)")
+        self.txtlazy_race_tree_flight_time_increment = wx.TextCtrl(self, -1, "lazy_race_tree_flight_time_increment")
         
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
@@ -886,7 +892,9 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lbllazy_race_tree_start_location_ID, self.txtlazy_race_tree_start_location_ID,
                                self.lbllazy_race_tree_maximum_duration, self.txtlazy_race_tree_maximum_duration,
                                self.lbllazy_race_tree_radius, self.txtlazy_race_tree_radius,
-                               self.lbllazy_race_tree_velocity_difference, self.txtlazy_race_tree_velocity_difference])
+                               self.lbllazy_race_tree_velocity_difference, self.txtlazy_race_tree_velocity_difference,
+                               self.lbllazy_race_tree_initial_flight_time_bound, self.txtlazy_race_tree_initial_flight_time_bound,
+                               self.lbllazy_race_tree_flight_time_increment, self.txtlazy_race_tree_flight_time_increment])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)
@@ -1023,9 +1031,12 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbloutput_units = wx.StaticText(self, -1, "Output units")
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
+        self.lblenable_emtg_output_files = wx.StaticText(self, -1, "Enable output of .emtg files?")
+        self.chkenable_emtg_output_files = wx.CheckBox(self, -1)
 
         self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
-                           self.lbloutput_units, self.cmboutput_units])
+                           self.lbloutput_units, self.cmboutput_units,
+                           self.lblenable_emtg_output_files, self.chkenable_emtg_output_files])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()

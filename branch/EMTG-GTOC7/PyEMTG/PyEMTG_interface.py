@@ -670,6 +670,8 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_maximum_duration)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_radius.Bind(wx.EVT_KILL_FOCUS,self.Changelazy_race_tree_radius)
         self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_velocity_difference)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_initial_flight_time_bound)
+        self.optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Bind(wx.EVT_KILL_FOCUS, self.Changelazy_race_tree_flight_time_increment)
         
         self.optionsnotebook.tabSolver.txttrialX.Bind(wx.EVT_KILL_FOCUS,self.ChangetrialX)
         self.optionsnotebook.tabSolver.btntrialX.Bind(wx.EVT_BUTTON, self.ClickTrialXButton)
@@ -691,6 +693,7 @@ class PyEMTG_interface(wx.Frame):
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
+        self.optionsnotebook.tabOutput.chkenable_emtg_output_files.Bind(wx.EVT_CHECKBOX, self.Changeenable_emtg_output_files)
         
         
     #event handlers for global mission options    
@@ -1637,6 +1640,14 @@ class PyEMTG_interface(wx.Frame):
     def Changelazy_race_tree_velocity_difference(self, e):
         self.missionoptions.lazy_race_tree_velocity_difference = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_initial_flight_time_bound(self, e):
+        self.missionoptions.lazy_race_tree_initial_flight_time_bound = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_initial_flight_time_bound.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changelazy_race_tree_flight_time_increment(self, e):
+        self.missionoptions.lazy_race_tree_flight_time_increment = eval(self.optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
     def Changeouterloop_popsize(self, e):
         self.missionoptions.outerloop_popsize=eval(self.optionsnotebook.tabSolver.txtouterloop_popsize.GetValue())
@@ -1739,7 +1750,10 @@ class PyEMTG_interface(wx.Frame):
 
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.missionoptions.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+
+    def Changeenable_emtg_output_files(self, e):
+        self.missionoptions.enable_emtg_output_files = int(self.optionsnotebook.tabOutput.chkenable_emtg_output_files.GetValue())
