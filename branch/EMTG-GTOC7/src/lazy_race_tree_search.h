@@ -40,9 +40,9 @@ using namespace boost::posix_time;
 
 namespace EMTG{
 #ifdef EMTG_MPI
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world);
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::vector <double> & epoch_sequence, std::vector <double> & mass_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world);
 #else
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location);
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::vector <double> & epoch_sequence, std::vector <double> & mass_sequence, std::string & branch_directory, std::string & tree_summary_file_location);
 #endif
 	
 	std::vector<int> filter_asteroid_list(int const & current_asteroid, double const & epoch, std::vector<int> & asteroid_list, boost::ptr_vector<Astrodynamics::universe> & myUniverse, missionoptions * options);

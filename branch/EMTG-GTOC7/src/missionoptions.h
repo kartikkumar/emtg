@@ -87,7 +87,7 @@ public:
 	double lazy_race_tree_maximum_duration;
 	double lazy_race_tree_radius;
 	double lazy_race_tree_velocity_difference;
-	double lazy_race_tree_initial_flight_time_bound;
+	double lazy_race_tree_final_flight_time_bound;
 	double lazy_race_tree_flight_time_increment;
 
 

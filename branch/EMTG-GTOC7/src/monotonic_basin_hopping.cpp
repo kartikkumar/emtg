@@ -632,10 +632,10 @@ namespace EMTG { namespace Solvers {
 
 		//print the archive header
 		string archive_file = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "archive.emtg_archive";
-#ifdef BRANCH_DATA_GENERATION
-		if (!Problem->options.quiet_basinhopping)
+		 
+		if (!Problem->options.quiet_basinhopping && Problem->options.enable_emtg_output_files)
 			print_archive_header(archive_file);
-#endif
+
 
 		time_t tstart = time(NULL);
 

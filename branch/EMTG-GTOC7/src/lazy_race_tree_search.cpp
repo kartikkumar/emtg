@@ -14,9 +14,9 @@ namespace boost {
 
 namespace EMTG{
 #ifdef EMTG_MPI
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world)
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::vector <double> & epoch_sequence, std::vector <double> & mass_sequence, std::string & branch_directory, std::string & tree_summary_file_location, boost::mpi::environment & MPIenvironment, boost::mpi::communicator & world)
 #else
-	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::string & branch_directory, std::string & tree_summary_file_location)
+	void lazy_race_tree_search(missionoptions * options, boost::ptr_vector<Astrodynamics::universe> & TheUniverse_in, std::vector <int> & asteroid_list, std::vector <int> & best_sequence, std::vector <double> & epoch_sequence, std::vector <double> & mass_sequence, std::string & branch_directory, std::string & tree_summary_file_location)
 #endif
 	{
 		
@@ -45,8 +45,8 @@ namespace EMTG{
 		//THESE SHOULD GO IN THE OPTIONS STRUCTURE/GUI
 		//WITH A NOTE THAT THEY ONLY APPLY FOR MIN. PROP WITH THE TIME EXTENSION FEATURE
 		
-		double max_flight_time = 165.0*86400.0;
-		double flight_time_increment = 30.0;
+		double max_flight_time = branch_options.lazy_race_tree_final_flight_time_bound;
+		double flight_time_increment = branch_options.lazy_race_tree_flight_time_increment;
 
 		//THIS SHOULD BE FLIPPED TO TRUE IMMEDIATELY IF WE ARE DOING MIN. PROP WITHOUT THE TIME EXTENSION
 		bool reached_max_upper_flighttime_bound = false;
@@ -66,6 +66,8 @@ namespace EMTG{
 		starting_body_ID = options->lazy_race_tree_start_location_ID;
 		asteroid_list.erase(std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID));
 		best_sequence.push_back(starting_body_ID);
+		epoch_sequence.push_back(branch_options.launch_window_open_date);
+		mass_sequence.push_back(branch_options.maximum_mass);
 
 #ifdef EMTG_MPI //this block of code lets each core pick its own subset of asteroids to play with
 		std::vector<int> my_asteroidlist;
@@ -131,8 +133,8 @@ namespace EMTG{
 				//specify which two asteroids you're flying between
 				branch_options.destination_list[0][0] = starting_body_ID;
 				branch_options.destination_list[0][1] = asteroid_sublist[branch];
-
-
+				
+				
 				journey_sequence.push_back(branch_options.destination_list[0][0]);
 				journey_sequence.push_back(branch_options.destination_list[0][1]);
 				branch_options.sequence.push_back(journey_sequence);
@@ -310,7 +312,12 @@ namespace EMTG{
 #else
 			asteroid_list.erase(std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID));
 #endif
+			//append the best sequence
 			best_sequence.push_back(starting_body_ID);
+			//append the starting mass at each target
+			mass_sequence.push_back(branch_options.maximum_mass);
+			//append the epoch at each target
+			epoch_sequence.push_back(branch_options.launch_window_open_date - 30.0*86400.0);
 			
 			//REDUCE TIME_LEFT
 			time_left -= time_to_remove;

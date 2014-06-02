@@ -257,7 +257,9 @@ int main(int argc, char* argv[])
 
 		std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched
 		std::vector <int> best_sequence; //the LRTS algorithm will populate this vector with the best sequence it finds
-
+		std::vector <double> epoch_sequence; //the LRTS algorithm will populate this vector with the rendezvous epoch for each element of the best sequence found
+		std::vector <double> mass_sequence; //the LRTS algorithm will populate this vector with the mass at each element of the best sequence found
+		
 
 		//First load the list of asteroids from file
 		EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
@@ -310,9 +312,9 @@ int main(int argc, char* argv[])
 
 		//Perform the lazy race tree search algorithm on the list of asteroids
 
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location, MPIEnvironment, MPIWorld);
+		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location, MPIEnvironment, MPIWorld);
 #else
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location);
+		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location);
 #endif
 
 #ifdef EMTG_MPI
@@ -327,6 +329,23 @@ int main(int argc, char* argv[])
 		for (size_t i = 1; i < best_sequence.size(); ++i)
 			outputfile << ", " << best_sequence[i];
 
+		//write the rendezvous epoch for each element of the sequence
+		outputfile << std::endl;
+		//outputfile.width(25);
+		outputfile.precision(15);
+		outputfile << epoch_sequence[0];
+		for (size_t i = 1; i < epoch_sequence.size(); ++i)
+			outputfile << ", " << epoch_sequence[i];
+
+		//write the mass for each element of the sequence
+		outputfile << std::endl;
+		//outputfile.width(25);
+		outputfile.precision(15);
+		outputfile << mass_sequence[0];
+		for (size_t i = 1; i < mass_sequence.size(); ++i)
+			outputfile << ", " << mass_sequence[i];
+
+		//close the output file
 		outputfile.close();
 
 #ifdef EMTG_MPI

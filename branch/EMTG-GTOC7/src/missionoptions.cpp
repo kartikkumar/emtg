@@ -43,7 +43,7 @@ missionoptions::missionoptions() {
 	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
-	this->lazy_race_tree_initial_flight_time_bound = 90.0;
+	this->lazy_race_tree_final_flight_time_bound = 90.0;
 	this->lazy_race_tree_flight_time_increment = 30.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
@@ -110,7 +110,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
-	this->lazy_race_tree_initial_flight_time_bound = 90.0;
+	this->lazy_race_tree_final_flight_time_bound = 90.0;
 	this->lazy_race_tree_flight_time_increment = 30.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
@@ -416,9 +416,9 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->lazy_race_tree_velocity_difference = value;
 		return 0;
 	}
-	if (choice == "lazy_race_tree_initial_flight_time_bound")
+	if (choice == "lazy_race_tree_final_flight_time_bound")
 	{
-		this->lazy_race_tree_initial_flight_time_bound = value;
+		this->lazy_race_tree_final_flight_time_bound = value;
 		return 0;
 	}
 	if (choice == "lazy_race_tree_flight_time_increment")
@@ -1880,8 +1880,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "lazy_race_tree_radius " << this->lazy_race_tree_radius << endl;
 		outputfile << "#Lazy race-tree search velocity filter magnitude (km/s)" << endl;
 		outputfile << "lazy_race_tree_velocity_difference " << this->lazy_race_tree_velocity_difference << endl;
-		outputfile << "#Lazy race-tree search (mass mode) initial flight time upper bound (days)" << endl;
-		outputfile << "lazy_race_tree_initial_flight_time_bound " << this->lazy_race_tree_initial_flight_time_bound << endl;
+		outputfile << "#Lazy race-tree search (mass mode) final flight time upper bound (days)" << endl;
+		outputfile << "lazy_race_tree_final_flight_time_bound " << this->lazy_race_tree_final_flight_time_bound << endl;
 		outputfile << "#Lazy race-tree search (mass mode) flight time increment (days)" << endl;
 		outputfile << "lazy_race_tree_flight_time_increment " << this->lazy_race_tree_flight_time_increment << endl;
 		outputfile << endl;
