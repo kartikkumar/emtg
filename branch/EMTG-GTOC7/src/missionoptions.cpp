@@ -43,6 +43,8 @@ missionoptions::missionoptions() {
 	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
+	this->lazy_race_tree_initial_flight_time_bound = 90.0;
+	this->lazy_race_tree_flight_time_increment = 30.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -79,6 +81,7 @@ missionoptions::missionoptions() {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 	this->number_of_journeys = 1;
+	this->enable_emtg_output_files = 1;
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -107,6 +110,8 @@ missionoptions::missionoptions(string optionsfile) {
 	this->lazy_race_tree_maximum_duration = 3000.0;
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
+	this->lazy_race_tree_initial_flight_time_bound = 90.0;
+	this->lazy_race_tree_flight_time_increment = 30.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -142,7 +147,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_flyby_coast = 0.0;
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
-
+	this->enable_emtg_output_files = 1;
 
 
 	this->file_status = parse_options_file(optionsfile);
@@ -409,6 +414,16 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "lazy_race_tree_velocity_difference")
 	{
 		this->lazy_race_tree_velocity_difference = value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_initial_flight_time_bound")
+	{
+		this->lazy_race_tree_initial_flight_time_bound = value;
+		return 0;
+	}
+	if (choice == "lazy_race_tree_flight_time_increment")
+	{
+		this->lazy_race_tree_flight_time_increment = value;
 		return 0;
 	}
 
@@ -1655,6 +1670,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->create_GMAT_script = (int) value;
 		return 0;
 	}
+	if (choice == "enable_emtg_output_files") {
+		this->enable_emtg_output_files = (bool)value;
+		return 0;
+	}
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -1861,6 +1880,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "lazy_race_tree_radius " << this->lazy_race_tree_radius << endl;
 		outputfile << "#Lazy race-tree search velocity filter magnitude (km/s)" << endl;
 		outputfile << "lazy_race_tree_velocity_difference " << this->lazy_race_tree_velocity_difference << endl;
+		outputfile << "#Lazy race-tree search (mass mode) initial flight time upper bound (days)" << endl;
+		outputfile << "lazy_race_tree_initial_flight_time_bound " << this->lazy_race_tree_initial_flight_time_bound << endl;
+		outputfile << "#Lazy race-tree search (mass mode) flight time increment (days)" << endl;
+		outputfile << "lazy_race_tree_flight_time_increment " << this->lazy_race_tree_flight_time_increment << endl;
 		outputfile << endl;
 
 
@@ -2553,6 +2576,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "output_units " << this->output_units << endl;
 		outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
 		outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
+		outputfile << "#Enable output of .emtg files?" << endl;
+		outputfile << "enable_emtg_output_files " << (int) this->enable_emtg_output_files << endl;
 		outputfile << endl;
 
 		outputfile << "##debug code" << endl;

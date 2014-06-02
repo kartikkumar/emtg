@@ -131,8 +131,8 @@ namespace EMTG{
 				//specify which two asteroids you're flying between
 				branch_options.destination_list[0][0] = starting_body_ID;
 				branch_options.destination_list[0][1] = asteroid_sublist[branch];
-				
-				
+
+
 				journey_sequence.push_back(branch_options.destination_list[0][0]);
 				journey_sequence.push_back(branch_options.destination_list[0][1]);
 				branch_options.sequence.push_back(journey_sequence);
@@ -145,28 +145,28 @@ namespace EMTG{
 				mission_name_stream << branch_options.destination_list[0][0] << "_" << branch_options.destination_list[0][1];
 				branch_options.mission_name = mission_name_stream.str();
 
-				
+
 
 				//define a new working directory
 				branch_options.working_directory = branch_directory + branch_options.mission_name;
-
-#ifdef BRANCH_DATA_GENERATION
-				//create the working directory
-				try
-				{
-					path p(branch_options.working_directory);
-					boost::filesystem::create_directories(p);
-				}
-				catch (std::exception &e)
-				{
-					std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-				}
-
-
-				//print the options file to the new directory
-				branch_options.print_options_file(branch_options.working_directory + "//" + branch_options.mission_name + ".emtgopt");
-#endif			
 				
+				if (options->enable_emtg_output_files)
+				{
+					//create the working directory
+					try
+					{
+						path p(branch_options.working_directory);
+						boost::filesystem::create_directories(p);
+					}
+					catch (std::exception &e)
+					{
+						std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+					}
+
+
+					//print the options file to the new directory
+					branch_options.print_options_file(branch_options.working_directory + "//" + branch_options.mission_name + ".emtgopt");
+				}		
 				
 
 					

@@ -87,6 +87,8 @@ public:
 	double lazy_race_tree_maximum_duration;
 	double lazy_race_tree_radius;
 	double lazy_race_tree_velocity_difference;
+	double lazy_race_tree_initial_flight_time_bound;
+	double lazy_race_tree_flight_time_increment;
 
 
 	//outer loop selectable options settings
@@ -285,6 +287,7 @@ public:
 	//output format settings
 	int output_units; //0: km and km/s, 1: LU and LU/day
 	int create_GMAT_script; //0: no, 1: yes
+	bool enable_emtg_output_files;
 
 	//debug code
 	int run_inner_loop;
