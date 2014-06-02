@@ -7,7 +7,7 @@
 #ifdef EMTG_MPI
 namespace boost {
 	namespace mpi {
-		template <> struct is_commutative< EMTG::pair_min, std::pair<int, double> > : mpl::true_{};
+		template <> struct is_commutative<EMTG::pair_min, std::pair<int, double> > : mpl::true_{};
 	}
 }
 #endif
@@ -41,6 +41,17 @@ namespace EMTG{
 		//tree search makes the decision to go with the asteroid that it gets to on the earliest calendar date
 		bool include_wait_time_in_cost = true;
 
+
+		//THESE SHOULD GO IN THE OPTIONS STRUCTURE/GUI
+		//WITH A NOTE THAT THEY ONLY APPLY FOR MIN. PROP WITH THE TIME EXTENSION FEATURE
+		
+		double max_flight_time = 165.0*86400.0;
+		double flight_time_increment = 30.0;
+
+		//THIS SHOULD BE FLIPPED TO TRUE IMMEDIATELY IF WE ARE DOING MIN. PROP WITHOUT THE TIME EXTENSION
+		bool reached_max_upper_flighttime_bound = false;
+		bool we_are_repeating_the_level = false;
+
 		std::vector <double> cost_to_get_to_each_body_in_level(num_asteroids, 0.0);
 		std::vector <double> time_to_get_to_each_body_in_level(num_asteroids, 0.0);
 		std::vector <double> final_mass_for_each_body_in_level(num_asteroids, 0.0);
@@ -69,13 +80,16 @@ namespace EMTG{
 
 		//We will most likely be receiving initial mothership arrival epochs, so we want to advance
 		//the launch_window_open_date ahead by 30 days to force the requisit stay time
-
 		branch_options.launch_window_open_date += 2592000.0;
 
 
 		//Loop over levels in the tree
 		do
 		{
+
+			if(!we_are_repeating_the_level)
+				EMTG::missionoptions branch_options = *options;
+
 			//filter from the full list to the sublist
 #ifdef EMTG_MPI			
 			asteroid_sublist = filter_asteroid_list(starting_body_ID, branch_options.launch_window_open_date / 86400.0, my_asteroidlist, TheUniverse_in, options);
@@ -153,22 +167,25 @@ namespace EMTG{
 				branch_options.print_options_file(branch_options.working_directory + "//" + branch_options.mission_name + ".emtgopt");
 #endif			
 				
+				
 
+					
+
+				//Instantiate a new mission, then optimize it
 				EMTG::mission branch_mission(&branch_options, TheUniverse_in);
-
-			
-				
 				branch_mission.optimize();
-				
-				
+
+
 				current_flight_time = branch_mission.Xopt[1];
 				current_mass = branch_mission.Xopt[2];
 				current_wait_time = branch_mission.Xopt[0] - branch_options.launch_window_open_date;
 
 				if (branch_options.objective_type == 1 && include_wait_time_in_cost)
-					current_cost = branch_mission.best_cost + current_wait_time/TheUniverse_in[0].TU; //only one journey, therefore, always first entry in universe vector
+					current_cost = branch_mission.best_cost + current_wait_time / TheUniverse_in[0].TU; //only one journey, therefore, always first entry in universe vector
 				else
 					current_cost = branch_mission.best_cost;
+
+				
 
 				//if this branch was not feasible, then make its cost really big
 				if (branch_mission.number_of_solutions == 0)
@@ -187,14 +204,14 @@ namespace EMTG{
 				write_branch_summary(branch_mission, branch_options, tree_summary_file_location, tree_level, branch);
 
 			}//end branch loop
-
-#ifndef EMTG_MPI			
-			//if we fail to find any feasible solutions for every branch in the level
-			//then this is as far as this tree can go
-			if (failures_in_current_level == number_of_branches_in_current_level) {
-				return; //if we are not in MPI mode, then we've bottomed out this tree
-			}
-#endif
+		
+//#ifndef EMTG_MPI			
+//			//if we fail to find any feasible solutions for every branch in the level
+//			//then this is as far as this tree can go
+//			if (failures_in_current_level == number_of_branches_in_current_level) {
+//				return; //if we are not in MPI mode, then we've bottomed out this tree
+//			}
+//#endif
 
 			//DETERMINE WHICH BRANCH WAS "CHEAPEST" 
 			std::vector<double>::iterator best_cost_of_level = std::min_element(cost_to_get_to_each_body_in_level.begin(), cost_to_get_to_each_body_in_level.end());
@@ -206,20 +223,49 @@ namespace EMTG{
 				my_best = std::make_pair(world.rank(), *best_cost_of_level);
 			}
 
-			
+#endif
 			/*if this node did not produce ANY feasible results, we are going to pretend that it was a zero-sized node.  We do this AFTER we've registered its 
 			correct objective function, etc.  This lines up with the later test that if *ALL* branches are zero-sized, we ran out of targets and we're done.  By
 			pretending we are a zero-sized branch, if ALL branches PRETEND too, that really means they all failed out, and we've equally hit a dead-end. */
-			if (failures_in_current_level == number_of_branches_in_current_level)
-				number_of_branches_in_current_level = 0; 
+			int number_of_successes_in_current_level = number_of_branches_in_current_level - failures_in_current_level;
 
+#ifdef EMTG_MPI
 			//we make the number_of_branches_in_current_level be the TOTAL number across ALL satellites so the WHILE loop can exit if we sum to zero.  Also doubles as a global check of failure due to a previous if-statement
-			number_of_branches_in_current_level = boost::mpi::all_reduce<int>(world, number_of_branches_in_current_level, std::plus<int>());
-			
-			if (number_of_branches_in_current_level == 0) //everyone was empty OR failed out OR was some combination of the two.. regardless, we've hit a dead end.
-				return; //need to exit out at this stage, for fear of otherwise having ambiguous reduce next and multi-point broadcast
+			number_of_successes_in_current_level = boost::mpi::all_reduce<int>(world, number_of_successes_in_current_level, std::plus<int>());
+#endif
 
-			absolute_best = boost::mpi::all_reduce< std::pair<int, double> >(world, my_best, pair_min());
+			
+			if (number_of_successes_in_current_level == 0 )
+			{
+				//if we are running min. propellant and had no successes in this level
+				//try the level again with a slightly extended max flight time
+				//otherwise, if we are running another objective function we are actually done with this level
+				//so we will just abandon the lazy race tree search
+				if (branch_options.objective_type == 2)
+				{
+					if (reached_max_upper_flighttime_bound) {
+						return;//need to exit out at this stage, for fear of otherwise having ambiguous reduce next and multi-point broadcast
+					}
+					//extend the flight time
+					branch_options.total_flight_time_bounds[1] += flight_time_increment*86400.0;
+
+					//we have reached the allowed upper limit of our flight time extension tactic
+					//the next time throug the do-while will be the last
+					if (branch_options.total_flight_time_bounds[1] >= max_flight_time)
+						reached_max_upper_flighttime_bound = true;
+
+					we_are_repeating_the_level = true;
+					//try the level again
+					continue;
+				}
+				else
+					return; 
+			}
+			
+			we_are_repeating_the_level = false;
+
+#ifdef EMTG_MPI
+			absolute_best = boost::mpi::all_reduce<std::pair<int, double> >(world, my_best, pair_min());
 			
 			//now we know who has the absolute best!
 			if (absolute_best.first == world.rank()) { //I have the best.  Note this is a HANGING if statement across code
@@ -269,13 +315,14 @@ namespace EMTG{
 			//REDUCE TIME_LEFT
 			time_left -= time_to_remove;
 
+			
 			++tree_level;
 
 		}while (time_left > 0.0 && number_of_branches_in_current_level > 0 && branch_options.maximum_mass > branch_options.minimum_dry_mass);//end level loop
 
 
 		
-	}
+	}//end lazy race tree search function
 
 
 	//epoch needs to be in MJD
