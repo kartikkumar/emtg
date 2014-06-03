@@ -1480,7 +1480,7 @@ void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamic
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[k] * Universe->LU, 2) << " ";
 		for (int k = 3; k < 6; ++k)
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[k] * Universe->LU / Universe->TU, 2) << " ";
-		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[7] * this->state_at_beginning_of_phase[6], 2) << " ";
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[6] * this->state_at_beginning_of_phase[6], 2) << " ";
 		for (int k = 0; k < 3; ++k)
 		{
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->available_thrust[0] * 1000.0 * day_control[k], 2);
