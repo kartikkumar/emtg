@@ -18,6 +18,8 @@
 #include <sstream>
 #include <fstream>
 
+#include "EMTG_string_utilities.h"
+
 namespace EMTG {
 
 FBLT_phase::FBLT_phase() {
@@ -1381,6 +1383,128 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	}
 
 	return 0;
+}
+
+//function to output in GTOC7 format
+void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p)
+{
+	//this is a daily format. We will not interpolate, rather we will integrate with piecewise constant control
+	//in this format we assume that each journey has only one phase, which is reasonable for GTOC7 where all journeys end in rendezvous and no flybys are allowed
+
+	ofstream GTOC7file;
+
+	if (j == 0)
+	{
+		GTOC7file.open(GTOC_output_file, ios::trunc);
+		GTOC7file << "# PROBE NUMBER:         X" << endl;
+	}
+	else
+		GTOC7file.open(GTOC_output_file, ios::app);
+
+	GTOC7file << "# PHASE NUMBER:         " << j + 1 << endl;
+
+	GTOC7file << "# DESCRIPTION: From ";
+	if (j == 0)
+		GTOC7file << "Mother ship ";
+	else
+		GTOC7file << "Asteroid " << this->Body1->spice_ID;
+	GTOC7file << " to Asteroid " << this->Body2->spice_ID << endl;
+
+	GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)              Thrust_x (N)           Thrust_y (N)           Thrust_z (N)" << endl;
+
+	//write out the departure state
+	GTOC7file << " ";
+	GTOC7file.precision(14);
+	GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0, 2) << " ";
+	for (int k = 0; k < 7; ++k)
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_beginning_of_phase[k], 2) << " ";
+	for (int k = 0; k < 3; ++k)
+	{
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->available_thrust[0] * 1000.0 * this->control[0][k], 2);
+		if (k < 2)
+			GTOC7file << " ";
+	}
+	
+	GTOC7file << endl;	
+
+	//now loop over days
+	//assume all time-steps are the same width, i.e. no funky distributions
+	double initial_state[7], propagated_state[7];
+	for (int k = 0; k < 3; ++k)
+		propagated_state[k] = this->state_at_beginning_of_phase[k] / Universe->LU;
+	for (int k = 3; k < 6; ++k)
+		propagated_state[k] = this->state_at_beginning_of_phase[k] / Universe->LU * Universe->TU;
+	propagated_state[6] = 1.0;
+
+	double time_step_width = this->time_step_sizes[0];
+	for (int day = 1; day < (int) (this->TOF / 86400.0); ++day)
+	{
+		for (int k = 0; k < 7; ++k)
+			initial_state[k] = propagated_state[k];
+
+		int control_index = day / (time_step_width / 86400.0);
+		double day_control[3];
+		day_control[0] = this->control[control_index][0];
+		day_control[1] = this->control[control_index][1];
+		day_control[2] = this->control[control_index][2];
+
+		double resumeH = 86400.0 / Universe->TU;
+		double resumeError = 1.0e-13;
+		double available_thrust, available_mass_flow_rate, available_Isp, available_power, active_power;
+		int number_of_active_engines;
+
+		this->integrator->adaptive_step_int(	initial_state,
+												propagated_state,
+												day_control,
+												0.0,
+												86400.0 / Universe->TU,
+												86400.0 / Universe->TU,
+												&resumeH,
+												&resumeError,
+												1.0e-8,
+												EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+												&available_thrust,
+												&available_mass_flow_rate,
+												&available_Isp,
+												&available_power,
+												&active_power,
+												&number_of_active_engines,
+												(void*)options,
+												(void*)Universe,
+												this->DummyControllerPointer);
+
+		GTOC7file << " ";
+		GTOC7file.precision(14);
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0 + day, 2) << " ";
+		for (int k = 0; k < 3; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[k] * Universe->LU, 2) << " ";
+		for (int k = 3; k < 6; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[k] * Universe->LU / Universe->TU, 2) << " ";
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(propagated_state[7] * this->state_at_beginning_of_phase[6], 2) << " ";
+		for (int k = 0; k < 3; ++k)
+		{
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->available_thrust[0] * 1000.0 * day_control[k], 2);
+			if (k < 2)
+				GTOC7file << " ";
+		}
+
+		GTOC7file << endl;
+	}
+
+	//write out the arrival state
+	GTOC7file << " ";
+	GTOC7file.precision(14);
+	GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_end_epoch / 86400.0, 2) << " ";
+	for (int k = 0; k < 7; ++k)
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k], 2) << " ";
+	for (int k = 0; k < 3; ++k)
+	{
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(0.0, 2);// this->available_thrust.back() * 1000.0 * this->control.back()[k], 2);
+		if (k < 2)
+			GTOC7file << " ";
+	}
+
+	GTOC7file << endl;
 }
 
 } /* namespace EMTG */

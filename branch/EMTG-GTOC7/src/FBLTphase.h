@@ -37,6 +37,9 @@ public:
 	//return 0 if successful, 1 if failure
 	int output(missionoptions* options, const double& launchdate, int j, int p,  EMTG::Astrodynamics::universe* Universe, int* eventcount);
 
+	//GTOC format output function
+	void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p);
+
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
 	int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);

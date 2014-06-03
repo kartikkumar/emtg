@@ -42,6 +42,9 @@ public:
 	//for a phase that begins with a departure or a flyby, there is one burn
 	//for a phase that ends with an arrival, there is one additional burn
 	vector<double> dVmag;
+
+	//GTOC7 output code
+	void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p){};
 };
 
 } /* namespace EMTG */

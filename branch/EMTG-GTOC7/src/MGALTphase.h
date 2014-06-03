@@ -98,8 +98,8 @@ namespace EMTG {
 		vector< vector<double> > dV;
 		vector< vector<double> > ForceVector;
 
-		//Propagator
-		//Astrodynamics::UniversalKeplerPropagator Propagator;
+		//GTOC7 output code
+		void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p){};
 	};
 
 } /* namespace EMTG */

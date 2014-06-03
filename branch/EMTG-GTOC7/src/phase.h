@@ -72,7 +72,9 @@ namespace EMTG {
 																					   EMTG::Astrodynamics::universe* Universe,
 																					   EMTG::Astrodynamics::body &TheBody);
 
-		double compute_timestep_width_from_distribution(double step, missionoptions* options, double& scale_or_stdv);
+		double compute_timestep_width_from_distribution(double step,
+														missionoptions* options,
+														double& scale_or_stdv);
 
 		void write_summary_line(missionoptions* options,
 								EMTG::Astrodynamics::universe* Universe,
@@ -306,6 +308,7 @@ namespace EMTG {
 		virtual int evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
 		virtual int output(missionoptions* options, const double& launchdate, int j, int p,  EMTG::Astrodynamics::universe* Universe, int* eventcount) = 0;
 		virtual int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
+		virtual void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p) = 0;
 	
 		//b-plane object
 		Astrodynamics::bplane Bplane;

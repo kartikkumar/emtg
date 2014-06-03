@@ -1438,6 +1438,18 @@ int mission::output()
 
 	outputfile.close();
 
+	//output FBLT missions in GTOC7 format
+	string GTOC7_output_file = options.working_directory + "//Probe.GTOC7";
+	if (options.mission_type == 3 && options.enable_emtg_output_files)
+	{
+		for (int j = 0; j < this->number_of_journeys; ++j) 
+		{
+			for (int p = 0; p < options.number_of_phases[j]; ++p)
+				this->journeys[j].phases[p].output_GTOC7_format(&options, &TheUniverse[j], GTOC7_output_file, j, p);
+		}
+
+	}
+
 	return 0;
 }
 

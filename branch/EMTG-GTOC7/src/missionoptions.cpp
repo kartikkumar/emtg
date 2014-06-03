@@ -44,7 +44,7 @@ missionoptions::missionoptions() {
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
 	this->lazy_race_tree_final_flight_time_bound = 90.0;
-	this->lazy_race_tree_flight_time_increment = 30.0;
+	this->lazy_race_tree_flight_time_increment = 90.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -111,7 +111,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->lazy_race_tree_radius = 1.0e+8;
 	this->lazy_race_tree_velocity_difference = 2.0;
 	this->lazy_race_tree_final_flight_time_bound = 90.0;
-	this->lazy_race_tree_flight_time_increment = 30.0;
+	this->lazy_race_tree_flight_time_increment = 90.0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;

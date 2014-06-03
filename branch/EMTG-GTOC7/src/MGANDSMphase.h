@@ -48,6 +48,9 @@ public:
 	vector<double> match_point_state;
 	math::Matrix<double> dV;
 	double DSM_magnitude;
+
+	//GTOC7 output code
+	void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p){};
 };
 
 } /* namespace EMTG */
