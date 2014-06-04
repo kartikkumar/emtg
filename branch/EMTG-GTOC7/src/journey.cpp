@@ -180,7 +180,7 @@ namespace EMTG
 			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
 		}
 
-		else if (options->journey_timebounded[j] == 2) //bounded aggregate flight time
+		else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
 		{
 			Flowerbounds->push_back(options->journey_flight_time_bounds[j][0] / options->journey_flight_time_bounds[j][1] - 1);
 			Fupperbounds->push_back(0.0);
@@ -298,7 +298,7 @@ namespace EMTG
 					}
 				}
 			}
-			else if (options->journey_timebounded[j] == 2)
+			else if (options->journey_timebounded[j] == 2) //bounded arrival date
 			{
 				F[*Findex] = journey_end_epoch / options->journey_arrival_date_bounds[j][1] - 1;
 				++(*Findex);
@@ -312,7 +312,7 @@ namespace EMTG
 					}
 				}
 			}
-			if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
+			else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
 			{
 				F[*Findex] = (journey_end_epoch - X[0]) / options->journey_flight_time_bounds[j][1] - 1;
 				++(*Findex);
