@@ -46,7 +46,7 @@ MGA_DSM_phase::MGA_DSM_phase(int j, int p, missionoptions* options) :
 	//every phase has at least one burn
 	int size = 1;
 	//if this phase begins with a departure, then there is an additional burn
-	if (p == 0)
+	if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6))
 		++size;
 
 	//if this phase ends with an arrival, then there is an additional burn
@@ -342,6 +342,10 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		//calculate the b-plane parameters, check the periapse altitude
 		this->BoundaryR.assign_all(boundary1_state);
 		this->BoundaryV.assign_all(boundary1_state + 3);
+
+		dVdeparture[0] = 0.0;
+		dVdeparture[1] = 0.0;
+		dVdeparture[2] = 0.0;
 
 
 
@@ -653,7 +657,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 						state_at_beginning_of_phase,
 						dVdeparture,
 						empty_vector,
-						p == 0 ? dVmag[0] : flyby_outgoing_v_infinity,
+						(p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) ? dVmag[0] : flyby_outgoing_v_infinity,
 						-1,
 						initial_Isp,
 						-1,
