@@ -90,7 +90,8 @@ namespace EMTG{
 		{
 
 			if(!we_are_repeating_the_level)
-				EMTG::missionoptions branch_options = *options;
+				branch_options.total_flight_time_bounds[1] = options->total_flight_time_bounds[1];
+			//EMTG::missionoptions branch_options = *options;
 
 			//filter from the full list to the sublist
 #ifdef EMTG_MPI			
@@ -253,7 +254,7 @@ namespace EMTG{
 
 					//we have reached the allowed upper limit of our flight time extension tactic
 					//the next time throug the do-while will be the last
-					if (branch_options.total_flight_time_bounds[1] >= max_flight_time)
+					if (branch_options.total_flight_time_bounds[1] >= max_flight_time*86400.0)
 						reached_max_upper_flighttime_bound = true;
 
 					we_are_repeating_the_level = true;
@@ -264,6 +265,8 @@ namespace EMTG{
 					return; 
 			}
 			
+			//if we've gone this far, then we have found one feasible solution
+			//we need to reset we_are_repeating_the_level if it has been turned on
 			we_are_repeating_the_level = false;
 
 #ifdef EMTG_MPI
@@ -378,7 +381,8 @@ namespace EMTG{
 		outputfile.width(35); outputfile << branch_options.destination_list[0][1];
 		outputfile.width(30); outputfile.precision(15); outputfile << branch_options.launch_window_open_date;
 		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[0];
-		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[1];
+		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[1] / 86400.0; //DEBUGGING
+		outputfile.width(25); outputfile.precision(15); outputfile << (branch_mission.Xopt[0] + branch_mission.Xopt[1] - branch_options.launch_window_open_date) / 86400.0; // DEBUGGING
 		outputfile.width(25); outputfile.precision(15); outputfile << branch_mission.Xopt[0] + branch_mission.Xopt[1];
 		outputfile.width(20); outputfile << branch_options.maximum_mass;
 		outputfile.width(20); outputfile << branch_mission.Xopt[2];

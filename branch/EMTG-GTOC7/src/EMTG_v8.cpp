@@ -299,7 +299,8 @@ int main(int argc, char* argv[])
 		outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
 		outputfile.width(30); outputfile << "Launch Window Open";
 		outputfile.width(25); outputfile << "Launch Epoch";
-		outputfile.width(25); outputfile << "Time of Flight";
+		outputfile.width(25); outputfile << "Time of Flight (Days)"; //DEBUGGING
+		outputfile.width(25); outputfile << "Total Flight Time (Days)"; // DEBUGGING
 		outputfile.width(25); outputfile << "Arrival Epoch";
 		outputfile.width(20); outputfile << "Starting Wet mass";
 		outputfile.width(20); outputfile << "Final Wet mass";
@@ -323,7 +324,7 @@ int main(int argc, char* argv[])
 		//write the best sequence to file
 		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
 		outputfile << std::endl;
-		outputfile.width(15); outputfile << left << "Best Sequence Found:" << std::endl;
+		outputfile.width(15); outputfile << left << "Best Sequence Found, Corresponding Epoch and Mass:" << std::endl;
 
 		outputfile << best_sequence[0];
 		for (size_t i = 1; i < best_sequence.size(); ++i)
@@ -331,7 +332,6 @@ int main(int argc, char* argv[])
 
 		//write the rendezvous epoch for each element of the sequence
 		outputfile << std::endl;
-		//outputfile.width(25);
 		outputfile.precision(15);
 		outputfile << epoch_sequence[0];
 		for (size_t i = 1; i < epoch_sequence.size(); ++i)
@@ -339,7 +339,6 @@ int main(int argc, char* argv[])
 
 		//write the mass for each element of the sequence
 		outputfile << std::endl;
-		//outputfile.width(25);
 		outputfile.precision(15);
 		outputfile << mass_sequence[0];
 		for (size_t i = 1; i < mass_sequence.size(); ++i)
