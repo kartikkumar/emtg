@@ -1395,11 +1395,11 @@ void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamic
 
 	if (j == 0)
 	{
-		GTOC7file.open(GTOC_output_file, ios::trunc);
+		GTOC7file.open(GTOC_output_file.c_str(), ios::trunc);
 		GTOC7file << "# PROBE NUMBER:         X" << endl;
 	}
 	else
-		GTOC7file.open(GTOC_output_file, ios::app);
+		GTOC7file.open(GTOC_output_file.c_str(), ios::app);
 
 	GTOC7file << "# PHASE NUMBER:         " << j + 1 << endl;
 
