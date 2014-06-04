@@ -325,7 +325,7 @@ namespace EMTG{
 			
 			++tree_level;
 
-		}while (time_left > 0.0 && number_of_branches_in_current_level > 0 && branch_options.maximum_mass > branch_options.minimum_dry_mass);//end level loop
+		}while (time_left > 0.0 && branch_options.maximum_mass > branch_options.minimum_dry_mass);//end level loop
 
 
 		
