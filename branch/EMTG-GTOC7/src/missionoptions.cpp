@@ -2565,6 +2565,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;
 		outputfile << "#10: Total delta-v (km/s)" << endl;
 		outputfile << "#11: Inner-loop objective (whatever it was)" << endl;
+		outputfile << "#12: Sum of SMA spread" << endl;
+		outputfile << "#13: Sum of mean longitude spread" << endl;
 		outputfile << "outerloop_objective_function_choices";
 		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_objective_function_choices[entry];

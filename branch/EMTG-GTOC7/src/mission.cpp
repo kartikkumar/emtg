@@ -2281,10 +2281,40 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 9: //last journey arrival C3
 				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
+				break;
 			case 10: //delta-V
 				objective_functions[objective] = this->current_deltaV;
+				break;
 			case 11: //inner-loop objective function
 				objective_functions[objective] = this->F[0];
+				break;
+			case 12: //maximize SMA sum (GTOC7)
+				objective_functions[objective] = 0.0;
+				for (int j = 0; j < this->number_of_journeys; ++j)
+				{
+					for (int jj = 0; jj < this->number_of_journeys; ++jj)
+					{
+						if (!(j = jj))
+							objective_functions[objective] += -fabs(this->journeys[j].phases[0].Body2->SMA - this->journeys[jj].phases[0].Body2->SMA) / TheUniverse[j].LU;
+					}
+				}
+				break;
+			case 13: //maximize true longitude sum (GTOC7)
+				objective_functions[objective] = 0.0;
+				for (int j = 0; j < this->number_of_journeys; ++j)
+				{
+					for (int jj = 0; jj < this->number_of_journeys; ++jj)
+					{
+						if (!(j = jj))
+						{
+							double MEANLONGITUDE1 = this->journeys[j].phases[0].Body2->RAAN + this->journeys[j].phases[0].Body2->AOP + this->journeys[j].phases[0].Body2->MA;
+							double MEANLONGITUDE2 = this->journeys[jj].phases[0].Body2->RAAN + this->journeys[jj].phases[0].Body2->AOP + this->journeys[jj].phases[0].Body2->MA;
+
+							objective_functions[objective] += -fabs(MEANLONGITUDE1 - MEANLONGITUDE2);
+						}
+					}
+				}
+				break;
 			}
 		}
 	}
