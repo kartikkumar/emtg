@@ -50,16 +50,7 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
-
-    #lazy race-tree search options
     lazy_race_tree_allow_duplicates = 0
-    lazy_race_tree_target_list_file = "none"
-    lazy_race_tree_start_location_ID = 1
-    lazy_race_tree_maximum_duration = 3000
-    lazy_race_tree_radius = 1.0e+8
-    lazy_race_tree_velocity_difference = 2.0
-    lazy_race_tree_final_flight_time_bound = 90.0
-    lazy_race_tree_flight_time_increment = 90.0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -198,7 +189,6 @@ class MissionOptions(object):
     #output format settings
     output_units = 0 #0: km and km/s, 1: LU and LU/day
     create_GMAT_script = 0 #0: no, 1: yes
-    enable_emtg_output_files = 1
 
     #debug code
     check_derivatives = 0
@@ -328,24 +318,8 @@ class MissionOptions(object):
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
                         self.quiet_outerloop = int(linecell[1])
-
-                    #lazy race-tree search
                     elif choice == "lazy_race_tree_allow_duplicates":
                         self.lazy_race_tree_allow_duplicates = int(linecell[1])
-                    elif choice == "lazy_race_tree_target_list_file":
-                        self.lazy_race_tree_target_list_file = linecell[1]
-                    elif choice == "lazy_race_tree_start_location_ID":
-                        self.lazy_race_tree_start_location_ID = int(linecell[1])
-                    elif choice == "lazy_race_tree_maximum_duration":
-                        self.lazy_race_tree_maximum_duration = float(linecell[1])
-                    elif choice == "lazy_race_tree_radius":
-                        self.lazy_race_tree_radius = float(linecell[1])
-                    elif choice == "lazy_race_tree_velocity_difference":
-                        self.lazy_race_tree_velocity_difference = float(linecell[1])
-                    elif choice == "lazy_race_tree_final_flight_time_bound":
-                        self.lazy_race_tree_final_flight_time_bound = float(linecell[1])
-                    elif choice == "lazy_race_tree_flight_time_increment":
-                        self.lazy_race_tree_flight_time_increment = float(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -748,8 +722,6 @@ class MissionOptions(object):
                         self.output_units = int(linecell[1])
                     elif choice == "create_GMAT_script":
                         self.create_GMAT_script = int(linecell[1])
-                    elif choice == "enable_emtg_output_files":
-                        self.enable_emtg_output_files = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -848,29 +820,10 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
-        outputfile.write("\n")
-
-
-
-        outputfile.write("##Options for lazy race-tree search outer-loop\n")
         outputfile.write("#Allow duplicates in lazy race-tree search?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("lazy_race_tree_allow_duplicates " + str(self.lazy_race_tree_allow_duplicates) + "\n")
-        outputfile.write("#Lazy race-tree search target list file containing the indices of the bodies\n")
-        outputfile.write("lazy_race_tree_target_list_file " + str(self.lazy_race_tree_target_list_file) + "\n")
-        outputfile.write("#Starting location ID\n")
-        outputfile.write("lazy_race_tree_start_location_ID " + str(self.lazy_race_tree_start_location_ID) + "\n")
-        outputfile.write("#Maximum duration for lazy race-tree search (days)\n")
-        outputfile.write("lazy_race_tree_maximum_duration " + str(self.lazy_race_tree_maximum_duration) + "\n")
-        outputfile.write("#Lazy race-tree search distance filter magnitude (km)\n")
-        outputfile.write("lazy_race_tree_radius " + str(self.lazy_race_tree_radius) + "\n")
-        outputfile.write("#Lazy race-tree search velocity filter magnitude (km/s)\n")
-        outputfile.write("lazy_race_tree_velocity_difference " + str(self.lazy_race_tree_velocity_difference) + "\n")
-        outputfile.write("#Lazy race-tree search (mass mode) final flight time upper bound (days)\n")
-        outputfile.write("lazy_race_tree_final_flight_time_bound " + str(self.lazy_race_tree_final_flight_time_bound) + "\n")
-        outputfile.write("#Lazy race-tree search (mass mode) flight time increment (days)\n")
-        outputfile.write("lazy_race_tree_flight_time_increment " + str(self.lazy_race_tree_flight_time_increment) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -1229,6 +1182,7 @@ class MissionOptions(object):
         outputfile.write("#0: unbounded\n")
         outputfile.write("#1: bounded flight time\n")
         outputfile.write("#2: bounded arrival date\n")
+        outputfile.write("#3: bounded aggregate flight time\n")
         outputfile.write("journey_timebounded")
         for j in range (0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_timebounded))
@@ -1501,6 +1455,8 @@ class MissionOptions(object):
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
         outputfile.write("#10: Total delta-v (km/s)\n")
         outputfile.write("#11: Inner-loop objective (whatever it was)\n")
+        outputfile.write("#12: Sum of SMA spread\n")
+        outputfile.write("#13: Sum of mean longitude spread\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
@@ -1512,8 +1468,6 @@ class MissionOptions(object):
         outputfile.write("output_units " + str(self.output_units) + "\n")
         outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
         outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
-        outputfile.write("#Enable output of .emtg files?\n")
-        outputfile.write("enable_emtg_output_files " + str(int(self.enable_emtg_output_files)) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -1763,7 +1717,7 @@ class MissionOptions(object):
                 optionsnotebook.tabJourney.btnMoveJourneyDown.Enable()
 
         #hide or show flight time and arrival date bounds
-        if self.Journeys[self.ActiveJourney].journey_timebounded == 0:
+        if self.Journeys[self.ActiveJourney].journey_timebounded == 0 or self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -3141,13 +3095,6 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
         optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.SetValue(self.lazy_race_tree_allow_duplicates)
-        optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.SetValue(self.lazy_race_tree_target_list_file)
-        optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.SetValue(str(self.lazy_race_tree_start_location_ID))
-        optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.SetValue(str(self.lazy_race_tree_maximum_duration))
-        optionsnotebook.tabSolver.txtlazy_race_tree_radius.SetValue(str(self.lazy_race_tree_radius))
-        optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.SetValue(str(self.lazy_race_tree_velocity_difference))
-        optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.SetValue(str(self.lazy_race_tree_final_flight_time_bound))
-        optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.SetValue(str(self.lazy_race_tree_flight_time_increment))
 
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
@@ -3172,21 +3119,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(False)
         elif self.run_outerloop == 2:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3210,21 +3142,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(True)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(True)
-            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(True)
-            optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3248,21 +3165,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
             optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
             optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.btnlazy_race_tree_target_list_file.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_start_location_ID.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_start_location_ID.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_maximum_duration.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_maximum_duration.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_radius.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_radius.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_velocity_difference.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_final_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_final_flight_time_bound.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_flight_time_increment.Show(False)
-            optionsnotebook.tabSolver.txtlazy_race_tree_flight_time_increment.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()
@@ -3301,4 +3203,3 @@ class MissionOptions(object):
     def update_output_options_panel(self, optionsnotebook):
         optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
-        optionsnotebook.tabOutput.chkenable_emtg_output_files.SetValue(self.enable_emtg_output_files)

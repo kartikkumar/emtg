@@ -2242,6 +2242,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: unbounded" << endl;
 		outputfile << "#1: bounded flight time" << endl;
 		outputfile << "#2: bounded arrival date" << endl;
+		outputfile << "#3: bounded aggregate flight time" << endl;
 		outputfile << "journey_timebounded";
 		for (int j=0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_timebounded[j];
