@@ -445,7 +445,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         wait_time_sizer.AddMany([self.txtjourney_wait_time_bounds_lower, self.txtjourney_wait_time_bounds_upper])
 
         self.lbljourney_timebounded = wx.StaticText(self, -1, "Journey time bounds")
-        journey_time_bounds_choices = ['unbounded','bounded flight time','bounded arrival date']
+        journey_time_bounds_choices = ['unbounded','bounded flight time','bounded arrival date','bounded aggregate flight time']
         self.cmbjourney_timebounded = wx.ComboBox(self, -1, choices=journey_time_bounds_choices, style=wx.CB_READONLY)
 
         self.lbljourney_flight_time_bounds = wx.StaticText(self, -1, "Journey flight time bounds")

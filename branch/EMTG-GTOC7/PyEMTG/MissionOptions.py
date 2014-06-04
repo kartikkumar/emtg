@@ -1766,7 +1766,7 @@ class MissionOptions(object):
                 optionsnotebook.tabJourney.btnMoveJourneyDown.Enable()
 
         #hide or show flight time and arrival date bounds
-        if self.Journeys[self.ActiveJourney].journey_timebounded == 0 or self.Journeys[self.ActiveJourney].journey_timebounded == 2:
+        if self.Journeys[self.ActiveJourney].journey_timebounded == 0:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -1775,7 +1775,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1 or self.Journeys[self.ActiveJourney].journey_timebounded == 3:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(True)
@@ -1784,7 +1784,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        else:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
