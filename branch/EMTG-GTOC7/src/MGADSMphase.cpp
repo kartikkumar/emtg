@@ -95,7 +95,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	//if applicable, vary the journey initial mass increment
 	if (p == 0)
 	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
+		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j])
 		{
 			journey_initial_mass_increment_scale_factor = X[*Xindex];
 			++(*Xindex);
@@ -254,7 +254,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 				double expfun = exp(-vinf * 1000 / (options->IspChem * options->g0));
 				if (j > 0)
 				{
-					double initialmass = current_state[6];
+					double initialmass = current_state[6] < 1.0e-6 ? 1.0e-6 : current_state[6];
 
 					//add the starting mass increment
 					initialmass += journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
