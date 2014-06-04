@@ -50,7 +50,16 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
+
+    #lazy race-tree search options
     lazy_race_tree_allow_duplicates = 0
+    lazy_race_tree_target_list_file = "none"
+    lazy_race_tree_start_location_ID = 1
+    lazy_race_tree_maximum_duration = 3000
+    lazy_race_tree_radius = 1.0e+8
+    lazy_race_tree_velocity_difference = 2.0
+    lazy_race_tree_final_flight_time_bound = 90.0
+    lazy_race_tree_flight_time_increment = 90.0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -722,6 +731,8 @@ class MissionOptions(object):
                         self.output_units = int(linecell[1])
                     elif choice == "create_GMAT_script":
                         self.create_GMAT_script = int(linecell[1])
+                    elif choice == "enable_emtg_output_files":
+                        self.enable_emtg_output_files = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -820,10 +831,29 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
+        outputfile.write("\n")
+
+
+
+        outputfile.write("##Options for lazy race-tree search outer-loop\n")
         outputfile.write("#Allow duplicates in lazy race-tree search?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("lazy_race_tree_allow_duplicates " + str(self.lazy_race_tree_allow_duplicates) + "\n")
+        outputfile.write("#Lazy race-tree search target list file containing the indices of the bodies\n")
+        outputfile.write("lazy_race_tree_target_list_file " + str(self.lazy_race_tree_target_list_file) + "\n")
+        outputfile.write("#Starting location ID\n")
+        outputfile.write("lazy_race_tree_start_location_ID " + str(self.lazy_race_tree_start_location_ID) + "\n")
+        outputfile.write("#Maximum duration for lazy race-tree search (days)\n")
+        outputfile.write("lazy_race_tree_maximum_duration " + str(self.lazy_race_tree_maximum_duration) + "\n")
+        outputfile.write("#Lazy race-tree search distance filter magnitude (km)\n")
+        outputfile.write("lazy_race_tree_radius " + str(self.lazy_race_tree_radius) + "\n")
+        outputfile.write("#Lazy race-tree search velocity filter magnitude (km/s)\n")
+        outputfile.write("lazy_race_tree_velocity_difference " + str(self.lazy_race_tree_velocity_difference) + "\n")
+        outputfile.write("#Lazy race-tree search (mass mode) final flight time upper bound (days)\n")
+        outputfile.write("lazy_race_tree_final_flight_time_bound " + str(self.lazy_race_tree_final_flight_time_bound) + "\n")
+        outputfile.write("#Lazy race-tree search (mass mode) flight time increment (days)\n")
+        outputfile.write("lazy_race_tree_flight_time_increment " + str(self.lazy_race_tree_flight_time_increment) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -1468,6 +1498,8 @@ class MissionOptions(object):
         outputfile.write("output_units " + str(self.output_units) + "\n")
         outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
         outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
+        outputfile.write("#Enable output of .emtg files?\n")
+        outputfile.write("enable_emtg_output_files " + str(int(self.enable_emtg_output_files)) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
