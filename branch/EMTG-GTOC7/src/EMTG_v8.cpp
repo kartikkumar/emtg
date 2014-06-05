@@ -268,7 +268,19 @@ int main(int argc, char* argv[])
 		boost::posix_time::ptime now = second_clock::local_time();
 		std::stringstream timestream;
 		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-		std::string branch_directory = "EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
+		
+		std::string options_file_name_no_ext;
+		std::string the_whole_part;
+		std::string the_decimal_part;
+		std::string epoch_as_string;
+		std::ostringstream convert;
+		int end_position;
+		convert.precision(10);
+		
+		options_file_name_no_ext.assign(options_file_name.substr(0, epoch_as_string.find('.')));
+		
+		//std::string branch_directory = "EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
+		std::string branch_directory = "EMTG_v8_results//" + options_file_name_no_ext + "//";
 		path p(branch_directory);
 
 #ifdef EMTG_MPI
