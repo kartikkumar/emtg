@@ -25,6 +25,8 @@
 #include <sstream>
 #include <fstream>
 
+#include "EMTG_string_utilities.h"
+
 using namespace std;
 
 
@@ -91,16 +93,6 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		Body1 = &Universe->bodies[boundary1_location_code - 1];
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
-
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j])
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
 
 	//we need to know if we are the first phase of the journey and the journey does not start with a flyby
 	if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
@@ -1387,6 +1379,72 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 
 
 	return 0;
+}
+
+void MGA_DSM_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p)
+{
+	//mothership file format
+	//state before and after all events
+	ofstream GTOC7file;
+
+	if (j == 0)
+	{
+		GTOC7file.open(GTOC_output_file.c_str(), ios::trunc);
+		GTOC7file << "# MOTHER SHIP:         X" << endl;
+	}
+	else
+		GTOC7file.open(GTOC_output_file.c_str(), ios::app);
+
+	
+
+	if (j == 0)
+	{
+		GTOC7file << "# EVENT NUMBER:         " << 1 << endl;
+		GTOC7file << "# DESCRIPTION: DEPARTURE" << endl;
+		GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)" << endl;
+		GTOC7file << " ";
+		GTOC7file.precision(14);
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0, 2) << " ";
+		for (int k = 0; k < 7; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_beginning_of_phase[k], 2) << " ";
+		GTOC7file << endl;
+	}
+
+	GTOC7file << "# EVENT NUMBER:         " << j+2 << endl;
+	GTOC7file << "# DESCRIPTION: Impulse " << j+1 << endl;
+	GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)" << endl;
+	GTOC7file << " ";
+	GTOC7file.precision(14);
+	GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string((this->phase_start_epoch + this->time_before_burn) / 86400.0, 2) << " ";
+	for (int k = 0; k < 7; ++k)
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_before_burn[k], 2) << " ";
+	GTOC7file << endl;
+	GTOC7file << " ";
+	GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string((this->phase_start_epoch + this->time_before_burn) / 86400.0, 2) << " ";
+	for (int k = 0; k < 7; ++k)
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_after_burn[k], 2) << " ";
+	GTOC7file << endl;
+
+	if (options->journey_arrival_type[j] == 1)
+	{
+		GTOC7file << "# EVENT NUMBER:         " << 1 << endl;
+		GTOC7file << "# DESCRIPTION: Impulse" << j+2 << endl;
+		GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)" << endl;
+		GTOC7file << " ";
+		GTOC7file.precision(14);
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string((this->phase_end_epoch) / 86400.0, 2) << " ";
+		for (int k = 0; k < 3; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k], 2) << " ";
+		for (int k = 0; k < 3; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k+3] - this->dVarrival[k], 2) << " ";
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[6] * exp(this->dVmag.back() * 1000 / (options->IspChem * options->g0)), 2) << " ";
+		GTOC7file << endl;
+		GTOC7file << " ";
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string((this->phase_end_epoch) / 86400.0, 2) << " ";
+		for (int k = 0; k < 7; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k], 2) << " ";
+		GTOC7file << endl;
+	}
 }
 
 } /* namespace EMTG */

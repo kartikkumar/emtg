@@ -77,16 +77,6 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
 
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
-
 	//we need to know if we are the first phase of the journey
 	if (p == 0)
 	{

@@ -231,6 +231,9 @@ int mission::parse_outer_loop(int* Xouter)
 				options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1]-1].short_name);
 		}
 		options.description.append(")");
+		
+		//temporary code added to get rid of the long file names
+		options.description = options.mission_name;
 
 		//store this information in the options structure
 		options.sequence.push_back(temp_sequence);
@@ -1439,9 +1442,13 @@ int mission::output()
 	outputfile.close();
 
 	//output FBLT missions in GTOC7 format
-	string GTOC7_output_file = options.working_directory + "//Probe.GTOC7";
-	if (options.mission_type == 3 && options.enable_emtg_output_files)
+	string GTOC7_output_file;
+	if ((options.mission_type == 3 || options.mission_type == 1) && options.enable_emtg_output_files)
 	{
+		if (options.mission_type == 1)
+			GTOC7_output_file = options.working_directory + "//Mommy.GTOC7";
+		else
+			GTOC7_output_file = options.working_directory + "//Probe.GTOC7";
 		for (int j = 0; j < this->number_of_journeys; ++j) 
 		{
 			for (int p = 0; p < options.number_of_phases[j]; ++p)
