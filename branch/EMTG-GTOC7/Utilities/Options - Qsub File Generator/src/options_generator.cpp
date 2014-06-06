@@ -99,6 +99,19 @@ int main(int argc, char* argv[])
 	//
 	//
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	double engine_duty_cycle;
+	int objective_type;
+
+	std::cout << std::endl << std::endl << "EMTG Options File Entries:" << std::endl << std::endl << std::endl;
+
+	std::cout << std::endl << "Enter an engine duty cycle [0.0, 1.0]:" << std::endl;
+	std::cin >> engine_duty_cycle;
+
+	std::cout << std::endl << "Enter an objective function type (1: Minimum TOF 2: Min. propellant usage/adaptive TOF + min. prop. for lazy race tree)" << std::endl;
+	std::cin >> objective_type;
+	
+	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
+	
 	std::string email;
 	std::string queue;
 	int nodes, ppn, walltime, cluster;
@@ -193,11 +206,18 @@ int main(int argc, char* argv[])
 			{
 				//we have found the line of interest, modify it and write it to the new options file
 				new_options_file << std::left << sub_temp_line << ' ' << starting_body_ID_list[index] << std::endl;
-
+			}
+			else if (sub_temp_line.compare("objective_type") == 0)
+			{
+				new_options_file << std::left << sub_temp_line << ' ' << objective_type << std::endl;
 			}
 			else if (sub_temp_line.compare("launch_window_open_date") == 0)
 			{
 				new_options_file << std::left << sub_temp_line << ' ' << epoch_list[index] << std::endl;
+			}
+			else if (sub_temp_line.compare("engine_duty_cycle") == 0)
+			{
+				new_options_file << std::left << sub_temp_line << ' ' << engine_duty_cycle << std::endl;
 			}
 			else
 			{
