@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 
 	//parse the options file
 	std::string starting_body_ID_file_name = "ERROR";
-	std::string options_file_name = "LRTS_model.emtgopt";
+	
 	std::string options_and_qsub_files_directory = "..//LRTS_Jobs";
 	
 	std::vector <int> starting_body_ID_list;
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 	//
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+	std::string options_file_name = "LRTS_model.emtgopt";
 
 	std::cout << "Populating directories with options files" << std::endl;
 
@@ -226,7 +226,12 @@ int main(int argc, char* argv[])
 
 	//Now we want to modify and write a qsub to the same directory that we just wrote the options file to
 	std::cout << "Populating directories with qsub files" << std::endl;
-	std::string qsub_file_name = "LRTS_model.qsub";
+	std::string qsub_file_name;
+
+	if (BlueWaters)
+		qsub_file_name = "LRTS_model_BlueWaters.qsub";
+	else
+		qsub_file_name = "LRTS_model_Taub.qsub";
 
 	tStart = clock();
 

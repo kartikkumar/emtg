@@ -1,0 +1,63 @@
+#!/bin/bash
+
+### three queues: low, normal and high
+#set the queue
+#PBS -q queue
+
+
+### set the number of nodes
+### set the number of PEs per node
+#PBS -l nodes=nodenum:ppn=corenum:xe
+
+
+### set the wallclock time
+#PBS -l walltime=00:min:00
+
+
+### set the job name
+#PBS -N jobname
+
+
+#combine standard output and standard error
+#PBS -j oe
+
+
+### set the job stdout and stderr
+
+#Set the standard output file (commented out due to merging above)
+####PBS -e $PBS_JOBID.err
+
+#Set the standard output file
+#PBS -o job.out
+
+### set email notification (b=begin, e=end, a=on error.  If commented out, default is a only)
+###PBS -m bea
+#PBS -m a
+#PBS -M email
+
+
+### In case of multiple allocations, select which one to charge (Alex note: I don't know how to use this yet)
+##PBS -A xyz
+
+
+# If you launched the job in a directory prepared for the job to run within,
+# you'll want to cd to that directory
+cd $PBS_O_WORKDIR
+#
+# Alternatively, the job script can create its own job-ID-unique directory
+# to run within.  In that case you'll need to create and populate that
+# directory with executables and perhaps inputs
+# [uncomment and customize the following lines to enable this behavior]
+# mkdir -p /scratch/sciteam/$USER/$PBS_JOBID
+# cd /scratch/sciteam/$USER/$PBS_JOBID
+# cp /scratch/job/setup/directory/* .
+
+# To add certain modules that you do not have added via ~/.modules
+#. /opt/modules/default/init/bash
+#module load craype-hugepages2M  perftools
+
+### launch the application
+### redirecting stdin and stdout if needed
+### NOTE: (the "in" file must exist for input)
+
+aprun -n numnodes*numcores ../emtg jobname.emtgopt

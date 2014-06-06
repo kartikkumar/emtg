@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#Sample Batch Queue Script
+#
+# Option: -q, which batch queue to run in
+#PBS -q queue
+#
+# Option: -l nodes, how many nodes to run on, note
+# that the ":ppn=12" directive is important. It
+# must always be used.
+#PBS -l nodes=nodenum:ppn=corenum
+#
+# Option: -l ncpus, how many processors to run on
+# is not supported on Turing, request nodes only
+##PBS -l ncpus=1
+#
+#
+# Option: -l walltime, request this amount of wall
+# clock time for your job.  Format is hh:mm:ss
+# The default is 1 hour, the limit is 3 days.
+# The following requests 30 minutes:
+#PBS -l walltime=00:min:00
+#
+#
+# Option: -j oe, combines stdout and stderr into a
+# single file.
+#PBS -j oe
+#
+# Option: -o, specifies the name of the output file
+# which will be found in ${PBS_O_WORKDIR} after your
+# job completes.
+#PBS -o jobs.out
+#
+# Option: -N, names the job
+#PBS -N jobname
+#
+# Change directories to the directory where the qsub
+# command was issued.
+cd ${PBS_O_WORKDIR}
+#
+#
+# For now, we need to make sure to re-load the MPI module
+# This requirement will probably go away shortly.
+module load mvapich2/1.6-gcc
+#
+#
+# Now run the application:
+mpiexec ../emtg jobname.emtgopt
+
+
