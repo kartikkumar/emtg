@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	std::vector <double> epoch_list;
 
 	if (argc == 1)
-		starting_body_ID_file_name = "default.asteroidlist";
+		starting_body_ID_file_name = "default.seed";
 	else if (argc == 2)
 		starting_body_ID_file_name.assign(argv[1]);
 
