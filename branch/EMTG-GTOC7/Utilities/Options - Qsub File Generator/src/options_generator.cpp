@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 	std::cout << std::endl << "What queue are you requesting (Blue Waters: low, normal or high Taub: cse or secondary)?" << std::endl;
 	std::cin >> queue;
 
-	std::cout << std::endl << "What is your email address?" << std::endl;
+	std::cout << std::endl << "What is your email address? (Blue Waters only, enter anything for Taub)" << std::endl;
 	std::cin >> email;
 
 	std::cout << std::endl << "What is the requested walltime (integer number of minutes)?" << std::endl;
