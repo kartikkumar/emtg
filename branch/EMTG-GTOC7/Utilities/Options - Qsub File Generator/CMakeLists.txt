@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 2.4)
 
-project(QsubFileGenerator)
 
 option(TAUB_BOOST_LOCATION "Set that you want to use the TAUB Boost Location
-Specifically, otherwise, assume defaults work." ON)
+Specifically, otherwise, assume defaults work." OFF)
 
 
 
@@ -17,10 +16,11 @@ else(TAUB_BOOST_LOCATION)
 	set(BOOST_LIBRARYDIR ${BOOST_ROOT}/stage/lib)
 endif(TAUB_BOOST_LOCATION)
 
+project(QsubFileGenerator)
 include(FindBoost)
-find_package(Boost 1.44 COMPONENTS filesystem REQUIRED) #minimum version is 1.44, REQUIRED means we fail cmake if we can't find boost
+find_package(Boost 1.44 COMPONENTS filesystem system REQUIRED) #minimum version is 1.44, REQUIRED means we fail cmake if we can't find boost
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
