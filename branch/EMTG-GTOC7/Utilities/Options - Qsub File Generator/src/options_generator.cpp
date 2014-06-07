@@ -10,11 +10,11 @@
 #include <ctime>
 
 #include "boost/filesystem.hpp"
-#include "boost/filesystem/fstream.hpp"
-#include "boost/date_time.hpp"
-#include "boost/date_time/local_time/local_date_time.hpp"
-#include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
+//#include "boost/filesystem/fstream.hpp"
+//#include "boost/date_time.hpp"
+//#include "boost/date_time/local_time/local_date_time.hpp"
+//#include "boost/lexical_cast.hpp"
+//#include "boost/program_options.hpp"
 
 
 int main(int argc, char* argv[])
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 		while (!options_file.eof())
 		{
 			//read the current line from file and store it temporarily
-			std::getline(options_file, temp_line, '\n');
+			std::getline(options_file, temp_line); //default delimiter is newline
 
 			//grab the variable name only
 			sub_temp_line.assign(temp_line.substr(0, temp_line.find(' ')));
@@ -218,6 +218,13 @@ int main(int argc, char* argv[])
 			else if (sub_temp_line.compare("engine_duty_cycle") == 0)
 			{
 				new_options_file << std::left << sub_temp_line << ' ' << engine_duty_cycle << std::endl;
+			}
+			else if (sub_temp_line.compare("global_timebounded") == 0)
+			{
+				if (objective_type == 1)
+					new_options_file << std::left << sub_temp_line << ' ' << '0' << std::endl;
+				else if (objective_type == 2)
+					new_options_file << std::left << sub_temp_line << ' ' << '1' << std::endl;
 			}
 			else
 			{
@@ -279,7 +286,7 @@ int main(int argc, char* argv[])
 		while (!qsub_file.eof())
 		{
 			//read the current line from file and store it temporarily
-			std::getline(qsub_file, temp_line, '\n');
+			std::getline(qsub_file, temp_line); //default delimiter is newline
 
 			//grab the variable name only
 			sub_temp_line.assign(temp_line.substr(0, temp_line.find(' ')));
