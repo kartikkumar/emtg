@@ -10,7 +10,7 @@
 #include "missionoptions.h"
 #include "Astrodynamics.h"
 
-#ifdef _EMTG_proprietary
+#ifdef _EMTG_Lambert
 #include "Lambert.h"
 #endif
 
@@ -146,7 +146,7 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 								options);
 
 	//Step 5: solve Lambert's problem between the planets
-#ifdef _EMTG_proprietary
+#ifdef _EMTG_Lambert
 	EMTG::Astrodynamics::Lambert (boundary1_state,
 									boundary2_state,
 									TOF,

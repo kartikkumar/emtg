@@ -9,7 +9,7 @@
 #include "missionoptions.h"
 #include "Astrodynamics.h"
 
-#ifdef _EMTG_proprietary
+#ifdef _EMTG_Lambert
 #include "Lambert.h"
 #endif
 
@@ -452,7 +452,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-#ifdef _EMTG_proprietary
+#ifdef _EMTG_Lambert
 	EMTG::Astrodynamics::Lambert (	this->state_before_burn,
 									boundary2_state,
 									time_after_burn,
