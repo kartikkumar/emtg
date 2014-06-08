@@ -1428,7 +1428,7 @@ void MGA_DSM_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodyna
 	if (options->journey_arrival_type[j] == 1)
 	{
 		GTOC7file << "# EVENT NUMBER:         " << 1 << endl;
-		GTOC7file << "# DESCRIPTION: Impulse" << j+2 << endl;
+		GTOC7file << "# DESCRIPTION: Impulse " << j+2 << endl;
 		GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)" << endl;
 		GTOC7file << " ";
 		GTOC7file.precision(14);
@@ -1436,13 +1436,16 @@ void MGA_DSM_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodyna
 		for (int k = 0; k < 3; ++k)
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k], 2) << " ";
 		for (int k = 0; k < 3; ++k)
-			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k+3] - this->dVarrival[k], 2) << " ";
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k+3], 2) << " ";
 		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[6] * exp(this->dVmag.back() * 1000 / (options->IspChem * options->g0)), 2) << " ";
 		GTOC7file << endl;
 		GTOC7file << " ";
 		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string((this->phase_end_epoch) / 86400.0, 2) << " ";
-		for (int k = 0; k < 7; ++k)
+		for (int k = 0; k < 3; ++k)
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k], 2) << " ";
+		for (int k = 0; k < 3; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[k + 3] + this->dVarrival[k], 2) << " ";
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_end_of_phase[6], 2) << " ";
 		GTOC7file << endl;
 	}
 }
