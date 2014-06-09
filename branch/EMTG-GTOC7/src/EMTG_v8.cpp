@@ -334,6 +334,7 @@ int main(int argc, char* argv[])
 		//write the best sequence to file
 		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
 		outputfile << std::endl;
+		outputfile << left << "Note(s) on Summary Below: The first epoch of the sequence is the (Mission Start Epoch + 30 Days + Wait Time) and all other sequence epochs are the asteroid rendezvous" << std::endl;
 		outputfile.width(15); outputfile << left << "Best Sequence Found, Corresponding Epoch and Mass:" << std::endl;
 
 		outputfile << best_sequence[0];
