@@ -277,10 +277,8 @@ int main(int argc, char* argv[])
 		int end_position;
 		convert.precision(10);
 		
-		options_file_name_no_ext.assign(options_file_name.substr(0, epoch_as_string.find('.')));
-		
 		//std::string branch_directory = "EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
-		std::string branch_directory = "EMTG_v8_results//" + options_file_name_no_ext + "//";
+		std::string branch_directory = "EMTG_v8_results//" + options.mission_name + "//";
 		path p(branch_directory);
 
 #ifdef EMTG_MPI

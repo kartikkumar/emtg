@@ -25,9 +25,9 @@ int main(int argc, char* argv[])
 	//parse the options file
 	std::string starting_body_ID_file_name = "ERROR";
 	
-	std::string options_and_qsub_files_directory = "..//LRTS_Jobs";
+	std::string options_and_qsub_files_directory = "..//Generated_Options_Files";
 	
-	std::vector <int> starting_body_ID_list;
+	std::vector <int> starting_body_ID_list; //NOTE, if we are making mothership launch options files, this is the list of destinations
 	std::vector <double> epoch_list;
 
 	if (argc == 1)
@@ -45,10 +45,79 @@ int main(int argc, char* argv[])
 
 	std::cout << starting_body_ID_file_name << " read successfully" << std::endl << std::endl;
 
+
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	//
+	//
+	// User specified stuff
+	//
+	//
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	double engine_duty_cycle;
+	int objective_type;
+	int MotherShipOpt;
+	double MotherShipLaunchEpoch;
+
+	std::cout << std::endl << std::endl << "EMTG Options File Entries:" << std::endl << std::endl << std::endl;
+
+	std::cout << std::endl << "Enter an engine duty cycle [0.0, 1.0]:" << std::endl;
+	std::cin >> engine_duty_cycle;
+
+	std::cout << std::endl << "Enter an objective function type (0: Minimum deltaV, 1: Minimum TOF, 2: Min. propellant usage/adaptive TOF + min. prop. for lazy race tree)" << std::endl;
+	std::cin >> objective_type;
+
+	std::cout << std::endl << "Are you generating MotherShip launch files? (0: no, 1: yes)" << std::endl;
+	std::cin >> MotherShipOpt;
+
+	if (MotherShipOpt == 1)
+	{
+		std::cout << std::endl << "What is the mothership's launch window opening epoch (MJD)?" << std::endl;
+		std::cin >> MotherShipLaunchEpoch; 
+	}
+
+	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
+
+	std::string email;
+	std::string queue;
+	int nodes, ppn, walltime, cluster;
+	bool BlueWaters = false;
+
+	std::cout << std::endl << "Which cluster are you using? (1:Blue Waters or 2:Taub)" << std::endl;
+	std::cin >> cluster;
+
+	if (cluster == 1)
+		BlueWaters = true;
+
+	std::cout << std::endl << "What queue are you requesting (Blue Waters: low, normal or high Taub: cse or secondary)?" << std::endl;
+	std::cin >> queue;
+
+	std::cout << std::endl << "What is your email address? (Blue Waters only, enter anything for Taub)" << std::endl;
+	std::cin >> email;
+
+	std::cout << std::endl << "What is the requested walltime (integer number of minutes)?" << std::endl;
+	std::cin >> walltime;
+
+	std::cout << std::endl << "How many nodes are you requesting?" << std::endl;
+	std::cin >> nodes;
+
+	std::cout << std::endl << "How many cores per node? (Blue Waters: 16 max, taub: 12 max)" << std::endl;
+	std::cin >> ppn;
+
+	std::cout << std::endl;
+	std::cin.ignore();
+
+
+
+
+
 	//load the text file of starting_body_ID's and epochs if applicable
 	bool read_epoch = true;
 	int number;
-	double epoch = 56800.0;
+	double epoch = 59215.0;
+
+	if (MotherShipOpt)
+		read_epoch = false;
+
 
 	std::ifstream starting_body_ID_file(starting_body_ID_file_name.c_str());
 
@@ -92,54 +161,7 @@ int main(int argc, char* argv[])
 		std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
 	}
 	
-	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	//
-	//
-	// User specified stuff
-	//
-	//
-	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	double engine_duty_cycle;
-	int objective_type;
-
-	std::cout << std::endl << std::endl << "EMTG Options File Entries:" << std::endl << std::endl << std::endl;
-
-	std::cout << std::endl << "Enter an engine duty cycle [0.0, 1.0]:" << std::endl;
-	std::cin >> engine_duty_cycle;
-
-	std::cout << std::endl << "Enter an objective function type (1: Minimum TOF 2: Min. propellant usage/adaptive TOF + min. prop. for lazy race tree)" << std::endl;
-	std::cin >> objective_type;
 	
-	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
-	
-	std::string email;
-	std::string queue;
-	int nodes, ppn, walltime, cluster;
-	bool BlueWaters = false;
-
-	std::cout << std::endl << "Which cluster are you using? (1:Blue Waters or 2:Taub)" << std::endl;
-	std::cin >> cluster;
-
-	if (cluster == 1)
-		BlueWaters = true;
-
-	std::cout << std::endl << "What queue are you requesting (Blue Waters: low, normal or high Taub: cse or secondary)?" << std::endl;
-	std::cin >> queue;
-
-	std::cout << std::endl << "What is your email address? (Blue Waters only, enter anything for Taub)" << std::endl;
-	std::cin >> email;
-
-	std::cout << std::endl << "What is the requested walltime (integer number of minutes)?" << std::endl;
-	std::cin >> walltime;
-
-	std::cout << std::endl << "How many nodes are you requesting?" << std::endl;
-	std::cin >> nodes;
-
-	std::cout << std::endl << "How many cores per node? (Blue Waters: 16 max, taub: 12 max)" << std::endl;
-	std::cin >> ppn;
-
-	std::cout << std::endl;
-	std::cin.ignore();
 
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	//
@@ -149,7 +171,12 @@ int main(int argc, char* argv[])
 	//
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-	std::string options_file_name = "LRTS_model.emtgopt";
+	std::string options_file_name;
+	
+	if (MotherShipOpt)
+		options_file_name = "Mommy_model.emtgopt";
+	else
+		options_file_name = "LRTS_model.emtgopt";
 
 	std::cout << "Populating directories with options files" << std::endl;
 
@@ -161,6 +188,8 @@ int main(int argc, char* argv[])
 	std::ostringstream convert;
 	int end_position;
 	convert.precision(10);
+
+
 
 	for (size_t index = 0; index < starting_body_ID_list.size(); ++index)
 	{
@@ -190,7 +219,17 @@ int main(int argc, char* argv[])
 		end_position = epoch_as_string.end() - epoch_as_string.begin();
 		the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.')+1, end_position));
 
-		std::string new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
+		std::string new_options_file_name;
+
+		if (MotherShipOpt)
+		{
+			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt";
+		}
+		else
+		{
+			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
+		}
+		
 		std::ofstream new_options_file(new_options_file_name.c_str(), std::ios::out);
 
 		new_options_file.precision(10);
@@ -205,7 +244,11 @@ int main(int argc, char* argv[])
 			if (sub_temp_line.compare("lazy_race_tree_start_location_ID") == 0)
 			{
 				//we have found the line of interest, modify it and write it to the new options file
-				new_options_file << std::left << sub_temp_line << ' ' << starting_body_ID_list[index] << std::endl;
+				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) << std::endl;
+			}
+			else if (sub_temp_line.compare("mission_name") == 0 && MotherShipOpt == 1)
+			{
+				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
 			}
 			else if (sub_temp_line.compare("objective_type") == 0)
 			{
@@ -213,18 +256,30 @@ int main(int argc, char* argv[])
 			}
 			else if (sub_temp_line.compare("launch_window_open_date") == 0)
 			{
-				new_options_file << std::left << sub_temp_line << ' ' << epoch_list[index] << std::endl;
+				if (MotherShipOpt == 0)
+					new_options_file << std::left << sub_temp_line << ' ' << std::to_string(epoch_list[index]) << std::endl;
+				else if (MotherShipOpt == 1)
+					new_options_file << std::left << sub_temp_line << ' ' << std::to_string(MotherShipLaunchEpoch) << std::endl;
 			}
 			else if (sub_temp_line.compare("engine_duty_cycle") == 0)
 			{
-				new_options_file << std::left << sub_temp_line << ' ' << engine_duty_cycle << std::endl;
+				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(engine_duty_cycle) << std::endl;
 			}
 			else if (sub_temp_line.compare("global_timebounded") == 0)
 			{
-				if (objective_type == 1)
-					new_options_file << std::left << sub_temp_line << ' ' << '0' << std::endl;
-				else if (objective_type == 2)
+				if (MotherShipOpt)
 					new_options_file << std::left << sub_temp_line << ' ' << '1' << std::endl;
+				else
+				{
+					if (objective_type == 1)
+						new_options_file << std::left << sub_temp_line << ' ' << '0' << std::endl;
+					else if (objective_type == 2)
+						new_options_file << std::left << sub_temp_line << ' ' << '1' << std::endl;
+				}
+			}
+			else if (sub_temp_line.compare("destination_list") == 0)
+			{
+				new_options_file << std::left << sub_temp_line << " 1 " << std::to_string(starting_body_ID_list[index]) << std::endl;
 			}
 			else
 			{
@@ -236,11 +291,11 @@ int main(int argc, char* argv[])
 
 		options_file.close();
 		new_options_file.close();
-	}
+ 	}
 
 	double elapsed_time = double((clock() - tStart)) / CLOCKS_PER_SEC;
 	std::cout.precision(4);
-	std::cout << "Options file generation completed in: " << elapsed_time << " s" << std::endl << std::endl;
+	std::cout << "Options file generation completed in: " << std::to_string(elapsed_time) << " s" << std::endl << std::endl;
 	
 
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -257,6 +312,8 @@ int main(int argc, char* argv[])
 
 	if (BlueWaters)
 		qsub_file_name = "LRTS_model_BlueWaters.qsub";
+	else if (MotherShipOpt)
+		qsub_file_name = "Mommy_model_Taub.qsub";
 	else
 		qsub_file_name = "LRTS_model_Taub.qsub";
 
@@ -279,8 +336,17 @@ int main(int argc, char* argv[])
 		end_position = epoch_as_string.end() - epoch_as_string.begin();
 		the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.') + 1, end_position));
 		
+		std::string new_qsub_file_name;
 
-		std::string new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
+		if (MotherShipOpt)
+		{
+			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.qsub";
+		}
+		else
+		{
+			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
+		}
+
 		std::ofstream new_qsub_file(new_qsub_file_name.c_str(), std::ios::out);
 
 		while (!qsub_file.eof())
@@ -316,16 +382,60 @@ int main(int argc, char* argv[])
 				}
 				else if (temp_line.compare("#PBS -N jobname") == 0)
 				{
-					new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+					if (MotherShipOpt)
+					{
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
+					}
+					else
+					{
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+					}
 					continue;
 				}
 				else if (sub_temp_line.compare("aprun") == 0)
 				{
 					//we have found the line of interest, modify it and write it to the new options file
-					new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+					if (MotherShipOpt)
+					{
+						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt" << std::endl;
+					}
+					else
+					{
+						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+					}
 					continue;
 				}
 
+			}
+			else if (MotherShipOpt)
+			{
+				if (sub_temp_line.compare("../emtg") == 0)
+				{
+					//we have found the line of interest, modify it and write it to the new options file
+					new_qsub_file << std::left << sub_temp_line << ' ' <<  std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt" << std::endl;
+					continue;
+				}
+				else if (temp_line.compare("#PBS -q queue") == 0)
+				{
+					new_qsub_file << std::left << "#PBS -q " + queue << std::endl;
+					continue;
+				}
+				else if (temp_line.compare("#PBS -l nodes=nodenum:ppn=corenum") == 0)
+				{
+					//we have found the line of interest, modify it and write it to the new options file
+					new_qsub_file << std::left << "#PBS -l nodes=" + std::to_string(nodes) + ":ppn=" + std::to_string(ppn) << std::endl;
+					continue;
+				}
+				else if (temp_line.compare("#PBS -N jobname") == 0)
+				{
+					new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
+					continue;
+				}
+				else if (temp_line.compare("#PBS -l walltime=00:min:00") == 0)
+				{
+					new_qsub_file << std::left << "#PBS -l walltime=00:" + std::to_string(walltime) + ":00" << std::endl;
+					continue;
+				}
 			}
 			else
 			{
@@ -370,7 +480,7 @@ int main(int argc, char* argv[])
 
 	elapsed_time = double((clock() - tStart)) / CLOCKS_PER_SEC;
 	std::cout.precision(4);
-	std::cout << "Qsub file generation completed in: " << elapsed_time << " s" << std::endl << std::endl << std::endl;
+	std::cout << "Qsub file generation completed in: " << std::to_string(elapsed_time) << " s" << std::endl << std::endl << std::endl;
 
 	std::cout << "Generation complete, hit enter to exit." << std::endl;
 	getchar();

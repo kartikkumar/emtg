@@ -166,7 +166,6 @@ namespace EMTG{
 						std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
 					}
 
-
 					//print the options file to the new directory
 					branch_options.print_options_file(branch_options.working_directory + "//" + branch_options.mission_name + ".emtgopt");
 				}		
