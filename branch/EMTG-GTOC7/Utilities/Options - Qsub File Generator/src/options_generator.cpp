@@ -248,9 +248,9 @@ int main(int argc, char* argv[])
 		if (MotherShipOpt)
 			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt";
 		else if (single_point_drop_off)
-			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
+			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt";
 		else
-			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
+			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt";
 		
 		
 		std::ofstream new_options_file(new_options_file_name.c_str(), std::ios::out);
@@ -281,6 +281,10 @@ int main(int argc, char* argv[])
 			else if (sub_temp_line.compare("mission_name") == 0 && MotherShipOpt == 1)
 			{
 				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
+			}
+			else if (sub_temp_line.compare("mission_name") == 0 && MotherShipOpt == 0)
+			{
+				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 			}
 			else if (sub_temp_line.compare("objective_type") == 0)
 			{
@@ -373,9 +377,9 @@ int main(int argc, char* argv[])
 		if (MotherShipOpt)
 			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.qsub";
 		else if (single_point_drop_off)
-			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
+			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".qsub";
 		else
-			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
+			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".qsub";
 		
 
 		std::ofstream new_qsub_file(new_qsub_file_name.c_str(), std::ios::out);
@@ -419,11 +423,11 @@ int main(int argc, char* argv[])
 					}
 					else if (single_point_drop_off)
 					{
-						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 					}
 					else
 					{
-						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 					}
 					continue;
 				}
@@ -433,9 +437,9 @@ int main(int argc, char* argv[])
 					if (MotherShipOpt)
 						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt" << std::endl;
 					else if (single_point_drop_off)
-						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt" << std::endl;
 					else
-						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt" << std::endl;
 					continue;
 				}
 
@@ -476,9 +480,9 @@ int main(int argc, char* argv[])
 				{
 					//we have found the line of interest, modify it and write it to the new options file
 					if (single_point_drop_off)
-						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt" << std::endl;
 					else
-						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt" << std::endl;
 					continue;
 				}
 				else if (temp_line.compare("#PBS -q queue") == 0)
@@ -495,9 +499,9 @@ int main(int argc, char* argv[])
 				else if (temp_line.compare("#PBS -N jobname") == 0)
 				{
 					if (single_point_drop_off)
-						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 					else	
-						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 					continue;
 				}
 				else if (temp_line.compare("#PBS -l walltime=00:min:00") == 0)
