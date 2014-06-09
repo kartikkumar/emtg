@@ -64,7 +64,15 @@ namespace EMTG{
 		//POSSIBLE OPTIONS STRUCTURE INCLUSION
 		//The first asteroid in the list is assumed to be the one you are starting from
 		starting_body_ID = options->lazy_race_tree_start_location_ID;
-		asteroid_list.erase(std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID));
+
+		std::vector<int>::iterator kill_position = std::find(asteroid_list.begin(), asteroid_list.end(), starting_body_ID);
+		
+		if (!(kill_position == asteroid_list.end()))
+			asteroid_list.erase(kill_position);
+		
+		
+
+
 		best_sequence.push_back(starting_body_ID);
 		epoch_sequence.push_back(branch_options.launch_window_open_date);
 		mass_sequence.push_back(branch_options.maximum_mass);

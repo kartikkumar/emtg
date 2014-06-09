@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
 	int objective_type;
 	int MotherShipOpt;
 	double MotherShipLaunchEpoch;
+	int single_point_drop_off;
 
 	std::cout << std::endl << std::endl << "EMTG Options File Entries:" << std::endl << std::endl << std::endl;
 
@@ -74,6 +75,9 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "What is the mothership's launch window opening epoch (MJD)?" << std::endl;
 		std::cin >> MotherShipLaunchEpoch; 
 	}
+
+	std::cout << std::endl << "Are you performing a single-point mothership drop-off? (0: no, 1: yes)" << std::endl;
+	std::cin >> single_point_drop_off;
 
 	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
 
@@ -124,6 +128,26 @@ int main(int argc, char* argv[])
 	if (!starting_body_ID_file.is_open())
 	{
 		std::cout << "Cannot find starting body ID file for automatic EMTG option file generation: " + starting_body_ID_file_name << std::endl;
+	}
+
+	std::string ProbeName; //first line in seed file is probe #....1,2 or 3
+	int ProbeID;
+
+	if (single_point_drop_off)
+	{
+		starting_body_ID_file >> ProbeName;
+
+		if (ProbeName == "Probe1")
+			ProbeID = 1;
+		else if (ProbeName == "Probe2")
+			ProbeID = 2;
+		else if (ProbeName == "Probe3")
+			ProbeID = 3;
+		else
+		{
+			std::cout << "Invalid probe name in the .seed file" << std::endl;
+			return 0;
+		}
 	}
 		
 	while (!starting_body_ID_file.eof())
@@ -222,13 +246,12 @@ int main(int argc, char* argv[])
 		std::string new_options_file_name;
 
 		if (MotherShipOpt)
-		{
 			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt";
-		}
+		else if (single_point_drop_off)
+			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
 		else
-		{
 			new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt";
-		}
+		
 		
 		std::ofstream new_options_file(new_options_file_name.c_str(), std::ios::out);
 
@@ -245,6 +268,15 @@ int main(int argc, char* argv[])
 			{
 				//we have found the line of interest, modify it and write it to the new options file
 				new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) << std::endl;
+			}
+			else if (single_point_drop_off == 1 && sub_temp_line.compare("lazy_race_tree_target_list_file") == 0)
+			{
+				if (ProbeID == 3)
+					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_high.asteroidlist" << std::endl;
+				else if (ProbeID == 2)
+					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_mid.asteroidlist" << std::endl;
+				else if (ProbeID == 1)
+					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_low.asteroidlist" << std::endl;
 			}
 			else if (sub_temp_line.compare("mission_name") == 0 && MotherShipOpt == 1)
 			{
@@ -339,13 +371,12 @@ int main(int argc, char* argv[])
 		std::string new_qsub_file_name;
 
 		if (MotherShipOpt)
-		{
 			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.qsub";
-		}
+		else if (single_point_drop_off)
+			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
 		else
-		{
 			new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".qsub";
-		}
+		
 
 		std::ofstream new_qsub_file(new_qsub_file_name.c_str(), std::ios::out);
 
@@ -386,6 +417,10 @@ int main(int argc, char* argv[])
 					{
 						new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
 					}
+					else if (single_point_drop_off)
+					{
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+					}
 					else
 					{
 						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
@@ -396,13 +431,11 @@ int main(int argc, char* argv[])
 				{
 					//we have found the line of interest, modify it and write it to the new options file
 					if (MotherShipOpt)
-					{
 						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt" << std::endl;
-					}
+					else if (single_point_drop_off)
+						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
 					else
-					{
 						new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
-					}
 					continue;
 				}
 
@@ -442,7 +475,10 @@ int main(int argc, char* argv[])
 				if (sub_temp_line.compare("mpiexec") == 0)
 				{
 					//we have found the line of interest, modify it and write it to the new options file
-					new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+					if (single_point_drop_off)
+						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
+					else
+						new_qsub_file << std::left << sub_temp_line << " ../emtg " << std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part + ".emtgopt" << std::endl;
 					continue;
 				}
 				else if (temp_line.compare("#PBS -q queue") == 0)
@@ -458,7 +494,10 @@ int main(int argc, char* argv[])
 				}
 				else if (temp_line.compare("#PBS -N jobname") == 0)
 				{
-					new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+					if (single_point_drop_off)
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
+					else	
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(index) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + '_' + the_decimal_part << std::endl;
 					continue;
 				}
 				else if (temp_line.compare("#PBS -l walltime=00:min:00") == 0)
