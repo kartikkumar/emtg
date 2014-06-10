@@ -122,7 +122,7 @@ def main(argv=None):
 			if '#PBS -N' in line:
 				line = '#PBS -N ' + new_mission_name + '\n'
 			elif 'aprun -n' in line:
-				line = 'aprun -n ' + str(num_cores) + ' ' + new_mission_name + '.emtgopt\n'
+				line = 'aprun -n ' + str(num_cores) + ' ../emtg ' + new_mission_name + '.emtgopt\n'
 			new_qsub_file.write(line)
 		
 		#  close the qsub files
@@ -142,6 +142,7 @@ def main(argv=None):
 		#+ were already visited by the previous probe, and write a new 
 		#+ .asteroid file
 		for line in asteroidlist:
+			if line.isspace(): continue 
 			if int(line) in asteroid_sequence: continue
 			else: new_asteroidlist.write(line)
 			
