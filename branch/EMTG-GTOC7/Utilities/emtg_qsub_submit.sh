@@ -54,7 +54,8 @@ for m in $list; do
     # print job to terminal for user to see progress
     echo $i $m
     # write job line to text file
-    echo $i $m >> $log
+    echo $m >> $log
+    
     # update counter, i
     i=$(($i + 1))	
     # strip windows return characters
