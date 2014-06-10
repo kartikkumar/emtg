@@ -58,6 +58,9 @@ int main(int argc, char* argv[])
 	int MotherShipOpt;
 	double MotherShipLaunchEpoch;
 	int single_point_drop_off;
+	char family;
+	std::string asteroid_family;
+	int asteroid_list_mixing;
 
 	std::cout << std::endl << std::endl << "EMTG Options File Entries:" << std::endl << std::endl << std::endl;
 
@@ -78,6 +81,17 @@ int main(int argc, char* argv[])
 
 	std::cout << std::endl << "Are you performing a single-point mothership drop-off? (0: no, 1: yes)" << std::endl;
 	std::cin >> single_point_drop_off;
+
+	std::cout << std::endl << "What asteroid family/sma band are you going to? (K)oronis or (F)lora" << std::endl;
+	std::cin >> family;
+
+	if (family == 'K')
+		asteroid_family = "Koronis";
+	else if (family == 'F')
+		asteroid_family = "Flora";
+
+	std::cout << std::endl << "Are you running the mixed lists? (0: no, 1: yes)" << std::endl;
+	std::cin >> asteroid_list_mixing;
 
 	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
 
@@ -271,12 +285,24 @@ int main(int argc, char* argv[])
 			}
 			else if (single_point_drop_off == 1 && sub_temp_line.compare("lazy_race_tree_target_list_file") == 0)
 			{
-				if (ProbeID == 3)
-					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_high.asteroidlist" << std::endl;
-				else if (ProbeID == 2)
-					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_mid.asteroidlist" << std::endl;
-				else if (ProbeID == 1)
-					new_options_file << std::left << sub_temp_line << ' ' << "../Koronis_low.asteroidlist" << std::endl;
+				if (asteroid_list_mixing == 1)
+				{
+					if (ProbeID == 3)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "Mix3.asteroidlist" << std::endl;
+					else if (ProbeID == 2)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "Mix2.asteroidlist" << std::endl;
+					else if (ProbeID == 1)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "Mix1.asteroidlist" << std::endl;
+				}
+				else if (asteroid_list_mixing == 0)
+				{
+					if (ProbeID == 3)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "_high.asteroidlist" << std::endl;
+					else if (ProbeID == 2)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "_mid.asteroidlist" << std::endl;
+					else if (ProbeID == 1)
+						new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "_low.asteroidlist" << std::endl;
+				}
 			}
 			else if (sub_temp_line.compare("mission_name") == 0 && MotherShipOpt == 1)
 			{

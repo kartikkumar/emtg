@@ -41,6 +41,8 @@ namespace EMTG{
 		//tree search makes the decision to go with the asteroid that it gets to on the earliest calendar date
 		bool include_wait_time_in_cost = true;
 
+		bool unique_first_asteroid_wait_time = true;
+		double temp_upper_journey_wait_time_bound = branch_options.journey_wait_time_bounds[0][1];
 
 		//THESE SHOULD GO IN THE OPTIONS STRUCTURE/GUI
 		//WITH A NOTE THAT THEY ONLY APPLY FOR MIN. PROP WITH THE TIME EXTENSION FEATURE
@@ -96,6 +98,12 @@ namespace EMTG{
 		//Loop over levels in the tree
 		do
 		{
+
+			if (unique_first_asteroid_wait_time && tree_level == 0)
+				branch_options.journey_wait_time_bounds[0][1] = 365.25*86400.0;
+			else
+				branch_options.journey_wait_time_bounds[0][1] = temp_upper_journey_wait_time_bound;
+
 
 			if(!we_are_repeating_the_level)
 				branch_options.total_flight_time_bounds[1] = options->total_flight_time_bounds[1];
