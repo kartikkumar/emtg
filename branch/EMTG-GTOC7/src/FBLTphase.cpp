@@ -1437,12 +1437,12 @@ void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamic
 	propagated_state[6] = 1.0;
 
 	double time_step_width = this->time_step_sizes[0];
-	for (int day = 1; day < (int) (this->TOF / 86400.0); ++day)
+	for (int day = 1; day < (int) floor(this->TOF / 86400.0); ++day)
 	{
 		for (int k = 0; k < 7; ++k)
 			initial_state[k] = propagated_state[k];
 
-		int control_index = day / (time_step_width / 86400.0);
+		int control_index = day / ((int) ceil(time_step_width / 86400.0) );
 		double day_control[3];
 		day_control[0] = this->control[control_index][0];
 		day_control[1] = this->control[control_index][1];

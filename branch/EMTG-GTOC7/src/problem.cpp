@@ -289,7 +289,7 @@ namespace EMTG {
 		outputfile << "iGfun, jGvar, analytical value, central-difference value, abs(error), relative error, sign flip(Y/N), text description" << endl;
 
 		//evaluate all of the derivatives via finite differencing, INCLUDING those which were not specified analytically (since we can't tell anyway)
-		for (int gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
+		for (size_t gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
 		{
 			//reset X_perturbed
 			X_perturbed = Xopt;

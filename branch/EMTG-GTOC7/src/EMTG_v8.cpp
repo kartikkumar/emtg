@@ -399,9 +399,9 @@ int main(int argc, char* argv[])
 			//if we have NOT specified the mission type, it takes two decision variables to encode a phase
 			int phase_encode_length = (options.mission_type > 6 ? 2 : 1);
 			
-			for (int j = 0; j < options.number_of_journeys; ++j)
+			for (size_t j = 0; j < options.number_of_journeys; ++j)
 			{
-				for (int p = 0; p < options.max_phases_per_journey; ++p)
+				for (size_t p = 0; p < options.max_phases_per_journey; ++p)
 				{
 					Xouterloop_trial.push_back(options.sequence_input[trial][j][p]);
 
