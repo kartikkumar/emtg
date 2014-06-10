@@ -89,7 +89,11 @@ for m in $list; do
     	count=$(($count + 1))
     done
     #  append the filename and total score
-    seq="$m, $imass $fmass, $iepoch, $fepoch, $depoch, $numasteroids, "
+    if [[ $numasteroids -eq 1 ]]; then
+        seq="$m, $imass, $fmass, $iepoch, $fepoch, $depoch, $numasteroids, "
+    else
+        seq="$m, $imass $fmass, $iepoch, $fepoch, $depoch, $numasteroids, "
+    fi
     #  append the first asteroid then its epoch, the second asteroid then its epoch
     #+ etc.....
     declare -i ncount=1
