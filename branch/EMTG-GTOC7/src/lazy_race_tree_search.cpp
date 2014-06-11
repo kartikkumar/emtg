@@ -100,7 +100,7 @@ namespace EMTG{
 		{
 
 			if (unique_first_asteroid_wait_time && tree_level == 0)
-				branch_options.journey_wait_time_bounds[0][1] = 365.25*86400.0;
+				branch_options.journey_wait_time_bounds[0][1] = 2.0*365.25*86400.0;
 			else
 				branch_options.journey_wait_time_bounds[0][1] = temp_upper_journey_wait_time_bound;
 
@@ -293,7 +293,13 @@ namespace EMTG{
 
 				//find index of body that had the best cost
 				int next_starting_body_index = best_cost_of_level - cost_to_get_to_each_body_in_level.begin();
-				time_to_remove = wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index];
+
+				//we do NOT want to remove the wait time taken at the first asteroid
+				//we can keep the probe in its dock until the moment it wants to leave and THEN start the 5.5 year clock
+				if (tree_level == 0)
+					time_to_remove = time_to_get_to_each_body_in_level[next_starting_body_index];
+				else
+					time_to_remove = wait_time_for_each_body_in_level[next_starting_body_index] + time_to_get_to_each_body_in_level[next_starting_body_index];
 				
 				//ALTER WET MASS
 				branch_options.maximum_mass = final_mass_for_each_body_in_level[next_starting_body_index];
