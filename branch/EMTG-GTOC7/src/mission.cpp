@@ -1337,7 +1337,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 		break;
 	case 14: //GTOC7 weighted objective
 		double current_flight_time = current_epoch - X[0];
-		F[0] = -0.5 * (current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment) + (options.total_flight_time_bounds[1] - current_flight_time) / (options.lazy_race_tree_maximum_duration * 86400.0));
+		F[0] = -0.5 * (current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment) + (options.lazy_race_tree_maximum_duration * 86400.0 - current_flight_time) / (options.lazy_race_tree_maximum_duration * 86400.0));
 
 		if (this->options.derivative_type > 0 && needG)
 		{
