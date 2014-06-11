@@ -895,12 +895,7 @@ namespace EMTG {
 
 				//and the throttle magnitude constraint
 				//throttle = 0
-				//note, if this is the last phase in a journey which ends in a low-thrust rendezvous, we want to force thrust-on
-				//to prevent the "unacknowledged arrival" behavior"
-				if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 3)
-					Flowerbounds->push_back(0.1);
-				else
-					Flowerbounds->push_back(0.0);
+				Flowerbounds->push_back(0.0);
 				Fupperbounds->push_back(1.0);
 				Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
 
