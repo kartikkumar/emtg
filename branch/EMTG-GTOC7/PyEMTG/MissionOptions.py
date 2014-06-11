@@ -1195,6 +1195,7 @@ class MissionOptions(object):
         outputfile.write("#11: maximum dry/wet ratio\n")
         outputfile.write("#12: maximum arrival kinetic energy\n")
         outputfile.write("#13: minimum BOL power\n")
+        outputfile.write("#14: Weighted GTOC7\n")
         outputfile.write("objective_type " + str(self.objective_type) + "\n")
         outputfile.write("#bounds on the DLA, in degrees (typically set to declination of your launch site)\n")	
         outputfile.write("DLA_bounds " + str(self.DLA_bounds[0]) + " " + str(self.DLA_bounds[1]) + "\n")

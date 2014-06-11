@@ -63,7 +63,7 @@ lazy_race_tree_radius 100000000.0
 #Lazy race-tree search velocity filter magnitude (km/s)
 lazy_race_tree_velocity_difference 2.0
 #Lazy race-tree search (mass mode) initial flight time upper bound (days)
-lazy_race_tree_initial_flight_time_bound 90.0
+lazy_race_tree_final_flight_time_bound 90.0
 #Lazy race-tree search (mass mode) flight time increment (days)
 lazy_race_tree_flight_time_increment 90.0
 

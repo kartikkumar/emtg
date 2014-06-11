@@ -24,7 +24,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                           '4: launch as late as possible in the window','5: launch as early as possible in the window',
                           '6: maximize orbit energy','7: minimize launch mass','8: arrive as early as possible',
                           '9: arrive as late as possible','10: minimum propellant (not the same as 2)','11: maximum dry/wet ratio',
-                          '12: maximum arrival kinetic energy', '13: minimum BOL power']
+                          '12: maximum arrival kinetic energy', '13: minimum BOL power','14: weighted GTOC7']
         self.cmbobjective_type = wx.ComboBox(self, -1, choices=objectivetypes, style = wx.CB_READONLY)
 
         self.lblinclude_initial_impulse_in_cost = wx.StaticText(self, -1, "Include initial impulse in cost")

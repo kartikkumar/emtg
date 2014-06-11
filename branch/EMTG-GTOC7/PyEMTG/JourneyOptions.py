@@ -16,7 +16,7 @@ class JourneyOptions(object):
     journey_departure_elements = [0.0]*6 #a(km), e, i, RAAN, AOP, TA
     journey_departure_elements_bounds = [0.0]*12
     journey_departure_elements_vary_flag = [0]*6
-    journey_central_body = 'Sun' #spice names
+    journey_central_body = 'GTOC7' #spice names
     journey_initial_velocity = [0.0]*3 #in km/s
     journey_final_velocity = [0.0]*3 #in km/s
     journey_starting_mass_increment = 0 #in kg

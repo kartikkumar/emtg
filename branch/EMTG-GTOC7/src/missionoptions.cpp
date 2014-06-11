@@ -2209,6 +2209,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#11: maximum dry/wet ratio" << endl;
 		outputfile << "#12: maximum arrival kinetic energy" << endl;
 		outputfile << "#13: minimum BOL power" << endl;
+		outputfile << "#14: Weighted GTOC7";
 		outputfile << "objective_type " << this->objective_type << endl;
 		outputfile << "#bounds on the DLA, in degrees (typically set to declination of your launch site)" << endl;
 		outputfile << "DLA_bounds " << this->DLA_bounds[0] << " " << this->DLA_bounds[1] << endl;

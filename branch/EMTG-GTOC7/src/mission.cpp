@@ -756,7 +756,42 @@ int mission::calcbounds()
 				break;
 			}
 		}
-		
+	}
+	else if (options.objective_type == 14) //GTOC7 weighted mass and time
+	{
+		for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		{
+			if (Xdescriptions[entry].find("arrival mass") < 1024)
+			{
+				iAfun.push_back(0);
+				jAvar.push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of objective function F[0] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+				Adescriptions.push_back(EntryNameStream.str());
+				A.push_back(-1.0 / (options.maximum_mass + journeys[options.number_of_journeys - 1].phases[options.number_of_phases[options.number_of_journeys - 1] - 1].current_mass_increment) * (Xupperbounds[entry] - Xlowerbounds[entry]) + Xlowerbounds[entry]);
+				break;
+			}
+		}
+
+		double TU = TheUniverse[options.number_of_journeys - 1].TU;
+		for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		{
+			if (Xdescriptions[entry].find("flight time") < 1024)
+			{
+				iGfun.push_back(0);
+				jGvar.push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of objective function F[0] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+				Gdescriptions.push_back(EntryNameStream.str());
+				objectivefunction_X_indices.push_back(entry);
+				objectivefunction_G_indices.push_back(iGfun.size() - 1);
+				objectivefunction_X_scale_ranges.push_back(Xupperbounds[entry] - Xlowerbounds[entry]);
+			}
+		}
+
+		//locate dependencies on spirals anywhere in the mission
+		this->find_dependencies_due_to_escape_spiral(&Xupperbounds, &Xlowerbounds, &Flowerbounds, &Fupperbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &Adescriptions, &Gdescriptions, &options, 0);
+		this->find_dependencies_due_to_capture_spiral(&Xupperbounds, &Xlowerbounds, &Flowerbounds, &Fupperbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &Adescriptions, &Gdescriptions, &options, 0);
 	}
 
 	//mission dry mass constraint
@@ -1299,6 +1334,18 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 		}
 	case 13: //minimum power
 		F[0] = this->options.power_at_1_AU;
+		break;
+	case 14: //GTOC7 weighted objective
+		double current_flight_time = current_epoch - X[0];
+		F[0] = -0.5 * (current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment) + (options.total_flight_time_bounds[1] - current_flight_time) / (options.lazy_race_tree_maximum_duration * 86400.0));
+
+		if (this->options.derivative_type > 0 && needG)
+		{
+			for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size() - 1; ++whichderiv)
+			{
+				G[this->objectivefunction_G_indices[whichderiv]] = 0.5 * objectivefunction_X_scale_ranges[whichderiv] / (options.lazy_race_tree_maximum_duration * 86400.0);
+			}
+		}
 	}
 	
 	//test for errors
