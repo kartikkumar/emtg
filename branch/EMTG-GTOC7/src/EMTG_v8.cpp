@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 		std::ifstream batchfile(options.MPI_batch_list_file.c_str());
 		std::vector<std::string> ArchiveOfOptionsFiles;
 		
-		while (!inputfile.eof())
+		while (!batchfile.eof())
 		{
 			char inputbuffer[1024];
 			batchfile.getline(inputbuffer, 1024);
