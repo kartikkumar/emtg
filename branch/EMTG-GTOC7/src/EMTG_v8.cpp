@@ -7,8 +7,6 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
-#define EMTG_MPI
-
 #include "missionoptions.h"
 #include "mission.h"
 #include "outerloop_NSGAII.h"
