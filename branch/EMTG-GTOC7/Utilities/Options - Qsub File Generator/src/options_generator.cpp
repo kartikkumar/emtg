@@ -93,13 +93,13 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "Are you performing a single-point mothership drop-off? (0: no, 1: yes)" << std::endl;
 		std::cin >> single_point_drop_off;
 
-		std::cout << std::endl << "Are you running the (m)ixed lists, the (b)anded lists or the (f)ull family list?" << std::endl;
+		std::cout << std::endl << "Are you running the Full (G)TOC7 list, the (m)ixed lists, the (b)anded lists or the (f)ull family list?" << std::endl;
 		std::cin >> list_type;
 
 		std::cout << std::endl << "Are you performing a staggered release from the single-point drop-off? (0: no, 1: yes)" << std::endl;
 		std::cin >> staggered_release;
 
-		std::cout << std::endl << "What asteroid family/sma band are you going to? (K)oronis, (F)lora or Far(A)way" << std::endl;
+		std::cout << std::endl << "What asteroid family/sma band are you going to? (G)TOC7, (K)oronis, (F)lora or Far(A)way" << std::endl;
 		std::cin >> family;
 
 
@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
 			asteroid_family = "Flora";
 		else if (family == 'A')
 			asteroid_family = "FarAway";
+		else if (family = 'G')
+			asteroid_family = "GTOC7";
 	}
 
 	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
@@ -269,8 +271,11 @@ int main(int argc, char* argv[])
 		clock_t tStart = clock();
 
 		std::string the_whole_part;
+		std::string the_whole_part_mom;
 		std::string the_decimal_part;
+		std::string the_decimal_part_mom;
 		std::string epoch_as_string;
+		std::string mother_epoch_as_string;
 		std::ostringstream convert;
 		int end_position;
 		convert.precision(10);
@@ -304,12 +309,25 @@ int main(int argc, char* argv[])
 			end_position = epoch_as_string.end() - epoch_as_string.begin();
 			the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.') + 1, end_position));
 
+
+			convert.str("");
+			the_whole_part_mom.clear();
+			the_decimal_part_mom.clear();
+			mother_epoch_as_string.clear();
+			convert << mothership_pickup_departure_epoch[index];
+			mother_epoch_as_string = convert.str();
+
+			the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
+
+			end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
+			the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
+
 			std::string new_options_file_name;
 
 			if (MotherShipLaunch)
 				new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt";
 			else if (MotherShipPickUp)
-				new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp.emtgopt";
+				new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp.emtgopt";
 			else if (single_point_drop_off)
 				new_options_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt";
 			else
@@ -356,15 +374,19 @@ int main(int argc, char* argv[])
 						else if (ProbeID == 1)
 							new_options_file << std::left << sub_temp_line << ' ' << "../" + asteroid_family + "_low.asteroidlist" << std::endl;
 					}
+					else if (list_type == 'G')
+					{
+						new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
+					}
 				}
 				else if (sub_temp_line.compare("mission_name") == 0)
 				{
 					if (MotherShipLaunch == 1)
 						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + "_Mommy" << std::endl;
-					else if (MotherShipPickUp == 0)
-						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp" << std::endl;
+					else if (MotherShipPickUp == 1)
+						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp" << std::endl;
 					else
-						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
+						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + '_' + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part << std::endl;
 
 
 				}
@@ -401,18 +423,20 @@ int main(int argc, char* argv[])
 				}
 				else if (sub_temp_line.compare("journey_timebounded") == 0 && MotherShipPickUp == 1)
 				{
-					new_options_file << std::left << sub_temp_line << " 2 " << std::endl;
+					new_options_file << std::left << sub_temp_line << " 2" << std::endl;
 				}
 				else if (sub_temp_line.compare("journey_arrival_date_bounds") == 0 && MotherShipPickUp == 1)
 				{
-					new_options_file << std::left << sub_temp_line << std::to_string(mothership_pickup_departure_epoch[index]) << ' ' << std::to_string(mothership_pickup_rendezvous_epoch[index]) << std::endl;
+					new_options_file << std::left << sub_temp_line << ' ' << std::to_string(mothership_pickup_departure_epoch[index]) << ' ' << std::to_string(mothership_pickup_rendezvous_epoch[index]) << std::endl;
 				}
 				else if (sub_temp_line.compare("destination_list") == 0)
 				{
 					if (MotherShipLaunch)
 						new_options_file << std::left << sub_temp_line << " 1 " << std::to_string(starting_body_ID_list[index]) << std::endl;
 					else if (MotherShipPickUp)
-						new_options_file << std::left << sub_temp_line << std::to_string(starting_body_ID_list[index]) << ' ' << std::to_string(rendezvous_body_ID_list[index]) << std::endl;
+						new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) << ' ' << std::to_string(rendezvous_body_ID_list[index]) << std::endl;
+					else
+						new_options_file << std::left << temp_line << std::endl;
 				}
 				else
 				{
@@ -469,12 +493,24 @@ int main(int argc, char* argv[])
 			end_position = epoch_as_string.end() - epoch_as_string.begin();
 			the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.') + 1, end_position));
 
+			convert.str("");
+			the_whole_part_mom.clear();
+			the_decimal_part_mom.clear();
+			mother_epoch_as_string.clear();
+			convert << mothership_pickup_departure_epoch[index];
+			mother_epoch_as_string = convert.str();
+
+			the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
+
+			end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
+			the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
+
 			std::string new_qsub_file_name;
 
 			if (MotherShipLaunch)
 				new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + "_Mommy.qsub";
 			else if (MotherShipPickUp)
-				new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp.qsub";
+				new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp.qsub";
 			else if (single_point_drop_off)
 				new_qsub_file_name = options_and_qsub_files_directory + "//" + std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".qsub";
 			else
@@ -522,7 +558,7 @@ int main(int argc, char* argv[])
 						}
 						else if (MotherShipPickUp)
 						{
-							new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp" << std::endl;
+							new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp" << std::endl;
 						}
 						else if (single_point_drop_off)
 						{
@@ -540,7 +576,7 @@ int main(int argc, char* argv[])
 						if (MotherShipLaunch)
 							new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(starting_body_ID_list[index]) + "_Mommy.emtgopt" << std::endl;
 						else if (MotherShipPickUp)
-							new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp.emtgopt" << std::endl;
+							new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp.emtgopt" << std::endl;
 						else if (single_point_drop_off)
 							new_qsub_file << std::left << sub_temp_line << " -n " + std::to_string(nodes*ppn) + " ../emtg " << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".emtgopt" << std::endl;
 						else
@@ -585,7 +621,7 @@ int main(int argc, char* argv[])
 					if (sub_temp_line.compare("../emtg") == 0)
 					{
 						//we have found the line of interest, modify it and write it to the new options file
-						new_qsub_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp.emtgopt" << std::endl;
+						new_qsub_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp.emtgopt" << std::endl;
 						continue;
 					}
 					else if (temp_line.compare("#PBS -q queue") == 0)
@@ -601,7 +637,7 @@ int main(int argc, char* argv[])
 					}
 					else if (temp_line.compare("#PBS -N jobname") == 0)
 					{
-						new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + std::to_string(mothership_pickup_departure_epoch[index]) + "_MommyPickUp" << std::endl;
+						new_qsub_file << std::left << "#PBS -N " + std::to_string(starting_body_ID_list[index]) + '_' + std::to_string(rendezvous_body_ID_list[index]) + '_' + the_whole_part_mom + 'd' + the_decimal_part_mom + "_MommyPickUp" << std::endl;
 						continue;
 					}
 					else if (temp_line.compare("#PBS -l walltime=00:min:00") == 0)
@@ -670,7 +706,7 @@ int main(int argc, char* argv[])
 			//
 			//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-			//Now we want to modify and write a qsub to the same directory that we just wrote the options file to
+			
 			std::cout << "Populating directories with .asteroidlist files..." << std::endl;
 			std::string asteroidlist_file_name;
 
