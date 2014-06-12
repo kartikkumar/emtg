@@ -50,7 +50,7 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1 #if true, suppress all text outputs except error catches
-    MPI_batch_list_file = []
+    MPI_batch_list_file = "none"
 
     #lazy race-tree search options
     lazy_race_tree_allow_duplicates = 0
@@ -853,7 +853,7 @@ class MissionOptions(object):
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
         outputfile.write("#MPI batch list file\n")
-        outputfile.write("MPI_batch_list_file" + self.MPI_batch_list_file + "\n")
+        outputfile.write("MPI_batch_list_file " + self.MPI_batch_list_file + "\n")
         outputfile.write("\n")
 
 
