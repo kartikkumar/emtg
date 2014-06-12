@@ -105,7 +105,8 @@ int main(int argc, char* argv[])
 		//read the batch file as specified by the current options file
 		std::ifstream batchfile(options.MPI_batch_list_file.c_str());
 		std::vector<std::string> ArchiveOfOptionsFiles;
-		for (size_t k = 0; k <= MPIWorld.rank(); ++k)
+		
+		while (!inputfile.eof())
 		{
 			char inputbuffer[1024];
 			batchfile.getline(inputbuffer, 1024);
