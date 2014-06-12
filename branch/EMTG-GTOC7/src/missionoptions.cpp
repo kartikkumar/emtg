@@ -1873,7 +1873,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
 		outputfile << "#MPI batch list file" << endl;
-		outputfile << "MPI_batch_list_file" << this->MPI_batch_list_file << endl;
+		outputfile << "MPI_batch_list_file " << this->MPI_batch_list_file << endl;
 		outputfile << endl;
 
 		outputfile << "##Options for lazy race-tree search outer-loop" << endl;
