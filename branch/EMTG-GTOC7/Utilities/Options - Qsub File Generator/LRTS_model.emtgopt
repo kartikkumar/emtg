@@ -59,13 +59,13 @@ lazy_race_tree_start_location_ID 11036
 #Maximum duration for lazy race-tree search (days)
 lazy_race_tree_maximum_duration 2008.8
 #Lazy race-tree search distance filter magnitude (km)
-lazy_race_tree_radius 100000000.0
+lazy_race_tree_radius 300000000.0
 #Lazy race-tree search velocity filter magnitude (km/s)
 lazy_race_tree_velocity_difference 2.0
 #Lazy race-tree search (mass mode) final flight time upper bound (days)
 lazy_race_tree_final_flight_time_bound 480.0
 #Lazy race-tree search (mass mode) flight time increment (days)
-lazy_race_tree_flight_time_increment 60.0
+lazy_race_tree_flight_time_increment 30.0
 
 ##inner-loop solver settings
 #NLP solver type
@@ -168,7 +168,7 @@ spiral_model_type 1
 #1: SPICE (default to static if no SPICE file supplied for a body)
 ephemeris_source 0
 #Universe folder
-universe_folder /home/jaengla2/Projects/EMTGv8_GTOC7/Universe
+universe_folder ../Universe
 #SPICE leap seconds kernel - required for SPICE to work
 SPICE_leap_seconds_kernel naif0009.tls
 #SPICE_reference_frame_kernel
@@ -273,7 +273,7 @@ throttle_logic_mode 0
 #Throttle sharpness (higher means more precise, lower means smoother)
 throttle_sharpness 100.0
 #engine duty cycle [0,1]
-engine_duty_cycle 1.0
+engine_duty_cycle 0.95
 #electrical power available at 1 AU (kW)
 power_at_1_AU 5.0
 #power source type, 0: solar, 1: radioisotope (or other fixed power)
@@ -364,7 +364,7 @@ total_flight_time_bounds 0.0 120.0
 #11: maximum dry/wet ratio
 #12: maximum arrival kinetic energy
 #13: minimum BOL power
-objective_type 2
+objective_type 1
 #bounds on the DLA, in degrees (typically set to declination of your launch site)
 DLA_bounds -90.0 90.0
 
@@ -390,7 +390,7 @@ journey_variable_mass_increment 0
 #2: bounded arrival date
 journey_timebounded 0
 #what are the wait time lower and upper bounds, in days, for each journey (two numbers per journey)
-journey_wait_time_bounds 3.0 60.0
+journey_wait_time_bounds 0.0 60.0
 #what are the flight time bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)
 journey_flight_time_bounds 0.0 200.0
 #what are the arrival date bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)

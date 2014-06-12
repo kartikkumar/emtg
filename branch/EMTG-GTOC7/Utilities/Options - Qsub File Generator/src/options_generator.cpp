@@ -309,19 +309,20 @@ int main(int argc, char* argv[])
 			end_position = epoch_as_string.end() - epoch_as_string.begin();
 			the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.') + 1, end_position));
 
+			if (MotherShipPickUp)
+			{
+				convert.str("");
+				the_whole_part_mom.clear();
+				the_decimal_part_mom.clear();
+				mother_epoch_as_string.clear();
+				convert << mothership_pickup_departure_epoch[index];
+				mother_epoch_as_string = convert.str();
 
-			convert.str("");
-			the_whole_part_mom.clear();
-			the_decimal_part_mom.clear();
-			mother_epoch_as_string.clear();
-			convert << mothership_pickup_departure_epoch[index];
-			mother_epoch_as_string = convert.str();
+				the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
 
-			the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
-
-			end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
-			the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
-
+				end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
+				the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
+			}
 			std::string new_options_file_name;
 
 			if (MotherShipLaunch)
@@ -493,17 +494,20 @@ int main(int argc, char* argv[])
 			end_position = epoch_as_string.end() - epoch_as_string.begin();
 			the_decimal_part.assign(epoch_as_string.substr(epoch_as_string.find('.') + 1, end_position));
 
-			convert.str("");
-			the_whole_part_mom.clear();
-			the_decimal_part_mom.clear();
-			mother_epoch_as_string.clear();
-			convert << mothership_pickup_departure_epoch[index];
-			mother_epoch_as_string = convert.str();
+			if (MotherShipPickUp)
+			{
+				convert.str("");
+				the_whole_part_mom.clear();
+				the_decimal_part_mom.clear();
+				mother_epoch_as_string.clear();
+				convert << mothership_pickup_departure_epoch[index];
+				mother_epoch_as_string = convert.str();
 
-			the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
+				the_whole_part_mom.assign(mother_epoch_as_string.substr(0, mother_epoch_as_string.find('.')));
 
-			end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
-			the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
+				end_position = mother_epoch_as_string.end() - mother_epoch_as_string.begin();
+				the_decimal_part_mom.assign(mother_epoch_as_string.substr(mother_epoch_as_string.find('.') + 1, end_position));
+			}
 
 			std::string new_qsub_file_name;
 
