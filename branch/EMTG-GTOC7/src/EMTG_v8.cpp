@@ -75,6 +75,12 @@ int main(int argc, char* argv[])
 
 	cout << "program starting" << endl;
 
+	//if we are running in parallel, start MPI
+#ifdef EMTG_MPI
+	boost::mpi::environment MPIEnvironment(argc, argv);
+	boost::mpi::communicator MPIWorld;
+#endif
+
 	//parse the options file
 	string options_file_name;
 	if (argc == 1)
@@ -92,6 +98,22 @@ int main(int argc, char* argv[])
 		//cin.ignore();
 		return 0;
 	}
+
+	//before doing anything else, see if we are running in MPI batch mode and, if so, read batch files
+#ifdef EMTG_MPI
+	if (options.run_outerloop == 3 && options.outerloop_useparallel && !(options.MPI_batch_list_file == "none"))
+	{
+		//read the batch file as specified by the current options file
+		std::ifstream batchfile(options.MPI_batch_list_file.c_str());
+
+		//read through the batch file and keep over-writing the current options file name until you get to the line which matches your rank, then stop
+		for (int k = 0; k <= MPIWorld.rank(); ++k)
+			batchfile >> options_file_name;
+
+		//replace your current options with the new one
+		options = EMTG::missionoptions(options_file_name.c_str());
+	}
+#endif
 
 	//create a working directory for the problem
 	//TODO this may change when we develop a parallel version
@@ -171,11 +193,6 @@ int main(int argc, char* argv[])
 
 
 	//next, it is time to start the outer-loop
-	//if we are running in parallel, start MPI
-#ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment(argc, argv);
-	boost::mpi::communicator MPIWorld;
-#endif
 
 	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
 	{

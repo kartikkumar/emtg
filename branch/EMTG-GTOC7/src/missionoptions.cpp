@@ -36,6 +36,7 @@ missionoptions::missionoptions() {
 	this->outerloop_reevaluate_full_population = false;
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
+	this->MPI_batch_list_file = "none";
 	this->quiet_outerloop = 1;
 	this->lazy_race_tree_allow_duplicates = 0;
 	this->lazy_race_tree_target_list_file = "none";
@@ -103,6 +104,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_reevaluate_full_population = false;
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
+	this->MPI_batch_list_file = "none";
 	this->quiet_outerloop = true;
 	this->lazy_race_tree_allow_duplicates = 0;
 	this->lazy_race_tree_target_list_file = "none";
@@ -289,6 +291,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "lazy_race_tree_target_list_file")
 	{
 		inputfile >> this->lazy_race_tree_target_list_file;
+		return 0;
+	}
+
+	if (choice == "MPI_batch_list_file")
+	{
+		inputfile >> this->MPI_batch_list_file;
 		return 0;
 	}
 
@@ -1832,6 +1840,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: no" << endl;
 		outputfile << "#1: Genetic algorithm (number of objective functions determines which GA to run)" << endl;
 		outputfile << "#2: lazy race-tree search" << endl;
+		outputfile << "#3: MPI batch-run (only on MPI-enabled systems, otherwise treated as 0" << endl;
 		outputfile << "run_outerloop " << this->run_outerloop << endl;
 		outputfile << "#outer-loop population size" << endl;
 		outputfile << "outerloop_popsize " << this->outerloop_popsize << endl;
@@ -1863,6 +1872,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
+		outputfile << "#MPI batch list file" << endl;
+		outputfile << "MPI_batch_list_file" << this->MPI_batch_list_file << endl;
 		outputfile << endl;
 
 		outputfile << "##Options for lazy race-tree search outer-loop" << endl;

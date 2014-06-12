@@ -32,6 +32,7 @@
     <Compile Include="EOM.py" />
     <Compile Include="Journey.py" />
     <Compile Include="JourneyOptions.py" />
+    <Compile Include="LRTS_sequence.py" />
     <Compile Include="Mission.py" />
     <Compile Include="MissionEvent.py" />
     <Compile Include="MissionOptions.py" />

@@ -79,6 +79,7 @@ public:
 	string outerloop_warm_population;
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
+	string MPI_batch_list_file;
 
 	//lazy race-tree search options
 	bool lazy_race_tree_allow_duplicates;

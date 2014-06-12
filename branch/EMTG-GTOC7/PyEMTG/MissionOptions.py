@@ -49,7 +49,8 @@ class MissionOptions(object):
     outerloop_departure_C3_choices = [25.0]
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
-    quiet_outerloop = 1#if true, suppress all text outputs except error catches
+    quiet_outerloop = 1 #if true, suppress all text outputs except error catches
+    MPI_batch_list_file = []
 
     #lazy race-tree search options
     lazy_race_tree_allow_duplicates = 0
@@ -328,6 +329,8 @@ class MissionOptions(object):
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
                         self.quiet_outerloop = int(linecell[1])
+                    elif choice == "MPI_batch_list_file":
+                        self.MPI_batch_list_file = linecell[1]
 
                     #lazy race-tree search
                     elif choice == "lazy_race_tree_allow_duplicates":
@@ -817,6 +820,7 @@ class MissionOptions(object):
         outputfile.write("#0: no\n")
         outputfile.write("#1: Genetic algorithm (number of objective functions determines which GA to run)\n")
         outputfile.write("#2: lazy race-tree search\n")
+        outputfile.write("#3: MPI batch-run (only on MPI-enabled systems, otherwise treated as 0\n")
         outputfile.write("run_outerloop " + str(self.run_outerloop) + "\n")
         outputfile.write("#outer-loop population size\n")	
         outputfile.write("outerloop_popsize " + str(self.outerloop_popsize) + "\n")
@@ -848,6 +852,8 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
+        outputfile.write("#MPI batch list file\n")
+        outputfile.write("MPI_batch_list_file" + self.MPI_batch_list_file + "\n")
         outputfile.write("\n")
 
 

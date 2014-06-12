@@ -811,7 +811,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         outerloopgrid = wx.GridSizer(11,2,0,0)
         
         self.lblrun_outerloop = wx.StaticText(self, -1, "Outer-Loop Solver")
-        outerloop_choices = ["None","Genetic Algorithm","Lazy Race-Tree Search"]
+        outerloop_choices = ["None","Genetic Algorithm","Lazy Race-Tree Search","MPI batch-run"]
         self.cmbrun_outerloop = wx.ComboBox(self, -1, choices=outerloop_choices, style = wx.CB_READONLY)
         
         self.lblouterloop_popsize = wx.StaticText(self, -1, "Population size")
