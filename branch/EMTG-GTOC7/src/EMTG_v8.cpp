@@ -7,7 +7,7 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
-
+#define EMTG_MPI
 
 #include "missionoptions.h"
 #include "mission.h"
@@ -30,6 +30,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <string>
 
 #include "lazy_race_tree_search.h"
 
@@ -60,8 +62,6 @@ void handler(int sig) {
 }
 #endif
 
-
-
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
@@ -82,7 +82,8 @@ int main(int argc, char* argv[])
 #endif
 
 	//parse the options file
-	string options_file_name;
+	std::string options_file_name;
+	std::vector<std::string> MyOptionsFileList;
 	if (argc == 1)
 		options_file_name = "default.emtgopt";
 	else if (argc == 2) 
@@ -105,455 +106,483 @@ int main(int argc, char* argv[])
 	{
 		//read the batch file as specified by the current options file
 		std::ifstream batchfile(options.MPI_batch_list_file.c_str());
-
-		//read through the batch file and keep over-writing the current options file name until you get to the line which matches your rank, then stop
-		for (int k = 0; k <= MPIWorld.rank(); ++k)
-			batchfile >> options_file_name;
-
-		//replace your current options with the new one
-		options = EMTG::missionoptions(options_file_name.c_str());
-	}
-#endif
-
-	//create a working directory for the problem
-	//TODO this may change when we develop a parallel version
-	//*****************************************************************
-	ptime now = second_clock::local_time();
-	std::stringstream timestream;
-	timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-
-		
-	//define a new working directory
-	options.working_directory = "EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
-
-	if (!(options.run_outerloop == 2))
-	{
-		//create the working directory
-		try
+		std::vector<std::string> ArchiveOfOptionsFiles;
+		for (size_t k = 0; k <= MPIWorld.rank(); ++k)
 		{
-			path p(options.working_directory);
-			path puniverse(options.working_directory + "/Universe");
-			boost::filesystem::create_directories(p);
-			boost::filesystem::create_directories(puniverse);
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+			char inputbuffer[1024];
+			batchfile.getline(inputbuffer, 1024);
+			ArchiveOfOptionsFiles.push_back(std::string(inputbuffer));
 		}
 
+		batchfile.close();
 
-		//print the options file to the new directory
-		options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
-	}
-	
-	//load all ephemeris data if using SPICE
-	vector<fs::path> SPICE_files;
-	string filestring;
-	if (options.ephemeris_source == 1)
-	{	
-		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
-		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
-
-		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		//now create the appropriate list of options files for this processor
+		for (size_t OptionsIndex = 0; OptionsIndex < ArchiveOfOptionsFiles.size(); ++OptionsIndex)
 		{
-			filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
-			furnsh_c(filestring.c_str());
+			if (OptionsIndex >= ArchiveOfOptionsFiles.size() / MPIWorld.size() * MPIWorld.rank() && OptionsIndex < ArchiveOfOptionsFiles.size() / MPIWorld.size() * (MPIWorld.rank() + 1))
+				MyOptionsFileList.push_back(ArchiveOfOptionsFiles[OptionsIndex]);
+			else if (OptionsIndex == (ArchiveOfOptionsFiles.size() / MPIWorld.size()) * MPIWorld.size() + MPIWorld.rank())
+				MyOptionsFileList.push_back(ArchiveOfOptionsFiles[OptionsIndex]);
+		}
+	}
+	else
+#endif
+		MyOptionsFileList.push_back(options_file_name);
+
+	for (size_t OptionsIndex = 0; OptionsIndex < MyOptionsFileList.size(); ++OptionsIndex)
+	{
+		options = EMTG::missionoptions(MyOptionsFileList[OptionsIndex]);
+		cout << options.error_message << endl;
+		if (!(options.file_status == 0))
+		{
+			cout << "Aborting program run." << endl;
+			//cin.ignore();
+			return 0;
 		}
 
-		//SPICE reference frame kernel
-		string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
-		string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
-		furnsh_c(leapsecondstring.c_str());
-		furnsh_c(referenceframestring.c_str());
-
-		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-		errprt_c("SET", 100, "NONE");
-		erract_c("SET", 100, "RETURN");
-	}
-
-	//create a vector of universes for each journey
-	boost::ptr_vector<EMTG::Astrodynamics::universe> TheUniverse;
-	options.TU = 0;
-	for (int j = 0; j < options.number_of_journeys; ++j)
-	{
-		TheUniverse.push_back(new EMTG::Astrodynamics::universe(j, options.universe_folder + "//" + options.journey_central_body[j] + ".emtg_universe", &options));
-		stringstream universenamestream;
-
-		universenamestream << options.journey_central_body[j] + "_Journey_" << j << ".universe_output";
-
-		//TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
-
-		//cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
-
-		if (TheUniverse[j].TU > options.TU)
-			options.TU = TheUniverse[j].TU;
-	}
-
-	//*****************************************************************
-
-
-	//next, it is time to start the outer-loop
-
-	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
-	{
-		//Step 1: instantiate an SGA object
-#ifdef EMTG_MPI
-		GeneticAlgorithm::outerloop_SGA SGA(options, &MPIEnvironment, &MPIWorld);
-#else
-		GeneticAlgorithm::outerloop_SGA SGA(options);
-#endif
-
-		//Step 2: generate a random population
-		SGA.set_populationsize(options.outerloop_popsize);
-		SGA.set_mutationrate(options.outerloop_mu);
-		SGA.set_max_generations(options.outerloop_genmax);
-		SGA.set_CR(options.outerloop_CR);
-		SGA.set_elitecount(options.outerloop_elitecount);
-		SGA.set_tournament_size(options.outerloop_tournamentsize);
-		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
-			SGA.read_archive(options.outerloop_warm_archive);
-
-		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
-			SGA.readpop(options.outerloop_warm_population);
-		else
-			SGA.generatepop();
-
-		SGA.startclock();
-		SGA.evolve(options, TheUniverse);
-
-		//Step 3: write out the population
-		SGA.writepop(options.working_directory + "//SGA_final_population.SGA");
-
-		//Step 4: write out the archive
-		SGA.write_archive(options.working_directory + "//SGA_archive.SGA");
-	}
-	else if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() > 1)
-	{
-		//Step 1: instantiate an NSGA-II object
-#ifdef EMTG_MPI
-		GeneticAlgorithm::outerloop_NSGAII NSGAII(options, &MPIEnvironment, &MPIWorld);
-#else
-		GeneticAlgorithm::outerloop_NSGAII NSGAII(options);
-#endif
-
-		//Step 2: generate a random population
-		NSGAII.set_populationsize(options.outerloop_popsize);
-		NSGAII.set_mutationrate(options.outerloop_mu);
-		NSGAII.set_max_generations(options.outerloop_genmax);
-		NSGAII.set_CR(options.outerloop_CR);
-		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
-			NSGAII.read_archive(options.outerloop_warm_archive);
-
-		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
-			NSGAII.readpop(options.outerloop_warm_population);
-		else
-			NSGAII.generatepop();
-
-		NSGAII.startclock();
-		NSGAII.evolve(options, TheUniverse);
-
-		//Step 3: write out the population
-		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.NSGAII");
-
-		//Step 4: write out the archive
-		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
-	}
-
-	//
-	//
-	// LAZY RACE TREE SEARCH ALGORITHM
-	//
-	//
-	else if (options.run_outerloop == 2)
-	{
-		//This file name should be specified in options structure via the GUI
-		//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
-
-		std::string asteroid_filename = options.lazy_race_tree_target_list_file;
-
-
-		std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched
-		std::vector <int> best_sequence; //the LRTS algorithm will populate this vector with the best sequence it finds
-		std::vector <double> epoch_sequence; //the LRTS algorithm will populate this vector with the rendezvous epoch for each element of the best sequence found
-		std::vector <double> mass_sequence; //the LRTS algorithm will populate this vector with the mass at each element of the best sequence found
-		
-
-		//First load the list of asteroids from file
-		EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
-
-		//create the directory in the results folder where everything will go
-		boost::posix_time::ptime now = second_clock::local_time();
+		//create a working directory for the problem
+		//TODO this may change when we develop a parallel version
+		//*****************************************************************
+		ptime now = second_clock::local_time();
 		std::stringstream timestream;
 		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-		
-		std::string options_file_name_no_ext;
-		std::string the_whole_part;
-		std::string the_decimal_part;
-		std::string epoch_as_string;
-		std::ostringstream convert;
-		int end_position;
-		convert.precision(10);
-		
-		//std::string branch_directory = "EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
-		std::string branch_directory = "EMTG_v8_results//" + options.mission_name + "//";
-		path p(branch_directory);
 
-#ifdef EMTG_MPI
-		if (MPIWorld.rank() == 0) {
-#endif
-			//create the race tree directory 
+
+		//define a new working directory
+		options.working_directory = "EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+
+		if (!(options.run_outerloop == 2))
+		{
+			//create the working directory
 			try
 			{
-				
+				path p(options.working_directory);
+				path puniverse(options.working_directory + "/Universe");
 				boost::filesystem::create_directories(p);
-			} catch (std::exception &e)
-			{
-				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-			}
-#ifdef EMTG_MPI
-		}
-#endif
-		//define where the summary file is going to go and create it
-		std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
-		std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
-#ifdef EMTG_MPI
-		if (MPIWorld.rank() == 0) {
-#endif
-		//set up header line in summary file
-		outputfile.width(15); outputfile << left << "Tree Level";
-		outputfile.width(15); outputfile << "Branch #";
-		outputfile.width(35); outputfile << "Starting Asteroid EMTG Num ID";
-		outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
-		outputfile.width(30); outputfile << "Launch Window Open";
-		outputfile.width(25); outputfile << "Launch Epoch";
-		outputfile.width(25); outputfile << "Time of Flight (Days)"; //DEBUGGING
-		outputfile.width(25); outputfile << "Total Flight Time (Days)"; // DEBUGGING
-		outputfile.width(25); outputfile << "Arrival Epoch";
-		outputfile.width(20); outputfile << "Starting Wet mass";
-		outputfile.width(20); outputfile << "Final Wet mass";
-
-		outputfile << std::endl << std::endl;
-		//close the tree summary file
-		outputfile.close();
-#ifdef EMTG_MPI
-		}; //close the "root-node only" print if statement
-
-		//Perform the lazy race tree search algorithm on the list of asteroids
-
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location, MPIEnvironment, MPIWorld);
-#else
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location);
-#endif
-
-#ifdef EMTG_MPI
-		if (MPIWorld.rank() == 0) {
-#endif
-		//write the best sequence to file
-		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
-		outputfile << std::endl;
-		outputfile << left << "Note(s) on Summary Below: The first epoch of the sequence is the (Mission Start Epoch + 30 Days + Wait Time) and all other sequence epochs are the asteroid rendezvous" << std::endl;
-		outputfile.width(15); outputfile << left << "Best Sequence Found, Corresponding Epoch and Mass:" << std::endl;
-
-		outputfile << best_sequence[0];
-		for (size_t i = 1; i < best_sequence.size(); ++i)
-			outputfile << ", " << best_sequence[i];
-
-		//write the rendezvous epoch for each element of the sequence
-		outputfile << std::endl;
-		outputfile.precision(15);
-		outputfile << epoch_sequence[0];
-		for (size_t i = 1; i < epoch_sequence.size(); ++i)
-			outputfile << ", " << epoch_sequence[i];
-
-		//write the mass for each element of the sequence
-		outputfile << std::endl;
-		outputfile.precision(15);
-		outputfile << mass_sequence[0];
-		for (size_t i = 1; i < mass_sequence.size(); ++i)
-			outputfile << ", " << mass_sequence[i];
-
-		//close the output file
-		outputfile.close();
-
-#ifdef EMTG_MPI
-		}; //if root node only finish reporting
-#endif
-			
-	}
-
-	else
-	{
-		//set up a batch output file
-		string outputfilestring = options.working_directory + "//" + options.mission_name + "_batch_summary.emtgbatch";
-		std::ofstream outputfile(outputfilestring.c_str(), ios::trunc);
-		outputfile.width(30); outputfile << left << "Sequence";
-		outputfile.width(3); outputfile << " | ";
-
-		switch (options.objective_type)
-		{
-		case 0: //deltaV
-			outputfile.width(17); outputfile << left << "deltaV (km/s)";
-			break;
-		case 2:
-			outputfile.width(17); outputfile << left << "delivered mass (kg)";
-			break;
-		}
-		
-		outputfile << endl;
-		for (int k = 0; k < 50; ++k)
-		outputfile << "-";
-		outputfile << endl;
-		outputfile.close();
-
-		//run the trial outer-loop vectors
-
-		for (int trial = 0; trial < options.number_of_trial_sequences; ++trial)
-		{
-			//first we need to create an outer-loop decision vector based on the parameters from the options file
-			vector<int> Xouterloop_trial;
-
-			//if we have specified the mission type (all MGA, MGA-DSM, MGA-LT, FBLT, FBLT-S, MGA-NDSM) then it only takes one decision variable to encode a phase
-			//if we have NOT specified the mission type, it takes two decision variables to encode a phase
-			int phase_encode_length = (options.mission_type > 6 ? 2 : 1);
-			
-			for (size_t j = 0; j < options.number_of_journeys; ++j)
-			{
-				for (size_t p = 0; p < options.max_phases_per_journey; ++p)
-				{
-					Xouterloop_trial.push_back(options.sequence_input[trial][j][p]);
-
-					//encode the phase type in the decision vector only if we are allowing the outer-loop to choose phase type
-					if (options.sequence_input[trial][j][p] > 0 && phase_encode_length == 2)
-							Xouterloop_trial.push_back(options.phase_type_input[j][p]);
-				}
-
-				if (phase_encode_length == 2)
-					Xouterloop_trial.push_back(options.phase_type_input[j][options.phase_type_input[j].size() - 1]);
-
-				options.number_of_phases = options.number_of_phases_input[trial];
-			}
-
-			//next, instantiate and optimize a problem object
-			try
-			{
-				if (options.problem_type == 0) //regular EMTG missions
-				{
-					EMTG::mission TrialMission(&Xouterloop_trial[0], &options, TheUniverse, 0, 0);
-
-					//and now, as a demo, print the mission tree
-					TrialMission.output_mission_tree(options.working_directory + "//" + TrialMission.options.mission_name + "_" + TrialMission.options.description + "_missiontree.emtgtree");
-
-					//copy the appropriate trialX, if necessary
-					if (options.run_inner_loop == 0 || options.run_inner_loop == 4)
-					{
-						TrialMission.options.current_trialX = options.trialX[trial];
-						
-						//if we are optimizing an FBLT-S mission with an MGA-LT or FBLT initial guess
-						if (options.mission_type == 4 && (TrialMission.options.current_trialX.size() == TrialMission.Xdescriptions.size() - TrialMission.options.total_number_of_phases))
-						{
-							EMTG::missionoptions temp_options = options;
-							temp_options.mission_type = 3;
-
-							EMTG::mission temp_mission(Xouterloop_trial.data(), &temp_options, TheUniverse, 0, 0);
-
-							temp_mission.evaluate(TrialMission.options.current_trialX.data(), temp_mission.F.data(), temp_mission.G.data(), 0, temp_mission.iGfun, temp_mission.jGvar);
-
-							TrialMission.options.current_trialX = temp_mission.create_initial_guess(TrialMission.options.current_trialX, TrialMission.Xdescriptions);
-						}
-
-						//if we are interpolating an initial guess to change the resolution
-						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
-						{
-							TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
-						}
-
-						//convert coordinate systems if applicable
-						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
-						{
-							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
-								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
-							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
-								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
-						}	
-					}
-					else if (options.run_inner_loop == 2)
-					{
-						TrialMission.options.current_trialX = options.trialX[trial];
-
-						if (options.interpolate_initial_guess && options.seed_MBH)
-							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
-
-						//convert coordinate systems if applicable
-						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
-						{
-							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
-								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
-							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
-								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
-						}
-					}
-
-					
-
-					//evaluate the mission
-					TrialMission.optimize();
-
-					//output the mission
-					TrialMission.output();
-
-					//output GMAT files
-					//temporarily we can't output MGA or MGA-DSM missions
-					if (options.mission_type > 1 && options.create_GMAT_script)
-					{
-						TrialMission.output_GMAT_preamble();
-						TrialMission.output_GMAT_mission();
-					}
-
-					//store the results in a database file
-					string outputfilestring = options.working_directory + "//" + options.mission_name + "_batch_summary.emtgbatch";
-					std::ofstream outputfile(outputfilestring.c_str(), ios::app);
-					outputfile.width(30); outputfile << left << TrialMission.options.description;
-					outputfile.width(3); outputfile << " | ";
-
-					switch (options.objective_type)
-					{
-					case 0: //deltaV
-						outputfile.width(17); outputfile << left << TrialMission.F[0];
-						break;
-					case 2:
-						outputfile.width(17); outputfile << left << TrialMission.F[0] * -options.maximum_mass;
-						break;
-					}
-					outputfile << endl;
-					outputfile.close();
-				}
+				boost::filesystem::create_directories(puniverse);
 			}
 			catch (std::exception &e)
 			{
-				cout << "Error " << e.what() << ": Failure to run inner-loop solver" << endl;
+				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
 			}
-		}//end loop over trial sequences
 
 
-	}
-
-	//unload SPICE
-
-	if (options.ephemeris_source == 1)
-	{
-		for (size_t k = 0; k < SPICE_files.size(); ++k)
-		{
-			filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
-			unload_c(filestring.c_str());
+			//print the options file to the new directory
+			options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
 		}
 
-		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
-		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());
-	}
+		//load all ephemeris data if using SPICE
+		vector<fs::path> SPICE_files;
+		string filestring;
+		if (options.ephemeris_source == 1)
+		{
+			EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
+			EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
+
+			for (size_t k = 0; k < SPICE_files.size(); ++k)
+			{
+				filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
+				furnsh_c(filestring.c_str());
+			}
+
+			//SPICE reference frame kernel
+			string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
+			string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
+			furnsh_c(leapsecondstring.c_str());
+			furnsh_c(referenceframestring.c_str());
+
+			//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
+			errprt_c("SET", 100, "NONE");
+			erract_c("SET", 100, "RETURN");
+		}
+
+		//create a vector of universes for each journey
+		boost::ptr_vector<EMTG::Astrodynamics::universe> TheUniverse;
+		options.TU = 0;
+		for (int j = 0; j < options.number_of_journeys; ++j)
+		{
+			TheUniverse.push_back(new EMTG::Astrodynamics::universe(j, options.universe_folder + "//" + options.journey_central_body[j] + ".emtg_universe", &options));
+			stringstream universenamestream;
+
+			universenamestream << options.journey_central_body[j] + "_Journey_" << j << ".universe_output";
+
+			//TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
+
+			//cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
+
+			if (TheUniverse[j].TU > options.TU)
+				options.TU = TheUniverse[j].TU;
+		}
+
+		//*****************************************************************
+
+
+		//next, it is time to start the outer-loop
+
+		if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
+		{
+			//Step 1: instantiate an SGA object
+#ifdef EMTG_MPI
+			GeneticAlgorithm::outerloop_SGA SGA(options, &MPIEnvironment, &MPIWorld);
+#else
+			GeneticAlgorithm::outerloop_SGA SGA(options);
+#endif
+
+			//Step 2: generate a random population
+			SGA.set_populationsize(options.outerloop_popsize);
+			SGA.set_mutationrate(options.outerloop_mu);
+			SGA.set_max_generations(options.outerloop_genmax);
+			SGA.set_CR(options.outerloop_CR);
+			SGA.set_elitecount(options.outerloop_elitecount);
+			SGA.set_tournament_size(options.outerloop_tournamentsize);
+			if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+				SGA.read_archive(options.outerloop_warm_archive);
+
+			if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+				SGA.readpop(options.outerloop_warm_population);
+			else
+				SGA.generatepop();
+
+			SGA.startclock();
+			SGA.evolve(options, TheUniverse);
+
+			//Step 3: write out the population
+			SGA.writepop(options.working_directory + "//SGA_final_population.SGA");
+
+			//Step 4: write out the archive
+			SGA.write_archive(options.working_directory + "//SGA_archive.SGA");
+		}
+		else if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() > 1)
+		{
+			//Step 1: instantiate an NSGA-II object
+#ifdef EMTG_MPI
+			GeneticAlgorithm::outerloop_NSGAII NSGAII(options, &MPIEnvironment, &MPIWorld);
+#else
+			GeneticAlgorithm::outerloop_NSGAII NSGAII(options);
+#endif
+
+			//Step 2: generate a random population
+			NSGAII.set_populationsize(options.outerloop_popsize);
+			NSGAII.set_mutationrate(options.outerloop_mu);
+			NSGAII.set_max_generations(options.outerloop_genmax);
+			NSGAII.set_CR(options.outerloop_CR);
+			if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+				NSGAII.read_archive(options.outerloop_warm_archive);
+
+			if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+				NSGAII.readpop(options.outerloop_warm_population);
+			else
+				NSGAII.generatepop();
+
+			NSGAII.startclock();
+			NSGAII.evolve(options, TheUniverse);
+
+			//Step 3: write out the population
+			NSGAII.writepop(options.working_directory + "//NSGAII_final_population.NSGAII");
+
+			//Step 4: write out the archive
+			NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
+		}
+
+		//
+		//
+		// LAZY RACE TREE SEARCH ALGORITHM
+		//
+		//
+		else if (options.run_outerloop == 2)
+		{
+			//This file name should be specified in options structure via the GUI
+			//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
+
+			std::string asteroid_filename = options.lazy_race_tree_target_list_file;
+
+
+			std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched
+			std::vector <int> best_sequence; //the LRTS algorithm will populate this vector with the best sequence it finds
+			std::vector <double> epoch_sequence; //the LRTS algorithm will populate this vector with the rendezvous epoch for each element of the best sequence found
+			std::vector <double> mass_sequence; //the LRTS algorithm will populate this vector with the mass at each element of the best sequence found
+
+
+			//First load the list of asteroids from file
+			EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
+
+			//create the directory in the results folder where everything will go
+			boost::posix_time::ptime now = second_clock::local_time();
+			std::stringstream timestream;
+			timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
+
+			std::string options_file_name_no_ext;
+			std::string the_whole_part;
+			std::string the_decimal_part;
+			std::string epoch_as_string;
+			std::ostringstream convert;
+			int end_position;
+			convert.precision(10);
+
+			//std::string branch_directory = "EMTG_v8_results//lazy_race_tree_" + timestream.str() + "_" + boost::lexical_cast<std::string>(options.lazy_race_tree_start_location_ID) + "_" + boost::lexical_cast<std::string>(options.launch_window_open_date / 86400.0) + "//";
+			std::string branch_directory = "EMTG_v8_results//" + options.mission_name + "//";
+			path p(branch_directory);
+
+#ifdef EMTG_MPI
+			if (MPIWorld.rank() == 0) {
+#endif
+				//create the race tree directory 
+				try
+				{
+
+					boost::filesystem::create_directories(p);
+				}
+				catch (std::exception &e)
+				{
+					std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+				}
+#ifdef EMTG_MPI
+			}
+#endif
+			//define where the summary file is going to go and create it
+			std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
+			std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
+#ifdef EMTG_MPI
+			if (MPIWorld.rank() == 0) {
+#endif
+				//set up header line in summary file
+				outputfile.width(15); outputfile << left << "Tree Level";
+				outputfile.width(15); outputfile << "Branch #";
+				outputfile.width(35); outputfile << "Starting Asteroid EMTG Num ID";
+				outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
+				outputfile.width(30); outputfile << "Launch Window Open";
+				outputfile.width(25); outputfile << "Launch Epoch";
+				outputfile.width(25); outputfile << "Time of Flight (Days)"; //DEBUGGING
+				outputfile.width(25); outputfile << "Total Flight Time (Days)"; // DEBUGGING
+				outputfile.width(25); outputfile << "Arrival Epoch";
+				outputfile.width(20); outputfile << "Starting Wet mass";
+				outputfile.width(20); outputfile << "Final Wet mass";
+
+				outputfile << std::endl << std::endl;
+				//close the tree summary file
+				outputfile.close();
+#ifdef EMTG_MPI
+			}; //close the "root-node only" print if statement
+
+			//Perform the lazy race tree search algorithm on the list of asteroids
+
+			EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location, MPIEnvironment, MPIWorld);
+#else
+				EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, epoch_sequence, mass_sequence, branch_directory, tree_summary_file_location);
+#endif
+
+#ifdef EMTG_MPI
+				if (MPIWorld.rank() == 0) {
+#endif
+					//write the best sequence to file
+					outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
+					outputfile << std::endl;
+					outputfile << left << "Note(s) on Summary Below: The first epoch of the sequence is the (Mission Start Epoch + 30 Days + Wait Time) and all other sequence epochs are the asteroid rendezvous" << std::endl;
+					outputfile.width(15); outputfile << left << "Best Sequence Found, Corresponding Epoch and Mass:" << std::endl;
+
+					outputfile << best_sequence[0];
+					for (size_t i = 1; i < best_sequence.size(); ++i)
+						outputfile << ", " << best_sequence[i];
+
+					//write the rendezvous epoch for each element of the sequence
+					outputfile << std::endl;
+					outputfile.precision(15);
+					outputfile << epoch_sequence[0];
+					for (size_t i = 1; i < epoch_sequence.size(); ++i)
+						outputfile << ", " << epoch_sequence[i];
+
+					//write the mass for each element of the sequence
+					outputfile << std::endl;
+					outputfile.precision(15);
+					outputfile << mass_sequence[0];
+					for (size_t i = 1; i < mass_sequence.size(); ++i)
+						outputfile << ", " << mass_sequence[i];
+
+					//close the output file
+					outputfile.close();
+
+#ifdef EMTG_MPI
+				}; //if root node only finish reporting
+#endif
+
+			}
+
+			else
+			{
+				//set up a batch output file
+				string outputfilestring = options.working_directory + "//" + options.mission_name + "_batch_summary.emtgbatch";
+				std::ofstream outputfile(outputfilestring.c_str(), ios::trunc);
+				outputfile.width(30); outputfile << left << "Sequence";
+				outputfile.width(3); outputfile << " | ";
+
+				switch (options.objective_type)
+				{
+				case 0: //deltaV
+					outputfile.width(17); outputfile << left << "deltaV (km/s)";
+					break;
+				case 2:
+					outputfile.width(17); outputfile << left << "delivered mass (kg)";
+					break;
+				}
+
+				outputfile << endl;
+				for (int k = 0; k < 50; ++k)
+					outputfile << "-";
+				outputfile << endl;
+				outputfile.close();
+
+				//run the trial outer-loop vectors
+
+				for (int trial = 0; trial < options.number_of_trial_sequences; ++trial)
+				{
+					//first we need to create an outer-loop decision vector based on the parameters from the options file
+					vector<int> Xouterloop_trial;
+
+					//if we have specified the mission type (all MGA, MGA-DSM, MGA-LT, FBLT, FBLT-S, MGA-NDSM) then it only takes one decision variable to encode a phase
+					//if we have NOT specified the mission type, it takes two decision variables to encode a phase
+					int phase_encode_length = (options.mission_type > 6 ? 2 : 1);
+
+					for (size_t j = 0; j < options.number_of_journeys; ++j)
+					{
+						for (size_t p = 0; p < options.max_phases_per_journey; ++p)
+						{
+							Xouterloop_trial.push_back(options.sequence_input[trial][j][p]);
+
+							//encode the phase type in the decision vector only if we are allowing the outer-loop to choose phase type
+							if (options.sequence_input[trial][j][p] > 0 && phase_encode_length == 2)
+								Xouterloop_trial.push_back(options.phase_type_input[j][p]);
+						}
+
+						if (phase_encode_length == 2)
+							Xouterloop_trial.push_back(options.phase_type_input[j][options.phase_type_input[j].size() - 1]);
+
+						options.number_of_phases = options.number_of_phases_input[trial];
+					}
+
+					//next, instantiate and optimize a problem object
+					try
+					{
+						if (options.problem_type == 0) //regular EMTG missions
+						{
+							EMTG::mission TrialMission(&Xouterloop_trial[0], &options, TheUniverse, 0, 0);
+
+							//and now, as a demo, print the mission tree
+							TrialMission.output_mission_tree(options.working_directory + "//" + TrialMission.options.mission_name + "_" + TrialMission.options.description + "_missiontree.emtgtree");
+
+							//copy the appropriate trialX, if necessary
+							if (options.run_inner_loop == 0 || options.run_inner_loop == 4)
+							{
+								TrialMission.options.current_trialX = options.trialX[trial];
+
+								//if we are optimizing an FBLT-S mission with an MGA-LT or FBLT initial guess
+								if (options.mission_type == 4 && (TrialMission.options.current_trialX.size() == TrialMission.Xdescriptions.size() - TrialMission.options.total_number_of_phases))
+								{
+									EMTG::missionoptions temp_options = options;
+									temp_options.mission_type = 3;
+
+									EMTG::mission temp_mission(Xouterloop_trial.data(), &temp_options, TheUniverse, 0, 0);
+
+									temp_mission.evaluate(TrialMission.options.current_trialX.data(), temp_mission.F.data(), temp_mission.G.data(), 0, temp_mission.iGfun, temp_mission.jGvar);
+
+									TrialMission.options.current_trialX = temp_mission.create_initial_guess(TrialMission.options.current_trialX, TrialMission.Xdescriptions);
+								}
+
+								//if we are interpolating an initial guess to change the resolution
+								if (options.interpolate_initial_guess && options.run_inner_loop > 0)
+								{
+									TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
+								}
+
+								//convert coordinate systems if applicable
+								if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+								{
+									if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+										TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+									else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+										TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+								}
+							}
+							else if (options.run_inner_loop == 2)
+							{
+								TrialMission.options.current_trialX = options.trialX[trial];
+
+								if (options.interpolate_initial_guess && options.seed_MBH)
+									TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
+
+								//convert coordinate systems if applicable
+								if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+								{
+									if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+										TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+									else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+										TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+								}
+							}
+
+
+
+							//evaluate the mission
+							TrialMission.optimize();
+
+							//output the mission
+							TrialMission.output();
+
+							//output GMAT files
+							//temporarily we can't output MGA or MGA-DSM missions
+							if (options.mission_type > 1 && options.create_GMAT_script)
+							{
+								TrialMission.output_GMAT_preamble();
+								TrialMission.output_GMAT_mission();
+							}
+
+							//store the results in a database file
+							string outputfilestring = options.working_directory + "//" + options.mission_name + "_batch_summary.emtgbatch";
+							std::ofstream outputfile(outputfilestring.c_str(), ios::app);
+							outputfile.width(30); outputfile << left << TrialMission.options.description;
+							outputfile.width(3); outputfile << " | ";
+
+							switch (options.objective_type)
+							{
+							case 0: //deltaV
+								outputfile.width(17); outputfile << left << TrialMission.F[0];
+								break;
+							case 2:
+								outputfile.width(17); outputfile << left << TrialMission.F[0] * -options.maximum_mass;
+								break;
+							}
+							outputfile << endl;
+							outputfile.close();
+						}
+					}
+					catch (std::exception &e)
+					{
+						cout << "Error " << e.what() << ": Failure to run inner-loop solver" << endl;
+					}
+				}//end loop over trial sequences
+
+
+			}
+
+			//unload SPICE
+
+			if (options.ephemeris_source == 1)
+			{
+				for (size_t k = 0; k < SPICE_files.size(); ++k)
+				{
+					filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
+					unload_c(filestring.c_str());
+				}
+
+				unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
+				unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());
+			}
+
+
+		}//close loop over options files
 
 #ifndef BACKGROUND_MODE
 	std::cout << "EMTG run complete. Press enter to close window." << endl;
-	std::cin.ignore();
+	//std::cin.ignore();
 #endif
 
 	return 0;
