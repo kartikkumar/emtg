@@ -579,6 +579,10 @@ int main(int argc, char* argv[])
 
 		}//close loop over options files
 
+#ifdef EMTG_MPI
+		MPIWorld.barrier();
+#endif
+
 #ifndef BACKGROUND_MODE
 	std::cout << "EMTG run complete. Press enter to close window." << endl;
 	std::cin.ignore();
