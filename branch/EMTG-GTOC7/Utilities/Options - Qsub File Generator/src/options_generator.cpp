@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "Are you performing a staggered release from the single-point drop-off? (0: no, 1: yes)" << std::endl;
 		std::cin >> staggered_release;
 
-		std::cout << std::endl << "What asteroid family/sma band are you going to? (G)TOC7, (K)oronis, (F)lora or Far(A)way" << std::endl;
+		std::cout << std::endl << "What asteroid family/sma band are you considering targets from? (G)TOC7, (K)oronis, (F)lora , (C)enter high inclination or Far(A)way" << std::endl;
 		std::cin >> family;
 
 
@@ -109,8 +109,10 @@ int main(int argc, char* argv[])
 			asteroid_family = "Flora";
 		else if (family == 'A')
 			asteroid_family = "FarAway";
-		else if (family = 'G')
+		else if (family == 'G')
 			asteroid_family = "GTOC7";
+		else if (family == 'C')
+			asteroid_family = "center_Hi_inc";
 	}
 
 	std::cout << std::endl << std::endl << "Qsub File Entries:" << std::endl << std::endl << std::endl;
@@ -364,7 +366,11 @@ int main(int argc, char* argv[])
 					}
 					else if (list_type == 'f')
 					{
-						new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
+						if (staggered_release == 1 && single_point_drop_off == 1)
+							new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".asteroidlist" << std::endl;
+						else
+							new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
+
 					}
 					else if (list_type == 'b')
 					{
@@ -377,7 +383,10 @@ int main(int argc, char* argv[])
 					}
 					else if (list_type == 'G')
 					{
-						new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
+						if (staggered_release == 1 && single_point_drop_off == 1)
+							new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".asteroidlist" << std::endl;
+						else
+							new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
 					}
 				}
 				else if (sub_temp_line.compare("mission_name") == 0)
