@@ -1396,14 +1396,37 @@ void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamic
 	else
 		GTOC7file.open(GTOC_output_file.c_str(), ios::app);
 
-	GTOC7file << "# PHASE NUMBER:         " << j + 1 << endl;
+	
 
-	GTOC7file << "# DESCRIPTION: From ";
 	if (j == 0)
-		GTOC7file << "Mother ship ";
-	else
-		GTOC7file << "Asteroid " << this->Body1->spice_ID;
-	GTOC7file << " to Asteroid " << this->Body2->spice_ID << endl;
+	{
+		GTOC7file << "# PHASE NUMBER:         " << j + 1 << endl;
+		GTOC7file << "# DESCRIPTION: From Mother ship to Asteroid " << this->Body1->spice_ID << endl;
+		GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)              Thrust_x (N)           Thrust_y (N)           Thrust_z (N)" << endl;
+
+		//find the position and velocity of the first body at the launch date minus thirty days
+		double probe_release_state[7];
+		this->Body1->locate_body(this->phase_start_epoch - 30.0 * 86400.0, probe_release_state, false, options);
+		probe_release_state[6] = 2000.0;
+
+		//write out the departure state
+		GTOC7file << " ";
+		GTOC7file.precision(14);
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0 - 30.0, 2) << " ";
+		for (int k = 0; k < 7; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(probe_release_state[k], 2) << " ";
+		for (int k = 0; k < 3; ++k)
+		{
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(0.0, 2);
+			if (k < 2)
+				GTOC7file << " ";
+		}
+
+		GTOC7file << endl;
+	}
+		
+	GTOC7file << "# PHASE NUMBER:         " << j + 2 << endl;
+	GTOC7file << "# DESCRIPTION: From Asteroid " << this->Body1->spice_ID<< " to Asteroid " << this->Body2->spice_ID << endl;
 
 	GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)              Thrust_x (N)           Thrust_y (N)           Thrust_z (N)" << endl;
 
@@ -1432,7 +1455,7 @@ void FBLT_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodynamic
 	propagated_state[6] = 1.0;
 
 	double time_step_width = this->time_step_sizes[0];
-	for (int day = 1; day < (int) floor(this->TOF / 86400.0); ++day)
+	for (int day = 1; day <= (int) floor(this->TOF / 86400.0); ++day)
 	{
 		for (int k = 0; k < 7; ++k)
 			initial_state[k] = propagated_state[k];
