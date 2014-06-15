@@ -1390,20 +1390,26 @@ void MGA_DSM_phase::output_GTOC7_format(missionoptions* options, EMTG::Astrodyna
 	if (j == 0)
 	{
 		GTOC7file.open(GTOC_output_file.c_str(), ios::trunc);
-		GTOC7file << "# MOTHER SHIP:         X" << endl;
+		GTOC7file << "# MOTHER SHIP" << endl;
 	}
 	else
 		GTOC7file.open(GTOC_output_file.c_str(), ios::app);
 
-	
+	double state_before_departure[7];
+	this->Body1->locate_body(this->phase_start_epoch * 86400.0, state_before_departure, false, options);
+	state_before_departure[6] = 5000.0;
 
 	if (j == 0)
 	{
 		GTOC7file << "# EVENT NUMBER:         " << 1 << endl;
-		GTOC7file << "# DESCRIPTION: DEPARTURE" << endl;
+		GTOC7file << "# DESCRIPTION: Departure" << endl;
 		GTOC7file << "#  Time (MJD)             x (km)                 y (km)                 z (km)                 vx (km/s)              vy (km/s)              vz (km/s)              mass (kg)" << endl;
 		GTOC7file << " ";
 		GTOC7file.precision(14);
+		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0, 2) << " ";
+		for (int k = 0; k < 7; ++k)
+			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(state_before_departure[k], 2) << " ";
+		GTOC7file << endl;
 		GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->phase_start_epoch / 86400.0, 2) << " ";
 		for (int k = 0; k < 7; ++k)
 			GTOC7file << EMTG::string_utilities::convert_number_to_formatted_string(this->state_at_beginning_of_phase[k], 2) << " ";

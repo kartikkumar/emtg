@@ -1394,6 +1394,7 @@ int mission::output()
 	for (int k = 0; k < 2; ++k)
 		outputfile << endl;
 
+	outputfile.precision(20);
 	//output total deltaV
 	outputfile << "Total deltaV: " << current_deltaV << endl;
 
