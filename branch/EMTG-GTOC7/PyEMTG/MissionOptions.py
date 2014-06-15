@@ -1568,10 +1568,10 @@ class MissionOptions(object):
             outputfile.write("trialX\n")
             for seq in range(0, self.number_of_trial_sequences):
                 currentX = self.trialX[seq]
-                outputfile.write(str(currentX[0]))
+                outputfile.write('%17.20f' % currentX[0])
                 for entry in range(1, len(currentX)):
                     outputfile.write(" ")
-                    outputfile.write(str(currentX[entry]))
+                    outputfile.write('%17.20f' % currentX[entry])
                 outputfile.write("\n")
         outputfile.write("\n")
             
@@ -2819,6 +2819,7 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.SetSelection(self.initial_guess_step_size_distribution)
         optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.SetValue(str(self.initial_guess_step_size_stdv_or_scale))
         optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.SetSelection(self.MBH_zero_control_initial_guess)
+
         optionsnotebook.tabSolver.txttrialX.SetValue(str(self.trialX))
 
         if self.run_inner_loop == 2:

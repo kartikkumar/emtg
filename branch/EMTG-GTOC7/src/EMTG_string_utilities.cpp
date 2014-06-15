@@ -9,6 +9,7 @@ namespace EMTG {
 			std::ostringstream oss;
 			oss.precision(14);
 			std::string output;
+			oss.precision(14);
 			oss << std::scientific << number;
 			std::string numstring = oss.str();
 			unsigned int ePos = numstring.find("e");

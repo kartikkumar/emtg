@@ -2647,6 +2647,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "run_inner_loop " << this->run_inner_loop << endl;
 		outputfile << "#trial decision vector" << endl;
 		outputfile << "#trialX" << endl;
+		outputfile.precision(20);
 		if (trialX.size() > 0)
 		{
 			outputfile << "trialX" << endl;

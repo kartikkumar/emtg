@@ -39,6 +39,7 @@ public:
 
 	//GTOC format output function
 	void output_GTOC7_format(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p);
+	void output_GTOC7_format_b(missionoptions* options, EMTG::Astrodynamics::universe* Universe, const std::string& GTOC_output_file, int j, int p);
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure

@@ -1496,17 +1496,23 @@ int mission::output()
 	outputfile.close();
 
 	//output FBLT missions in GTOC7 format
-	string GTOC7_output_file;
+	string GTOC7_output_file, GTOC7_output_file_b;
 	if ((options.mission_type == 3 || options.mission_type == 1) && options.enable_emtg_output_files)
 	{
 		if (options.mission_type == 1)
 			GTOC7_output_file = options.working_directory + "//Mommy.GTOC7";
 		else
-			GTOC7_output_file = options.working_directory + "//Probe.GTOC7";
+		{
+			//GTOC7_output_file = options.working_directory + "//Probe.GTOC7";
+			GTOC7_output_file_b = options.working_directory + "//Probe.GTOC7";
+		}
 		for (int j = 0; j < this->number_of_journeys; ++j) 
 		{
 			for (int p = 0; p < options.number_of_phases[j]; ++p)
-				this->journeys[j].phases[p].output_GTOC7_format(&options, &TheUniverse[j], GTOC7_output_file, j, p);
+			{
+				//this->journeys[j].phases[p].output_GTOC7_format(&options, &TheUniverse[j], GTOC7_output_file, j, p);
+				this->journeys[j].phases[p].output_GTOC7_format_b(&options, &TheUniverse[j], GTOC7_output_file_b, j, p);
+			}
 		}
 
 	}
