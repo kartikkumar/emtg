@@ -24,9 +24,12 @@ int main(int argc, char *argv[])
 	}
 
 	//Parse the input probe summary file
+	double mu_sun = 132712440018.0;
+	
+
 	Spacecraft probe;
 	std::cout << "Reading probe summary file..." << std::endl;
-	probe = read_probe_summary_file(probe_summary_file_name);
+	probe = read_probe_summary_file(probe_summary_file_name, mu_sun);
 	std::cout << "Done reading probe summary file." << std::endl << std::endl;
 
 	std::string GTOC7_ephemeris_file_name = "GTOC7ASTEROIDS.TXT";
@@ -37,7 +40,7 @@ int main(int argc, char *argv[])
 	std::cout << "Reading ephemeris..." << std::endl;
 
 	//scan in GTOC7 asteroid ephemeris data
-	asteroids = read_ephemeris(GTOC7_ephemeris_file_name);
+	asteroids = read_ephemeris(GTOC7_ephemeris_file_name, mu_sun);
 
 	//Earth's ephemeris data
 	Earth.a = 0.999988049532578 * 149597870.691;
@@ -53,7 +56,7 @@ int main(int argc, char *argv[])
 
 	Earth.E = laguerreConway(Earth.ecc, Earth.M);
 	Earth.tru = 2.0*atan(sqrt((1.0 + Earth.ecc) / (1.0 - Earth.ecc))*tan(Earth.E / 2.0));
-	coe2cartesian(&Earth);
+	coe2cartesian(&Earth, mu_sun);
 
 	std::cout << "Done reading ephemeris." << std::endl << std::endl;
 
@@ -61,10 +64,10 @@ int main(int argc, char *argv[])
 	double delta_t = (59215.0 - 56800.0)*86400.0;
 
 	for (size_t i = 0; i < asteroids.size(); ++i)
-		orbitprop(&asteroids[i], delta_t);
+		orbitprop(&asteroids[i], delta_t, mu_sun);
 
 	delta_t = (59215.0 - 54000.0)*86400.0;
-	orbitprop(&Earth, delta_t);
+	orbitprop(&Earth, delta_t, mu_sun);
 
 	//Start with the first phase
 	int phase = 0;
@@ -85,12 +88,13 @@ int main(int argc, char *argv[])
 	std::vector <double> Tvec(3, 0.0);
 
 
-	double mu_sun = 132712440018.0;
+	
 	bool normalized_integrator = true;
 	bool adaptive_step = true;
 	double precisionTarget;
-	double DU, TU;
-
+	
+	double DU = 149597870.691;
+	double TU = sqrt(DU * DU * DU / mu_sun);
 
 	if (normalized_integrator)
 	{
@@ -103,6 +107,7 @@ int main(int argc, char *argv[])
 	{
 		DU = 1.0;
 		TU = 1.0;
+		mu_sun = 132712440018.0;
 		precisionTarget = 1.0e-7;
 	}
 
@@ -115,10 +120,13 @@ int main(int argc, char *argv[])
 		//X_left = { 3.82858625335622E+08, - 3.05100026716626E+05,  2.89100959348077E+06, - 2.60587333616076E-01 , 1.97262246721978E+01,  8.74345055541848E-01,  1.85287741774152E+03 };
 		//X_left = { Earth.x + 90.0, Earth.y + 90.0, Earth.z + 90.0, Earth.vx + 0.000009, Earth.vy + 0.000009, Earth.vz + 0.000009, 1.0 };
 
-
+		//for (size_t timestep = 0; timestep < probe.x[phase].size() - 1; ++timestep)
 		for (size_t timestep = 0; timestep < 1; ++timestep)
 		{
-			h = 86400.0 / TU;
+
+			//Extract the time step 
+			h = (probe.time_stamp[phase][timestep + 1] - probe.time_stamp[phase][timestep]) / TU;
+
 			//convert from N to kN
 			Tvec[0] = probe.Tx[phase][timestep] / 1000.0 * TU * TU / DU;
 			Tvec[1] = probe.Ty[phase][timestep] / 1000.0 * TU * TU / DU;

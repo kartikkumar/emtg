@@ -1,6 +1,6 @@
 #include "GTOC7_solution_check.h"
 
-std::vector <Body> read_ephemeris(std::string & GTOC7_ephemeris_file_name)
+std::vector <Body> read_ephemeris(std::string & GTOC7_ephemeris_file_name, double & mu_sun)
 {
 	
 	std::ifstream ephemeris_file(GTOC7_ephemeris_file_name.c_str(), std::ios::in);
@@ -48,7 +48,7 @@ std::vector <Body> read_ephemeris(std::string & GTOC7_ephemeris_file_name)
 		//now calculate E, f and the cartesian state for the asteroid
 		asteroids[index].E = laguerreConway(asteroids[index].ecc, asteroids[index].M);
 		asteroids[index].tru = 2.0*atan(sqrt((1.0 + asteroids[index].ecc) / (1.0 - asteroids[index].ecc))*tan(asteroids[index].E / 2.0));
-		coe2cartesian(&asteroids[index]);
+		coe2cartesian(&asteroids[index], mu_sun);
 
 		++index;
 	}

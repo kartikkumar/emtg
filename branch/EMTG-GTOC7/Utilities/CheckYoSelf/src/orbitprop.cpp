@@ -1,11 +1,8 @@
 #include "GTOC7_solution_check.h"
 
 
-void orbitprop(Body * body, const double & delta_t)
+void orbitprop(Body * body, const double & delta_t, double & mu_sun)
 {
-	double mu_sun = 132712440018.0;
-	
-
 	body->M = body->M + sqrt(mu_sun/((body->a)*(body->a)*(body->a)))*delta_t;
 
 	//Correct the final value of M for over 2*pi rotations
@@ -20,14 +17,11 @@ void orbitprop(Body * body, const double & delta_t)
 	body->tru = 2.0*atan(sqrt((1.0+body->ecc)/(1.0-body->ecc))*tan(body->E/2.0));
 
 	//Update Cartesian coordinates also
-	coe2cartesian(body);
+	coe2cartesian(body, mu_sun);
 }
 
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep)
+void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, double & mu_sun)
 {
-	double mu_sun = 132712440018.0;
-
-
 	probe->M[phase][timestep] = probe->M[phase][timestep] + sqrt(mu_sun / ((probe->a[phase][timestep])*(probe->a[phase][timestep])*(probe->a[phase][timestep])))*delta_t;
 
 	//Correct the final value of M for over 2*pi rotations
@@ -42,5 +36,5 @@ void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase,
 	probe->tru[phase][timestep] = 2.0*atan(sqrt((1.0 + probe->ecc[phase][timestep]) / (1.0 - probe->ecc[phase][timestep]))*tan(probe->E[phase][timestep] / 2.0));
 
 	//Update Cartesian coordinates also
-	coe2cartesian(probe, phase, timestep);
+	coe2cartesian(probe, phase, timestep, mu_sun);
 }

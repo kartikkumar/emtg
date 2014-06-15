@@ -69,17 +69,17 @@ double mag(std::vector <double> & vector);
 double dot(std::vector <double> & vectorA, std::vector <double> & vectorB);
 std::vector <double> cross(std::vector <double> & A, std::vector <double> & B);
 
-std::vector <Body> read_ephemeris(std::string & ephemeris_file);
-Spacecraft read_probe_summary_file(std::string & probe_summary_file_name);
+std::vector <Body> read_ephemeris(std::string & ephemeris_file, double & mu_sun);
+Spacecraft read_probe_summary_file(std::string & probe_summary_file_name, double & mu_sun);
 
 double laguerreConway(double &, double &);
-void coe2cartesian(Body * body);
-void cartesian2coe(Body * body);
-void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep);
-void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep);
-void orbitprop(Body * body, const double & delta_t);
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep);
+void coe2cartesian(Body * body, double & mu_sun);
+void cartesian2coe(Body * body, double & mu_sun);
+void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun);
+void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun);
+void orbitprop(Body * body, const double & delta_t, double & mu_sun);
+void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, double & mu_sun);
 
 std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, int & ns, double & error, double & DU, double & TU, double & mu_sun);
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precesionTarget, double & DU, double & TU, double & mu_sun);
 std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, double & DU, double & TU, double & mu_sun);
+std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precisionTarget, double & DU, double & TU, double & mu_sun);

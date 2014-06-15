@@ -1,9 +1,9 @@
 #include "GTOC7_solution_check.h"
 
 
-void coe2cartesian(Body * body)
+void coe2cartesian(Body * body, double & mu_sun)
 {
-	double mu_sun = 132712440018.0;
+	
 	double a = body->a;
 	double ecc = body->ecc;
 	double inc = body->inc;
@@ -28,9 +28,9 @@ void coe2cartesian(Body * body)
     body->vz =  (mu_sun/(body->h))*(cos(tru+omega)+ecc*cos(omega))*sin(inc);
 }
 
-void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep)
+void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun)
 {
-	double mu_sun = 132712440018.0;
+	
 	double a = probe->a[phase][timestep];
 	double ecc = probe->ecc[phase][timestep];
 	double inc = probe->inc[phase][timestep];
