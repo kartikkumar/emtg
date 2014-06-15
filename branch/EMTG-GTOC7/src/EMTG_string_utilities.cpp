@@ -7,6 +7,7 @@ namespace EMTG {
 		std::string convert_number_to_formatted_string(const double& number, int expSize)
 		{
 			std::ostringstream oss;
+			oss.precision(14);
 			std::string output;
 			oss << std::scientific << number;
 			std::string numstring = oss.str();
