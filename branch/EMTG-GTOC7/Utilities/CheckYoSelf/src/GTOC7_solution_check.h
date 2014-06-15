@@ -76,8 +76,10 @@ double laguerreConway(double &, double &);
 void coe2cartesian(Body * body);
 void cartesian2coe(Body * body);
 void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep);
-void orbitprop(Body * body, double & delta_t);
+void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep);
+void orbitprop(Body * body, const double & delta_t);
+void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep);
 
 std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, int & ns, double & error, double & DU, double & TU, double & mu_sun);
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & DU, double & TU, double & mu_sun);
+std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precesionTarget, double & DU, double & TU, double & mu_sun);
 std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, double & DU, double & TU, double & mu_sun);

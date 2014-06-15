@@ -320,16 +320,16 @@ std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tve
 
 
 
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & DU, double & TU, double & mu_sun)
+std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precisionTarget, double & DU, double & TU, double & mu_sun)
 {
-	double nseg = 1;
+	double nseg = 1; //let the integrator try to make it in one step -- won't happen but Alex magic will compensate
 	double  resumeH = h; //set to the first segment's step size
 	double accumulatedH = 0.0, effectiveH = h;
 	double resumeError = 1.0e+20;
 	double precisionError = 1.0e+20;
-	double precisionTarget = 0.75e-13;
 	double percentagecomplete = 0.0, lastpercentcomplete = 0.0;
 	bool last_substep;
+	bool print_progress = false;
 
 	double t = 0.0;
 
@@ -436,10 +436,14 @@ std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector 
 
 
 			accumulatedH += effectiveH;
-			percentagecomplete = accumulatedH / h*100.0;
-			if (percentagecomplete - lastpercentcomplete >= 1.0) {
-				std::cout << accumulatedH / h*100.0 << "% ";
-				lastpercentcomplete = percentagecomplete;
+			
+			if (print_progress)
+			{
+				percentagecomplete = accumulatedH / h*100.0;
+				if (percentagecomplete - lastpercentcomplete >= 1.0) {
+					std::cout << accumulatedH / h*100.0 << "% ";
+					lastpercentcomplete = percentagecomplete;
+				}
 			}
 
 			//if our next step will push us over, reduce it down to be as small as necessary to hit target exactly
