@@ -1510,8 +1510,10 @@ int mission::output()
 		{
 			for (int p = 0; p < options.number_of_phases[j]; ++p)
 			{
-				//this->journeys[j].phases[p].output_GTOC7_format(&options, &TheUniverse[j], GTOC7_output_file, j, p);
-				this->journeys[j].phases[p].output_GTOC7_format_b(&options, &TheUniverse[j], GTOC7_output_file_b, j, p);
+				if (options.mission_type == 1)
+					this->journeys[j].phases[p].output_GTOC7_format(&options, &TheUniverse[j], GTOC7_output_file, j, p);
+				else
+					this->journeys[j].phases[p].output_GTOC7_format_b(&options, &TheUniverse[j], GTOC7_output_file_b, j, p);
 			}
 		}
 
