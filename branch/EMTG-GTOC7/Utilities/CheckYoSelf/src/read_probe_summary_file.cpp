@@ -1,7 +1,7 @@
 #include "GTOC7_solution_check.h"
 
 
-Spacecraft read_probe_summary_file(std::string & probe_summary_file_name, double & mu_sun)
+Spacecraft read_probe_summary_file(std::string & probe_summary_file_name, const double & mu_sun)
 {
 	Spacecraft probe;
 	std::ifstream probe_summary_file(probe_summary_file_name.c_str(), std::ios::in);

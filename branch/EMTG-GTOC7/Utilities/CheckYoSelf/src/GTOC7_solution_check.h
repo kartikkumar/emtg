@@ -35,6 +35,7 @@ struct Body{
 	int GTOC7_num;
 };
 
+//spacecraft structure
 struct Spacecraft{
 	std::vector <std::vector <double>> a;
 	std::vector <std::vector <double>> ecc;
@@ -69,17 +70,17 @@ double mag(std::vector <double> & vector);
 double dot(std::vector <double> & vectorA, std::vector <double> & vectorB);
 std::vector <double> cross(std::vector <double> & A, std::vector <double> & B);
 
-std::vector <Body> read_ephemeris(std::string & ephemeris_file, double & mu_sun);
-Spacecraft read_probe_summary_file(std::string & probe_summary_file_name, double & mu_sun);
+std::vector <Body> read_ephemeris(std::string & ephemeris_file, const double & mu_sun);
+Spacecraft read_probe_summary_file(std::string & probe_summary_file_name, const double & mu_sun);
 
 double laguerreConway(double &, double &);
-void coe2cartesian(Body * body, double & mu_sun);
-void cartesian2coe(Body * body, double & mu_sun);
-void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun);
-void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun);
-void orbitprop(Body * body, const double & delta_t, double & mu_sun);
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, double & mu_sun);
+void coe2cartesian(Body * body, const double & mu_sun);
+void cartesian2coe(Body * body, const double & mu_sun);
+void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, const double & mu_sun);
+void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep, const double & mu_sun);
+void orbitprop(Body * body, const double & delta_t, const double & mu_sun);
+void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, const double & mu_sun);
 
-std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, int & ns, double & error, double & DU, double & TU, double & mu_sun);
-std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, double & DU, double & TU, double & mu_sun);
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precisionTarget, double & DU, double & TU, double & mu_sun);
+std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, const int & ns, double & error, const double & DU, const double & TU, const double & mu_sun);
+std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, const double & DU, const double & TU, const double & mu_sun);
+std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun);

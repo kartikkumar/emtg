@@ -4,7 +4,7 @@
 
 #include "GTOC7_solution_check.h"
 
-std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, int & ns, double & error, double & DU, double & TU, double & mu_sun)
+std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, const int & ns, double & error, const double & DU, const double & TU, const double & mu_sun)
 {
 	std::vector <double> x_right (ns, 0.0);
 
@@ -296,7 +296,7 @@ std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> T
 }
 
 
-std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, double & DU, double & TU, double & mu_sun)
+std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, const double & DU, const double & TU, const double & mu_sun)
 {
 	double r = sqrt(X[0] * X[0] + X[1] * X[1] + X[2] * X[2]);
 	double rcubed = r*r*r;
@@ -318,15 +318,13 @@ std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tve
 }
 
 
-
-
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, int & ns, double & precisionTarget, double & DU, double & TU, double & mu_sun)
+std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun)
 {
 	double nseg = 1; //let the integrator try to make it in one step -- won't happen but Alex magic will compensate
 	double  resumeH = h; //set to the first segment's step size
 	double accumulatedH = 0.0, effectiveH = h;
-	double resumeError = 1.0e+20;
-	double precisionError = 1.0e+20;
+	double resumeError = 1.0e-13;
+	double precisionError = 1.0e-13;
 	double percentagecomplete = 0.0, lastpercentcomplete = 0.0;
 	bool last_substep;
 	bool print_progress = false;
@@ -394,7 +392,7 @@ std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector 
 
 					}
 
-					if (fabs(effectiveH) < 1e-10)
+					if (fabs(effectiveH) < 1e-14)
 					{//H is too small.....Alexing
 						std::cout << "H Got too Small.  Aborting (Alexing)." << std::endl;
 						throw 13;
@@ -455,7 +453,7 @@ std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector 
 				last_substep = true; //assume that the next substep will be the last substep now
 			}
 
-			std::cout << effectiveH << ' ' << accumulatedH << std::endl;
+			//std::cout << effectiveH << ' ' << accumulatedH << std::endl;
 
 		} while (fabs(accumulatedH) < fabs(h));
 

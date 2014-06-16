@@ -1,6 +1,6 @@
 #include "GTOC7_solution_check.h"
 
-std::vector <Body> read_ephemeris(std::string & GTOC7_ephemeris_file_name, double & mu_sun)
+std::vector <Body> read_ephemeris(std::string & GTOC7_ephemeris_file_name, const double & mu_sun)
 {
 	
 	std::ifstream ephemeris_file(GTOC7_ephemeris_file_name.c_str(), std::ios::in);

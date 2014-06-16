@@ -1,7 +1,7 @@
 #include "GTOC7_solution_check.h"
 
 
-void orbitprop(Body * body, const double & delta_t, double & mu_sun)
+void orbitprop(Body * body, const double & delta_t, const double & mu_sun)
 {
 	body->M = body->M + sqrt(mu_sun/((body->a)*(body->a)*(body->a)))*delta_t;
 
@@ -20,7 +20,7 @@ void orbitprop(Body * body, const double & delta_t, double & mu_sun)
 	coe2cartesian(body, mu_sun);
 }
 
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, double & mu_sun)
+void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, const double & mu_sun)
 {
 	probe->M[phase][timestep] = probe->M[phase][timestep] + sqrt(mu_sun / ((probe->a[phase][timestep])*(probe->a[phase][timestep])*(probe->a[phase][timestep])))*delta_t;
 

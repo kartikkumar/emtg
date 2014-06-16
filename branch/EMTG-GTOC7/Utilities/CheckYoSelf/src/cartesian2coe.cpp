@@ -1,7 +1,7 @@
 #include "GTOC7_solution_check.h"
 
 
-void cartesian2coe(Body * body, double & mu_sun)
+void cartesian2coe(Body * body, const double & mu_sun)
 {
 	
 	double x = body->x;
@@ -63,7 +63,7 @@ void cartesian2coe(Body * body, double & mu_sun)
 	body->h = h;
 }
 
-void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, double & mu_sun)
+void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, const double & mu_sun)
 {
 	
 	double x = probe->x[phase][timestep];

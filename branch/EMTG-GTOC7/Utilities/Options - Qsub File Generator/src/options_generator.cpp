@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "Are you performing a single-point mothership drop-off? (0: no, 1: yes)" << std::endl;
 		std::cin >> single_point_drop_off;
 
-		std::cout << std::endl << "Are you running the Full (G)TOC7 list, the (m)ixed lists, the (b)anded lists or the (f)ull family list?" << std::endl;
+		std::cout << std::endl << "Are you running the Full (G)TOC7 list, the (m)ixed lists, the (b)anded lists, (B)ubble filtered or the (f)ull family list?" << std::endl;
 		std::cin >> list_type;
 
 		std::cout << std::endl << "Are you performing a staggered release from the single-point drop-off? (0: no, 1: yes)" << std::endl;
@@ -200,6 +200,7 @@ int main(int argc, char* argv[])
 			if (read_epoch == true)
 			{
 				starting_body_ID_file >> number; starting_body_ID_file >> epoch;
+				//epoch -= 365.25 / 2.0; 6 month roll back thing we tried that one time...
 				starting_body_ID_list.push_back(number);
 				epoch_list.push_back(epoch);
 			}
@@ -353,7 +354,7 @@ int main(int argc, char* argv[])
 					//we have found the line of interest, modify it and write it to the new options file
 					new_options_file << std::left << sub_temp_line << ' ' << std::to_string(starting_body_ID_list[index]) << std::endl;
 				}
-				else if (single_point_drop_off == 1 && sub_temp_line.compare("lazy_race_tree_target_list_file") == 0)
+				else if (sub_temp_line.compare("lazy_race_tree_target_list_file") == 0)
 				{
 					if (list_type == 'm')
 					{
@@ -371,6 +372,13 @@ int main(int argc, char* argv[])
 						else
 							new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_ALL.asteroidlist" << std::endl;
 
+					}
+					else if (list_type == 'B')
+					{
+						if (staggered_release == 1 && single_point_drop_off == 1)
+							new_options_file << std::left << sub_temp_line << ' ' << std::to_string(index) + "_" + std::to_string(ProbeID) + "_LRTS_" + std::to_string(starting_body_ID_list[index]) + '_' + the_whole_part + 'd' + the_decimal_part + ".asteroidlist" << std::endl;
+						else
+							new_options_file << std::left << sub_temp_line << ' ' << asteroid_family + "_Bubble_Filtered.asteroidlist" << std::endl;
 					}
 					else if (list_type == 'b')
 					{
@@ -723,7 +731,10 @@ int main(int argc, char* argv[])
 			std::cout << "Populating directories with .asteroidlist files..." << std::endl;
 			std::string asteroidlist_file_name;
 
-			asteroidlist_file_name = asteroid_family + "_ALL.asteroidlist";
+			if (list_type == 'B')
+				asteroidlist_file_name = asteroid_family + "_Bubble_Filtered.asteroidlist";
+			else
+				asteroidlist_file_name = asteroid_family + "_ALL.asteroidlist";
 
 			tStart = clock();
 
