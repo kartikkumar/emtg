@@ -83,9 +83,14 @@ int main(int argc, char *argv[])
 	std::vector <double> X_left, X_right;
 	std::vector <double> dX(7, 0.0);
 	std::vector <double> Tvec(3, 0.0);
+	std::fstream outputfile;
+
+	outputfile.open("checkoutput.txt", std::fstream::out | std::fstream::trunc);
+
+	if (!outputfile.is_open())
+		std::cout << "Error with opening output file." << std::endl;
 
 
-	
 	bool normalized_integrator = false;
 	bool fixed_step_integrator = false;
 	bool adaptive_step = true;
@@ -122,7 +127,8 @@ int main(int argc, char *argv[])
 		//for (size_t timestep = 0; timestep < probe.x[phase].size() - 1; ++timestep)
 		for (size_t timestep = 0; timestep < days_to_propagate; ++timestep)
 		{
-
+//TO RETURN TO NORMAL FORWARD INTEGRATION COMMENT NEXT LINE			
+			X_left = { myprobe.x[phase][timestep] / DU, myprobe.y[phase][timestep] / DU, myprobe.z[phase][timestep] / DU, myprobe.vx[phase][timestep] * TU / DU, myprobe.vy[phase][timestep] * TU / DU, myprobe.vz[phase][timestep] * TU / DU, myprobe.mass[phase][timestep] };
 			//Extract the time step 
 			h = (myprobe.time_stamp[phase][timestep + 1] - myprobe.time_stamp[phase][timestep]) / TU;
 
@@ -132,16 +138,42 @@ int main(int argc, char *argv[])
 			Tvec[2] = myprobe.Tz[phase][timestep] / 1000.0 * TU * TU / DU;
 			//Tvec[0] = 0.0; Tvec[1] = 0.0; Tvec[2] = 0.0;
 			//num_sub_steps = 86400;
-
+			
 			X_right = adaptive_step_int(X_left, Tvec, h, ns, precisionTarget, DU, TU, mu_sun);
 			X_left = X_right;
+//TO RETURN TO NORMAL INTEGRATION COMMENT FROM HERE>>>>>>>>
+			outputfile << std::endl << "Step " << timestep;
+			outputfile << std::endl << "Adaptive-step integration:" << std::endl;
+			outputfile << std::setprecision(16) << ' ' << (X_left[0] * DU) << ' ' << (X_left[1] * DU) << ' ' << (X_left[2] * DU) << ' ' << (X_left[3] * DU / TU) << ' ' << (X_left[4] * DU / TU) << ' ' << (X_left[5] * DU / TU) << ' ' << (X_left[6]) << std::endl;
+
+			if (normalized_integrator) {
+				DU = 1.0;
+				TU = 1.0;
+			}
+
+			outputfile << "GTOC7 output:" << std::endl;
+			outputfile << std::setprecision(16) << ' ' << (probe.x[phase][timestep+1] * DU) << ' ' << (probe.y[phase][timestep+1] * DU) << ' ' << (probe.z[phase][timestep+1] * DU) << ' ' << (probe.vx[phase][timestep+1] * DU / TU) << ' ' << (probe.vy[phase][timestep+1] * DU / TU) << ' ' << (probe.vz[phase][timestep+1] * DU / TU) << ' ' << (probe.mass[phase][timestep+1]) << std::endl;
+
+			outputfile  << "Difference" << std::endl;
+			outputfile << std::setprecision(16) << ' ' << ' ' << ((X_left[0] - probe.x[phase][timestep+1]) * DU) << ' ' << ((X_left[1] - probe.y[phase][timestep+1]) * DU) << ' ' << ((X_left[2] - probe.z[phase][timestep+1]) * DU) << ' ' << ((X_left[3] - probe.vx[phase][timestep+1]) * DU / TU) << ' ' << ((X_left[4] - probe.vy[phase][timestep+1]) * DU / TU) << ' ' << ((X_left[5] - probe.vz[phase][timestep+1]) * DU / TU) << ' ' << (X_left[6] - probe.mass[phase][timestep+1]) << std::endl;
+//<<<<<< TO HERE			
 		}
 
+		outputfile.close();
+
 		std::cout << std::endl << "Adaptive-step integration:" << std::endl;
-		std::cout << std::setprecision(16) << ' ' << X_left[0] * DU << ' ' << X_left[1] * DU << ' ' << X_left[2] * DU << ' ' << X_left[3] * DU / TU << ' ' << X_left[4] * DU / TU << ' ' << X_left[5] * DU / TU << ' ' << X_left[6] << std::endl;
+		std::cout << std::setprecision(16) << ' ' << (X_left[0] * DU) << ' ' << (X_left[1] * DU) << ' ' << (X_left[2] * DU) << ' ' << (X_left[3] * DU / TU) << ' ' << (X_left[4] * DU / TU) << ' ' << (X_left[5] * DU / TU) << ' ' << (X_left[6]) << std::endl;
+
+		if (normalized_integrator) {
+			DU = 1.0;
+			TU = 1.0;
+		}
 
 		std::cout << std::endl << "GTOC7 output:" << std::endl;
-		std::cout << std::setprecision(16) << ' ' << probe.x[phase][days_to_propagate] * DU << ' ' << probe.y[phase][days_to_propagate] * DU << ' ' << probe.z[phase][days_to_propagate] * DU << ' ' << probe.vx[phase][days_to_propagate] * DU / TU << ' ' << probe.vy[phase][days_to_propagate] * DU / TU << ' ' << probe.vz[phase][days_to_propagate] * DU / TU << ' ' << probe.mass[phase][days_to_propagate] << std::endl;
+		std::cout << std::setprecision(16) << ' ' << (probe.x[phase][days_to_propagate] * DU) << ' ' << (probe.y[phase][days_to_propagate] * DU) << ' ' << (probe.z[phase][days_to_propagate] * DU) << ' ' << (probe.vx[phase][days_to_propagate] * DU / TU) << ' ' << (probe.vy[phase][days_to_propagate] * DU / TU) << ' ' << (probe.vz[phase][days_to_propagate] * DU / TU) << ' ' << (probe.mass[phase][days_to_propagate]) << std::endl;
+
+		std::cout << std::endl << "Difference" << std::endl;
+		std::cout << std::setprecision(16) << ' ' << ' ' << ((X_left[0] - probe.x[phase][days_to_propagate]) * DU) << ' ' << ((X_left[1] - probe.y[phase][days_to_propagate]) * DU) << ' ' << ((X_left[2] - probe.z[phase][days_to_propagate]) * DU) << ' ' << ((X_left[3] - probe.vx[phase][days_to_propagate]) * DU / TU) << ' ' << ((X_left[4] - probe.vy[phase][days_to_propagate]) * DU / TU) << ' ' << ((X_left[5] - probe.vz[phase][days_to_propagate]) * DU / TU) << ' ' << (X_left[6] - probe.mass[phase][days_to_propagate]) << std::endl;
 	}
 
 

@@ -304,6 +304,7 @@ std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> & T
 	double T = sqrt(Tvec[0] * Tvec[0] + Tvec[1] * Tvec[1] + Tvec[2] * Tvec[2]);
 	double Isp = 3000.0/TU;
 	double g0 = 9.80665 / 1000.0 * TU * TU / DU;
+
 	std::vector <double> dX(7, 0.0);
 
 	dX[0] = X[3];
@@ -453,7 +454,7 @@ std::vector <double> adaptive_step_int(std::vector <double> & x_left, std::vecto
 				last_substep = true; //assume that the next substep will be the last substep now
 			}
 
-			//std::cout << effectiveH << ' ' << accumulatedH << std::endl;
+//			std::cout << effectiveH << ' ' << accumulatedH << std::endl;
 
 		} while (fabs(accumulatedH) < fabs(h));
 
