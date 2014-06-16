@@ -11,6 +11,9 @@
 #include <fstream>
 #include <iomanip>
 
+#ifndef _CHECKER_HEADER
+#define _CHECKER_HEADER
+
 //asteroid structure
 struct Body{
 	double a;
@@ -79,8 +82,10 @@ void cartesian2coe(Body * body, const double & mu_sun);
 void cartesian2coe_probe(Spacecraft * probe, const int & phase, const int & timestep, const double & mu_sun);
 void coe2cartesian(Spacecraft * probe, const int & phase, const int & timestep, const double & mu_sun);
 void orbitprop(Body * body, const double & delta_t, const double & mu_sun);
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, const double & mu_sun);
+void orbitprop(Spacecraft * probe, const double & delta_t, const int & phase, const int & timestep, const double & mu_sun);
 
 std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> Tvec, std::vector <double> f1, double & h, const int & ns, double & error, const double & DU, const double & TU, const double & mu_sun);
-std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, const double & DU, const double & TU, const double & mu_sun);
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun);
+std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> & Tvec, const double & DU, const double & TU, const double & mu_sun);
+std::vector <double> adaptive_step_int(std::vector <double> & x_left, std::vector <double> & Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun);
+
+#endif

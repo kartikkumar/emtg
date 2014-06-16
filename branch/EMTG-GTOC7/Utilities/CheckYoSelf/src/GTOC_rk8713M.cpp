@@ -296,7 +296,7 @@ std::vector <double> rk8713M(std::vector <double> x_left, std::vector <double> T
 }
 
 
-std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tvec, const double & DU, const double & TU, const double & mu_sun)
+std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> & Tvec, const double & DU, const double & TU, const double & mu_sun)
 {
 	double r = sqrt(X[0] * X[0] + X[1] * X[1] + X[2] * X[2]);
 	double rcubed = r*r*r;
@@ -318,7 +318,7 @@ std::vector <double> GTOC7EOM(std::vector <double> & X, std::vector <double> Tve
 }
 
 
-std::vector <double> adaptive_step_int(std::vector <double> x_left, std::vector <double> Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun)
+std::vector <double> adaptive_step_int(std::vector <double> & x_left, std::vector <double> & Tvec, double & h, const int & ns, const double & precisionTarget, const double & DU, const double & TU, const double & mu_sun)
 {
 	double nseg = 1; //let the integrator try to make it in one step -- won't happen but Alex magic will compensate
 	double  resumeH = h; //set to the first segment's step size

@@ -20,7 +20,7 @@ void orbitprop(Body * body, const double & delta_t, const double & mu_sun)
 	coe2cartesian(body, mu_sun);
 }
 
-void orbitprop(Spacecraft * probe, const double & delta_t, const double & phase, const double & timestep, const double & mu_sun)
+void orbitprop(Spacecraft * probe, const double & delta_t, const int & phase, const int & timestep, const double & mu_sun)
 {
 	probe->M[phase][timestep] = probe->M[phase][timestep] + sqrt(mu_sun / ((probe->a[phase][timestep])*(probe->a[phase][timestep])*(probe->a[phase][timestep])))*delta_t;
 

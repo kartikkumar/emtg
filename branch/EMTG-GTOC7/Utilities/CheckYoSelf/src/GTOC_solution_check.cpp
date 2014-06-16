@@ -87,9 +87,10 @@ int main(int argc, char *argv[])
 
 	
 	bool normalized_integrator = false;
-	bool fixed_step_integrator = true;
+	bool fixed_step_integrator = false;
 	bool adaptive_step = true;
 	double precisionTarget;
+	int days_to_propagate = 151;
 	
 	double DU = 149597870.691;
 	double TU = sqrt(DU * DU * DU / mu_sun);
@@ -119,16 +120,16 @@ int main(int argc, char *argv[])
 		//X_left = { Earth.x + 90.0, Earth.y + 90.0, Earth.z + 90.0, Earth.vx + 0.000009, Earth.vy + 0.000009, Earth.vz + 0.000009, 1.0 };
 
 		//for (size_t timestep = 0; timestep < probe.x[phase].size() - 1; ++timestep)
-		for (size_t timestep = 0; timestep < 25; ++timestep)
+		for (size_t timestep = 0; timestep < days_to_propagate; ++timestep)
 		{
 
 			//Extract the time step 
-			h = (probe.time_stamp[phase][timestep + 1] - probe.time_stamp[phase][timestep]) / TU;
+			h = (myprobe.time_stamp[phase][timestep + 1] - myprobe.time_stamp[phase][timestep]) / TU;
 
 			//convert from N to kN
-			Tvec[0] = probe.Tx[phase][timestep] / 1000.0 * TU * TU / DU;
-			Tvec[1] = probe.Ty[phase][timestep] / 1000.0 * TU * TU / DU;
-			Tvec[2] = probe.Tz[phase][timestep] / 1000.0 * TU * TU / DU;
+			Tvec[0] = myprobe.Tx[phase][timestep] / 1000.0 * TU * TU / DU;
+			Tvec[1] = myprobe.Ty[phase][timestep] / 1000.0 * TU * TU / DU;
+			Tvec[2] = myprobe.Tz[phase][timestep] / 1000.0 * TU * TU / DU;
 			//Tvec[0] = 0.0; Tvec[1] = 0.0; Tvec[2] = 0.0;
 			//num_sub_steps = 86400;
 
@@ -139,6 +140,8 @@ int main(int argc, char *argv[])
 		std::cout << std::endl << "Adaptive-step integration:" << std::endl;
 		std::cout << std::setprecision(16) << ' ' << X_left[0] * DU << ' ' << X_left[1] * DU << ' ' << X_left[2] * DU << ' ' << X_left[3] * DU / TU << ' ' << X_left[4] * DU / TU << ' ' << X_left[5] * DU / TU << ' ' << X_left[6] << std::endl;
 
+		std::cout << std::endl << "GTOC7 output:" << std::endl;
+		std::cout << std::setprecision(16) << ' ' << probe.x[phase][days_to_propagate] * DU << ' ' << probe.y[phase][days_to_propagate] * DU << ' ' << probe.z[phase][days_to_propagate] * DU << ' ' << probe.vx[phase][days_to_propagate] * DU / TU << ' ' << probe.vy[phase][days_to_propagate] * DU / TU << ' ' << probe.vz[phase][days_to_propagate] * DU / TU << ' ' << probe.mass[phase][days_to_propagate] << std::endl;
 	}
 
 
