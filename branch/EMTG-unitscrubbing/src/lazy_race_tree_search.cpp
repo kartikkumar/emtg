@@ -129,7 +129,7 @@ namespace EMTG{
 				final_mass_for_each_body_in_level[branch] = current_mass;
 				wait_time_for_each_body_in_level[branch] = current_wait_time;
 				
-				write_branch_summary(branch_mission, branch_options, tree_summary_file_location, tree_level, branch);
+				//write_branch_summary(branch_mission, branch_options, tree_summary_file_location, tree_level, branch);
 
 			}//end branch loop
 

@@ -11,7 +11,10 @@ G 6.67428e-20
 g0 9.80665
 
 ##outer-loop solver settings
-#whether or not to run the outer-loop
+#Do you want to run an outer-loop?
+#0: no
+#1: Genetic algorithm (number of objective functions determines which GA to run)
+#2: lazy race-tree search
 run_outerloop 0
 #outer-loop population size
 outerloop_popsize 200
@@ -43,6 +46,10 @@ outerloop_warm_archive none
 outerloop_reevaluate_full_population 0
 #Quiet outer-loop?
 quiet_outerloop 1
+#Allow duplicates in lazy race-tree search?
+#0: no
+#1: yes
+lazy_race_tree_allow_duplicates 0
 
 ##inner-loop solver settings
 #NLP solver type
@@ -282,7 +289,7 @@ enable_maximum_propellant_mass_constraint 0
 maximum_propellant_mass 1000.0
 #Post-mission delta-v, in km/s (alternatively defined as delta-v margin)
 post_mission_delta_v 0.0
-#Isp used to compute propellant for post-mission delta-, in seconds
+#Isp used to compute propellant for post-mission delta-v, in seconds
 post_mission_Isp 3000.0
 #Propellant margin, as a fraction of nominal propellant load
 propellant_margin 0.0
@@ -382,6 +389,7 @@ journey_initial_impulse_bounds 0.0 6.97
 #3: flyby (only valid for successive journeys)
 #4: flyby with fixed v-infinity-out (only valid for successive journeys)
 #5: spiral-out from circular orbit (low-thrust missions only)
+#6: zero-turn flyby (for small bodies)
 journey_departure_type 0
 #journey arrival type (one value per journey)
 #0: insertion into parking orbit (use chemical Isp)
@@ -507,6 +515,7 @@ outerloop_journey_flyby_sequence_choices
 #8: First journey departure C3 (km^2/s^2)
 #9: Final journey arrival C3 (km^2/s^2)
 #10: Total delta-v (km/s)
+#11: Inner-loop objective (whatever it was)
 outerloop_objective_function_choices 2 6
 
 ##output format settings

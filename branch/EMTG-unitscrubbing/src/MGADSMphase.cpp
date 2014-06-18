@@ -130,7 +130,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 
 		//Step 3: compute the departure asymptote
 		//Step 3.1 extract the departure parameters
-		if (j == 0 || !(options->journey_departure_type[j] == 3))
+		if (j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			if (boundary1_location_code == -2) //if we are starting at periapse of a hyperbola
 			{
@@ -302,6 +302,78 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 			else
 				state_at_beginning_of_phase[6] = current_state[6] * exp(-dVmag[0] * 1000/ (options->IspDS * options->g0));
 		}
+	}
+	else if (options->journey_departure_type[j] == 6)
+	{
+		//for first-phase zero-turn flybys
+		//there are no decision variables or constraints
+
+		//step 3.1 compute incoming v_infinity at flyby
+		if (p == 0)
+			this->locate_boundary_point(this->boundary1_location_code,
+			options->journey_departure_type[j],
+			true,
+			Universe,
+			boundary1_state,
+			current_state + 3,
+			*current_epoch,
+			X,
+			Xindex,
+			F,
+			Findex,
+			G,
+			Gindex,
+			needG,
+			j,
+			p,
+			options);
+
+		for (int k = 0; k < 3; ++k)
+			this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
+
+		//Step 3.2 extract V_infinity_out from decision vector and apply equal v-infinity constraint
+		for (int k = 0; k < 3; ++k)
+		{
+			this->V_infinity_out(k) = X[*Xindex];
+			++(*Xindex);
+
+			double v_infinity_in_k = this->V_infinity_in(k);
+
+			F[*Findex] = (this->V_infinity_out(k) - v_infinity_in_k) / v_infinity_in_k;
+			++(*Findex);
+
+			if (options->derivative_type > 0 && needG)
+			{
+				G[flyby_velocity_magnitude_constraint_G_indices[k * 2]] = 1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2];
+				G[flyby_velocity_magnitude_constraint_G_indices[k * 2 + 1]] = -1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2 + 1];
+			}
+		}
+
+		this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();
+		this->C3_departure = this->flyby_outgoing_v_infinity*this->flyby_outgoing_v_infinity;
+
+		this->flyby_altitude = 0.0;
+		this->flyby_turn_angle = 0.0;
+		this->dV_departure_magnitude = 0.0;
+
+		//calculate the b-plane parameters, check the periapse altitude
+		this->BoundaryR.assign_all(boundary1_state);
+		this->BoundaryV.assign_all(boundary1_state + 3);
+
+
+
+		//store the state at the beginning of the phase, post-flyby
+		for (int k = 0; k < 3; ++k)
+		{
+			this->state_at_beginning_of_phase[k] = boundary1_state[k];
+			this->state_at_beginning_of_phase[k + 3] = boundary1_state[k + 3] + V_infinity_out(k);
+		}
+
+		//store the mass
+		if (p == 0)
+			this->state_at_beginning_of_phase[6] = current_state[6] + options->journey_starting_mass_increment[j];
+		else
+			this->state_at_beginning_of_phase[6] = current_state[6];
 	}
 	else
 	{
@@ -1308,6 +1380,17 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 

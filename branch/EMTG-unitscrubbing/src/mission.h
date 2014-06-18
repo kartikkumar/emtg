@@ -136,8 +136,10 @@ public:
 	vector<int> derivative_of_flight_time_with_respect_to_journey_initial_mass_increment_ratios_for_spirals;
 	vector<int> dry_mass_constraint_G_indices;
 	vector<int> dry_mass_constraint_X_indices;
+	vector<int> dry_mass_constraint_X_ranges;
 	vector<int> propellant_mass_constraint_G_indices;
 	vector<int> propellant_mass_constraint_X_indices;
+	vector<int> propellant_mass_constraint_X_ranges;
 	vector<int> objectivefunction_X_indices;
 	vector<int> objectivefunction_G_indices;
 	vector<double> objectivefunction_X_scale_ranges;

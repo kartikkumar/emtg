@@ -249,13 +249,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\Program Files\Microsoft HPC Pack 2008 R2\Inc;C:\Users\jaengla2\Documents\Projects\EMTG\EMTGv8_proprietary;C:\Users\jaengla2\Documents\Libraries\boost_1_55_0;cspice/include;SNOPT;src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\Microsoft HPC Pack 2008 R2\Inc;C:\Projects\EMTGv8_proprietary;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\include;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;src</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary;EMTG_MPI</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\Microsoft HPC Pack 2008 R2\Lib\i386;C:\Users\jaengla2\Documents\Libraries\boost_1_55_0\stage\lib;SNOPT/;cspice/lib;$(Configuration)/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\Microsoft HPC Pack 2008 R2\Lib\i386;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0\stage\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\lib;$(Configuration)/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cspice.lib;vcf2c.lib;SNOPTdebug.lib;msmpi.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmtd.lib;libcmt.lib</IgnoreSpecificDefaultLibraries>
       <SubSystem>Console</SubSystem>
@@ -334,6 +334,7 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary</PreprocessorDefinitions>
       <DebugInformationFormat>None</DebugInformationFormat>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

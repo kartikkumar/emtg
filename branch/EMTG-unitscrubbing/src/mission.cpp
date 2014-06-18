@@ -354,9 +354,9 @@ int mission::calcbounds()
 	else if (options.objective_type == 1) //minimum flight time
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-        for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
-			if (Xdescriptions[entry].find("flight time") < 1024)
+			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
 				iGfun.push_back(0);
 				jGvar.push_back(entry);
@@ -483,9 +483,9 @@ int mission::calcbounds()
     else if (options.objective_type == 8) //arrive as early as possible
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-        for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
-			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("launch epoch") < 1024)
+			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("launch epoch") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
 				iAfun.push_back(0);
 				jAvar.push_back(entry);
@@ -760,7 +760,7 @@ int mission::calcbounds()
 	if (options.minimum_dry_mass > 0)
 	{
 		Flowerbounds.push_back(-math::LARGE);
-		Fupperbounds.push_back(0);
+		Fupperbounds.push_back(0.0);
 		Fdescriptions.push_back("mission dry mass constraint");
 
 		//derivative with respect to final mass
@@ -775,6 +775,7 @@ int mission::calcbounds()
 				Gdescriptions.push_back(EntryNameStream.str());
 				dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 				dry_mass_constraint_X_indices.push_back(entry);
+				this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 				break;
 			}
 		}
@@ -793,6 +794,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 					break;
 				}
 			}
@@ -810,8 +812,9 @@ int mission::calcbounds()
 					stringstream EntryNameStream;
 					EntryNameStream << "Derivative of dry mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
 					Gdescriptions.push_back(EntryNameStream.str());
-					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
-					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+					this->dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 					break;
 				}
 			}
@@ -831,6 +834,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 					break;
 				}
 			}
@@ -860,6 +864,7 @@ int mission::calcbounds()
 				Gdescriptions.push_back(EntryNameStream.str());
 				propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 				propellant_mass_constraint_X_indices.push_back(entry);
+				propellant_mass_constraint_X_ranges.push_back(entry);
 				break;
 			}
 		}
@@ -878,6 +883,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
 					break;
 				}
 			}
@@ -897,6 +903,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
 					break;
 				}
 			}
@@ -916,6 +923,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
 					break;
 				}
 			}
@@ -984,63 +992,8 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	EMTG::journey* FinalJourney = &journeys[options.number_of_journeys - 1];
 	EMTG::phase* FinalPhase = &FinalJourney->phases[options.number_of_phases[options.number_of_journeys - 1] - 1];
 
-	//evaluate, if applicable, minimum dry mass bound
-	if (options.minimum_dry_mass > 0)
-	{
-		//compute the system and spacecraft masses at the end of the modeled mission
-		double final_system_mass = current_state[6];
-		double final_spacecraft_mass = final_system_mass - FinalJourney->phases[0].journey_initial_mass_increment_scale_factor * FinalPhase->current_mass_increment;
-
-		//apply the post-mission delta-v to determine the remaining mass of the spacecraft
-		double expfun = exp(-1000 * options.post_mission_delta_v / (options.g0 * options.post_mission_Isp));
-		double system_mass_after_post_mission_delta_v = final_system_mass * expfun;
-		double spacecraft_mass_after_post_mission_delta_v = final_spacecraft_mass - (final_system_mass - system_mass_after_post_mission_delta_v);
-
-		//apply propellant margin
-		double initial_spacecraft_mass;
-		if (options.journey_departure_type[0] == 5) //if the first journey started with a spiral, get the state before the spiral
-			initial_spacecraft_mass = FirstJourney->phases[0].spiral_escape_state_before_spiral[6];
-		else
-			initial_spacecraft_mass = FirstPhase->state_at_beginning_of_phase[6];
-		double propellant_margin_kg = options.propellant_margin * (initial_spacecraft_mass - spacecraft_mass_after_post_mission_delta_v);
-
-		dry_mass = spacecraft_mass_after_post_mission_delta_v - propellant_margin_kg;
-
-
-		F[Findex] = -dry_mass / options.minimum_dry_mass + 1.0;
-
-		if (options.derivative_type > 0 && needG)
-		{
-			int whichderiv = 0;
-			//derivative with respect to arrival mass
-			G[dry_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1) / options.minimum_dry_mass;
-			++whichderiv;
-
-			//derivative with respect to v-infinity
-			if (!(options.LV_type == 0))
-			{
-				G[dry_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.minimum_dry_mass;
-				++whichderiv;
-			}
-
-
-			//derivative with respect to initial mass scale factor
-			if (options.allow_initial_mass_to_vary)
-			{
-				//the 0.8 is because initial mass scale factor varies in [0.2, 1.0]
-				G[dry_mass_constraint_G_indices[whichderiv]] = (0.8 * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.minimum_dry_mass;
-				++whichderiv;
-			}
-
-			//derivative with respect to final journey mass increment ratio
-			if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
-				G[dry_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
-		}
-	}
-	else dry_mass = current_state[6] - (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * options.propellant_margin;
-
-	//evaluate, if applicable, the propellant mass constraint
-	if (options.enable_maximum_propellant_mass_constraint)
+	//evaluate, if applicable, minimum dry mass bound and propellant mass bound
+	if (options.minimum_dry_mass > 0 || options.enable_maximum_propellant_mass_constraint)
 	{
 		//compute the system and spacecraft masses at the end of the modeled mission
 		double final_system_mass = current_state[6];
@@ -1062,38 +1015,60 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 
 		total_propellant_mass = propellant_mass_kg + propellant_margin_kg;
 
+		dry_mass = spacecraft_mass_after_post_mission_delta_v - propellant_margin_kg;
 
-		F[Findex] = -total_propellant_mass / options.maximum_propellant_mass + 1.0;
-		/*
-		if (options.derivative_type > 0 && needG)
+
+		if (options.minimum_dry_mass > 0)
 		{
-			int whichderiv = 0;
-			//derivative with respect to arrival mass
-			G[propellant_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1) / options.minimum_dry_mass;
-			++whichderiv;
+			F[Findex] = -dry_mass / options.minimum_dry_mass + 1.0;
+			++Findex;
 
-			//derivative with respect to v-infinity
-			if (!(options.LV_type == 0))
+			if (options.derivative_type > 0 && needG)
 			{
-				G[propellant_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.minimum_dry_mass;
+				int whichderiv = 0;
+				//derivative with respect to arrival mass
+				G[dry_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1) / options.minimum_dry_mass;
 				++whichderiv;
+
+				//derivative with respect to v-infinity
+				if (!(options.LV_type == 0))
+				{
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.minimum_dry_mass;
+					++whichderiv;
+				}
+
+
+				//derivative with respect to initial mass scale factor
+				if (options.allow_initial_mass_to_vary)
+				{
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = (this->dry_mass_constraint_X_ranges[whichderiv] * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.minimum_dry_mass;
+					++whichderiv;
+				}
+
+				//derivative with respect to final journey mass increment ratio
+				if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
 			}
+		}
 
+		if (options.enable_maximum_propellant_mass_constraint)
+		{
+			F[Findex] = -total_propellant_mass / options.maximum_propellant_mass + 1.0;
+			++Findex;
 
-			//derivative with respect to initial mass scale factor
-			if (options.allow_initial_mass_to_vary)
+			if (options.derivative_type > 0 && needG)
 			{
-				//the 0.8 is because initial mass scale factor varies in [0.2, 1.0]
-				G[propellant_mass_constraint_G_indices[whichderiv]] = (0.8 * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.minimum_dry_mass;
-				++whichderiv;
+				int whichderiv = 0;
+				//add the derivatives of the propellant mass constraint, which are very non-trivial
 			}
-
-			//derivative with respect to final journey mass increment ratio
-			if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
-				G[propellant_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
-		}*/
+		}
 	}
-	else total_propellant_mass = (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * (1.0 + options.propellant_margin);
+	else
+	{
+		dry_mass = current_state[6] - (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * options.propellant_margin;
+		total_propellant_mass = (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * (1.0 + options.propellant_margin);
+	}
+
 
 	switch (options.objective_type)
 	{
@@ -1109,7 +1084,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 
 			if (this->options.derivative_type > 0)
 			{
-				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size() - 1; ++ whichderiv)
+				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size(); ++ whichderiv)
 				{
 					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] / TU;
 				}
@@ -1205,7 +1180,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 				//if we allow initial mass to vary, derivative with respect to initial mass multiplier
 				if (options.allow_initial_mass_to_vary)
 				{
-					G[objectivefunction_G_indices[2]] = 0.8 * FirstPhase->unscaled_phase_initial_mass / (options.maximum_mass + FinalPhase->current_mass_increment);
+					G[this->objectivefunction_G_indices[2]] = this->objectivefunction_X_scale_ranges[2] * FirstPhase->unscaled_phase_initial_mass / (options.maximum_mass + FinalPhase->current_mass_increment);
 				}
 			}
 

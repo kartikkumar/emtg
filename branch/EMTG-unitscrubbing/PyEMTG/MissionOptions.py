@@ -1182,6 +1182,7 @@ class MissionOptions(object):
         outputfile.write("#0: unbounded\n")
         outputfile.write("#1: bounded flight time\n")
         outputfile.write("#2: bounded arrival date\n")
+        outputfile.write("#3: bounded aggregate flight time\n")
         outputfile.write("journey_timebounded")
         for j in range (0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_timebounded))
@@ -1454,6 +1455,8 @@ class MissionOptions(object):
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
         outputfile.write("#10: Total delta-v (km/s)\n")
         outputfile.write("#11: Inner-loop objective (whatever it was)\n")
+        outputfile.write("#12: Sum of SMA spread\n")
+        outputfile.write("#13: Sum of mean longitude spread\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
@@ -1714,7 +1717,7 @@ class MissionOptions(object):
                 optionsnotebook.tabJourney.btnMoveJourneyDown.Enable()
 
         #hide or show flight time and arrival date bounds
-        if self.Journeys[self.ActiveJourney].journey_timebounded == 0:
+        if self.Journeys[self.ActiveJourney].journey_timebounded == 0 or self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)

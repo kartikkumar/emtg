@@ -247,7 +247,6 @@ int main(int argc, char* argv[])
 	{
 		//This file name should be specified in options structure via the GUI
 		//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
-
 		std::string asteroid_filename = "Koronis.txt"; //POSSIBLE OPTIONS STRUCTURE INCLUSION
 
 
@@ -256,7 +255,7 @@ int main(int argc, char* argv[])
 
 
 		//First load the list of asteroids from file
-		EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
+		//EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
 
 		//create the directory in the results folder where everything will go
 		boost::posix_time::ptime now = second_clock::local_time();

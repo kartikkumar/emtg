@@ -84,6 +84,18 @@ class Mission(object):
                         del tempEvent
                     del inputcell
 
+            elif linecell[0] == "Total deltaV":
+                self.total_deltaV = float(linecell[1])
+
+            elif linecell[0] == "Spacecraft dry mass":
+                self.spacecraft_dry_mass = float(linecell[1])
+
+            elif linecell[0] == "Total propellant mass including margin":
+                self.total_propellant_mass_including_margin = float(linecell[1])
+
+            elif linecell[0] == "Flight time (y)":
+                self.total_flight_time_years = float(linecell[1])
+
         inputfile.close()
 
     def PlotMission(self, PlotOptions):

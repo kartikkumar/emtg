@@ -1270,11 +1270,11 @@ namespace GeneticAlgorithm
 				for (size_t p = 0; p < options.outerloop_journey_maximum_number_of_flybys[j]; ++p)
 				{
 					this->Xlowerbounds.push_back(0);
-					this->Xupperbounds.push_back( (options.outerloop_journey_flyby_sequence_choices[j].size() - 1) * 2);
+					this->Xupperbounds.push_back( (options.outerloop_journey_flyby_sequence_choices[j].size()) * 2 - 1);
 					std::stringstream descriptionstream;
 					descriptionstream << "Journey " << j << " potential flyby target " << p;
 					this->Xdescriptions.push_back(descriptionstream.str());
-					this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds[this->Xlowerbounds.size() - 1], this->Xupperbounds[this->Xupperbounds.size() - 1]));
+					this->random_integer.push_back(boost::uniform_int<>(this->Xlowerbounds.back(), this->Xupperbounds.back()));
 					if (!options.quiet_outerloop)
 						std::cout << "varying journey " << j << " potential flyby target " << p << std::endl;
 				}
