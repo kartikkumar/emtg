@@ -1697,7 +1697,7 @@ class PyEMTG_interface(wx.Frame):
 
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())

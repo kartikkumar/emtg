@@ -206,7 +206,7 @@ namespace GeneticAlgorithm
 			}
 
 			//flyby sequence using Englander and Conway "null gene" method
-			if (options.outerloop_vary_journey_flyby_sequence[j] && options.outerloop_journey_flyby_sequence_choices[j].size() > 1)
+			if (options.outerloop_vary_journey_flyby_sequence[j] && options.outerloop_journey_flyby_sequence_choices[j].size() > 0)
 			{
 				for (size_t p = 0; p < options.outerloop_journey_maximum_number_of_flybys[j]; ++p)
 				{

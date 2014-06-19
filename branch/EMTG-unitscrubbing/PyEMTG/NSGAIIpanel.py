@@ -134,7 +134,7 @@ class NSGAIIpanel(wx.Panel):
         self.SetSizer(mainsizer)
 
         
-    #methods
+    #methods    
     def ChangeXObjective(self, event):
         self.Xobjective = self.objective_selectors[0].GetSelection()
 

@@ -327,7 +327,7 @@ class NSGAII_outerloop_population(object):
                 else: #4D
                     if self.colorbar is None:
                         solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
+                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
                         if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
                             self.colorbar = self.PopulationFigure.colorbar(solution.point, label='Flight time (years)')
                         elif self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
@@ -336,7 +336,7 @@ class NSGAII_outerloop_population(object):
                             self.colorbar = self.PopulationFigure.colorbar(solution.point, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
                     else:
                         solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
+                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
 
 
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
