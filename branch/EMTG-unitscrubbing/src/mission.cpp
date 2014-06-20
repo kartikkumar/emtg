@@ -2262,11 +2262,11 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			case 2: //Flight time (days)
 				objective_functions[objective] = (this->current_epoch - this->journeys[0].phases[0].phase_start_epoch) / 86400.0;
 				break;
-			case 3: //number of thrusters
-				objective_functions[objective] = this->options.number_of_engines;
-				break;
-			case 4: //Thruster
+			case 3: //Thruster
 				objective_functions[objective] = this->options.engine_type;
+				break;
+			case 4: //number of thrusters
+				objective_functions[objective] = this->options.number_of_engines;
 				break;
 			case 5: //Launch vehicle
 				objective_functions[objective] = this->options.LV_type;
