@@ -29,8 +29,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "lazy_race_tree_search.h"
-
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
 #include <boost/mpi/communicator.hpp>
@@ -237,79 +235,6 @@ int main(int argc, char* argv[])
 		//Step 4: write out the archive
 		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 	}
-
-	//
-	//
-	// LAZY RACE TREE SEARCH ALGORITHM
-	//
-	//
-	else if (options.run_outerloop == 2)
-	{
-		//This file name should be specified in options structure via the GUI
-		//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
-		std::string asteroid_filename = "Koronis.txt"; //POSSIBLE OPTIONS STRUCTURE INCLUSION
-
-
-		std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched
-		std::vector <int> best_sequence; //the LRTS algorithm will populate this vector with the best sequence it finds
-
-
-		//First load the list of asteroids from file
-		//EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
-
-		//create the directory in the results folder where everything will go
-		boost::posix_time::ptime now = second_clock::local_time();
-		std::stringstream timestream;
-		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-		std::string branch_directory = "..//EMTG_v8_results//lazy_race_tree_" + timestream.str() + "//";
-
-		//create the race tree directory 
-		try
-		{
-			path p(branch_directory);
-			boost::filesystem::create_directories(p);
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-		}
-
-		//define where the summary file is going to go and create it
-		std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
-		std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
-
-		//set up header line in summary file
-		outputfile.width(15); outputfile << left << "Tree Level";
-		outputfile.width(15); outputfile << "Branch #";
-		outputfile.width(35); outputfile << "Starting Asteroid EMTG Num ID";
-		outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
-		outputfile.width(25); outputfile << "Launch Window Open";
-		outputfile.width(20); outputfile << "Launch Epoch";
-		outputfile.width(20); outputfile << "Time of Flight";
-		outputfile.width(20); outputfile << "Arrival Epoch";
-		outputfile.width(20); outputfile << "Starting Wet mass";
-		outputfile.width(20); outputfile << "Final Wet mass";
-
-		outputfile << std::endl << std::endl;
-		//close the tree summary file
-		outputfile.close();
-
-		//Perform the lazy race tree search algorithm on the list of asteroids
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location);
-
-		//write the best sequence to file
-		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
-		outputfile << std::endl;
-		outputfile.width(15); outputfile << left << "Best Sequence Found:" << std::endl;
-
-		outputfile << best_sequence[0];
-		for (size_t i = 1; i < best_sequence.size(); ++i)
-			outputfile << ", " << best_sequence[i];
-
-		outputfile.close();
-			
-	}
-
 	else
 	{
 		//set up a batch output file

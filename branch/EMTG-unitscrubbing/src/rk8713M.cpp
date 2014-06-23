@@ -539,7 +539,7 @@ namespace EMTG { namespace integration
 
 					if (fabs(effectiveH) < 1e-14) 
 					{//H is too small
-						cout << "rk8713M: H Got too Small.  Aborting." << endl;
+						cout << "rk8713M: H Got too Small. The integrator has Alexed. Aborting." << endl;
 						throw 13;
 					}
 
