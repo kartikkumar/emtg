@@ -735,7 +735,7 @@ class MissionOptions(object):
                         trialX_line_flag = 1
 
                     #deprecated options
-                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius":
+                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius" or choice == "lazy_race_tree_allow_duplicates":
                         print choice, " is deprecated."
                                 
                     #if option is not recognized
