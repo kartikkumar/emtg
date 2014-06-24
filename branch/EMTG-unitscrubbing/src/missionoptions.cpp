@@ -2001,8 +2001,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#9: BPT-4000 High-Thrust" << endl;
 		outputfile << "#10: BPT-4000 Ex-High-Isp" << endl;
 		outputfile << "#11: NEXT high-Isp Phase 1" << endl;
-		outputfile << "#12: VASIMR (argon, using analytical model)" << endl;
-		outputfile << "#13: Hall Thruster (Xenon, using analytical model)" << endl;
+		outputfile << "#12: VASIMR (argon, using analytical model, not available in open-source)" << endl;
+		outputfile << "#13: Hall Thruster (Xenon, using analytical model, not available in open-source)" << endl;
 		outputfile << "#14: NEXT high-ISP v10" << endl;
         outputfile << "#15: NEXT high-thrust v10" << endl;
         outputfile << "#16: BPT-4000 MALTO" << endl;
@@ -2010,6 +2010,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#18: H6MS Cardiff 8-15-2013" << endl;
 		outputfile << "#19: BHT20K Cardiff 8-16-2013" << endl;
 		outputfile << "#20: Aerojet HiVHAC EM" << endl;
+		outputfile << "#21: 13 kW STMD Hall high-Isp (not available in open-source)" << endl;
+		outputfile << "#22: 13 kW STMD Hall high-thrust (not available in open-source)" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
 		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
@@ -2626,6 +2628,8 @@ void missionoptions::construct_thruster_launch_vehicle_name_arrays()
 	this->thruster_names.push_back("H6MS");
 	this->thruster_names.push_back("BHT20K");
 	this->thruster_names.push_back("HiVHAc");
+	this->thruster_names.push_back("13kWSTMDHallHisp");
+	this->thruster_names.push_back("13kWSTMDHallHthrust");
 }
 
 } /* namespace EMTG */

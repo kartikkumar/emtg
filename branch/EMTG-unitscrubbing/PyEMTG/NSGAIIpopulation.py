@@ -50,7 +50,7 @@ class NSGAII_outerloop_solution(object):
                     'F910','F911','AV551s48','F9H','D4H','SLSb1']
         thruster_names = ['NSTAR','XIPS25','BPT4000HIsp','BPT4000Hthrust','BPT4000XHIsp',
                           'NEXTHIspv9','VASIMRargon','VSIxenonhall','NEXTHIspv10','NEXTHthrustv10',
-                          'BPT4000MALTO','NEXIS','H6MS','BHT20K','HiVHAc']
+                          'BPT4000MALTO','NEXIS','H6MS','BHT20K','HiVHAc','13kWSTMDHallHisp','13kWSTMDHallHthrust']
 
         for column_index in range(0, len(column_headers)):
             if column_index < len(input_cell):

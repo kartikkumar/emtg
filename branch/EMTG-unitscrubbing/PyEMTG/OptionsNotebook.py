@@ -252,8 +252,8 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         enginetypes = ['0: fixed thrust/Isp','1: constant Isp, efficiency, EMTG computes input power','2: choice of power model, constant efficiency, EMTG chooses Isp',
                        '3: choice of power model, constant efficiency and Isp','4: continuously-varying specific impulse','5: custom thrust and mass flow rate polynomial',
                        '6: NSTAR','7: XIPS-25','8: BPT-4000 High-Isp','9: BPT-4000 High-Thrust','10: BPT-4000 Ex-High-Isp','11: NEXT high-Isp v9',
-                       '12: VASIMR (argon, using analytical model)','13: Hall Thruster (Xenon, using analytical model)','14: NEXT high-ISP v10',
-                       '15: NEXT high-thrust v10','16: BPT-4000 MALTO','17: NEXIS Cardiff 8-15-201','18: H6MS Cardiff 8-15-2013','19: BHT20K Cardiff 8-16-2013','20: HiVHAC EM']
+                       '12: VASIMR (argon, using analytical model, not available in open-source)','13: Hall Thruster (Xenon, using analytical model, not available in open-source)','14: NEXT high-ISP v10',
+                       '15: NEXT high-thrust v10','16: BPT-4000 MALTO','17: NEXIS Cardiff 8-15-201','18: H6MS Cardiff 8-15-2013','19: BHT20K Cardiff 8-16-2013','20: HiVHAC EM','21: 13 kW STMD Hall high-Isp (not available in open-source)','22: 13 kW STMD Hall high-thrust (not available in open-source)']
         self.cmbengine_type = wx.ComboBox(self, -1, choices = enginetypes, style=wx.CB_READONLY)
 
         self.lblnumber_of_engines = wx.StaticText(self, -1, "Number of thrusters")
