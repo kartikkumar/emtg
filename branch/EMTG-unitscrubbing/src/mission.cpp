@@ -1337,10 +1337,17 @@ int mission::output()
 	//next, output summary lines describing each event in the mission
 	int errcode = 0;
 	int eventcount = 1;
-	for (int j = 0; j < number_of_journeys; ++j) {
-		errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
-		if (!(errcode == 0))
-			return errcode;
+	try
+	{
+		for (int j = 0; j < number_of_journeys; ++j) {
+			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
+			if (!(errcode == 0))
+				return errcode;
+		}
+	}
+	catch (int e)
+	{
+		cout << "An error occurred while writing " << options.outputfile << endl;
 	}
 	
 
@@ -1350,6 +1357,7 @@ int mission::output()
 	for (int k = 0; k < 2; ++k)
 		outputfile << endl;
 
+	outputfile.precision(20);
 	//output total deltaV
 	outputfile << "Total deltaV: " << current_deltaV << endl;
 

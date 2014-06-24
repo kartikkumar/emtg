@@ -50,7 +50,6 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
-    lazy_race_tree_allow_duplicates = 0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -1021,6 +1020,8 @@ class MissionOptions(object):
         outputfile.write("#18: H6MS Cardiff 8-15-2013\n")
         outputfile.write("#19: BHT20K Cardiff 8-16-2013\n")
         outputfile.write("#20: Aerojet HiVHAC EM\n")
+        outputfile.write("#21: 13 kW STMD Hall high-Isp (not available in open-source)\n")
+        outputfile.write("#22: 13 kW STMD Hall high-thrust (not available in open-source)\n")
         outputfile.write("engine_type " + str(self.engine_type) + "\n")
         outputfile.write("#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_thrust_coefficients")
@@ -1512,10 +1513,10 @@ class MissionOptions(object):
             outputfile.write("trialX\n")
             for seq in range(0, self.number_of_trial_sequences):
                 currentX = self.trialX[seq]
-                outputfile.write(str(currentX[0]))
+                outputfile.write('%17.20f' % currentX[0])
                 for entry in range(1, len(currentX)):
                     outputfile.write(" ")
-                    outputfile.write(str(currentX[entry]))
+                    outputfile.write('%17.20f' % currentX[entry])
                 outputfile.write("\n")
         outputfile.write("\n")
             
@@ -1717,7 +1718,7 @@ class MissionOptions(object):
                 optionsnotebook.tabJourney.btnMoveJourneyDown.Enable()
 
         #hide or show flight time and arrival date bounds
-        if self.Journeys[self.ActiveJourney].journey_timebounded == 0 or self.Journeys[self.ActiveJourney].journey_timebounded == 2:
+        if self.Journeys[self.ActiveJourney].journey_timebounded == 0:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -1726,7 +1727,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1 or self.Journeys[self.ActiveJourney].journey_timebounded == 3:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(True)
@@ -1735,7 +1736,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        else:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -3094,8 +3095,6 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_ntrials.SetValue(str(self.outerloop_ntrials))
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
-        optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.SetValue(self.lazy_race_tree_allow_duplicates)
-
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(True)
@@ -3117,8 +3116,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(True)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(True)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
         elif self.run_outerloop == 2:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3140,8 +3137,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(True)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3163,8 +3158,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()

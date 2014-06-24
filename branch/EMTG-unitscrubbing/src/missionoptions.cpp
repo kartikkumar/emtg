@@ -37,7 +37,6 @@ missionoptions::missionoptions() {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = 1;
-	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -96,7 +95,6 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = true;
-	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -208,7 +206,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "universe_folder") {
 		inputfile >> this->universe_folder;
 		return 0;
-	}	
+	}
 	if (choice == "mission_name")
 	{
 		inputfile >> this->mission_name;
@@ -281,12 +279,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 
 	//physical constants
-	if (choice ==  "G") 
+	if (choice == "G")
 	{
 		this->G = value;
 		return 0;
 	}
-	if (choice ==  "g0") 
+	if (choice == "g0")
 	{
 		this->g0 = value;
 		return 0;
@@ -368,11 +366,6 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "quiet_outerloop")
 	{
 		this->quiet_outerloop = (bool) value;
-		return 0;
-	}
-	if (choice == "lazy_race_tree_allow_duplicates")
-	{
-		this->lazy_race_tree_allow_duplicates = (bool)value;
 		return 0;
 	}
 
@@ -1808,11 +1801,6 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
-		outputfile << "#Allow duplicates in lazy race-tree search?" << endl;
-		outputfile << "#0: no" << endl;
-		outputfile << "#1: yes" << endl;
-		outputfile << "lazy_race_tree_allow_duplicates " << this->lazy_race_tree_allow_duplicates << endl;
-		outputfile << endl;
 
 
 		outputfile << "##inner-loop solver settings" << endl;
@@ -2172,6 +2160,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: unbounded" << endl;
 		outputfile << "#1: bounded flight time" << endl;
 		outputfile << "#2: bounded arrival date" << endl;
+		outputfile << "#3: bounded aggregate flight time" << endl;
 		outputfile << "journey_timebounded";
 		for (int j=0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_timebounded[j];
@@ -2560,6 +2549,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "run_inner_loop " << this->run_inner_loop << endl;
 		outputfile << "#trial decision vector" << endl;
 		outputfile << "#trialX" << endl;
+		outputfile.precision(20);
 		if (trialX.size() > 0)
 		{
 			outputfile << "trialX" << endl;

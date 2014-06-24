@@ -80,9 +80,6 @@ public:
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 
-	//lazy race-tree search options
-	bool lazy_race_tree_allow_duplicates;
-
 	//outer loop selectable options settings
 	bool outerloop_vary_power;
 	bool outerloop_vary_launch_epoch;
