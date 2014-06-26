@@ -811,7 +811,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         outerloopgrid = wx.GridSizer(12,2,0,0)
         
         self.lblrun_outerloop = wx.StaticText(self, -1, "Outer-Loop Solver")
-        outerloop_choices = ["None","Genetic Algorithm","Lazy Race-Tree Search"]
+        outerloop_choices = ["None","Genetic Algorithm"]
         self.cmbrun_outerloop = wx.ComboBox(self, -1, choices=outerloop_choices, style = wx.CB_READONLY)
         
         self.lblouterloop_popsize = wx.StaticText(self, -1, "Population size")
@@ -846,10 +846,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         
         self.lblouterloop_warmstart = wx.StaticText(self, -1, "Warm-start the outer-loop?")
         self.txtouterloop_warmstart = wx.TextCtrl(self, -1, "outerloop_warmstart")
-
-        self.lbllazy_race_tree_allow_duplicates = wx.StaticText(self, -1, "Allow duplicates in lazy race-tree search?")
-        self.chklazy_race_tree_allow_duplicates = wx.CheckBox(self, -1)
-        
+    
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
                                self.lblouterloop_genmax, self.txtouterloop_genmax,
@@ -860,8 +857,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lblouterloop_tolfit, self.txtouterloop_tolfit,
                                self.lblouterloop_ntrials, self.txtouterloop_ntrials,
                                self.lblouterloop_elitecount, self.txtouterloop_elitecount,
-                               self.lblouterloop_warmstart, self.txtouterloop_warmstart,
-                               self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates])
+                               self.lblouterloop_warmstart, self.txtouterloop_warmstart])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)

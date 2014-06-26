@@ -34,9 +34,7 @@
     <Compile Include="JourneyOptions.py" />
     <Compile Include="Mission.py" />
     <Compile Include="MissionEvent.py" />
-    <Compile Include="..\..\EMTG-GTOC7\PyEMTG\MissionOptions.py">
-      <Link>MissionOptions.py</Link>
-    </Compile>
+    <Compile Include="MissionOptions.py" />
     <Compile Include="MissionPanel.py" />
     <Compile Include="NSGAIIpanel.py" />
     <Compile Include="NSGAIIpopulation.py" />

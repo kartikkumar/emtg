@@ -389,7 +389,8 @@ namespace EMTG {
 				}
 
 				//Step 4.3 construct the post-spiral state
-				//Step 4.3.1 advance time not required since we are there already
+				//Step 4.3.1 advance time
+				*current_epoch += this->spiral_escape_time;
 
 				//Step 4.3.2 find the position of the body at the new phase start time and store it in state_at_beginning_of_phase
 				this->locate_boundary_point(this->boundary1_location_code,

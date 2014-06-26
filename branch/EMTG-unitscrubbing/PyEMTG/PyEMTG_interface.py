@@ -1591,11 +1591,7 @@ class PyEMTG_interface(wx.Frame):
     def Changerun_outerloop(self, e):
         self.missionoptions.run_outerloop = int(self.optionsnotebook.tabSolver.cmbrun_outerloop.GetSelection())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
-
-    def Changelazy_race_tree_allow_duplicates(self, e):
-        self.missionoptions.lazy_race_tree_allow_duplicates = int(self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.GetValue)
-        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
-        
+  
     def Changeouterloop_popsize(self, e):
         self.missionoptions.outerloop_popsize=eval(self.optionsnotebook.tabSolver.txtouterloop_popsize.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
