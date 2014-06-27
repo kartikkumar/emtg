@@ -77,16 +77,6 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
 
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
-
 	//we need to know if we are the first phase of the journey
 	if (p == 0)
 	{
@@ -635,24 +625,6 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	string prefix = prefixstream.str();
 	int first_X_entry_in_phase = Xupperbounds->size();
 
-	if (j ==0 && p == 0)
-	{
-		Flowerbounds->push_back(-math::LARGE);
-		Fupperbounds->push_back(math::LARGE);
-		Fdescriptions->push_back("objective function");
-	}
-
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			Xlowerbounds->push_back(0.0);
-			Xupperbounds->push_back(1.0);
-			Xdescriptions->push_back(prefix + "journey initial mass scale factor");
-		}
-	}
-
 	//first, we need to know if we are the first phase in the journey
 	if (p == 0)
 	{
@@ -1068,6 +1040,17 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 

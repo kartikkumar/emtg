@@ -92,16 +92,6 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
 
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
-
 	//we need to know if we are the first phase of the journey and the journey does not start with a flyby
 	if (p == 0 && !(options->journey_departure_type[j] == 3))
 	{

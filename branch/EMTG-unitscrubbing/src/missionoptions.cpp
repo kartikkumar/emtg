@@ -1949,9 +1949,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 		outputfile << "#Custom launch vehicle C3 bounds (two values)" << endl;
 		outputfile << "custom_LV_C3_bounds " << this->custom_LV_C3_bounds[0] << " " << this->custom_LV_C3_bounds[1] << endl;
-		outputfile << "#Parking orbit inclination (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+		outputfile << "#Parking orbit inclination (for use with in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_inclination " << this->parking_orbit_inclination << endl;
-        outputfile << "#Parking orbit altitude (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+        outputfile << "#Parking orbit altitude (for use in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_altitude " << this->parking_orbit_altitude << endl;
 		outputfile << endl;
 
