@@ -13,6 +13,7 @@
 #include "Lambert.h"
 #endif
 
+#include "Lambert_AroraRussell.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -464,33 +465,104 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-#ifdef _EMTG_proprietary
-	EMTG::Astrodynamics::Lambert (	this->state_before_burn,
-									boundary2_state,
-									time_after_burn,
-									Universe->mu,
-									1, 
-									0, 
-									lambert_v1, 
-									lambert_v2);
+	int Nrev;
+	bool ShortPeriod;
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		int LambertArcType = (int)X[*Xindex];
+		++(*Xindex);
+		Nrev = LambertArcType / 2;
+		ShortPeriod = LambertArcType % 2;
+	}
+	else
+	{
+		Nrev = 0;
+		ShortPeriod = 0;
+	}
+	
+	double Lam_error;
+	int Lam_iterations;
+
+	//note: if the Lambert solver fails it is almost always because there is no solution for that number of revolutions
+	//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
+	try
+	{
+		EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+			boundary2_state,
+			time_after_burn,
+			Universe->mu,
+			Nrev,
+			1,
+			ShortPeriod,
+			1e-13,
+			30,
+			lambert_v1,
+			lambert_v2,
+			Lam_error,
+			Lam_iterations);
+	}
+	catch (int& errorcode)
+	{
+		if (errorcode == 200000) //multi-rev error
+			EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+													boundary2_state,
+													time_after_burn,
+													Universe->mu,
+													0,
+													1,
+													ShortPeriod,
+													1e-13,
+													30,
+													lambert_v1,
+													lambert_v2,
+													Lam_error,
+													Lam_iterations);
+	}
+	
 
 	//check the angular momentum vector
 	//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
 	//similarly if we are already retrograde, the burn shouldn't drive us prograde
-	//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way"
+	//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way")
 	hz1 = this->state_before_burn[0]*this->state_before_burn[3]-this->state_before_burn[1]*this->state_before_burn[4]; //angular momentum before burn
 	hz2 = this->state_before_burn[0]*lambert_v1[1]-this->state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
 
 	if (!(hz1 == hz2))
-		EMTG::Astrodynamics::Lambert(	state_before_burn,
-										boundary2_state,
-										time_after_burn,
-										Universe->mu,
-										0,
-										0,
-										lambert_v1,
-										lambert_v2);
-#endif
+	{
+		try
+		{
+			EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+				boundary2_state,
+				time_after_burn,
+				Universe->mu,
+				Nrev,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+		catch (int& errorcode)
+		{
+			if (errorcode == 200000)
+				EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+					boundary2_state,
+					time_after_burn,
+					Universe->mu,
+					0,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+		}
+	}
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)
@@ -1179,9 +1251,17 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
 	//all MGA-DSM phases encode a burn index
-	Xlowerbounds->push_back(0.05);
-	Xupperbounds->push_back(0.95);
+	Xlowerbounds->push_back(0.01);
+	Xupperbounds->push_back(0.99);
 	Xdescriptions->push_back(prefix + "burn index");
+
+	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		Xlowerbounds->push_back(0.0);
+		Xupperbounds->push_back(ceil((double)2 * options->maximum_number_of_lambert_revolutions + 1));
+		Xdescriptions->push_back(prefix + "Lambert arc type");
+	}
 
 	/*//all MGA-DSM phases encode a no-collision constraint
 	Flowerbounds->push_back(Universe->minimum_safe_distance / Universe->LU);

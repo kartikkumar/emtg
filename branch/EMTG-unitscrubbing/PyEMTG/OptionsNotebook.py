@@ -19,6 +19,9 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     #'8: solver chooses (MGA-DSM, MGA-LT)','9: solver chooses (MGA, MGA-DSM, MGA-LT)']
         self.cmbMissionType = wx.ComboBox(self, -1, choices=phasetypes, style=wx.CB_READONLY)
 
+        self.lblmaximum_number_of_lambert_revolutions = wx.StaticText(self, -1, "Maximum number of revolutions for solving Lambert's problem")
+        self.txtmaximum_number_of_lambert_revolutions = wx.TextCtrl(self, -1, "maximum_number_of_lambert_revolutions")
+
         self.lblobjective_type = wx.StaticText(self, -1, "Include initial impulse in cost")
         objectivetypes = ['0: minimum deltaV','1: minimum time','2: maximum final mass','3: GTOC 1 asteroid deflection function',
                           '4: launch as late as possible in the window','5: launch as early as possible in the window',
@@ -55,6 +58,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 
         globaloptionsgrid.AddMany(  [self.lblMissionName, self.txtMissionName,
                                     self.lblMissionType, self.cmbMissionType,
+                                    self.lblmaximum_number_of_lambert_revolutions, self.txtmaximum_number_of_lambert_revolutions,
                                     self.lblobjective_type, self.cmbobjective_type,
                                     self.lblinclude_initial_impulse_in_cost, self.chkinclude_initial_impulse_in_cost,
                                     self.lblmax_phases_per_journey, self.txtmax_phases_per_journey,

@@ -45,6 +45,7 @@ missionoptions::missionoptions() {
 	this->initial_guess_control_coordinate_system = 0; 
 	this->enable_maximum_propellant_mass_constraint = false;
 	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -103,6 +104,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->initial_guess_control_coordinate_system = 0;
 	this->enable_maximum_propellant_mass_constraint = false;
 	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -501,6 +503,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "spiral_model_type")
 	{
 		this->spiral_model_type = (int) value;
+		return 0;
+	}
+
+	//impulsive thrust solver parameters
+	if (choice == "maximum_number_of_lambert_revolutions")
+	{
+		this->maximum_number_of_lambert_revolutions = (int)value;
 		return 0;
 	}
 
@@ -1898,6 +1907,11 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: Battin" << endl;
 		outputfile << "#1: Edelbaum" << endl;
 		outputfile << "spiral_model_type " << this->spiral_model_type << endl;
+		outputfile << endl;
+
+		outputfile << "##impulsive-thrust solver parameters" << endl;
+		outputfile << "#maximum number of revolutions for Lambert's method" << endl;
+		outputfile << "maximum_number_of_lambert_revolutions " << this->maximum_number_of_lambert_revolutions << endl;
 		outputfile << endl;
 
 		outputfile << "##ephemeris data" << endl;

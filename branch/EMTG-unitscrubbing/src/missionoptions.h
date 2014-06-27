@@ -151,6 +151,9 @@ public:
 	int spiral_model_type; //0: Battin, 1: Edelbaum
 	double step_size_stdv_or_scale;
 
+	//impulsive thrust solver parameters
+	int maximum_number_of_lambert_revolutions;
+
 	//vehicle parameters
 	bool allow_initial_mass_to_vary;
 	double maximum_mass; //the maximum possible mass of the spacecraft (negative number means use LV max)

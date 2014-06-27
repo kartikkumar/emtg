@@ -441,6 +441,7 @@ class PyEMTG_interface(wx.Frame):
         #global mission options
         self.optionsnotebook.tabGlobal.txtMissionName.Bind(wx.EVT_KILL_FOCUS, self.ChangeMissionName)
         self.optionsnotebook.tabGlobal.cmbMissionType.Bind(wx.EVT_COMBOBOX, self.ChangeMissionType)
+        self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Bind(wx.EVT_KILL_FOCUS, self.Changemaximum_number_of_lambert_revolutions)
         self.optionsnotebook.tabGlobal.cmbobjective_type.Bind(wx.EVT_COMBOBOX,self.Changeobjective_type)
         self.optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.Bind(wx.EVT_CHECKBOX,self.Changeinclude_initial_impulse_in_cost)
         self.optionsnotebook.tabGlobal.txtmax_phases_per_journey.Bind(wx.EVT_KILL_FOCUS,self.Changemax_phases_per_journey)
@@ -691,6 +692,10 @@ class PyEMTG_interface(wx.Frame):
         
     def ChangeMissionType(self, e):
         self.missionoptions.mission_type = self.optionsnotebook.tabGlobal.cmbMissionType.GetSelection()
+        self.missionoptions.update_all_panels(self.optionsnotebook)
+
+    def Changemaximum_number_of_lambert_revolutions(self, e):
+        self.missionoptions.maximum_number_of_lambert_revolutions = int(self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.GetValue())
         self.missionoptions.update_all_panels(self.optionsnotebook)
 
     def Changeobjective_type(self, e):

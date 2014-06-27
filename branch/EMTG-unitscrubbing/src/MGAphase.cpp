@@ -14,6 +14,7 @@
 #include "Lambert.h"
 #endif
 
+#include "Lambert_AroraRussell.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -146,29 +147,101 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 								options);
 
 	//Step 5: solve Lambert's problem between the planets
-#ifdef _EMTG_proprietary
-	EMTG::Astrodynamics::Lambert (boundary1_state,
-									boundary2_state,
-									TOF,
-									Universe->mu,
-									1, 
-									0, 
-									lambert_v1,
-									lambert_v2);
+	int Nrev;
+	bool ShortPeriod;
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		int LambertArcType = (int)X[*Xindex];
+		++(*Xindex);
+		Nrev = LambertArcType / 2;
+		ShortPeriod = LambertArcType % 2;
+	}
+	else
+	{
+		Nrev = 0;
+		ShortPeriod = 0;
+	}
+
+	double Lam_error;
+	int Lam_iterations;
+
+	//note: if the Lambert solver fails it is almost always because there is no solution for that number of revolutions
+	//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
+	try
+	{
+		EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+			boundary2_state,
+			TOF,
+			Universe->mu,
+			Nrev,
+			1,
+			ShortPeriod,
+			1e-13,
+			30,
+			lambert_v1,
+			lambert_v2,
+			Lam_error,
+			Lam_iterations);
+	}
+	catch (int& errorcode)
+	{
+		if (errorcode == 200000) //multi-rev error
+			EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+			boundary2_state,
+			TOF,
+			Universe->mu,
+			0,
+			1,
+			ShortPeriod,
+			1e-13,
+			30,
+			lambert_v1,
+			lambert_v2,
+			Lam_error,
+			Lam_iterations);
+	}
 
 
-	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
+	//check the angular momentum vector
+	hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
 
 	if (hz < 0)
-		EMTG::Astrodynamics::Lambert (boundary1_state, 
-										boundary2_state,
-										TOF, 
-										Universe->mu,
-										0,
-										0,
-										lambert_v1, 
-										lambert_v2);
-#endif
+	{
+		try
+		{
+			EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				Nrev,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+		catch (int& errorcode)
+		{
+			if (errorcode == 200000)
+				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				0,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+	}
+
 
 	//Step 6: compute all parameters of the first event of the phase
 	//if this is the first phase in the journey, compute RA and DEC. Otherwise process the flyby at the beginning of the phase
@@ -865,6 +938,14 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	//next, we need to encode the phase flight time
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
+	//**************************************************************************
+	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		Xlowerbounds->push_back(0.0);
+		Xupperbounds->push_back(ceil((double)2 * options->maximum_number_of_lambert_revolutions + 1));
+		Xdescriptions->push_back(prefix + "Lambert arc type");
+	}
 
 	//******************
 	//if we are the last journey, then encode any variables necessary for the right hand boundary condition

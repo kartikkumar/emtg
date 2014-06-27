@@ -97,6 +97,9 @@ class MissionOptions(object):
     step_size_stdv_or_scale = 1.0
     spiral_model_type = 1#0: Battin, 1: Edelbaum
 
+    #impulsive thrust solver parameters
+    maximum_number_of_lambert_revolutions = 0
+
     #vehicle parameters
     maximum_mass = 1000 #the maximum possible mass of the spacecraft (negative number means use LV max)
     allow_initial_mass_to_vary = 0 #flag on whether or not the solver can choose the initial mass (make the spacecraft wet mass lighter)
@@ -465,6 +468,11 @@ class MissionOptions(object):
                         self.step_size_stdv_or_scale = float(linecell[1])
                     elif choice == "spiral_model_type":
                         self.spiral_model_type = int(linecell[1])
+
+
+                    #impulsive thrust solver parameters
+                    elif choice == "maximum_number_of_lambert_revolutions":
+                        self.maximum_number_of_lambert_revolutions = int(linecell[1])
 
                     #vehicle parameters
                     elif choice == "maximum_mass":
@@ -913,6 +921,11 @@ class MissionOptions(object):
         outputfile.write("#0: Battin\n")
         outputfile.write("#1: Edelbaum\n")
         outputfile.write("spiral_model_type " + str(self.spiral_model_type) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##impulsive-thrust solver parameters\n")
+        outputfile.write("#maximum number of revolutions for Lambert's method\n")
+        outputfile.write("maximum_number_of_lambert_revolutions " + str(self.maximum_number_of_lambert_revolutions) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##ephemeris data\n")	
@@ -1529,6 +1542,7 @@ class MissionOptions(object):
 
         optionsnotebook.tabGlobal.txtMissionName.SetValue(self.mission_name)
         optionsnotebook.tabGlobal.cmbMissionType.SetSelection(self.mission_type)
+        optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.SetValue(str(self.maximum_number_of_lambert_revolutions))
         optionsnotebook.tabGlobal.cmbobjective_type.SetSelection(self.objective_type)
         optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.SetValue(self.include_initial_impulse_in_cost)
         optionsnotebook.tabGlobal.txtmax_phases_per_journey.SetValue(str(self.max_phases_per_journey))
@@ -1551,6 +1565,14 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtinitial_V_infinity_z.SetValue(str(self.initial_V_infinity[2]))
         optionsnotebook.tabGlobal.txtminimum_dry_mass.SetValue(str(self.minimum_dry_mass))
         optionsnotebook.tabGlobal.txtpost_mission_delta_v.SetValue(str(self.post_mission_delta_v))
+
+        #for Lambert mission types, show number of Lambert revs
+        if self.mission_type == 0 or self.mission_type == 1:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(True)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(True)
+        else:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(False)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(False)
 
         #if objective type is delta-v, show include initial impulse in cost
         if self.objective_type == 0:
