@@ -25,12 +25,13 @@ using namespace std;
 
 namespace EMTG
 {
-	//function to automatically output .script for GMAT simulation (header preamble)
+	//function to output .script for GMAT simulation (header preamble)
 	void mission::output_GMAT_preamble()
 	{
-		//define variables
+		//define body class objects
 		vector <EMTG::Astrodynamics::body> missionbodies_unique;
 		vector <EMTG::Astrodynamics::body> missionbodies;
+		//create a vector of strings for storing spacecraft names
 		vector <string> SC_created;
 		vector <fs::path> SPICE_files;
 		SPICEDOUBLE_CELL (spice_coverage, 10000);
@@ -38,13 +39,14 @@ namespace EMTG
 		int index_SC = 0;
 		int index_body_visited = 0;
 
-		//open directory and create .script file
+		//create a filename, instantiate an ofstream object called GMATfile
 		string filename = options.working_directory + "//" + options.mission_name + "_" + options.description + "_GMAT.script";
 		string filestring;
 		ofstream GMATfile(filename.c_str(), ios::trunc);
+		//set floating point decimal precision
 		GMATfile.precision(25);
 	
-		//get the current timestamp
+		//get the current timestamp from boost and assign it to now
 		boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
 		std::stringstream timestream;
 		timestream << static_cast<int>(now.date().month()) << "/" << now.date().day() << "/" << now.date().year() << " " << now.time_of_day().hours() << ":" << now.time_of_day().minutes() << ":" << now.time_of_day().seconds();
@@ -95,9 +97,10 @@ namespace EMTG
 			{
 				if (missionbodies[index_body_visited].spice_ID == missionbodies_unique[index_body_visited_unique].spice_ID)
 				{
-					++body_flag;
+					body_flag = 1;
 				}
 			}
+			//if body flag not switch 'on', then the body is unique; add it to the missionbodies_unique vector
 			if (body_flag == 0)
 			{
 				missionbodies_unique.push_back(missionbodies[index_body_visited]);
@@ -120,13 +123,14 @@ namespace EMTG
 			}
 		}
 
-		//create two s/c for each phase in each journey (forward + backward)
+		//create and write out two s/c for each phase in each journey (forward + backward)
 		//for each journey
 		for (int j = 0; j < options.number_of_journeys; ++j)
 		{
 			//for each phase
 			for (int p = 0; p < journeys[j].number_of_phases; ++p)
 			{
+				//call method output_GMAT_spacecraft of phases class
 				journeys[j].phases[p].output_GMAT_spacecraft(j, p, SC_created, index_SC, missionbodies, index_body_visited, GMATfile);
 			}
 		}
@@ -324,6 +328,7 @@ namespace EMTG
 
 		//create mission variables
 		GMATfile << "Create Variable ObjectiveFunction FinalEpoch LaunchEpoch_Scaled" << endl;
+		//DEBUG: Check that these are the only impulsive-thrust phase types
 		if (options.mission_type < 2 || options.mission_type == 5) //impulsive-thrust phase types
 		{
 			GMATfile << "Create Variable FinalMass_Scaled ThrusterISP" << endl;
@@ -401,6 +406,7 @@ namespace EMTG
 		GMATfile << endl;
 
 		//uncomment for use with fmincon
+		//DEBUG: should have option for using VF13ad or Fmincon
 		GMATfile << "%Uncomment for use with fmincon" << endl;
 		GMATfile << "%Create FminconOptimizer NLPObject;" << endl;
 		GMATfile << "%NLPObject.DiffMaxChange = '0.1000';" << endl;
@@ -541,7 +547,7 @@ namespace EMTG
 	}
 
 
-	//function to automatically output .script for GMAT simulation (mission sequence)
+	//function to output .script for GMAT simulation (mission sequence)
 	void mission::output_GMAT_mission()
 	{
 		//declare variables
@@ -1038,28 +1044,28 @@ namespace EMTG
 				//if subsequent journey, add unscaled wait times
 				if (j > 0)
 				{
-					GMATfile << "	'Calc" << SC_created[index_SC] << ".Epoch.TAIModJulian' " << SC_created[index_SC] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ")";
+					GMATfile << "	'Calc" << SC_created[index_SC] << ".Epoch.TAIModJulian' " << SC_created[index_SC] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") / 86400.0";
 					for (int jj = 0; jj < j + 1; ++jj)
 					{
 						GMATfile << " + (Journey" << jj + 1 << "_WaitTime_Scaled * " << (options.journey_wait_time_bounds[jj][1] - options.journey_wait_time_bounds[jj][0]) << " + " << options.journey_wait_time_bounds[jj][0] << ")";
 					}
-					GMATfile << " + " << CumulatedTOF << " + 2400000.5 - 2430000" << endl;
+					GMATfile << " + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
 					//add time of flight for backward s/c (end of phase)
 					CumulatedTOF = CumulatedTOF + journeys[j].phases[p].TOF;
-					GMATfile << "	'Calc" << SC_created[index_SC + 1] << ".Epoch.TAIModJulian' " << SC_created[index_SC + 1] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ")";
+					GMATfile << "	'Calc" << SC_created[index_SC + 1] << ".Epoch.TAIModJulian' " << SC_created[index_SC + 1] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") / 86400.0";
 					for (int jj = 0; jj < j + 1; ++jj)
 					{
 						GMATfile << " + (Journey" << jj + 1 << "_WaitTime_Scaled * " << (options.journey_wait_time_bounds[jj][1] - options.journey_wait_time_bounds[jj][0]) << " + " << options.journey_wait_time_bounds[jj][0] << ")";
 					}
-					GMATfile << " + " << CumulatedTOF << " + 2400000.5 - 2430000" << endl;
+					GMATfile << " + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
 				}
 				//for the first journey
 				else 
 				{
-					GMATfile << "	'Calc" << SC_created[index_SC] << ".Epoch.TAIModJulian' " << SC_created[index_SC] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") + " << CumulatedTOF << " + 2400000.5 - 2430000" << endl;
+					GMATfile << "	'Calc" << SC_created[index_SC] << ".Epoch.TAIModJulian' " << SC_created[index_SC] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") / 86400.0 + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
 					//add time of flight for backward s/c (end of phase)
 					CumulatedTOF = CumulatedTOF + journeys[j].phases[p].TOF;
-					GMATfile << "	'Calc" << SC_created[index_SC + 1] << ".Epoch.TAIModJulian' " << SC_created[index_SC + 1] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") + " << CumulatedTOF << " + 2400000.5 - 2430000" << endl;
+					GMATfile << "	'Calc" << SC_created[index_SC + 1] << ".Epoch.TAIModJulian' " << SC_created[index_SC + 1] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_upperbounds - LaunchDate_lowerbounds) << " + " << LaunchDate_lowerbounds << ") / 86400.0 + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
 				}
 				index_SC = index_SC + 2;
 				GMATfile << endl;
@@ -1379,7 +1385,7 @@ namespace EMTG
 		GMATfile << "% Journey #"<< j + 1 << ", Phase #"<< p + 1 << ", forward propagated s/c" << endl;
 		GMATfile << "Create Spacecraft " << SC_created[index_SC] << ";" << endl;
 		GMATfile << SC_created[index_SC] << ".DateFormat = TAIModJulian;" << endl;
-		GMATfile << SC_created[index_SC] << ".Epoch = " << phase_start_epoch + 2400000.5 - 2430000 << ";" << endl;
+		GMATfile << SC_created[index_SC] << ".Epoch = " << (phase_start_epoch / 86400.0) + 2400000.5 - 2430000 << ";" << endl;
 		GMATfile << SC_created[index_SC] << ".DryMass = 0" << endl;
 		GMATfile << SC_created[index_SC] << ".CoordinateSystem = " << missionbodies[index_body_visited].name << "J2000Eq;" << endl;			
 		GMATfile << SC_created[index_SC] << ".Tanks = {FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Forward};" << endl;
@@ -1394,7 +1400,7 @@ namespace EMTG
 		GMATfile << "% Journey #"<< j + 1 << ", Phase #"<< p + 1 << ", backward propagated s/c" << endl;
 		GMATfile << "Create Spacecraft " << SC_created[index_SC] << ";" << endl;
 		GMATfile << SC_created[index_SC] << ".DateFormat = TAIModJulian;" << endl;
-		GMATfile << SC_created[index_SC] << ".Epoch = " << phase_start_epoch + TOF + 2400000.5 - 2430000 << ";" << endl;
+		GMATfile << SC_created[index_SC] << ".Epoch = " << (phase_start_epoch + TOF) / 86400.0 + 2400000.5 - 2430000 << ";" << endl;
 		GMATfile << SC_created[index_SC] << ".DryMass = 0" << endl;
 		GMATfile << SC_created[index_SC] << ".CoordinateSystem = " << missionbodies[index_body_visited + 1].name << "J2000Eq;" << endl;			
 		GMATfile << SC_created[index_SC] << ".Tanks = {FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Backward};" << endl;
@@ -1601,7 +1607,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[index_body_visited].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << TOF / options.num_timesteps << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[index_body_visited].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << TOF / options.num_timesteps << "};" << endl;
 			}
 
 			//check if it leaves SOI during time step  
@@ -1616,7 +1622,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[index_body_visited].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << delta_t - (TOF / options.num_timesteps) * index_delta_t << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[index_body_visited].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << delta_t - (TOF / options.num_timesteps) * index_delta_t << "};" << endl;
 					
 				//then propagate the rest of the timestep
 				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ");" << endl;
@@ -1626,7 +1632,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[index_body_visited].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << (TOF / options.num_timesteps) * (index_delta_t + 1) - delta_t << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << (TOF / options.num_timesteps) * (index_delta_t + 1) - delta_t << "};" << endl;
 			}
 
 			//otherwise propagate the full timestep
@@ -1640,7 +1646,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << TOF / options.num_timesteps << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Forward' " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << TOF / options.num_timesteps << "};" << endl;
 			}
 				
 			//end finite burn
@@ -1703,7 +1709,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[index_body_visited + 1].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << -TOF / options.num_timesteps << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[index_body_visited + 1].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << -TOF / options.num_timesteps << "};" << endl;
 			}
 
 			//check if it leaves SOI during time step  
@@ -1718,7 +1724,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[index_body_visited + 1].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << -(delta_t - (TOF / options.num_timesteps) * ((options.num_timesteps - 1) - index_delta_t)) << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[index_body_visited + 1].name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << -(delta_t - (TOF / options.num_timesteps) * ((options.num_timesteps - 1) - index_delta_t)) << "};" << endl;
 					
 				//then propagate the rest of the timestep
 				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ");" << endl;
@@ -1728,7 +1734,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << -((TOF / options.num_timesteps) * (options.num_timesteps - index_delta_t) - delta_t) << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << -((TOF / options.num_timesteps) * (options.num_timesteps - index_delta_t) - delta_t) << "};" << endl;
 			}
 
 			//otherwise propagate the full timestep
@@ -1742,7 +1748,7 @@ namespace EMTG
 					GMATfile << " " << missionbodies[b].name << "View";
 				}
 				GMATfile << ";" << endl;
-				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedDays = " << -(TOF / options.num_timesteps) << "};" << endl;
+				GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "Backward' BackProp " << missionbodies[0].central_body_name << "Prop(" << SC_created[index_SC] << ") {" << SC_created[index_SC] << ".ElapsedSecs = " << -(TOF / options.num_timesteps) << "};" << endl;
 			}
 				
 			//end finite burn
