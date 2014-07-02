@@ -11,6 +11,7 @@
 #include "mission.h"
 #include "outerloop_NSGAII.h"
 #include "outerloop_SGA.h"
+#include "GMATScripter.h"
 
 
 #include "universe.h"
@@ -436,6 +437,12 @@ int main(int argc, char* argv[])
 					{
 						TrialMission.output_GMAT_preamble();
 						TrialMission.output_GMAT_mission();
+
+						//testing for new approach to gmat script file generation
+						EMTG::gmatscripter gmat_script(&TrialMission);
+						gmat_script.write_GMAT_script();
+
+
 					}
 
 					//store the results in a database file

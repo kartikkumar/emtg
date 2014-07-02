@@ -1776,9 +1776,6 @@ namespace EMTG
 		GMATfile << ";" << endl;
 	}//end phase::output_GMAT_propagate_phase_forward_and_back
 
-
-
-
 	//********************************************************************methods specific to MGA_DSM
 
 	void MGA_DSM_phase::output_GMAT_burn_objects(int& j, int& p, std::ofstream& GMATfile)
