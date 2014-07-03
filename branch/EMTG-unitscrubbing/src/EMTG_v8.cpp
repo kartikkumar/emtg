@@ -87,36 +87,54 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	//if we are running in parallel, start MPI
+#ifdef EMTG_MPI
+	boost::mpi::environment MPIEnvironment;
+	boost::mpi::communicator MPIWorld;
+#endif
+
+
 	//create a working directory for the problem
-	//TODO this may change when we develop a parallel version
+	//only the head node should do this, then broadcast the folder name to everyone else
 	//*****************************************************************
-	ptime now = second_clock::local_time();
-	std::stringstream timestream;
-	timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-
-		
-	//define a new working directory
-	options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
-
-	if (!(options.run_outerloop == 2))
+#ifdef EMTG_MPI
+	if (MPIWorld.rank() == 0)
+#endif
 	{
-		//create the working directory
-		try
-		{
-			path p(options.working_directory);
-			path puniverse(options.working_directory + "/Universe");
-			boost::filesystem::create_directories(p);
-			boost::filesystem::create_directories(puniverse);
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-		}
+		ptime now = second_clock::local_time();
+		std::stringstream timestream;
+		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 
 
-		//print the options file to the new directory
-		options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
-	}
+		//define a new working directory
+		options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+
+		if (!(options.run_outerloop == 2))
+		{
+			//create the working directory
+			try
+			{
+				path p(options.working_directory);
+				//path puniverse(options.working_directory + "/Universe");
+				boost::filesystem::create_directories(p);
+				//boost::filesystem::create_directories(puniverse);
+			}
+			catch (std::exception &e)
+			{
+				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+			}
+
+
+			//print the options file to the new directory
+			options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
+		}
+	} //end working directory creation and options file printing for head node
+
+	//broadcast the working directory to the other nodes
+#ifdef EMTG_MPI
+	boost::mpi::broadcast(MPIWorld, options.working_directory, 0);
+#endif
+	
 	
 	//load all ephemeris data if using SPICE
 	vector<fs::path> SPICE_files;
@@ -165,11 +183,6 @@ int main(int argc, char* argv[])
 
 
 	//next, it is time to start the outer-loop
-	//if we are running in parallel, start MPI
-#ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
-	boost::mpi::communicator MPIWorld;
-#endif
 
 	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
 	{

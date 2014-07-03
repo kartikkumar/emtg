@@ -2290,10 +2290,13 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 9: //last journey arrival C3
 				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
+				break;
 			case 10: //delta-V
 				objective_functions[objective] = this->current_deltaV;
+				break;
 			case 11: //inner-loop objective function
 				objective_functions[objective] = this->F[0];
+				break;
 			}
 		}
 	}
