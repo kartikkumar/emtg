@@ -1,5 +1,6 @@
 import Journey
 import MissionEvent
+import SmallBodyList
 import os
 import math
 
@@ -37,7 +38,7 @@ class Mission(object):
             linecell = line.split(':')
 
             if linecell[0] == "Mission":
-                self.mission_name = linecell[1]
+                self.mission_name = linecell[1].strip('\n')
 
             elif linecell[0] == "Decision Vector":
                 DecisionCell = linecell[1].split(' ')
@@ -213,3 +214,25 @@ class Mission(object):
         else:
             for CurrentJourney in self.Journeys:
                 CurrentJourney.OutputSTKEphemeris(MissionPanel)
+
+    def BubbleSearch(self, smallbodyfile):
+        RelativePositionFilterMagnitude = 0.1 * 149597870.691
+        RelativeVelocityFilterMagnitude = 1.0
+        
+        bubblefile = open(self.mission_name + '.bubble', mode = 'w')
+        bubblefile.write('#Bubble file for ' + self.mission_name + '\n')
+        bubblefile.write('#\n')
+        bubblefile.write('#\n')
+
+        SmallBodyDatabase = SmallBodyList.SmallBodyList(smallbodyfile)
+
+        for j in range(0, len(self.Journeys)):
+            bubblefile.write('Journey ' + str(j+1) + ': ' + self.Journeys[j].journey_name)
+
+            for event in self.Journeys[j].missionevents:
+                event_body_list = SmallBodyDatabase.find_bubble_targets(event.SpacecraftState, event.JulianDate, RelativePositionFilterMagnitude, RelativeVelocityFilterMagnitude)
+
+                for body in event_body_list:
+                    bubblefile.write(event.JulianDate + ',' + body.name + ',' + body.SPICEID + ',' + body.Tholen + ',' + body.H + ',' + body.Diameter + '\n')
+
+            bubblefile.write('\n')
