@@ -1330,7 +1330,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 int mission::output()
 {
 	ofstream outputfile(options.outputfile.c_str(), ios::out | ios::trunc);
-	outputfile << "Mission " << options.mission_name << endl;
+	outputfile << "Mission: " << options.mission_name << endl;
 	outputfile << "Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
 	outputfile.close();
 
