@@ -96,7 +96,7 @@ class SmallBodyList(object):
                RelativePositionMagnitude = math.sqrt(RelativePosition[0]**2 + RelativePosition[1]**2 + RelativePosition[2]**2)
 
                #compute relative velocity
-               RelativePosition = [BodyV[0] - ReferenceState[0], BodyV[1] - ReferenceState[1], BodyV[2] - ReferenceState[2]]
+               RelativeVelocity = [BodyV[0] - ReferenceState[0], BodyV[1] - ReferenceState[1], BodyV[2] - ReferenceState[2]]
                RelativeVelocityMagnitude = math.sqrt(RelativeVelocity[0]**2 + RelativeVelocity[1]**2 + RelativeVelocity[2]**2)
 
                if RelativePosition < RelativePositionFilterMagnitude and RelativeVelocity < RelativeVelocityFilterMagnitude:
