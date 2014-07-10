@@ -33,11 +33,13 @@ public:
 	virtual ~gmatscripter();
 
 	//methods
-	virtual void create_file();
-
-	virtual void parse_bodies_list();
-
-	virtual void create_preamble();
+	//create file
+	virtual void create_GMAT_file();
+	//create data
+	virtual void get_GMAT_bodieslist();
+	virtual void get_GMAT_missionlevelparameters();
+	//model setup
+	virtual void write_GMAT_preamble();
 	virtual void write_GMAT_spacecraft();
 	virtual void write_GMAT_hardware();
 	virtual void write_GMAT_forcemodels();
@@ -47,6 +49,13 @@ public:
 	virtual void write_GMAT_coordinatesystems();
 	virtual void write_GMAT_solvers();
 	virtual void write_GMAT_subscribers();
+	//mission setup
+	virtual void write_GMAT_initialguess();
+	virtual void write_GMAT_initialboundaryconditions();
+	virtual void write_GMAT_missionpropagate();
+	virtual void write_GMAT_finalboundaryconditions();
+	virtual void write_GMAT_objectivefunction();
+
 
 	//writeout the GMAT script
 	virtual void write_GMAT_script();
@@ -61,8 +70,22 @@ public:
 	vector <EMTG::Astrodynamics::body> missionbodies_unique;
 	vector <EMTG::Astrodynamics::body> missionbodies;
 
+	double LaunchDate_LowerBounds;
+	double LaunchDate_UpperBounds;
+
+	vector <double> Forward_Flyby_Distance_LowerBound;
+	vector <double> Forward_Flyby_Distance_UpperBound;
+	vector <double> Backward_Flyby_Distance_LowerBound;
+	vector <double> Backward_Flyby_Distance_UpperBound;
+	vector <double> Forward_Flyby_Velocity_LowerBound;
+	vector <double> Forward_Flyby_Velocity_UpperBound;
+	vector <double> Backward_Flyby_Velocity_LowerBound;
+	vector <double> Backward_Flyby_Velocity_UpperBound;
+
 	//create a vector of strings for storing spacecraft names
 	vector <string> spacecraft_names;
+	vector <string> spacecraft_forward_names;
+	vector <string> spacecraft_backward_names;
 
 
 }; // end of class gmatscript
