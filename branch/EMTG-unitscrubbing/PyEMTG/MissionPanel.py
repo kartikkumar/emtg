@@ -1,6 +1,8 @@
 import Mission
 import PlotOptions
+import BubbleOptions
 import wx   
+import os
 
 class MissionPanel(wx.Panel):
     #mission panel
@@ -11,6 +13,7 @@ class MissionPanel(wx.Panel):
 
         self.mission = mission
         self.plotoptions = PlotOptions.PlotOptions()
+        self.bubbleoptions = BubbleOptions.BubbleOptions()
 
         #Journey selection listbox
         #first we need to create an array of journey names
@@ -95,8 +98,45 @@ class MissionPanel(wx.Panel):
         RightHandSizer = wx.BoxSizer(wx.VERTICAL)
         RightHandSizer.AddMany([DataPlotSizer, FormatBoxSizer])
 
-        mainbox = wx.BoxSizer(wx.HORIZONTAL)
-        mainbox.AddMany([LeftHandSizer, RightHandSizer])
+        mainplotbox = wx.BoxSizer(wx.HORIZONTAL)
+        mainplotbox.AddMany([LeftHandSizer, RightHandSizer])
+
+        BubbleSearchBox = wx.StaticBox(self, -1, "Targets of Opportunity Bubble Search")
+        BubbleSearchBox.SetFont(font)
+        BubbleSearchBoxSizer = wx.StaticBoxSizer(BubbleSearchBox, wx.VERTICAL)
+
+        self.lblBubbleSearchFile = wx.StaticText(self, -1, "Bubble search file")
+        self.txtBubbleSearchFile = wx.TextCtrl(self, -1, "BubbleSearchFile")
+        self.btnBubbleSearchFile = wx.Button(self, -1, "...")
+        BubbleSearchFileSizer = wx.BoxSizer(wx.HORIZONTAL)
+        BubbleSearchFileSizer.AddMany([self.txtBubbleSearchFile, self.btnBubbleSearchFile])
+
+        self.lblLU = wx.StaticText(self, -1, "Length unit (km)")
+        self.lblmu = wx.StaticText(self, -1, "mu (km^3/s^2)")
+        self.lblRelativePositionFilterMagnitude = wx.StaticText(self, -1, "Relative position filter (km)")
+        self.lblRelativeVelocityFilterMagnitude = wx.StaticText(self, 1, "Relative velocity filter (km/s)")
+        self.lblMaximumMagnitude = wx.StaticText(self, -1, "Maximum Absolute Magnitude")
+        self.txtLU = wx.TextCtrl(self, -1, "Length unit (km)")
+        self.txtmu = wx.TextCtrl(self, -1, "mu (km^3/s^2)")
+        self.txtRelativePositionFilterMagnitude = wx.TextCtrl(self, -1, "Relative position filter (km)")
+        self.txtRelativeVelocityFilterMagnitude = wx.TextCtrl(self, 1, "Relative velocity filter (km/s)")
+        self.txtMaximumMagnitude = wx.TextCtrl(self, -1, "Maximum Absolute Magnitude")
+
+        BubbleGrid = wx.GridSizer(6, 2, 10, 10)
+        BubbleGrid.AddMany([self.lblBubbleSearchFile, BubbleSearchFileSizer,
+                            self.lblLU, self.txtLU,
+                            self.lblmu, self.txtmu,
+                            self.lblRelativePositionFilterMagnitude, self.txtRelativePositionFilterMagnitude,
+                            self.lblRelativeVelocityFilterMagnitude, self.txtRelativeVelocityFilterMagnitude,
+                            self.lblMaximumMagnitude, self.txtMaximumMagnitude])
+
+        self.btnGenerateBubbleSearch = wx.Button(self, -1, "Perform bubble search")
+
+        BubbleSearchBoxSizer.AddMany([BubbleSearchFileSizer, BubbleGrid, self.btnGenerateBubbleSearch])
+        
+
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        mainbox.AddMany([mainplotbox, BubbleSearchBoxSizer])
 
         self.SetSizer(mainbox)
 
@@ -108,6 +148,7 @@ class MissionPanel(wx.Panel):
 
         self.JourneyListBox.SetSelection(self.mission.ActiveJourney)
         self.plotoptions.update_mission_panel(self)
+        self.bubbleoptions.update_mission_panel(self)
 
         #trajectory plot bindings
         self.JourneyListBox.Bind(wx.EVT_LISTBOX, self.ClickJourneyListBox)
@@ -141,6 +182,16 @@ class MissionPanel(wx.Panel):
 
         #ephemeris output bindings
         self.btnOutputSTKEphemeris.Bind(wx.EVT_BUTTON, self.ClickOutputSTKEphemeris)
+
+        #Bubble Search bindings
+        self.txtBubbleSearchFile.Bind(wx.EVT_KILL_FOCUS, self.ChangeBubbleSearchFile)
+        self.btnBubbleSearchFile.Bind(wx.EVT_BUTTON, self.ClickBubbleSearchFileButton)
+        self.txtLU.Bind(wx.EVT_KILL_FOCUS, self.changeBubbleSearchLU)
+        self.txtmu.Bind(wx.EVT_KILL_FOCUS, self.changeBubbleSearchmu)
+        self.txtRelativePositionFilterMagnitude.Bind(wx.EVT_KILL_FOCUS, self.changeBubbleSearchRelativePositionFilterMagnitude)
+        self.txtRelativeVelocityFilterMagnitude.Bind(wx.EVT_KILL_FOCUS, self.changeBubbleSearchRelativeVelocityFilterMagnitude)
+        self.txtMaximumMagnitude.Bind(wx.EVT_KILL_FOCUS, self.changeMaximumMagnitude)
+        self.btnGenerateBubbleSearch.Bind(wx.EVT_BUTTON, self.ClickGenerateBubbleSearch)
 
     def ClickJourneyListBox(self, e):
         self.mission.ActiveJourney = self.JourneyListBox.GetSelection()
@@ -219,3 +270,53 @@ class MissionPanel(wx.Panel):
 
     def ClickOutputSTKEphemeris(self, e):
         self.mission.OutputSTKEphemeris(self)
+
+    def ChangeBubbleSearchFile(self, e):
+        self.bubbleoptions.smallbodyfile = self.txtBubbleSearchFile.GetValue()
+    
+    def ClickBubbleSearchFileButton(self, e):
+        #file load dialog to get name of small bodies file for bubble search
+        dlg = wx.FileDialog(self, "Open", self.GetParent().dirname, "", '*.SmallBody', wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.bubbleoptions.smallbodyfile = dlg.GetPath()
+            self.txtBubbleSearchFile.SetValue(self.bubbleoptions.smallbodyfile)
+        dlg.Destroy()
+
+    def changeBubbleSearchLU(self, e):
+        self.bubbleoptions.LU = eval(float(self.txtLU.GetValue()))
+        self.bubbleoptions.update_mission_panel()
+
+    def changeBubbleSearchmu(self, e):
+        self.bubbleoptions.mu = eval(float(self.txtmu.GetValue()))
+        self.bubbleoptions.update_mission_panel()
+
+    def changeBubbleSearchRelativePositionFilterMagnitude(self, e):
+        self.bubbleoptions.RelativePositionFilterMagnitude = eval(float(self.txtRelativePositionFilterMagnitude.GetValue()))
+        self.bubbleoptions.update_mission_panel()
+
+    def changeBubbleSearchRelativeVelocityFilterMagnitude(self, e):
+        self.bubbleoptions.RelativeVelocityFilterMagnitude = eval(float(self.txtRelativeVelocityFilterMagnitude.GetValue()))
+        self.bubbleoptions.update_mission_panel()
+
+    def changeMaximumMagnitude(self, e):
+        self.bubbleoptions.MaximumMagnitude = eval(float(self.txtMaximumMagnitude.GetValue()))
+
+    def ClickGenerateBubbleSearch(self, e):
+
+        dlg = wx.FileDialog(self, "Save", self.GetParent().dirname, self.mission.mission_name, '.bubble', wx.SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            saved = True
+            filename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+        else:
+            saved = False
+        
+        dlg.Destroy()
+
+
+        if saved:
+            self.mission.BubbleSearch(self.bubbleoptions, os.path.join(dirname, filename))
+        else:
+            return
+
+        

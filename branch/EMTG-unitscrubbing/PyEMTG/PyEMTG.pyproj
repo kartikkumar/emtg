@@ -29,9 +29,13 @@
     <Compile Include="AstroFunctions.py" />
     <Compile Include="Body.py" />
     <Compile Include="BodyPicker.py" />
+    <Compile Include="BubbleOptions.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="EOM.py" />
     <Compile Include="Journey.py" />
     <Compile Include="JourneyOptions.py" />
+    <Compile Include="kepler.py" />
     <Compile Include="Mission.py" />
     <Compile Include="MissionEvent.py" />
     <Compile Include="MissionOptions.py" />
@@ -42,6 +46,7 @@
     <Compile Include="PlotOptions.py" />
     <Compile Include="PyEMTG.py" />
     <Compile Include="PyEMTG_interface.py" />
+    <Compile Include="SmallBodyList.py" />
     <Compile Include="Universe.py" />
     <Compile Include="UniverseNotebook.py" />
   </ItemGroup>
