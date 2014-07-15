@@ -283,23 +283,23 @@ class MissionPanel(wx.Panel):
         dlg.Destroy()
 
     def changeBubbleSearchLU(self, e):
-        self.bubbleoptions.LU = eval(float(self.txtLU.GetValue()))
-        self.bubbleoptions.update_mission_panel()
+        self.bubbleoptions.LU = eval(self.txtLU.GetValue())
+        self.bubbleoptions.update_mission_panel(self)
 
     def changeBubbleSearchmu(self, e):
-        self.bubbleoptions.mu = eval(float(self.txtmu.GetValue()))
-        self.bubbleoptions.update_mission_panel()
+        self.bubbleoptions.mu = eval(self.txtmu.GetValue())
+        self.bubbleoptions.update_mission_panel(self)
 
     def changeBubbleSearchRelativePositionFilterMagnitude(self, e):
-        self.bubbleoptions.RelativePositionFilterMagnitude = eval(float(self.txtRelativePositionFilterMagnitude.GetValue()))
-        self.bubbleoptions.update_mission_panel()
+        self.bubbleoptions.RelativePositionFilterMagnitude = eval(self.txtRelativePositionFilterMagnitude.GetValue())
+        self.bubbleoptions.update_mission_panel(self)
 
     def changeBubbleSearchRelativeVelocityFilterMagnitude(self, e):
-        self.bubbleoptions.RelativeVelocityFilterMagnitude = eval(float(self.txtRelativeVelocityFilterMagnitude.GetValue()))
-        self.bubbleoptions.update_mission_panel()
+        self.bubbleoptions.RelativeVelocityFilterMagnitude = eval(self.txtRelativeVelocityFilterMagnitude.GetValue())
+        self.bubbleoptions.update_mission_panel(self)
 
     def changeMaximumMagnitude(self, e):
-        self.bubbleoptions.MaximumMagnitude = eval(float(self.txtMaximumMagnitude.GetValue()))
+        self.bubbleoptions.MaximumMagnitude = eval(self.txtMaximumMagnitude.GetValue())
 
     def ClickGenerateBubbleSearch(self, e):
 
