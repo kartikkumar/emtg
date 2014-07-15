@@ -20,7 +20,7 @@ using namespace std;
 
 
 namespace EMTG { namespace Astrodynamics {
-	//assume input and output units are consistent (i.e. designed for km and s but should work for anything)
+	//assume input and output units are consistent (i.e. designed for km and s)
 	void Lambert_AroraRussell(const double* R1,
 							  const double* R2, 
 							  const double& TOFin,
@@ -41,8 +41,10 @@ namespace EMTG { namespace Astrodynamics {
 		//Step 0: declare some variables
 		double k; //iteration variable
 		double deltak = 1.0e+10; //error in current solution for k
-		double r1 = math::norm(R1, 3); //magnitude of initial position
-		double r2 = math::norm(R2, 3); //magnitude of final position
+		double r1 = sqrt(R1[0]*R1[0] + R1[1]*R1[1] + R1[2]*R1[2]); //magnitude of initial position
+		double r2 = sqrt(R2[0]*R2[0] + R2[1]*R2[1] + R2[2]*R2[2]); //magnitude of initial position
+		//double r1 = math::norm(R1, 3); //magnitude of initial position
+		//double r2 = math::norm(R2, 3); //magnitude of final position
 		double LU = r1; // length unit based on magnitude of r1
 		double TU = sqrt((1/mu)*LU*LU*LU); // time unit set so that mu = 1;
 		
@@ -55,7 +57,7 @@ namespace EMTG { namespace Astrodynamics {
 		double mu_n = mu*(TU*TU)/(LU*LU*LU);
 
 		// define transfer angle based on LongWay flag
-		double ctheta = math::dot(R1, R2, 3) / (r1 * r2); //cosine of the transfer angle
+		double ctheta = math::dot(R1_n, R2_n, 3) / (r1_n * r2_n); //cosine of the transfer angle
 		double theta = acos(ctheta); //transfer angle
 		if (LongWay == 1)
 		{
@@ -88,7 +90,6 @@ namespace EMTG { namespace Astrodynamics {
 			double TOF100 = S * sqrt(1.0 - 100.0 * tau) * (tau + 0.00999209404 * (1.0 - 100.0 * tau));
 			if (d > 0)
 			{
-				//cout << "H, d>0 \n"; //remove
 				k_n = sq2;
 				k_m = 1.0/tau;
 				k_i = (k_n + k_m) / 2.0;
@@ -171,12 +172,6 @@ namespace EMTG { namespace Astrodynamics {
 			if (TOF < T_bi)
 			{
 				//return - no solution for this Nrev
-				//V1[0] = EMTG::math::LARGE;
-				//V1[1] = EMTG::math::LARGE;
-				//V1[2] = EMTG::math::LARGE;
-				//V2[0] = EMTG::math::LARGE;
-				//V2[1] = EMTG::math::LARGE;
-				//V2[2] = EMTG::math::LARGE;
 				//cout << "No solution for this Nrev \n"; //remove
 				throw 200000;
 				return;
@@ -413,6 +408,7 @@ namespace EMTG { namespace Astrodynamics {
 						double F_star = TOF;
 						double x_star = pow( (Z * (F_0 - F_star)*(F_1 - F_i) ) / ( (F_i - F_star)*(F_1 - F_0)*Z + (F_0 - F_i)*(F_1 - F_star) ), 1.0/alpha);
 						k = k_n + (k_m - k_n) * x_star;
+						//cout << "row 5, table 6 \n"; //remove
 					}
 					else //(TOF > TOF_k1) // use sixth row of table 6
 					{
@@ -532,30 +528,13 @@ namespace EMTG { namespace Astrodynamics {
 			++iterations;
 
 			//Step 2.2 compute W, dW, ddW
-			// ensure k is not less than -sqrt(2)
-			if (k < -sq2)
-			{
-				k = -sq2 + 0.0001;
-			}
-			// ensure k doesn't bleed into to elliptic area when hyperbolic
-			if ((TOF < T_parabolic) && (k < sq2))
-			{
-				k = sq2 + 0.00001;
-			}
-			// ensure k doesn't bleed into to elliptic area when hyperbolic
-			if ((TOF > T_parabolic) && (k > sq2))
-			{
-				k = sq2 - 0.00001;
-			}
-
-			//cout << "k iterate: " << k << "\n"; //remove
 			double m = 2 - k*k;
 			double sgnk = k >= 0 ? 1.0 : -1.0;
 			double W, dW, ddW;
 			W = compute_W(k, m, Nrev);
 
 			//dW and ddW
-			if (k < sq2 - eps)
+			if ((k < sq2 - eps) || (k < sq2 && Nrev > 0))
 			{
 				dW = (-2.0 + 3.0 * W * k) / m;
 				ddW = (5.0 * dW * k + 3.0 * W) / m;
@@ -594,6 +573,11 @@ namespace EMTG { namespace Astrodynamics {
 
 			//Step 2.3 compute TOFc, dTOFc, ddTOFc
 			double TOFc = S * sqrt(1 - k*tau) * (tau + (1 - k*tau) * W);
+			if ((fabs(TOF - TOFc) < tolerance))
+			{
+				break;
+			}
+
 			double c = (1 - k * tau) / tau;
 			double sqrtctau = sqrt(1 - k*tau);
 			double dTOFc = -TOFc / (2.0 * c) + S * tau * sqrtctau * (dW * c - W);
@@ -604,8 +588,29 @@ namespace EMTG { namespace Astrodynamics {
 
 			//Step 2.5 update k from deltak
 			k += deltak;
+
+			// Step 2.6 bound k 
+			// ensure k is not less than -sqrt(2)
+			if (k < -sq2)
+			{
+				k = -sq2 + 1e-14;
+			}
+			// ensure k doesn't bleed into to elliptic area when hyperbolic
+			if ((TOF < T_parabolic) && (k < sq2))
+			{
+				k = sq2 + 1e-14;
+			}
+			// ensure k doesn't bleed into to hyperbolic area when elliptic
+			if ((TOF > T_parabolic) && (k > sq2))
+			{
+				k = sq2 - 1e-14;
+			}
+			// ensure TOF doesn't become indeterminate when d=1
+			if ((TOF < T_parabolic) && (d > 0) && ((1.0  - tau*k) < 0.0))
+			{
+				k = 1.0/tau - 1e-14;
+			}
 		}
-		//cout << "k iterate end: " << k << "\n"; //remove
 		double m_k = 2.0 - k*k;
 		double W_k = compute_W(k, m_k, Nrev);
 		error = TOF - compute_TOF(k, S, tau, W_k);
@@ -658,8 +663,10 @@ namespace EMTG { namespace Astrodynamics {
 		V2[1] = V2_n[1]*LU/TU;
 		V2[2] = V2_n[2]*LU/TU;
 
+		double ecc = sqrt(1.0 - p/a); //remove
 		//cout << "error: " << error << "\n"; //remove
 		//cout << "iterations:                                            " << iterations << "\n"; //remove
+		//cout << "eccentricity: " << ecc << "\n"; //remove
 		//cout << "\n"; //remove
 	}
 
@@ -691,50 +698,25 @@ namespace EMTG { namespace Astrodynamics {
 			//Step 1.1 increment the iterations counter
 			++iterations;
 
-			//Step 1.2 compute W, dW, ddW
+			// Step 1.2 bound k 
+			// ensure k is not less than -sqrt(2)
+			if (k < -sq2)
+			{
+				k = -sq2 + 0.00001;
+			}
+			if (k > sq2)
+			{
+				k = sq2 - 0.00001;
+			}
+
+			//Step 1.3 compute W, dW, ddW
 			double m = 2 - k*k;
 			double sgnk = k >= 0 ? 1.0 : -1.0;
 			double W, dW, ddW;
-
 			W = compute_W(k, m, Nrev);
+			dW = (-2.0 + 3.0 * W * k) / m;
+			ddW = (5.0 * dW * k + 3.0 * W) / m;
 
-			//dW and ddW
-			if (k < sq2 - eps)
-			{
-				dW = (-2.0 + 3.0 * W * k) / m;
-				ddW = (5.0 * dW * k + 3.0 * W) / m;
-			}
-			else if (k > sq2 + eps)
-			{
-				dW = (-2.0 + 3.0 * W * k) / m;
-				ddW = (5.0 * dW * k + 3.0 * W) / m;
-			}
-			else
-			{
-				double v = k - sq2;
-				double v2 = v*v;
-				double v3 = v*v2;
-				double v4 = v3*v;
-				double v5 = v4*v;
-				double v6 = v5*v;
-				double v7 = v6*v;
-				dW = - 1 / 5.0
-					+ sq2 * v * (4.0/35.0)
-					- v2 * (6.0 / 63.0)
-					+ sq2 * v3 * (8.0 / 231.0)
-					- v4 * (10.0 / 429.0)
-					+ sq2 * v5 * (48.0 / 6435.0)
-					- v6 * (56.0 / 12155.0)
-					+ sq2 * v7 * (64.0 / 46189.0);
-				ddW = sq2 * (4.0/35.0)
-					- v * (12.0 / 63.0)
-					+ sq2 * v2 * (24.0 / 231.0)
-					- v3 * (40.0 / 429.0)
-					+ sq2 * v4 * (240.0 / 6435.0)
-					- v5 * (336.0 / 12155.0)
-					+ sq2 * v6 * (448.0 / 46189.0);
-			}
-			
 			//Step 2.3 compute TOFc, dTOFc, ddTOFc
 			double TOFc = S * sqrt(1 - k*tau) * (tau + (1 - k*tau) * W);
 			double c = (1 - k * tau) / tau;
@@ -804,10 +786,12 @@ namespace EMTG { namespace Astrodynamics {
 		int sgnk = k < 0.0 ? -1 : 1;
 		//cout << "k, Wcompute: " << k << "\n"; //remove
 		if (-sq2 <= k && k < sq2 - eps) //elliptical orbit case
-				return ( (1 - sgnk) * math::PI + sgnk*acos(1-m) + 2*math::PI*Nrev ) / sqrt(m*m*m) - k/m;
-			else if (k > sq2 + eps) //hyperbolic orbits
-				return -1.0*acoshAR(1 - m) / sqrt(-m*m*m) - k/m;
-			else if (sq2 - eps <= k && k <= sq2 + eps) //Nrev = 0 case
+			return ( (1 - sgnk) * math::PI + sgnk*acos(1-m) + 2*math::PI*Nrev ) / sqrt(m*m*m) - k/m;
+		else if (k < sq2 && Nrev > 0)
+			return ( (1 - sgnk) * math::PI + sgnk*acos(1-m) + 2*math::PI*Nrev ) / sqrt(m*m*m) - k/m;
+		else if (k > sq2 + eps) //hyperbolic orbits
+			return -1.0*acoshAR(1 - m) / sqrt(-m*m*m) - k/m;
+		else if (sq2 - eps <= k && k <= sq2 + eps) //Nrev = 0 case
 			{
 				double v = k - sq2;
 				double v2 = v*v;
@@ -827,8 +811,9 @@ namespace EMTG { namespace Astrodynamics {
 					- v7 * (8.0 / 12155.0)
 					+ sq2 * v8 * (8.0 / 46189.0);
 			}
-			else
+		else
 			{
+				//cout << "Error on W compute *************************" << k << "\n"; //remove
 				throw 200000;
 				return math::LARGE;
 			}
