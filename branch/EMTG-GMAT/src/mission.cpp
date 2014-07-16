@@ -249,7 +249,7 @@ int mission::calcbounds()
 {
 	//bounds on the objective function
 	Flowerbounds.push_back(-math::LARGE);
-	Fupperbounds.push_back(math::LARGE);
+	Fupperbounds.push_back( math::LARGE);
 	Fdescriptions.push_back("objective function");
 
 	//call the calcbounds() function for each journey

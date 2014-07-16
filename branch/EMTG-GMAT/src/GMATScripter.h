@@ -55,6 +55,15 @@ public:
 	virtual void write_GMAT_missionpropagate();
 	virtual void write_GMAT_finalboundaryconditions();
 	virtual void write_GMAT_objectivefunction();
+	//reports
+	virtual void write_GMAT_report(int j, int p, int s, string spacecraft_name, string body_name, 
+								   bool isforwardspacecraft, bool isbeforemaneuver, bool writecontrolhistory);
+	//auxiliary methods 
+	virtual void aux_GMAT_beginburn(int j, int p, int s, string spacecraft_name, string prefix);
+	virtual void aux_GMAT_endburn(int j, int p, int s, string spacecraft_name, string prefix);
+	virtual void aux_GMAT_propagate(int j, int p, int s, string spacecraft_name, string prefix, string body_name, double elapsed_secs);
+	virtual void aux_GMAT_penUp();
+	virtual void aux_GMAT_penDown();
 
 
 	//writeout the GMAT script
