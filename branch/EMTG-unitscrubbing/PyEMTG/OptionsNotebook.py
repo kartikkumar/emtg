@@ -974,13 +974,23 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         spiralgrid.AddMany([self.lblspiral_model_type, self.cmbspiral_model_type])
         lblBottomTitle = wx.StaticText(self, -1, "Spiral settings")
         lblBottomTitle.SetFont(font)
-        vboxbottom = wx.BoxSizer(wx.VERTICAL)
-        vboxbottom.AddMany([lblBottomTitle, spiralgrid])
+        vboxspiral = wx.BoxSizer(wx.VERTICAL)
+        vboxspiral.AddMany([lblBottomTitle, spiralgrid])
+
+        lambertgrid = wx.GridSizer(2,2,5,5)
+        self.lbllambert_type = wx.StaticText(self, -1, "Lambert solver type")
+        lambert_choices = ['Arora-Russell','Izzo (not included in open-source)']
+        self.cmblambert_type = wx.ComboBox(self, -1, choices = lambert_choices, style = wx.CB_READONLY)
+        lambertgrid.AddMany([self.lbllambert_type, self.cmblambert_type])
+        lblLambertTitle = wx.StaticText(self, -1, "Lambert settings")
+        lblLambertTitle.SetFont(font)
+        vboxlambert = wx.BoxSizer(wx.VERTICAL)
+        vboxlambert.AddMany([lblLambertTitle, lambertgrid])
 
         self.mainvbox = wx.BoxSizer(wx.VERTICAL)
         self.mainvbox.Add(self.mainbox)
         self.mainvbox.AddSpacer(20)
-        self.mainvbox.Add(vboxbottom)
+        self.mainvbox.AddMany([vboxspiral, vboxlambert])
 
         self.SetSizer(self.mainvbox)
         self.SetupScrolling()

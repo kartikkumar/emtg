@@ -143,6 +143,9 @@ public:
 	string universe_folder;
 	int ephemeris_source; //0: static, 1: SPICE (default to static if no SPICE file supplied for a body)
 
+	//Lambert solver
+	int LambertSolver; //0: Arora-Russell, 1: Izzo
+
 	//low thrust solver parameters
 	int num_timesteps; //number of timesteps per phase
 	int control_coordinate_system; //0: cartesian, 1: polar

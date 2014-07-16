@@ -75,6 +75,8 @@ missionoptions::missionoptions() {
 	this->power_margin = 0.0;
 	this->number_of_journeys = 1;
 
+	this->LambertSolver = 0;
+
 	this->file_status = parse_options_file("options.emtgopt");
 
 	this->construct_thruster_launch_vehicle_name_arrays();
@@ -133,7 +135,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 
-
+	this->LambertSolver = 0;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -296,6 +298,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "ephemeris_source")
 	{
 		this->ephemeris_source = (int) value;
+		return 0;
+	}
+
+	//lambert solver settings
+	if (choice == "LambertSolver")
+	{
+		this->LambertSolver = (int)value;
 		return 0;
 	}
 
@@ -1925,6 +1934,13 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "SPICE_leap_seconds_kernel " << this->SPICE_leap_seconds_kernel << endl;
 		outputfile << "#SPICE_reference_frame_kernel" << endl;
 		outputfile << "SPICE_reference_frame_kernel " << this->SPICE_reference_frame_kernel << endl;
+		outputfile << endl;
+
+		outputfile << "##lambert solver options" << endl;
+		outputfile << "#Lambert solver choice" << endl;
+		outputfile << "#0: Arora-Russell" << endl;
+		outputfile << "#1: Izzo (not included in open-source package)" << endl;
+		outputfile << "LambertSolver " << this->LambertSolver << endl;
 		outputfile << endl;
 
 		outputfile << "##vehicle parameters" << endl;

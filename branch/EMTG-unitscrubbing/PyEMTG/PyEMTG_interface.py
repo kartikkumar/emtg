@@ -680,6 +680,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabPhysics.txtspacecraft_area.Bind(wx.EVT_KILL_FOCUS,self.Changespacecraft_area)
         self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.Bind(wx.EVT_KILL_FOCUS,self.Changecoefficient_of_reflectivity)
         self.optionsnotebook.tabPhysics.cmbspiral_model_type.Bind(wx.EVT_COMBOBOX, self.Changespiral_model_type)
+        self.optionsnotebook.tabPhysics.cmblambert_type.Bind(wx.EVT_COMBOBOX, self.ChangeLambertSolver)
 
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
@@ -1695,6 +1696,9 @@ class PyEMTG_interface(wx.Frame):
 
     def Changespiral_model_type(self, e):
         self.missionoptions.spiral_model_type = self.optionsnotebook.tabPhysics.cmbspiral_model_type.GetSelection()
+
+    def ChangeLambertSolver(self, e):
+        self.missionoptions.LambertSolver = self.optionsnotebook.tabPhysics.cmblambert_type.GetSelection()
 
     #handlers for output options
     def Changecreate_GMAT_script(self, e):

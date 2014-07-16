@@ -89,6 +89,9 @@ class MissionOptions(object):
     SPICE_reference_frame_kernel = "pck00010.tpc"
     universe_folder = "../Universe/"
 
+    #Lambert solver
+    LambertSolver = 0 #0: Arora-Russell, 1: Izzo (not included in open-source)
+
     #low thrust solver parameters
     num_timesteps = 10 #number of timesteps per phase
     control_coordinate_system = 0 #0: cartesian, 1: polar
@@ -454,6 +457,9 @@ class MissionOptions(object):
                         self.SPICE_reference_frame_kernel = linecell[1]
                     elif choice ==  "universe_folder":
                         self.universe_folder = linecell[1]
+
+                    elif choice == "LambertSolver":
+                        self.LambertSolver = int(linecell[1])
 
                     #low thrust solver parameters
                     elif choice ==  "num_timesteps":
@@ -939,6 +945,13 @@ class MissionOptions(object):
         outputfile.write("SPICE_leap_seconds_kernel " + str(self.SPICE_leap_seconds_kernel) + "\n")
         outputfile.write("#SPICE_reference_frame_kernel\n")
         outputfile.write("SPICE_reference_frame_kernel " + str(self.SPICE_reference_frame_kernel) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##lambert solver options\n")
+        outputfile.write("#Lambert solver choice\n")
+        outputfile.write("#0: Arora-Russell\n")
+        outputfile.write("#1: Izzo (not included in open-source package)\n")
+        outputfile.write("LambertSolver " + str(self.LambertSolver) + "\n")
         outputfile.write("\n")
             
         outputfile.write("##vehicle parameters\n")	
@@ -3190,6 +3203,7 @@ class MissionOptions(object):
         optionsnotebook.tabPhysics.txtspacecraft_area.SetValue(str(self.spacecraft_area))
         optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.SetValue(str(self.coefficient_of_reflectivity))
         optionsnotebook.tabPhysics.cmbspiral_model_type.SetSelection(self.spiral_model_type)
+        optionsnotebook.tabPhysics.cmblambert_type.SetSelection(self.LambertSolver)
 
         #if SRP is disabled, make the options associated with it invisible
         if self.perturb_SRP == 1:
