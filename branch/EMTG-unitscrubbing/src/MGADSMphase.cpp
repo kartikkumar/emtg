@@ -502,7 +502,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		hz1 = this->state_before_burn[0] * this->state_before_burn[3] - this->state_before_burn[1] * this->state_before_burn[4]; //angular momentum before burn
 		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
 
-		if (!(hz1 == hz2))
+		if (!( math::sgn(hz1) == math::sgn(hz2) ))
 		{
 			EMTG::Astrodynamics::Lambert(state_before_burn,
 				boundary2_state,
@@ -562,7 +562,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		hz1 = this->state_before_burn[0] * this->state_before_burn[3] - this->state_before_burn[1] * this->state_before_burn[4]; //angular momentum before burn
 		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
 
-		if (!(hz1 == hz2))
+		if (!( math::sgn(hz1) == math::sgn(hz2) ))
 		{
 			try
 			{
