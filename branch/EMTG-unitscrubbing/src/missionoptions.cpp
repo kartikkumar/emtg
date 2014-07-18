@@ -1819,7 +1819,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
-
+		outputfile << endl;
 
 		outputfile << "##inner-loop solver settings" << endl;
 		outputfile << "#NLP solver type" << endl;

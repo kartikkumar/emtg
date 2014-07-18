@@ -386,9 +386,17 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 
 		//Step 3.2 process the flyby
 		double flyby_orbit_energy;
-		EMTG::Astrodynamics::unpowered_flyby(current_state+3, boundary1_state+3, Body1->mu, Body1->radius, Body1->r_SOI,
-											rp_ratio, b_plane_insertion_angle, state_at_beginning_of_phase+3,
-											&C3_departure, &flyby_turn_angle, &flyby_orbit_energy);
+		EMTG::Astrodynamics::unpowered_flyby(current_state+3,
+											boundary1_state+3,
+											Body1->mu,
+											Body1->radius,
+											Body1->r_SOI,
+											rp_ratio, 
+											b_plane_insertion_angle,
+											state_at_beginning_of_phase+3,
+											&C3_departure,
+											&flyby_turn_angle, 
+											&flyby_orbit_energy);
 
 		//Step 3.2.1 calculate the b-plane parameters, check the periapse altitude
 		for (int k = 0; k < 3; ++k)
@@ -499,9 +507,9 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
 		//similarly if we are already retrograde, the burn shouldn't drive us prograde
 		//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way")
-		hz1 = this->state_before_burn[0] * this->state_before_burn[3] - this->state_before_burn[1] * this->state_before_burn[4]; //angular momentum before burn
+		hz1 = this->state_before_burn[0] * this->state_before_burn[4] - this->state_before_burn[1] * this->state_before_burn[3]; //angular momentum before burn
 		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
-
+		
 		if (!( math::sgn(hz1) == math::sgn(hz2) ))
 		{
 			EMTG::Astrodynamics::Lambert(state_before_burn,
@@ -540,18 +548,18 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		{
 			if (errorcode == 200000) //multi-rev error
 				EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
-				boundary2_state,
-				time_after_burn,
-				Universe->mu,
-				0,
-				1,
-				ShortPeriod,
-				1e-13,
-				30,
-				lambert_v1,
-				lambert_v2,
-				Lam_error,
-				Lam_iterations);
+					boundary2_state,
+					time_after_burn,
+					Universe->mu,
+					0,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
 		}
 
 
@@ -559,7 +567,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
 		//similarly if we are already retrograde, the burn shouldn't drive us prograde
 		//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way")
-		hz1 = this->state_before_burn[0] * this->state_before_burn[3] - this->state_before_burn[1] * this->state_before_burn[4]; //angular momentum before burn
+		hz1 = this->state_before_burn[0] * this->state_before_burn[4] - this->state_before_burn[1] * this->state_before_burn[3]; //angular momentum before burn
 		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
 
 		if (!( math::sgn(hz1) == math::sgn(hz2) ))
@@ -571,7 +579,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 					time_after_burn,
 					Universe->mu,
 					Nrev,
-					1,
+					0,
 					ShortPeriod,
 					1e-13,
 					30,
@@ -588,7 +596,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 					time_after_burn,
 					Universe->mu,
 					0,
-					1,
+					0,
 					ShortPeriod,
 					1e-13,
 					30,
@@ -1290,8 +1298,8 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
 	//all MGA-DSM phases encode a burn index
-	Xlowerbounds->push_back(0.01);
-	Xupperbounds->push_back(0.99);
+	Xlowerbounds->push_back(0.05);
+	Xupperbounds->push_back(0.95);
 	Xdescriptions->push_back(prefix + "burn index");
 
 	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable

@@ -21,7 +21,6 @@
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
 #include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
 
 #include "SpiceUsr.h"
 
