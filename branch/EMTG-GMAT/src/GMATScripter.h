@@ -68,11 +68,15 @@ public:
 	virtual void write_GMAT_report(int j, int p, int s, string spacecraft_name, string body_name, 
 								   bool isforwardspacecraft, bool isbeforemaneuver, bool writecontrolhistory);
 	//GMAT Resource Methods
-	virtual void create_GMAT_forcemodel(string forcemodelname, string centralbody, string pointmasses);
+	virtual void create_GMAT_forcemodel(string forcemodelname, string centralbody, vector <string> pointmasses);
+	//virtual void create_GMAT_forcemodel(string forcemodelname, string centralbody, string pointmasses);
 	virtual void create_GMAT_propagator(string propagatorname, string forcemodelname, bool isCloseApproach);
-	virtual void create_GMAT_spacecraft(int j, int p, string spacecraftname, string prefix, string thebody_coordinatesystem);
-	virtual void create_GMAT_fueltank(int j, int p, string fueltankname, string prefix);
-	virtual void create_GMAT_thruster(int j, int p, string thrustername, string thebody_coordinatesystem, string fueltankname);
+	virtual void create_GMAT_spacecraft(class gmatstep& agmatstep);
+	//virtual void create_GMAT_spacecraft(int j, int p, string spacecraftname, string prefix, string thebody_coordinatesystem);
+	virtual void create_GMAT_fueltank(string fueltankname, double mass);
+	//virtual void create_GMAT_fueltank(int j, int p, string fueltankname, string prefix);
+	virtual void create_GMAT_thruster(string thrustername, string thebody_coordinatesystem, string fueltankname);
+	//virtual void create_GMAT_thruster(int j, int p, string thrustername, string thebody_coordinatesystem, string fueltankname);
 	virtual void create_GMAT_finiteburn(string finiteburnname, string thrustername);
 	virtual void create_GMAT_coordinatesystem(string bodyname);
 	//GMAT Command Methods
@@ -80,14 +84,15 @@ public:
 	//virtual void aux_GMAT_beginburn(int j, int p, int s, string spacecraft_name, string prefix);
 	virtual void aux_GMAT_endburn(string finiteburnobject, string spacecraft_name);
 	//virtual void aux_GMAT_endburn(int j, int p, int s, string spacecraft_name, string prefix);
-	virtual void aux_GMAT_propagate(int j, int p, int s, string spacecraft_name, string prefix, string body_name, double elapsed_secs);
+	virtual void aux_GMAT_propagate(string propagatorname, string spacecraft_name, double elapsed_secs);
+	//virtual void aux_GMAT_propagate(int j, int p, int s, string spacecraft_name, string prefix, string body_name, double elapsed_secs);
 	virtual void aux_GMAT_penUp();
 	virtual void aux_GMAT_penDown();
 
 	//General Purpose Methods
 	virtual void aux_GMAT_populate_thrustvector(int j, int p, int s, vector <double>& x, double lower_bound, double upper_bound);
 	virtual void aux_GMAT_vary(string object2vary);
-	virtual void aux_GMAT_calculate(string object2calculate, string rhs);
+	virtual void aux_GMAT_calculate(string gmatmessagename, string object2calculate, string rhs);
 	virtual void aux_GMAT_nonlinearconstraint(string object2constrain, string relation, string rhs);
 	
 
@@ -206,24 +211,8 @@ public:
 		bool isCloseApproach;
 	};
 
-	////a struct type for "gmat steps"
-	//struct gmat_step {
-	//	int j; //journey number
-	//	int p; //phase number
-	//	int gs; //gmat step number
-	//	string identifier; //my identifier (e.g. 'j0p0gs0')
-	//	struct gmat_spacecraft; //the spacecraft during my "gmat step"
-	//	struct gmat_propagator; //the propagator to use for my "gmat step"
-	//	string finiteburnname;
-	//	vector <double> thrustvector;
-	//	vector <string> vary; //collection of vary 'variables' to be performed in the optimize sequence. (n x 1)
-	//	vector <vector <string>> calculate; //collection of calculate 'variables' to be performed in the optimize sequence. n x (2 x 1)
-	//	vector <vector <string>> constraints; //collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
-	//};
-	////vector of "gmat steps"
+	//vector of "gmat steps"
 	vector <class gmatstep> gmat_steps;
-
-
 
 }; // end of class gmatscript
 
@@ -256,7 +245,7 @@ public:
 		this->spacecraft.isForward = amIaForwardStep;
 		//assign 'append'
 		if (amIaForwardStep) { append = "_Forward"; }
-		else { append = "_BackWard"; }
+		else { append = "_Backward"; }
 		//name the spacecraft, tank, thruster, and finiteburnname
 		this->spacecraft.Name = "SpaceCraft_" + this->shortid + append;
 		aTank.Name = "FuelTank_" + this->shortid + append;
@@ -274,22 +263,48 @@ public:
 		//store the thrust vector
 		thrustvector = tvector;
 		//create and store my thrust vector GMAT variable name
-		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs) + ", 0)");
-		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs) + ", 1)");
-		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs) + ", 2)");
+		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1)");
+		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs + 1) + ", 2)");
+		thrustvectornames.push_back("ThrustVector_" + this->shortid + "(" + to_string(this->gs + 1) + ", 3)");
 		//store my thrust vector name, allowing my to vary during the optimization sequence
 		vary.push_back(thrustvectornames[0]);
 		vary.push_back(thrustvectornames[1]);
 		vary.push_back(thrustvectornames[2]);
 		//we will need to ensure that the thrust vector remains a unit vector during optimization, therefore 
-		//we introduce a constraint. first do a calculation, then constrain it.
-		tempvector.push_back("ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs) + ", 1)");
+		//we introduce a constraint. 
+		//first calculate the thrust vector magnitude, then constrain it
+		tempvector.push_back("ThrustUnitVectorMagnitude_" + this->longid);
+		tempvector.push_back("ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1)");
 		tempvector.push_back("sqrt(( " + thrustvectornames[0] + " * 2 - 1) ^ 2 + ( " + thrustvectornames[1] + " * 2 - 1) ^ 2 + ( " + thrustvectornames[2] + " * 2 - 1) ^ 2 )");
 		calculate.push_back(tempvector);
 		tempvector.pop_back();
+		tempvector.erase(tempvector.begin());
 		tempvector.push_back("<=");
 		tempvector.push_back("1");
 		constraints.push_back(tempvector);
+		tempvector.clear();
+		//use the 'Equation' command (i.e. "calculate") in GMAT to assign the thrust directions
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection1");
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection1");
+		tempvector.push_back("( " + this->thrustvectornames[0] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1)");
+		calculate.push_back(tempvector);
+		tempvector.clear();
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection2");
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection2");
+		tempvector.push_back("( " + this->thrustvectornames[1] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1)");
+		calculate.push_back(tempvector);
+		tempvector.clear();
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection3");
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".ThrustDirection3");
+		tempvector.push_back("( " + this->thrustvectornames[2] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1)");
+		calculate.push_back(tempvector);
+		tempvector.clear();
+		//use the 'Equation' command (i.e. "calculate") in GMAT to assign the thrust level
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".C1");
+		tempvector.push_back(this->spacecraft.Thrusters[0].Name + ".C1");
+		tempvector.push_back("( ThrusterMaxThrust * ThrustUnitVectorMagnitude_" + this->shortid + "(" + to_string(this->gs + 1) + ", 1))");
+		calculate.push_back(tempvector);
+		tempvector.clear();
 	}
 
 	//method
@@ -298,15 +313,17 @@ public:
 		int body_index;
 
 		propagator.ForceModel.Name = FMname;
-		propagator.Name = "Propagator_" + FMname;
 		propagator.isCloseApproach = amIaCloseApproach;
+		if (amIaCloseApproach) { propagator.Name = "Propagator_" + FMname + "_CloseApproach"; }
+		else { propagator.Name = "Propagator_" + FMname; }
 		//based on 'isCloseApproach', my 'p', and whether 'spacecraft.isForward'
 		//we can fill in the FM.PointMasses
 		if (spacecraft.isForward) { body_index = this->p; }
 		else { body_index = p + 1; }
 		propagator.ForceModel.CentralBody = bodylist[body_index].central_body_name;
+		spacecraft.CoordinateSystem = bodylist[body_index].name + "J2000Eq";
 		if (amIaCloseApproach) {
-			propagator.ForceModel.PointMasses.push_back("");
+			propagator.ForceModel.PointMasses.push_back(propagator.ForceModel.CentralBody);
 		}
 		else {
 			if (spacecraft.isForward) {
@@ -378,26 +395,6 @@ public:
 
 };
 
-//void EMTG::gmatstep::setNames(bool amIaForwardStep) {
-//	//declarations
-//	struct gmat_tank aTank;
-//	struct gmat_thruster aThruster;
-//	string append;
-//
-//	//set the bool member of spacecraft, which indicates whether it is 'Forward' or 'Backward'
-//	this->spacecraft.isForward = amIaForwardStep;
-//	//assign 'append'
-//	if (amIaForwardStep) { append = "_Forward";	}
-//	else { append = "_BackWard"; }
-//	//name the spacecraft, tank, thruster, and finiteburnname
-//	this->spacecraft.Name = "SpaceCraft_" + this->shortid + append;
-//	aTank.Name = "FuelTank_" + this->shortid + append;
-//	aThruster.Tank = aTank;
-//	aThruster.Name = "Thruster_" + this->shortid + append;
-//	this->spacecraft.Thrusters.push_back(aThruster);
-//	this->finiteburnname = "FiniteBurn_" + this->shortid + append;
-//
-//}
 
 }  // end of EMTG namespace
 
