@@ -749,7 +749,7 @@ namespace GeneticAlgorithm
 	{
 		std::ifstream inputfile(filename.c_str());
 		int linenumber = 0;
-		char line_buffer[2048];
+		char line_buffer[65536];
 		std::vector<std::string> linecell;
 		int number_of_genes = 0;
 
@@ -769,11 +769,11 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);	
+				inputfile.getline(line_buffer, 65536);
 			}
 			else 
 			{
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
 
 				//the number of fields with "Gene" as the first four letters is the number of decision variables
@@ -794,7 +794,7 @@ namespace GeneticAlgorithm
 				}
 
 				//skip the second header line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				break;
 			}
@@ -811,13 +811,13 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				break;
 			}
 			else
 			{
 				//grab a line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				//split the line by commas
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
@@ -890,7 +890,7 @@ namespace GeneticAlgorithm
 	{
 		std::ifstream inputfile(filename.c_str());
 		int linenumber = 0;
-		char line_buffer[2048];
+		char line_buffer[65536];
 		std::vector<std::string> linecell;
 		int number_of_genes = 0;
 
@@ -907,11 +907,11 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n' || peek == ',') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);	
+				inputfile.getline(line_buffer, 65536);
 			}
 			else 
 			{
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
 
 				//the number of fields with "Gene" as the first four letters is the number of decision variables
@@ -932,7 +932,7 @@ namespace GeneticAlgorithm
 				}
 
 				//skip the second header line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 
 				break;
 			}
@@ -949,13 +949,13 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				break;
 			}
 			else
 			{
 				//grab a line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				//split the line by commas
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
