@@ -1,6 +1,6 @@
 //SNOPT user function
 
-#include "snoptProblem.h"
+#include "snopt.hh"
 #include "problem.h"
 
 #include <ctime>

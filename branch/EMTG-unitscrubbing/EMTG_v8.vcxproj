@@ -547,10 +547,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\EMTGv8_proprietary\Lambert.h" />
     <ClInclude Include="..\..\..\EMTGv8_proprietary\proprietary_functions.h" />
+    <ClInclude Include="snoptProblemExtension.h" />
     <ClInclude Include="SNOPT\f2c.h" />
     <ClInclude Include="SNOPT\snfilewrapper.h" />
-    <ClInclude Include="SNOPT\snopt.h" />
-    <ClInclude Include="SNOPT\snoptProblem.h" />
     <ClInclude Include="src\AdaptiveConstrainedDiffEvolve.h" />
     <ClInclude Include="src\AmsterdamRootFinder.h" />
     <ClInclude Include="src\Astrodynamics.h" />
@@ -589,6 +588,10 @@
     <ClInclude Include="src\STM.h" />
     <ClInclude Include="src\stdintvc.h" />
     <ClInclude Include="src\universe.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SNOPT\snopt.hh" />
+    <None Include="SNOPT\snoptProblem.hh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,8 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "snopt.h"
-
 #ifndef PROBLEM_H_
 #define PROBLEM_H_
 

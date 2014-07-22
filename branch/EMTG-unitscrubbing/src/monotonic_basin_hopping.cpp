@@ -15,9 +15,9 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 
-#include "snopt.h"
-#include "snoptProblem.h"
-#include "snfilewrapper.h"
+#include "snopt.hh"
+
+#include "snoptProblemExtension.h"
 
 #ifdef _use_WORHP
 #include "EMTG_WORHP_interface.h"
@@ -89,7 +89,7 @@ namespace EMTG { namespace Solvers {
 			Fmul[k] = 0.0;
 		}
 
-		SNOPTproblem = new snoptProblem(true);
+		SNOPTproblem = new snoptProblemExtension(true);
 
 		SNOPTproblem->setProblemSize( Problem->total_number_of_NLP_parameters, neF );
 		SNOPTproblem->setObjective  ( ObjRow, ObjAdd );
@@ -548,10 +548,10 @@ namespace EMTG { namespace Solvers {
 						for (int k=0; k<neF; ++k)
 							cjacflag[k] = false;
 
-						for (int i=0; i<SNOPTproblem->neG; ++i)
+						for (int i=0; i<SNOPTproblem->getNeG(); ++i)
 							cjacflag[iGfun[i]-1] = true;
 
-						for (int i=0; i<SNOPTproblem->neA; ++i)
+						for (int i=0; i<SNOPTproblem->getNeA(); ++i)
 							cjacflag[iAfun[i]-1] = true;
 			
 						jacfullrankflag = true;
@@ -897,10 +897,10 @@ namespace EMTG { namespace Solvers {
 	{
 		ofstream sparsityfile(filename.c_str(), ios::trunc);
 
-		for (int k = 0; k < SNOPTproblem->neA; ++k)
+		for (int k = 0; k < SNOPTproblem->getNeA(); ++k)
 			sparsityfile << "Linear, " << iAfun[k] << "," << jAvar[k] << endl;
 
-		for (int k = 0; k < SNOPTproblem->neG; ++k)
+		for (int k = 0; k < SNOPTproblem->getNeG(); ++k)
 			sparsityfile << "Nonlinear, " << iGfun[k] << "," << jGvar[k] << endl;
 
 		sparsityfile.close();
