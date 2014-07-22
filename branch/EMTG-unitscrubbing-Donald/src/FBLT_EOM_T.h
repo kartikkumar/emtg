@@ -117,6 +117,18 @@ namespace EMTG
 				double Isp = 4336.0 / TU; //specific impulse
 				double mdotmax = thrust / Isp / g0; //max mass flow rate 
 
+				//***********************
+				//
+				//Power Model Derivatives
+				//
+				//***********************
+				T dTdP = 0.0000000000000000;
+				T dPdr = 0.0000000000000000;
+				T dmdotmaxdP = 0.0000000000000000;
+				T dmdotmaxdTOF = 0.0000000000000000;
+				T dthrustdTOF = 0.0000000000000000;
+
+
 				//*******************
 				//
 				//Equations of Motion
@@ -165,17 +177,6 @@ namespace EMTG
 				f[10] = 0.0000000000000000;
 
 				
-
-				//***********************
-				//
-				//Power Model Derivatives
-				//
-				//***********************
-				T dTdP = 0.0000000000000000;
-				T dPdr = 0.0000000000000000;
-				T dmdotmaxdP = 0.0000000000000000;
-				T dmdotmaxdTOF = 0.0000000000000000;
-				T dthrustdTOF = 0.0000000000000000;
 
 				//****************************************
 				//
