@@ -465,10 +465,10 @@ namespace EMTG {
 		bool last_substep;
 		bool print_progress = false;
 
-		T t_left_step = t_left;
-		T dt_left_stepdTOF = dt_leftdTOF;
-		X_left = X_left_in;
-		dX_leftdTOF = dX_left_indTOF;
+		T t_left_step = t_left; //epoch at the beginning (left side) of the FBLT time step
+		T dt_left_stepdTOF = dt_leftdTOF; //TOF sensitivity of the left side time epoch
+		X_left = X_left_in; //spacecraft state at the beginning of the FBLT time step
+		dX_leftdTOF = dX_left_indTOF; //TOF sensitivity of the spacecraft's state at the left side of the time step
 
 		if (*resumeH > steptime)
 		{
