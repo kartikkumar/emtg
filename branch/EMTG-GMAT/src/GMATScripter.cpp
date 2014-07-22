@@ -600,9 +600,21 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 	vector <string> forcemodel_storage;
 	vector <string> propagator_storage;
 	int gmatsteps_thus_far;
+	int gmatsteps_thus_far_in_phase;
 	int number_of_gmatsteps_added;
 	vector <double> thrustvector;
+	
 	//new architecture (2014_07_21)
+	//ClassMethod()
+	//gmatstep aGMATstep(0, 0, 0);
+	//GMATDebug << endl;
+	//GMATDebug << " ----- class() gmatstep TESTING ----- " << endl;
+	//GMATDebug << "j:  " << aGMATstep.j << endl;
+	//GMATDebug << "p:  " << aGMATstep.p << endl;
+	//GMATDebug << "gs: " << aGMATstep.gs << endl;
+	//GMATDebug << "identifier: " << aGMATstep.identifier << endl;
+	//GMATDebug << " ------------------------------------ " << endl;
+
 
 	//loop over all the timesteps used for each journey, each phase
 	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
@@ -615,6 +627,8 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 			//set 'f2b_index', which indicates where in the vector storage variables
 			//items should be inserted when saving backward spacecraft information
 			f2b_index = gmat_step_forcemodel_storage.size();
+			//initialize counter of gmatsteps
+			gmatsteps_thus_far_in_phase = 0;
 
 			GMATDebug << "f2b_index: " << f2b_index << endl;
 
@@ -648,6 +662,10 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					iepoch = fepoch;
 					fepoch += stepsize;
 
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
+
 					//NOTE: could eliminate if (usePushBack) here because it "should" always be true before this if-statement.
 					//we assume that we are NOT exiting NOR entering bodies during the match point constraint, THERFORE,
 
@@ -655,44 +673,65 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					tempstream << "FM_" << missionbodies[body_index].central_body_name;
 					tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name;
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), false);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str());
 					propagator_storage.push_back(tempstream.str());
 					//clear the tempstream
 					tempstream.str("");
+
 					//the forcemodel central body
 					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
 					//the forcemodel 3rd body point masses
 					tempstream << missionbodies[body_index - 1].name << ", " << missionbodies[body_index].name;
 					forcemodel_storage.push_back(tempstream.str());
+
 					//clear the tempstream
 					tempstream.str("");
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = stepsize;
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-
 					//store the forcemodel
 					if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
 					else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-					//clear the temporary forcemodel_storage vector
-					forcemodel_storage.clear();
 					//store the propagator
 					if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
 					else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-					//clear the temporary propagator_storage vector
-					propagator_storage.clear();
 
 					//add the thrust vector 
 					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
 					gmat_step_thrust_vectors.push_back(thrustvector);
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+
+					//thruster names
 					tempstream << "Thruster_j" << j << "p" << p << "_Backward";
 					gmat_step_thruster_names.push_back(tempstream.str());
 					tempstream.str("");
 
+					
+					//ClassMethod()
+					gmat_steps.push_back(aGMATstep);
+
+
+					//clear the temporary forcemodel_storage vector
+					forcemodel_storage.clear();
+					//clear the temporary propagator_storage vector
+					propagator_storage.clear();
+
+
+
 					//increment the steps taken thus far
+					gmatsteps_thus_far_in_phase++;
 					gmatsteps_thus_far++;
 
 					//by definition, we only enter this for-statement if we are NOT on a forward step
@@ -785,8 +824,15 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 
 					GMATDebug << " SOI-SOI ";
 
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
+
 					//name of the forcemodel
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), true);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
 					propagator_storage.push_back(tempstream.str());
@@ -796,20 +842,39 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
 					//the forcemodel 3rd body point masses
 					forcemodel_storage.push_back("");
+
+
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = stepsize;
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
 
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
+
 					//increment the 'f2b_index' variable if we are still on a forward step
 					if (isForwardStep) { f2b_index++; }
+
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
 
 				}
 				else if (isInSOI_at_Start && !isInSOI_at_End) {
 
 					GMATDebug << " SOI-> ";
+
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
 
 					//for this case we must figure out how long we are in the SOI before exiting
 					periapse_velocity_magnitude = sqrt(2.0 * missionbodies[body_index].mu / (missionbodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(initial_velocity_diff, 3)*math::norm(initial_velocity_diff, 3));
@@ -820,6 +885,9 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//Creation of the First Model
 					//name of the forcemodel
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), true);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
 					propagator_storage.push_back(tempstream.str());
@@ -832,6 +900,9 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(approximate_time_in_SOI); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, approximate_time_in_SOI); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = approximate_time_in_SOI;
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
@@ -846,12 +917,29 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//clear the temporary propagator_storage vector
 					propagator_storage.clear();
 
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
+
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
+					//ClassMethod()
+					gmatstep bGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					bGMATstep.setNames(isForwardStep);
+
+
 					//Creation of the Second Model
 					//name of the forcemodel
 					tempstream << "FM_" << missionbodies[body_index].central_body_name;
 					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name; }
 					else { tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					bGMATstep.setFMandProp(tempstream.str(), false);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str());
 					propagator_storage.push_back(tempstream.str());
@@ -868,17 +956,35 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize - approximate_time_in_SOI); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize - approximate_time_in_SOI); }
+					//ClassMethod()
+					bGMATstep.initial_timestep = stepsize - approximate_time_in_SOI;
+
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
 
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					bGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(bGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, bGMATstep); }
+
 					//increment the 'f2b_index' variable if we are still on a forward step
 					if (isForwardStep) { f2b_index += 2; }
+
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
 
 				}
 				else if (!isInSOI_at_Start && isInSOI_at_End) {
 
 					GMATDebug << " ->SOI ";
+
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
 
 					//for this case we must figure out how long we are in the SOI after entering
 					periapse_velocity_magnitude = sqrt(2.0 * missionbodies[body_index].mu / (missionbodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(final_velocity_diff, 3)*math::norm(final_velocity_diff, 3));
@@ -891,6 +997,9 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name; }
 					else { tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), false);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str());
 					propagator_storage.push_back(tempstream.str());
@@ -907,6 +1016,9 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize - approximate_time_in_SOI); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize - approximate_time_in_SOI); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = stepsize - approximate_time_in_SOI;
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
@@ -921,10 +1033,28 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//clear the temporary propagator_storage vector
 					propagator_storage.clear();
 
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
+
+
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
+					//ClassMethod()
+					gmatstep bGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					bGMATstep.setNames(isForwardStep);
+
+
 					//Creation of the Second Model
 					//name of the forcemodel
 					tempstream << "FM_" << missionbodies[body_index].central_body_name;
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					bGMATstep.setFMandProp(tempstream.str(), true);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
 					propagator_storage.push_back(tempstream.str());
@@ -937,22 +1067,43 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(approximate_time_in_SOI); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, approximate_time_in_SOI); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = approximate_time_in_SOI;
+
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
 
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					bGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(bGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, bGMATstep); }
+
 					//increment the 'f2b_index' variable if we are still on a forward step
 					if (isForwardStep) { f2b_index += 2; }
+
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
 
 				}
 				else {
 
 					GMATDebug << " ---> ";
 
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
+
 					//name of the forcemodel
 					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name     << "_" << missionbodies[body_index + 1].name; }
 					else {               tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), false);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str());
 					propagator_storage.push_back(tempstream.str());
@@ -969,12 +1120,26 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = stepsize;
+
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
+					
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
 
 					//increment the 'f2b_index' variable if we are still on a forward step
 					if (isForwardStep) { f2b_index++; }
+
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
 
 				}
 
@@ -994,6 +1159,10 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 
 					GMATDebug << " -MP ";
 
+					//ClassMethod()
+					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
+					aGMATstep.setNames(isForwardStep);
+
 					//find the stepsize
 					stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s];
 					//advance 'iepoch' and 'fepoch'
@@ -1006,6 +1175,9 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					tempstream << "FM_" << missionbodies[body_index].central_body_name;
 					tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name;
 					forcemodel_storage.push_back(tempstream.str());
+					//ClassMethod()
+					aGMATstep.setFMandProp(tempstream.str(), false);
+
 					//name of the propagator
 					propagator_storage.push_back("Propagator_" + tempstream.str());
 					propagator_storage.push_back(tempstream.str());
@@ -1021,6 +1193,10 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//save the timestep length
 					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
 					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
+					//ClassMethod()
+					aGMATstep.initial_timestep = stepsize;
+
+
 					//save whether we are conducting a close approach
 					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
 					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
@@ -1036,8 +1212,18 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 					//clear the temporary propagator_storage vector
 					propagator_storage.clear();
 
+					//ClassMethod()
+					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
+					aGMATstep.setThrust(thrustvector);
+					//ClassMethod()
+					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
+					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
+
 					//increment the 'f2b_index' variable if we are still on a forward step
 					if (isForwardStep) { f2b_index += 2; }
+
+					//increment the variable counting gmatsteps in the current phase
+					gmatsteps_thus_far_in_phase++;
 
 				}
 
@@ -1116,6 +1302,7 @@ void gmatscripter::get_GMAT_steplevelparameters(){
 	GMATDebug << "gmat_step_timesteps.size(): " << gmat_step_timesteps.size() << endl;
 	GMATDebug << "gmat_step_thrust_vectors.size(): " << gmat_step_thrust_vectors.size() << endl;
 	GMATDebug << "gmat_step_thruster_name.size(): " << gmat_step_thruster_names.size() << endl;
+	GMATDebug << "gmat_steps.size(): " << gmat_steps.size() << endl;
 	for (int index = 0; index < gmat_step_forcemodel_storage.size(); ++index) {
 		GMATDebug << endl;
 		GMATDebug << " -----  GMAT STEP: " << index << " ----- " << endl;
