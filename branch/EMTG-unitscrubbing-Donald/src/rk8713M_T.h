@@ -428,11 +428,8 @@ namespace EMTG {
 			//*error = max(*error, fabs(X_right[i]-y[i]));
 
 			//take the 8th order solution as truth and compare it with the 7th order solution to quantify the error for this substep
-#ifdef _AD_VERIFICATION
-			*error = *error > fabs(X_right[i].getValue() - y[i].getValue()) ? *error : fabs(X_right[i].getValue() - y[i].getValue());
-#else
 			*error = *error > fabs(X_right[i] - y[i]) ? *error : fabs(X_right[i] - y[i]);
-#endif
+
 		}
 
 		return X_right;
@@ -568,21 +565,13 @@ namespace EMTG {
 
 			if (print_progress)
 			{
-#ifdef _AD_VERIFICATION
-				percentagecomplete = accumulatedH.getValue() / steptime.getValue()*100.0;
-			
-				if (percentagecomplete - lastpercentcomplete >= 1.0) {
-					std::cout << accumulatedH.getValue() / steptime.getValue()*100.0 << "% ";
-					lastpercentcomplete = percentagecomplete;
-				}
-#else
+
 				percentagecomplete = (double)accumulatedH / (double)(steptime)*100.0;
 
 				if (percentagecomplete - lastpercentcomplete >= 1.0) {
 					std::cout << (double)accumulatedH / (double)(steptime)*100.0 << "% ";
 					lastpercentcomplete = percentagecomplete;
 				}
-#endif
 			}
 
 			

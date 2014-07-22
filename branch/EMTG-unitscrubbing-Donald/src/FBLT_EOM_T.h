@@ -55,12 +55,9 @@ namespace EMTG
 				double state3B[6];
 				double current_epoch;
 
-				//SPICE is a choke point for the AD routine, we must stop AD at this point and pick it back up again on the other side of the spkez call
-#ifdef _AD_VERIFICATION
-				current_epoch = t_left_step.getValue() + c*h.getValue();
-#else
+				
 				current_epoch = t_left_step + c*h;
-#endif
+
 
 				spkez_c(spice_ID, current_epoch*TU - (51544.5 * 86400.0), "J2000", "NONE", central_body_spice_ID, state3B, &LT_dump);
 
@@ -76,25 +73,12 @@ namespace EMTG
 
 				//Third body position sensitivity w.r.t. TOF
 				//Just the derivative of the SPICE position Chebychev polynomial
+				//If we are using SPICE to locate small bodies or satellites we will need to find a way to obtain the position derivatives.....Ryan Russell's FIRE ephemeris reader would fix this
 				T dx3BdTOF = vvec_cbto3B[0] * dcurrent_epochdTOF;
 				T dy3BdTOF = vvec_cbto3B[1] * dcurrent_epochdTOF;
 				T dz3BdTOF = vvec_cbto3B[2] * dcurrent_epochdTOF;
 
-				//Since we had to pass through SPICE, the AD did not collect derivatives for the third body position or velocity, but we can artificially insert the position ones here
-				//NOTE: rvec_cbto3B is created locally to the EOM function at every call, we are not losing any accumulated derivative information by doing this
-				//If we are using SPICE to locate small bodies or satellites we will need to find a way to obtain the position derivatives.....Ryan Russell's FIRE ephemeris reader would fix this
-#ifdef _AD_VERIFICATION
-				//TEST CODE
-				//rvec_cbto3B[0].setDerivative(11, 1.0);
-				//rvec_cbto3B[1].setDerivative(12, 1.0);
-				//rvec_cbto3B[2].setDerivative(13, 1.0);
-
-				rvec_cbto3B[0].setDerivative(10, dx3BdTOF.getValue());
-				rvec_cbto3B[1].setDerivative(10, dy3BdTOF.getValue());
-				rvec_cbto3B[2].setDerivative(10, dz3BdTOF.getValue());
-#endif
-
-
+				
 				//Form the spacecraft position and velocity vectors w.r.t. the third body
 				rvec_3Btosc[0] = rvec_cbtosc[0] - rvec_cbto3B[0];
 				rvec_3Btosc[1] = rvec_cbtosc[1] - rvec_cbto3B[1];
@@ -116,28 +100,11 @@ namespace EMTG
 				T u[3] = { X[7], X[8], X[9] };
 				T unorm = sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
 
-				//AD will hit a singularity if the thruster is off
-				//This will correct/override that....
-#ifdef _AD_VERIFICATION
-				if (unorm == 0.0)
-				{
-					unorm.setDerivative(7, 0.0);
-					unorm.setDerivative(8, 0.0);
-					unorm.setDerivative(9, 0.0);
-					unorm.setDerivative(10, 0.0);
-				}
-#endif
-
 				//Initialize STM equation components -- Phidot = A*Phi
-#ifdef _AD_VERIFICATION
-				EMTG::math::Matrix<GSAD::adouble> A(rows, columns, 0.0);
-				EMTG::math::Matrix<GSAD::adouble> Phi(rows, columns, 0.0);
-				EMTG::math::Matrix<GSAD::adouble> Phidot(rows, columns, 0.0);
-#else
 				EMTG::math::Matrix<double> A(rows, columns, 0.0);
 				EMTG::math::Matrix<double> Phi(rows, columns, 0.0);
 				EMTG::math::Matrix<double> Phidot(rows, columns, 0.0);
-#endif
+
 
 				//*************************************
 				//

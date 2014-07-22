@@ -89,20 +89,6 @@ void FBLT_chaintest()
 
 
 	//declare adouble containers for the beginning and end spacecraft states
-
-#ifdef _AD_VERIFICATION
-	std::vector <GSAD::adouble> state0(ns,0.0); //initial state
-	std::vector <GSAD::adouble> state1(ns, 0.0); //state at the end of the half phase
-	std::vector <GSAD::adouble> dstate1dTOF(ns, 0.0); //final state partials w.r.t. TOF
-	std::vector <GSAD::adouble> state_current(ns, 0.0);
-	std::vector <GSAD::adouble> dstate_currentdTOF(ns, 0.0); //partials of the left hand state vector w.r.t. TOF
-	std::vector <GSAD::adouble> state_next(ns, 0.0);
-	std::vector <GSAD::adouble> dstate_nextdTOF(ns, 0.0); //partials of the right hand state vector w.r.t. TOF
-	
-	double launch_epoch = (56774.0 * 86400.0) / TU;
-	GSAD::adouble t_left = (56774.0 * 86400.0) / TU; //April 27th 2014
-	GSAD::adouble dt_leftdTOF = 0.0;
-#else
 	std::vector <double> state0(ns,0.0);
 	std::vector <double> state1(ns,0.0);
 	std::vector <double> dstate1dTOF(ns, 0.0);
@@ -114,7 +100,7 @@ void FBLT_chaintest()
 	double launch_epoch = (56774.0 * 86400.0) / TU;
 	double t_left = (56774.0 * 86400.0) / TU;
 	double dt_leftdTOF = 0.0;
-#endif
+
 
 	//Initial spacecraft state: same as Jupiter but 95% sma and 1 degree lag in true anomaly
 	state0[0] = -2.956394096440888e+08 / DU; //x
@@ -136,11 +122,6 @@ void FBLT_chaintest()
 	for (size_t i = statecount; i < ns; i = i + statecount + 1)
 		state0[i] = 1.0;
 
-	//set derivative of each state variable with respect to itself equal to 1 (to seed the auto-diff routine)	
-#ifdef _AD_VERIFICATION
-	for (size_t i = 0; i < statecount; ++i)
-		state0[i].setDerivative(i, 1.0);
-#endif
 
 	//**************************
 	//
@@ -149,33 +130,24 @@ void FBLT_chaintest()
 	//**************************
 
 	//instantiate an integrator
-#ifdef _AD_VERIFICATION
-	EMTG::integration::rk8713M<GSAD::adouble> *integrator;
-	integrator = new EMTG::integration::rk8713M<GSAD::adouble>(ns);
-#else
 	EMTG::integration::rk8713M<double> *integrator;
 	integrator = new EMTG::integration::rk8713M<double>(ns);
-#endif
+
 
 	//Propagate spacecraft for all time steps
 	int numsteps = 10;
 
 	//some integrator settings
-#ifdef _AD_VERIFICATION
-	GSAD::adouble resumeH = state0[10] / numsteps; //take a guess at a starting integration step size, try to do the whole integration in one step
-#else
+	//take a guess at a starting integration step size, try to do the whole integration in one step
 	double resumeH = state0[10] / numsteps;
-#endif
+
 
 	double resumeError = 1.0e-13;
 	double PRECISION_TARGET = 1.0e-11; //integration error tolerance
 
 	//create a vector of STM's.....one STM per time step
-#ifdef _AD_VERIFICATION
-	std::vector < EMTG::math::Matrix<GSAD::adouble> > Phi_archive(numsteps, EMTG::math::Matrix<GSAD::adouble> (rows, columns, 0.0));
-#else
 	std::vector < EMTG::math::Matrix<double> > Phi_archive(numsteps, EMTG::math::Matrix< double >(rows, columns, 0.0));
-#endif
+
 
 	std::cout << "INTEGRATING TRAJECTORY, BUILDING STM: " << std::endl << std::endl;
 	clock_t tStart = clock();
@@ -183,13 +155,8 @@ void FBLT_chaintest()
 	state_current = state0;
 
 	//setup some initial TOF derivatives
-#ifdef _AD_VERIFICATION
-	GSAD::adouble steptime = state0[10] / numsteps;
-	GSAD::adouble dsteptimedTOF = 1.0 / numsteps;
-#else
 	double steptime = state0[10] / numsteps;
 	double dsteptimedTOF = 1.0 / numsteps;
-#endif
 
 
 	//FBLT propagation loop
@@ -207,24 +174,6 @@ void FBLT_chaintest()
 				++statecount;
 			}
 		}
-
-#ifdef _AD_VERIFICATION
-		//AD calculated derivatives
-		//double dvxdy0 = state_next[1].getDerivative(2);
-		//std::cout << dvxdy0 << std::endl;
-
-		std::cout << "STM for time step " << step << std::endl;
-		std::cout << setprecision(16);
-		for (size_t i = 0; i < rows; ++i)
-		{
-			for (size_t j = 0; j < columns; ++j)
-				std::cout << Phi_archive[step](i, j) << "     ";
-
-			std::cout << std::endl << std::endl;
-		}
-
-		std::cout << std::endl << std::endl;
-#endif	
 
 		//state at the end of the time step becomes the new current state
 		state_current = state_next;
@@ -259,11 +208,8 @@ void FBLT_chaintest()
 	dstate1dTOF = dstate_nextdTOF;
 
 	//Build match-point derivatives
-#ifdef _AD_VERIFICATION
-	EMTG::math::Matrix <GSAD::adouble> derivatives(rows, columns, 0.0);
-#else
 	EMTG::math::Matrix <double> derivatives(rows, columns, 0.0);
-#endif
+
 	//initialize the derivatives matrix to the identity
 	for (size_t i = 0; i < rows; ++i)
 		derivatives(i, i) = 1.0;
@@ -271,7 +217,6 @@ void FBLT_chaintest()
 	for (int step = numsteps-1; step >= 0; --step)
 		derivatives *= Phi_archive[step];
 	
-
 
 	//Insert the TOF partials into the final numerically integrated STM so we have everything in one place
 	for (size_t i = 0; i < rows; ++i)
@@ -289,46 +234,6 @@ void FBLT_chaintest()
 
 	std::cout << std::endl << std::endl;
 
-#ifdef _AD_VERIFICATION
-	//AD calculated derivatives
-	EMTG::math::Matrix<GSAD::adouble> PhiAD(rows, columns, 0.0);
-	EMTG::math::Matrix<GSAD::adouble> PhiERROR(rows, columns, 0.0);
-
-	for (size_t i = 0; i < rows; ++i)
-		for (size_t j = 0; j < columns; ++j)
-			PhiAD(i, j) = state1[i].getDerivative(j);
-
-	for (size_t i = 0; i < rows; ++i)
-		for (size_t j = 0; j < columns; ++j)
-			PhiERROR(i, j) = PhiAD(i, j) - derivatives(i, j);
-
-	std::cout << "AD calculated resultant STM:" << std::endl;
-	for (size_t i = 0; i < rows; ++i)
-	{
-		for (size_t j = 0; j < columns; ++j)
-		{
-			std::cout << PhiAD(i, j) << "     ";
-		}
-
-		std::cout << std::endl << std::endl;
-	}
-	
-	std::cout << std::endl;
-
-	std::cout << "Error between AD STM and integrated STM:" << std::endl;
-	for (size_t i = 0; i < rows; ++i)
-	{
-		for (size_t j = 0; j < columns; ++j)
-		{
-			std::cout << PhiERROR(i, j) << "     ";
-		}
-
-		std::cout << std::endl << std::endl;
-	}
-
-	std::cout << std::endl;
-#endif
-	
 	getchar();
 
 }
