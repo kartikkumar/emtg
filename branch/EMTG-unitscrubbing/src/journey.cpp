@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+
 #include "phase.h"
 #include "MGAphase.h"
 #include "MGADSMphase.h"
@@ -15,10 +19,6 @@
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_math.h"
-
-#include <iostream>
-#include <sstream>
-#include <fstream>
 
 namespace EMTG
 {

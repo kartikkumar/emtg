@@ -8,11 +8,11 @@
 #ifndef MISSION_H_
 #define MISSION_H_
 
+#include <vector>
+
 #include "problem.h"
 #include "journey.h"
 #include "file_utilities.h"
-
-#include <vector>
 
 #include "boost/ptr_container/ptr_vector.hpp"
 

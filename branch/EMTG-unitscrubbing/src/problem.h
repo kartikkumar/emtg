@@ -5,9 +5,11 @@
  *      Author: Jacob
  */
 
-#include "missionoptions.h"
 #include <string>
 #include <vector>
+
+#include "missionoptions.h"
+
 
 #ifndef PROBLEM_H_
 #define PROBLEM_H_

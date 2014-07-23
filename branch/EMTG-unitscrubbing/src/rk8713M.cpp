@@ -2,12 +2,11 @@
 // DOPRI constants are from Numerical Recipies
 // Jacob Englander 9/10/2012
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <math.h>
-#include <string.h>
+#include <cstring>
 
 #include "rk8713M.h"
 #include "equations_of_motion.h"

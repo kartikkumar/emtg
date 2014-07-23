@@ -1,7 +1,9 @@
 //function to compute the insertion burn
 
+#include <cmath>
+
 #include "EMTG_math.h"
-#include <math.h>
+
 
 using namespace EMTG;
 

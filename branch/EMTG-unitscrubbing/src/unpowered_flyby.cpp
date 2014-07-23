@@ -3,7 +3,7 @@
 //appears in many places in published literature
 //implementation by Jacob Englander
 
-#include <math.h>
+#include <cmath>
 #include "Astrodynamics.h"
 #include "EMTG_math.h"
 

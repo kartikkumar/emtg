@@ -1,7 +1,8 @@
 //header file for EMTG frame class
 //Jacob Englander 1/3/2013
 
-#pragma once
+#ifndef EMTG_FRAME
+#define EMTG_FRAME
 
 #include "EMTG_Matrix.h"
 
@@ -31,3 +32,5 @@ namespace EMTG { namespace Astrodynamics {
 	};
 
 }} //close namespace
+
+#endif //EMTG_FRAME

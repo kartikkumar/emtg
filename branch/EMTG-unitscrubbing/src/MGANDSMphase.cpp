@@ -5,6 +5,9 @@
  *      Author: Jacob
  */
 
+#include <sstream>
+#include <fstream>
+
 #include "MGANDSMphase.h"
 #include "Astrodynamics.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
@@ -16,8 +19,7 @@
 
 #include "SpiceUsr.h"
 
-#include <sstream>
-#include <fstream>
+
 
 namespace EMTG {
 

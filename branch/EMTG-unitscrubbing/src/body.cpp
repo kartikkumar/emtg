@@ -1,5 +1,10 @@
 //EMTG body class
 
+#include <string>
+#include <vector>
+#include <cmath>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "body.h"
 #include "EMTG_math.h"
@@ -8,10 +13,7 @@
 
 #include "SpiceUsr.h"
 
-#include <string>
-#include <vector>
-#include <math.h>
-#include <fstream>
+
 
 namespace EMTG {namespace Astrodynamics {
 

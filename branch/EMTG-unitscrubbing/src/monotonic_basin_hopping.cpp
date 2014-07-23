@@ -1,12 +1,6 @@
 //Monotonic Basin Hopping
 //for EMTG version 8
 //Jacob Englander 7-27-2012
-
-#include "problem.h"
-#include "monotonic_basin_hopping.h"
-#include "EMTG_math.h"
-#include "SNOPT_user_function.h"
-
 #include <iostream>
 #include <fstream>
 #include <ctime>
@@ -15,7 +9,10 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 
-#include "snopt.hh"
+#include "problem.h"
+#include "monotonic_basin_hopping.h"
+#include "EMTG_math.h"
+#include "SNOPT_user_function.h"
 
 #include "snoptProblemExtension.h"
 

@@ -8,7 +8,6 @@
 
 #include <cmath>
 #include <vector>
-#include <math.h> 
 #include <complex>
 
 namespace EMTG { namespace Astrodynamics {

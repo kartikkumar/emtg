@@ -1,11 +1,11 @@
 //header file for EMTG universe class
 
+#include <string>
+#include <vector>
+
 #include "missionoptions.h"
 #include "body.h"
 #include "frame.h"
-
-#include <string>
-#include <vector>
 
 #include "boost/ptr_container/ptr_vector.hpp"
 

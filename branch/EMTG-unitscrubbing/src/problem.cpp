@@ -4,6 +4,7 @@
  *  Created on: Jul 17, 2012
  *      Author: Jacob
  */
+#include <iostream>
 
 #include "problem.h"
 #include "mission.h"
@@ -11,7 +12,7 @@
 #include "AdaptiveConstrainedDiffEvolve.h"
 #include "EMTG_math.h"
 
-#include <iostream>
+
 
 namespace EMTG {
 

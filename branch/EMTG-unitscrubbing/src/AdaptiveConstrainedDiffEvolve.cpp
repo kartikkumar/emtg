@@ -4,10 +4,12 @@
 //inspired by ACT solution to GTOC6
 //created for EMTG by Jacob Englander, 5/6/2013
 
+#include <ctime>
+
 #include "AdaptiveConstrainedDiffEvolve.h"
 #include "EMTG_math.h"
 
-#include <ctime>
+
 
 namespace EMTG { namespace Solvers {
 

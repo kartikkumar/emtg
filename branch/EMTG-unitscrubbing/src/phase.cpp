@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "phase.h"
 #include "journey.h"
 #include "Astrodynamics.h"
@@ -13,10 +17,6 @@
 #include "universe.h"
 
 #include "SpiceUsr.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 using namespace std;
 

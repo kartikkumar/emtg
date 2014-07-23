@@ -1,13 +1,15 @@
 //outer-loop NSGA-II
 //written to solve systems optimization as formulated by J. Englander, M. Vavrina, and D. Ellison
 //collaborative effort by J. Englander and M. Vavrina based on A. Ghosh's abstract GA spec and M. Vavrina's NSGA-II spec
-#include "outerloop_NSGAII.h"
-#include "mission.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#include "outerloop_NSGAII.h"
+#include "mission.h"
+
+
 
 #include "boost/algorithm/string.hpp"
 
@@ -224,7 +226,6 @@ namespace GeneticAlgorithm
 		int obj_compare_lteq2_i;
 		int obj_compare_lt_j;
 		int obj_compare_lteq2_j;
-		int front;
 		std::vector< EMTG_outerloop_solution > local_front;
 
 		this->nondominated_fronts.clear();

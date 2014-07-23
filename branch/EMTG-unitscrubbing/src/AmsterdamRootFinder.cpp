@@ -1,6 +1,6 @@
 //Amsterdam root finder
 
-#include <math.h> // required for fabs()		
+#include <cmath> // required for fabs()		
 #include "AmsterdamRootFinder.h"
 #include "EMTG_math.h"
 

@@ -1,5 +1,6 @@
 //differential equations of motion for EMTG v8
 
+#include <cmath>
 
 #include "missionoptions.h"
 #include "EMTG_math.h"
@@ -8,7 +9,6 @@
 #include "universe.h"
 #include "SpiceUsr.h"
 
-#include <math.h>
 
 namespace EMTG { namespace Astrodynamics {namespace EOM
 {	

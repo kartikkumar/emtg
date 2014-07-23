@@ -4,13 +4,15 @@
 
 #include "problem.h"
 
+#include "boost/random/uniform_int.hpp"
+#include "boost/random/uniform_real.hpp"
+#include "boost/random/mersenne_twister.hpp"
+
 #include "snopt.hh"
 #include "snoptProblemExtension.h"
 #include "snfilewrapper.hh"
 
-#include "boost/random/uniform_int.hpp"
-#include "boost/random/uniform_real.hpp"
-#include "boost/random/mersenne_twister.hpp"
+
 
 #ifdef _use_WORHP
 #include "EMTG_WORHP_interface.h"

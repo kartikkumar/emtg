@@ -5,6 +5,12 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <set>
+
 #include "journey.h"
 #include "mission.h"
 #include "missionoptions.h"
@@ -20,12 +26,6 @@
 #include "boost/algorithm/string/predicate.hpp"
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
-
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <set>
 
 namespace EMTG {
 

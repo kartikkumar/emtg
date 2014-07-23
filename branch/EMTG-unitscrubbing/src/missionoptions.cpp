@@ -5,6 +5,11 @@
  *      Author: Jacob
  */
 
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "EMTG_math.h"
 
@@ -12,10 +17,6 @@
 
 #include "boost/algorithm/string.hpp"
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
 
 using namespace std;
 

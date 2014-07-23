@@ -4,6 +4,8 @@
  *  Created on: September 17, 2012
  *      Author: Jacob
  */
+#include <sstream>
+#include <fstream>
 
 #include "FBLTphase.h"
 #include "Astrodynamics.h"
@@ -15,8 +17,7 @@
 
 #include "SpiceUsr.h"
 
-#include <sstream>
-#include <fstream>
+
 
 namespace EMTG {
 

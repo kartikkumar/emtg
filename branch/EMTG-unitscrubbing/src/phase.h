@@ -5,16 +5,16 @@
  *      Author: Jacob
  */
 
-
+#include <string>
+#include <vector>
+#include <fstream>
 
 #include "missionoptions.h"
 #include "universe.h"
 #include "bplane.h"
 #include "STM.h"
 
-#include <string>
-#include <vector>
-#include <fstream>
+
 
 #ifndef PHASE_H_
 #define PHASE_H_

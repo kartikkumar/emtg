@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <string>

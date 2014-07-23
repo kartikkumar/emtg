@@ -4,14 +4,14 @@
 //J. Englander 5-10-2014
 //based heavily on outer-loop NSGAII by M. Vavrina and J. Englander
 
-#include "outerloop_SGA.h"
-#include "mission.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <algorithm>
+
+#include "outerloop_SGA.h"
+#include "mission.h"
 
 #include "boost/algorithm/string.hpp"
 

@@ -7,11 +7,10 @@
 
 #ifndef MISSIONOPTIONS_H_
 #define MISSIONOPTIONS_H_
-
-#include "boost/ptr_container/ptr_vector.hpp"
-
 #include <vector>
 #include <string>
+
+#include "boost/ptr_container/ptr_vector.hpp"
 
 using namespace std;
 

@@ -6,6 +6,11 @@
  *      Author: Jacob
  */
 
+#include <vector>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "MGAphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
@@ -22,10 +27,7 @@
 
 #include "SpiceUsr.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <fstream>
+
 
 using namespace std;
 

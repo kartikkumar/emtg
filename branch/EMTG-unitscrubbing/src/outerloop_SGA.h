@@ -4,6 +4,10 @@
 //J. Englander 5-10-2014
 //based heavily on outer-loop NSGAII by M. Vavrina and J. Englander
 
+#include <vector>
+#include <string>
+#include <ctime>
+
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_outerloop_solution.h"
@@ -13,9 +17,7 @@
 #include "boost/random/mersenne_twister.hpp"
 #include "boost/ptr_container/ptr_vector.hpp"
 
-#include <vector>
-#include <string>
-#include <ctime>
+
 
 #ifdef EMTG_MPI
 #include "boost/serialization/string.hpp"

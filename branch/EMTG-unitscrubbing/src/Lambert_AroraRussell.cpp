@@ -3,18 +3,20 @@
 //AAS Hilton Head 2013
 //by Matthew Vavrina, matthew.vavrina@ai-solutions.com and Jacob Englander (6-11-2014)
 
-#include "Lambert_AroraRussell.h"
-#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
-#include "EMTG_math.h"
-
 #include <cmath>
 #include <vector>
-#include <math.h> 
+#include <cmath> 
 #include <complex>
 
 #include <string>
 #include <iostream>
 #include <fstream>
+
+#include "Lambert_AroraRussell.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
+#include "EMTG_math.h"
+
+
 
 using namespace std;
 

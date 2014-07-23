@@ -1,10 +1,11 @@
 //EMTG frame class
 //Jacob Englander 1/3/2013
 
+#include <cmath>
+
 #include "frame.h"
 #include "EMTG_math.h"
 
-#include <cmath>
 
 namespace EMTG { namespace Astrodynamics {
 	//default constructor

@@ -11,14 +11,14 @@
 //
 // ---------------------------------------------*/
 
-
+#include <cstring>
+#include <iostream>
+#include <cassert>
 
 #include "snoptProblem.hh"
 #include "snfilewrapper.hh"
 #include "snopt.hh"
-#include <cstring>
-#include <iostream>
-#include <cassert>
+
 
 #ifndef SNPT_EXT_H
 #define SNPT_EXT_H
@@ -30,7 +30,7 @@ public:
 #ifdef QUIET_SNOPT
 		if (supress_input) {
 			initCalled = 1;
-			this->setIntParameter( "Print No", 1 );
+			this->setIntParameter((char*) "Print No", 1);
 			initCalled = 0;
 		};
 #endif		
@@ -55,7 +55,7 @@ public:
 		  iSumm = 6;
 		  strcpy( summaryname, asummaryname );  prnt_len = strlen(summaryname);
 		  snopenappend_( &iSumm, summaryname,   &inform, prnt_len );
-		  this->setIntParameter("Summary file", iSumm);
+		  this->setIntParameter((char*)"Summary file", iSumm);
 		}
 	
 	void setUserMem( integer lencu_in, char * cu_in, integer leniu_in, integer * iu_in, integer lenru_in, doublereal * ru_in) {
@@ -80,8 +80,8 @@ public:
 		
 			this->realloc( mincw, miniw, minrw );
 			
-			this->setIntParameter("Total real workspace   ", lenrw );
-			this->setIntParameter("Total integer workspace", leniw );
+			this->setIntParameter((char*)"Total real workspace   ", lenrw );
+			this->setIntParameter((char*)"Total integer workspace", leniw);
 		 }
 		snjac_( &inform, &neF, &n, usrfun, iAfun, jAvar, &lenA, &neA, A, iGfun, jGvar, &lenG, &neG, x, xlow, xupp, &mincw, &miniw, &minrw, cu, &lencu, iu, &leniu, ru, &lenru, cw, &lencw, iw, &leniw, rw, &lenrw, 8*500, 8*500 );
 		  

@@ -2,6 +2,10 @@
 //written to solve systems optimization as formulated by J. Englander, M. Vavrina, and D. Ellison
 //collaborative effort by J. Englander and M. Vavrina based on A. Ghosh's abstract GA spec and M. Vavrina's NSGA-II spec
 
+#include <vector>
+#include <string>
+#include <ctime>
+
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_outerloop_solution.h"
@@ -10,10 +14,6 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 #include "boost/ptr_container/ptr_vector.hpp"
-
-#include <vector>
-#include <string>
-#include <ctime>
 
 #ifdef EMTG_MPI
 #include "boost/serialization/string.hpp"

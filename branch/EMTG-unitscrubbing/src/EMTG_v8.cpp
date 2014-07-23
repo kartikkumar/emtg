@@ -7,6 +7,10 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "missionoptions.h"
 #include "mission.h"
 #include "outerloop_NSGAII.h"
@@ -24,9 +28,7 @@
 
 #include "SpiceUsr.h"
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
 
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
@@ -156,8 +158,8 @@ int main(int argc, char* argv[])
 		furnsh_c(referenceframestring.c_str());
 
 		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-		errprt_c("SET", 100, "NONE");
-		erract_c("SET", 100, "RETURN");
+		errprt_c((SpiceChar*)"SET", 100, "NONE");
+		erract_c((SpiceChar*)"SET", 100, "RETURN");
 	}
 
 	//create a vector of universes for each journey
