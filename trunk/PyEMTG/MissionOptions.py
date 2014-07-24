@@ -27,6 +27,9 @@ class MissionOptions(object):
     outerloop_elitecount = 1 #how many elite individuals to retain
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
     outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
+    outerloop_warm_population = "none"
+    outerloop_warm_archive = "none"
+    outerloop_reevaluate_full_population = 0
 
     #outer loop selectable options settings
     outerloop_vary_power = 0
@@ -35,12 +38,18 @@ class MissionOptions(object):
     outerloop_vary_thruster_type = 0
     outerloop_vary_number_of_thrusters = 0
     outerloop_vary_launch_vehicle = 0
+    outerloop_vary_departure_C3 = 0
+    outerloop_vary_arrival_C3 = 0
     outerloop_power_choices = [10.0]
     outerloop_launch_epoch_choices = [51544.5]
     outerloop_flight_time_upper_bound_choices = [365.25]
     outerloop_thruster_type_choices = [8]
     outerloop_number_of_thrusters_choices = [1]
     outerloop_launch_vehicle_choices = [1]
+    outerloop_departure_C3_choices = [25.0]
+    outerloop_arrival_C3_choices = [25.0]
+    outerloop_restrict_flight_time_lower_bound = 0
+    quiet_outerloop = 1#if true, suppress all text outputs except error catches
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -49,6 +58,7 @@ class MissionOptions(object):
     NLP_solver_type = 0
     NLP_solver_mode = 1
     quiet_NLP = 0
+    quiet_basinhopping = 0
     ACE_feasible_point_finder = 0
     MBH_max_not_improve = 50
     MBH_max_trials = 100000
@@ -66,6 +76,10 @@ class MissionOptions(object):
     initial_guess_num_timesteps = 10
     initial_guess_step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     initial_guess_step_size_stdv_or_scale = 1.0
+    MBH_zero_control_initial_guess = 0
+    MBH_two_step = 0 #whether or not to use the 2-step MBH (coarse then fine derivatives)
+    FD_stepsize = 1.5e-8 #"fine" finite differencing step size
+    FD_stepsize_coarse = 1.0e-4 #"coarse" finite differencing step
 
     #problem settings set by the user
 
@@ -75,11 +89,19 @@ class MissionOptions(object):
     SPICE_reference_frame_kernel = "pck00010.tpc"
     universe_folder = "../Universe/"
 
+    #Lambert solver
+    LambertSolver = 0 #0: Arora-Russell, 1: Izzo (not included in open-source)
+
     #low thrust solver parameters
     num_timesteps = 10 #number of timesteps per phase
+    control_coordinate_system = 0 #0: cartesian, 1: polar
+    initial_guess_control_coordinate_system = 0 #0: cartesian, 1: polar
     step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     step_size_stdv_or_scale = 1.0
     spiral_model_type = 1#0: Battin, 1: Edelbaum
+
+    #impulsive thrust solver parameters
+    maximum_number_of_lambert_revolutions = 0
 
     #vehicle parameters
     maximum_mass = 1000 #the maximum possible mass of the spacecraft (negative number means use LV max)
@@ -125,8 +147,8 @@ class MissionOptions(object):
     power_source_type = 0 #0: solar, 1: radioisotope (or other fixed power)
     solar_power_gamma = [0.0, 0.0, 0.0, 0.0, 0.0] #coefficients for solar panels
     power_margin = 0.0 #for propulsion, as a fraction
-    engine_input_thrust_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0]
-    engine_input_mass_flow_rate_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0]
+    engine_input_thrust_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    engine_input_mass_flow_rate_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     engine_input_power_bounds = [1.0, 5.0]
     user_defined_engine_efficiency = 0.7
     spacecraft_power_coefficients = [0.0, 0.0, 0.0]
@@ -136,6 +158,8 @@ class MissionOptions(object):
         
     #minimum dry mass constraint and related parameters
     minimum_dry_mass = 0 #in kg
+    enable_maximum_propellant_mass_constraint = 0
+    maximum_propellant_mass = 1000.0
     post_mission_delta_v = 0.0 #in km/s
     post_mission_Isp = 3000.0 #in s
     propellant_margin = 0.0 #percent
@@ -291,6 +315,14 @@ class MissionOptions(object):
                         self.outerloop_useparallel = int(linecell[1])
                     elif choice == "outerloop_warmstart":
                         self.outerloop_warmstart = int(linecell[1])
+                    elif choice == "outerloop_warm_population":
+                        self.outerloop_warm_population = linecell[1]
+                    elif choice == "outerloop_warm_archive":
+                        self.outerloop_warm_archive = linecell[1]
+                    elif choice == "outerloop_reevaluate_full_population":
+                        self.outerloop_reevaluate_full_population = int(linecell[1])
+                    elif choice == "quiet_outerloop":
+                        self.quiet_outerloop = int(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -299,12 +331,18 @@ class MissionOptions(object):
                         self.outerloop_vary_launch_epoch = int(linecell[1])
                     elif choice == "outerloop_vary_flight_time_upper_bound":
                         self.outerloop_vary_flight_time_upper_bound = int(linecell[1])
+                    elif choice == "outerloop_restrict_flight_time_lower_bound":
+                        self.outerloop_restrict_flight_time_lower_bound = int(linecell[1])
                     elif choice == "outerloop_vary_thruster_type":
                         self.outerloop_vary_thruster_type = int(linecell[1])
                     elif choice == "outerloop_vary_number_of_thrusters":
                         self.outerloop_vary_number_of_thrusters = int(linecell[1])
                     elif choice == "outerloop_vary_launch_vehicle":
                         self.outerloop_vary_launch_vehicle = int(linecell[1])
+                    elif choice == "outerloop_vary_departure_C3":
+                        self.outerloop_vary_departure_C3 = int(linecell[1])
+                    elif choice == "outerloop_vary_arrival_C3":
+                        self.outerloop_vary_arrival_C3 = int(linecell[1])
                     elif choice == "outerloop_vary_journey_destination":
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].outerloop_vary_journey_destination = int(linecell[j+1])
@@ -326,15 +364,23 @@ class MissionOptions(object):
                     elif choice == "outerloop_thruster_type_choices":
                         self.outerloop_thruster_type_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_thruster_type_choices.append(float(x))
+                            self.outerloop_thruster_type_choices.append(int(float(x)))
                     elif choice == "outerloop_number_of_thrusters_choices":
                         self.outerloop_number_of_thrusters_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_number_of_thrusters_choices.append(float(x))
+                            self.outerloop_number_of_thrusters_choices.append(int(float(x)))
                     elif choice == "outerloop_launch_vehicle_choices":
                         self.outerloop_launch_vehicle_choices = []
                         for x in linecell[1:]:
-                            self.outerloop_launch_vehicle_choices.append(float(x))
+                            self.outerloop_launch_vehicle_choices.append(int(float(x)))
+                    elif choice == "outerloop_departure_C3_choices":
+                        self.outerloop_departure_C3_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_departure_C3_choices.append(float(x))
+                    elif choice == "outerloop_arrival_C3_choices":
+                        self.outerloop_arrival_C3_choices = []
+                        for x in linecell[1:]:
+                            self.outerloop_arrival_C3_choices.append(float(x))
                     elif choice == "outerloop_journey_flyby_sequence_choices":
                         flyby_choice_line_flag = 1
                     elif choice == "outerloop_journey_destination_choices":
@@ -359,6 +405,8 @@ class MissionOptions(object):
                         self.ACE_feasible_point_finder = int(linecell[1])
                     elif choice == "quiet_NLP":
                         self.quiet_NLP = int(linecell[1])
+                    elif choice == "quiet_basinhopping":
+                        self.quiet_basinhopping = int(linecell[1])
                     elif choice ==  "MBH_max_not_improve":
                         self.MBH_max_not_improve = int(linecell[1])
                     elif choice ==  "MBH_max_trials":
@@ -391,7 +439,14 @@ class MissionOptions(object):
                         self.initial_guess_step_size_distribution = int(linecell[1])
                     elif choice ==  "initial_guess_step_size_stdv_or_scale":
                         self.initial_guess_step_size_stdv_or_scale = float(linecell[1])		
-
+                    elif choice == "MBH_zero_control_initial_guess":
+                        self.MBH_zero_control_initial_guess = int(linecell[1])
+                    elif choice == "MBH_two_step":
+                        self.MBH_two_step = int(linecell[1])
+                    elif choice == "FD_stepsize":
+                        self.FD_stepsize = float(linecell[1])
+                    elif choice == "FD_stepsize_coarse":
+                        self.FD_stepsize_coarse = float(linecell[1])
 
                     #problem settings set by the user
                     elif choice ==  "ephemeris_source":
@@ -403,9 +458,16 @@ class MissionOptions(object):
                     elif choice ==  "universe_folder":
                         self.universe_folder = linecell[1]
 
+                    elif choice == "LambertSolver":
+                        self.LambertSolver = int(linecell[1])
+
                     #low thrust solver parameters
                     elif choice ==  "num_timesteps":
                         self.num_timesteps = int(linecell[1])
+                    elif choice == "control_coordinate_system":
+                        self.control_coordinate_system = int(linecell[1])
+                    elif choice == "initial_guess_control_coordinate_system":
+                        self.initial_guess_control_coordinate_system = int(linecell[1])
                     elif choice ==  "step_size_distribution":
                         self.step_size_distribution = int(linecell[1])
                     elif choice ==  "step_size_stdv_or_scale":
@@ -413,9 +475,18 @@ class MissionOptions(object):
                     elif choice == "spiral_model_type":
                         self.spiral_model_type = int(linecell[1])
 
+
+                    #impulsive thrust solver parameters
+                    elif choice == "maximum_number_of_lambert_revolutions":
+                        self.maximum_number_of_lambert_revolutions = int(linecell[1])
+
                     #vehicle parameters
                     elif choice == "maximum_mass":
                         self.maximum_mass = float(linecell[1])
+                    elif choice == "enable_maximum_propellant_mass_constraint":
+                        self.enable_maximum_propellant_mass_constraint = int(linecell[1])
+                    elif choice == "maximum_propellant_mass":
+                        self.maximum_propellant_mass = float(linecell[1])
                     elif choice == "LV_margin":
                         self.LV_margin = float(linecell[1])
                     elif choice == "LV_adapter_mass":
@@ -470,10 +541,14 @@ class MissionOptions(object):
                         self.engine_input_thrust_coefficients = []
                         for x in linecell[1:]:
                             self.engine_input_thrust_coefficients.append(float(x))
+                        while len(self.engine_input_thrust_coefficients) < 7:
+                            self.engine_input_thrust_coefficients.append(0.0)
                     elif choice == "engine_input_mass_flow_rate_coefficients":
                         self.engine_input_mass_flow_rate_coefficients = []
                         for x in linecell[1:]:
                             self.engine_input_mass_flow_rate_coefficients.append(float(x))
+                        while len(self.engine_input_mass_flow_rate_coefficients) < 7:
+                            self.engine_input_mass_flow_rate_coefficients.append(0.0)
                     elif choice == "engine_input_power_bounds":
                         self.engine_input_power_bounds = []
                         for x in linecell[1:]:
@@ -674,7 +749,7 @@ class MissionOptions(object):
                         trialX_line_flag = 1
 
                     #deprecated options
-                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius":
+                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius" or choice == "lazy_race_tree_allow_duplicates":
                         print choice, " is deprecated."
                                 
                     #if option is not recognized
@@ -721,7 +796,9 @@ class MissionOptions(object):
         outputfile.write("\n")
 
         outputfile.write("##outer-loop solver settings\n")
-        outputfile.write("#whether or not to run the outer-loop\n")
+        outputfile.write("#Do you want to run an outer-loop?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: Genetic algorithm (number of objective functions determines which GA to run)\n")
         outputfile.write("run_outerloop " + str(self.run_outerloop) + "\n")
         outputfile.write("#outer-loop population size\n")	
         outputfile.write("outerloop_popsize " + str(self.outerloop_popsize) + "\n")
@@ -745,6 +822,14 @@ class MissionOptions(object):
         outputfile.write("outerloop_useparallel " + str(self.outerloop_useparallel) + "\n")
         outputfile.write("#whether or not to perform an outer loop warm start\n")
         outputfile.write("outerloop_warmstart " + str(self.outerloop_warmstart) + "\n")
+        outputfile.write("#Population file for outerloop warm start (set to none if not warm starting)\n")
+        outputfile.write("outerloop_warm_population " + self.outerloop_warm_population + "\n")
+        outputfile.write("#Archive file for outerloop warm start (set to none if not warm starting)\n")
+        outputfile.write("outerloop_warm_archive " + self.outerloop_warm_archive + "\n")
+        outputfile.write("#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.\n")
+        outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
+        outputfile.write("#Quiet outer-loop?\n")
+        outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -758,6 +843,8 @@ class MissionOptions(object):
         outputfile.write("NLP_solver_mode " + str(self.NLP_solver_mode) + "\n")
         outputfile.write("#Quiet NLP solver?\n")
         outputfile.write("quiet_NLP " + str(self.quiet_NLP) + "\n")
+        outputfile.write("#Quiet MBH?\n")
+        outputfile.write("quiet_basinhopping " + str(self.quiet_basinhopping) + "\n")
         outputfile.write("#Enable ACE feasible point finder?\n")
         outputfile.write("ACE_feasible_point_finder " + str(self.ACE_feasible_point_finder) + "\n")
         outputfile.write("#quantity Max_not_improve for MBH\n")
@@ -788,7 +875,8 @@ class MissionOptions(object):
         outputfile.write("#0: finite difference\n")
         outputfile.write("#1: analytical flybys and objective function but finite difference the patch points\n")
         outputfile.write("#2: all but time derivatives\n")
-        outputfile.write("#3: fully analytical\n")
+        outputfile.write("#3: all but current phase flight time derivatives\n")
+        outputfile.write("#4: fully analytical (experimental)\n")
         outputfile.write("derivative_type " + str(self.derivative_type) + "\n")
         outputfile.write("#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.\n")
         outputfile.write("seed_MBH " + str(self.seed_MBH) + "\n")
@@ -804,11 +892,30 @@ class MissionOptions(object):
         outputfile.write("initial_guess_step_size_distribution " + str(self.initial_guess_step_size_distribution) + "\n")
         outputfile.write("#What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess\n")
         outputfile.write("initial_guess_step_size_stdv_or_scale " + str(self.initial_guess_step_size_stdv_or_scale) + "\n")
+        outputfile.write("#Apply zero-control initial guess in MBH?\n")
+        outputfile.write("#0: do not use\n")
+        outputfile.write("#1: zero-control for resets, random perturbations for hops\n")
+        outputfile.write("#2: always use zero-control guess except when seeded\n")
+        outputfile.write("MBH_zero_control_initial_guess " + str(self.MBH_zero_control_initial_guess) + "\n")
+        outputfile.write("#Enable two-step MBH?\n")
+        outputfile.write("MBH_two_step " + str(self.MBH_two_step) + "\n")
+        outputfile.write("#'Fine' finite differencing step size\n")
+        outputfile.write("FD_stepsize " + str(self.FD_stepsize) + "\n")
+        outputfile.write("#'Coarse' finite differencing step size\n")
+        outputfile.write("FD_stepsize_coarse " + str(self.FD_stepsize_coarse) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##low-thrust solver parameters\n")	
         outputfile.write("#number of time steps per phase\n")	
         outputfile.write("num_timesteps " + str(self.num_timesteps) + "\n")
+        outputfile.write("#Control coordinate system\n")
+        outputfile.write("#0: Cartesian\n")
+        outputfile.write("#1: Polar\n")
+        outputfile.write("control_coordinate_system " + str(self.control_coordinate_system) + '\n')
+        outputfile.write("#Initial guess control coordinate system\n")
+        outputfile.write("#0: Cartesian\n")
+        outputfile.write("#1: Polar\n")
+        outputfile.write("initial_guess_control_coordinate_system " + str(self.initial_guess_control_coordinate_system) + '\n')
         outputfile.write("#Distribution from which to draw the step sizes for each phase\n")
         outputfile.write("#0: uniform\n")
         outputfile.write("#1: Gaussian\n")
@@ -822,6 +929,11 @@ class MissionOptions(object):
         outputfile.write("spiral_model_type " + str(self.spiral_model_type) + "\n")
         outputfile.write("\n")
 
+        outputfile.write("##impulsive-thrust solver parameters\n")
+        outputfile.write("#maximum number of revolutions for Lambert's method\n")
+        outputfile.write("maximum_number_of_lambert_revolutions " + str(self.maximum_number_of_lambert_revolutions) + "\n")
+        outputfile.write("\n")
+
         outputfile.write("##ephemeris data\n")	
         outputfile.write("#ephemeris source\n")	
         outputfile.write("#0: static\n")	
@@ -833,6 +945,13 @@ class MissionOptions(object):
         outputfile.write("SPICE_leap_seconds_kernel " + str(self.SPICE_leap_seconds_kernel) + "\n")
         outputfile.write("#SPICE_reference_frame_kernel\n")
         outputfile.write("SPICE_reference_frame_kernel " + str(self.SPICE_reference_frame_kernel) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##lambert solver options\n")
+        outputfile.write("#Lambert solver choice\n")
+        outputfile.write("#0: Arora-Russell\n")
+        outputfile.write("#1: Izzo (not included in open-source package)\n")
+        outputfile.write("LambertSolver " + str(self.LambertSolver) + "\n")
         outputfile.write("\n")
             
         outputfile.write("##vehicle parameters\n")	
@@ -871,9 +990,9 @@ class MissionOptions(object):
         outputfile.write("\n")
         outputfile.write("#Custom launch vehicle C3 bounds (two values)\n")
         outputfile.write("custom_LV_C3_bounds " + str(self.custom_LV_C3_bounds[0]) + " " + str(self.custom_LV_C3_bounds[1]) + "\n")
-        outputfile.write("#Parking orbit inclination (for use with ""depart from parking orbit"" launch vehicle option or for outputing GMAT scenarios\n")
+        outputfile.write("#Parking orbit inclination (for use in outputing GMAT scenarios)\n")
         outputfile.write("parking_orbit_inclination " + str(self.parking_orbit_inclination) + "\n")
-        outputfile.write("#Parking orbit altitude (for use with ""depart from parking orbit"" launch vehicle option or for outputing GMAT scenarios\n")
+        outputfile.write("#Parking orbit altitude (for use in outputing GMAT scenarios)\n")
         outputfile.write("parking_orbit_altitude " + str(self.parking_orbit_altitude) + "\n")
         outputfile.write("\n")
 
@@ -920,15 +1039,17 @@ class MissionOptions(object):
         outputfile.write("#18: H6MS Cardiff 8-15-2013\n")
         outputfile.write("#19: BHT20K Cardiff 8-16-2013\n")
         outputfile.write("#20: Aerojet HiVHAC EM\n")
+        outputfile.write("#21: 13 kW STMD Hall high-Isp (not available in open-source)\n")
+        outputfile.write("#22: 13 kW STMD Hall high-thrust (not available in open-source)\n")
         outputfile.write("engine_type " + str(self.engine_type) + "\n")
-        outputfile.write("#Custom engine thrust coefficients (T = A*P^4 + B*P^3 + C*P^2 + D*P + E)\n")
+        outputfile.write("#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_thrust_coefficients")
-        for k in range(0,5):
+        for k in range(0,7):
             outputfile.write(" " + str(self.engine_input_thrust_coefficients[k]))
         outputfile.write("\n")
-        outputfile.write("#Custom engine mass flow rate coefficients (mdot = A*P^4 + B*P^3 + C*P^2 + D*P + E)\n")
+        outputfile.write("#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_mass_flow_rate_coefficients")
-        for k in range(0,5):
+        for k in range(0,7):
             outputfile.write(" " + str(self.engine_input_mass_flow_rate_coefficients[k]))
         outputfile.write("\n")
         outputfile.write("#Custom engine lower and upper bounds on input power (per engine, in kW)\n")
@@ -975,9 +1096,13 @@ class MissionOptions(object):
         outputfile.write("allow_initial_mass_to_vary " + str(self.allow_initial_mass_to_vary) + "\n")
         outputfile.write("#Minimum dry mass\n")
         outputfile.write("minimum_dry_mass " + str(self.minimum_dry_mass) + "\n")
+        outputfile.write("#Enable maximum propellant mass constraint?\n")
+        outputfile.write("enable_maximum_propellant_mass_constraint " + str(int(self.enable_maximum_propellant_mass_constraint)) + "\n")
+        outputfile.write("#Maximum propellant mass (kg)\n")
+        outputfile.write("maximum_propellant_mass " + str(self.maximum_propellant_mass) + "\n")
         outputfile.write("#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)\n")
         outputfile.write("post_mission_delta_v " + str(self.post_mission_delta_v) + "\n")
-        outputfile.write("#Isp used to compute propellant for post-mission delta-, in seconds\n")
+        outputfile.write("#Isp used to compute propellant for post-mission delta-v, in seconds\n")
         outputfile.write("post_mission_Isp " + str(self.post_mission_Isp) + "\n")
         outputfile.write("#Propellant margin, as a fraction of nominal propellant load\n")
         outputfile.write("propellant_margin " + str(self.propellant_margin) + "\n")
@@ -991,13 +1116,12 @@ class MissionOptions(object):
         outputfile.write("#1: MGA-DSM\n")
         outputfile.write("#2: MGA-LT\n")
         outputfile.write("#3: FBLT\n")
-        outputfile.write("#4: FBLT-S\n")
-        outputfile.write("#5: MGA-NDSM\n")
-        outputfile.write("#6: DTLT\n")
-        outputfile.write("#7: solver chooses (MGA, MGA-DSM)\n")
-        outputfile.write("#8: solver chooses (MGA, MGA-LT)\n")
-        outputfile.write("#9: solver chooses (MGA-DSM, MGA-LT)\n")
-        outputfile.write("#10: solver chooses (MGA, MGA-DSM, MGA-LT)\n")
+        outputfile.write("#4: MGA-NDSM\n")
+        outputfile.write("#5: DTLT\n")
+        outputfile.write("#6: solver chooses (MGA, MGA-DSM)\n")
+        outputfile.write("#7: solver chooses (MGA, MGA-LT)\n")
+        outputfile.write("#8: solver chooses (MGA-DSM, MGA-LT)\n")
+        outputfile.write("#9: solver chooses (MGA, MGA-DSM, MGA-LT)\n")
         outputfile.write("mission_type " + str(self.mission_type) + "\n")
         outputfile.write("#number of journeys (user-defined endpoints)\n")
         outputfile.write("#Each journey has a central body and two boundary points\n")
@@ -1078,6 +1202,7 @@ class MissionOptions(object):
         outputfile.write("#0: unbounded\n")
         outputfile.write("#1: bounded flight time\n")
         outputfile.write("#2: bounded arrival date\n")
+        outputfile.write("#3: bounded aggregate flight time\n")
         outputfile.write("journey_timebounded")
         for j in range (0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_timebounded))
@@ -1110,6 +1235,7 @@ class MissionOptions(object):
         outputfile.write("#3: flyby (only valid for successive journeys)\n")
         outputfile.write("#4: flyby with fixed v-infinity-out (only valid for successive journeys)\n")
         outputfile.write("#5: spiral-out from circular orbit (low-thrust missions only)\n")
+        outputfile.write("#6: zero-turn flyby (for small bodies)\n")
         outputfile.write("journey_departure_type")
         for j in range (0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_departure_type))
@@ -1254,12 +1380,18 @@ class MissionOptions(object):
         outputfile.write("outerloop_vary_launch_epoch " + str(self.outerloop_vary_launch_epoch) + "\n")
         outputfile.write("#Allow outer-loop to vary flight time upper bound?\n")
         outputfile.write("outerloop_vary_flight_time_upper_bound " + str(self.outerloop_vary_flight_time_upper_bound) + "\n")
+        outputfile.write("#Restrict flight-time lower bound when running outer-loop?\n")
+        outputfile.write("outerloop_restrict_flight_time_lower_bound " + str(self.outerloop_restrict_flight_time_lower_bound) + "\n")
         outputfile.write("#Allow outer-loop to vary thruster type?\n")
         outputfile.write("outerloop_vary_thruster_type " + str(self.outerloop_vary_thruster_type) + "\n")
         outputfile.write("#Allow outer-loop to vary number of thrusters?\n")
         outputfile.write("outerloop_vary_number_of_thrusters " + str(self.outerloop_vary_number_of_thrusters) + "\n")
         outputfile.write("#Allow outer-loop to vary launch vehicle?\n")
         outputfile.write("outerloop_vary_launch_vehicle " + str(self.outerloop_vary_launch_vehicle) + "\n")
+        outputfile.write("#Allow outer-loop to vary first journey departure C3?\n")
+        outputfile.write("outerloop_vary_departure_C3 " + str(self.outerloop_vary_departure_C3) + "\n")
+        outputfile.write("#Allow outer-loop to vary last journey arrival C3?\n")
+        outputfile.write("outerloop_vary_arrival_C3 " + str(self.outerloop_vary_arrival_C3) + "\n")
         outputfile.write("#Allow outer-loop to vary journey destination? (one value per journey)\n")
         outputfile.write("outerloop_vary_journey_destination")
         for j in range(0, self.number_of_journeys):
@@ -1300,6 +1432,16 @@ class MissionOptions(object):
         for entry in self.outerloop_launch_vehicle_choices:
             outputfile.write(" " + str(int(entry)))
         outputfile.write("\n")
+        outputfile.write("#Outer-loop first journey departure C3 choices\n")
+        outputfile.write("outerloop_departure_C3_choices")
+        for entry in self.outerloop_departure_C3_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("#Outer-loop last arrival departure C3 choices\n")
+        outputfile.write("outerloop_arrival_C3_choices")
+        for entry in self.outerloop_arrival_C3_choices:
+            outputfile.write(" " + str(entry))
+        outputfile.write("\n")
         outputfile.write("#Outer-loop maximum number of flybys (one value for each journey)\n")
         outputfile.write("outerloop_journey_maximum_number_of_flybys")
         for j in range(0, self.number_of_journeys):
@@ -1327,8 +1469,14 @@ class MissionOptions(object):
         outputfile.write("#3: Thruster preference\n")
         outputfile.write("#4: Number of thrusters\n")
         outputfile.write("#5: Launch vehicle preference\n")
-        outputfile.write("#6: Delivered mass to final target\n")
+        outputfile.write("#6: Delivered mass to final target (kg)\n")
         outputfile.write("#7: Final journey mass increment (for maximizing sample return)\n")
+        outputfile.write("#8: First journey departure C3 (km^2/s^2)\n")
+        outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
+        outputfile.write("#10: Total delta-v (km/s)\n")
+        outputfile.write("#11: Inner-loop objective (whatever it was)\n")
+        outputfile.write("#12: Sum of SMA spread\n")
+        outputfile.write("#13: Sum of mean longitude spread\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
@@ -1384,10 +1532,10 @@ class MissionOptions(object):
             outputfile.write("trialX\n")
             for seq in range(0, self.number_of_trial_sequences):
                 currentX = self.trialX[seq]
-                outputfile.write(str(currentX[0]))
+                outputfile.write('%17.20f' % currentX[0])
                 for entry in range(1, len(currentX)):
                     outputfile.write(" ")
-                    outputfile.write(str(currentX[entry]))
+                    outputfile.write('%17.20f' % currentX[entry])
                 outputfile.write("\n")
         outputfile.write("\n")
             
@@ -1407,6 +1555,7 @@ class MissionOptions(object):
 
         optionsnotebook.tabGlobal.txtMissionName.SetValue(self.mission_name)
         optionsnotebook.tabGlobal.cmbMissionType.SetSelection(self.mission_type)
+        optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.SetValue(str(self.maximum_number_of_lambert_revolutions))
         optionsnotebook.tabGlobal.cmbobjective_type.SetSelection(self.objective_type)
         optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.SetValue(self.include_initial_impulse_in_cost)
         optionsnotebook.tabGlobal.txtmax_phases_per_journey.SetValue(str(self.max_phases_per_journey))
@@ -1416,6 +1565,7 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtnum_timesteps.SetValue(str(self.num_timesteps))
         optionsnotebook.tabGlobal.cmbstep_size_distribution.SetSelection(self.step_size_distribution)
         optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.SetValue(str(self.step_size_stdv_or_scale))
+        optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.SetSelection(self.control_coordinate_system)
         optionsnotebook.tabGlobal.txtDLA_bounds_lower.SetValue(str(self.DLA_bounds[0]))
         optionsnotebook.tabGlobal.txtDLA_bounds_upper.SetValue(str(self.DLA_bounds[1]))
         optionsnotebook.tabGlobal.chkglobal_timebounded.SetValue(self.global_timebounded)
@@ -1428,6 +1578,14 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtinitial_V_infinity_z.SetValue(str(self.initial_V_infinity[2]))
         optionsnotebook.tabGlobal.txtminimum_dry_mass.SetValue(str(self.minimum_dry_mass))
         optionsnotebook.tabGlobal.txtpost_mission_delta_v.SetValue(str(self.post_mission_delta_v))
+
+        #for Lambert mission types, show number of Lambert revs
+        if self.mission_type == 0 or self.mission_type == 1:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(True)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(True)
+        else:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(False)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(False)
 
         #if objective type is delta-v, show include initial impulse in cost
         if self.objective_type == 0:
@@ -1463,7 +1621,16 @@ class MissionOptions(object):
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(False)
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(False)
 
+        #control coordinate system is only shown for low-thrust mission types
+        if self.mission_type == 2 or self.mission_type == 3:
+            optionsnotebook.tabGlobal.lblcontrol_coordinate_system.Show(True)
+            optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Show(True)
+        else:
+            optionsnotebook.tabGlobal.lblcontrol_coordinate_system.Show(False)
+            optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Show(False)
+
         optionsnotebook.tabGlobal.Layout()
+        optionsnotebook.tabGlobal.SetupScrolling()
 
     def update_journey_options_panel(self, optionsnotebook):
         optionsnotebook.tabJourney.Journeylist = []
@@ -1521,16 +1688,16 @@ class MissionOptions(object):
         optionsnotebook.tabJourney.txtAOP_departure.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements[4]))
         optionsnotebook.tabJourney.txtMA_departure.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements[5]))
         optionsnotebook.tabJourney.txtSMA_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[0]))
-        optionsnotebook.tabJourney.txtECC_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[1]))
-        optionsnotebook.tabJourney.txtINC_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[2]))
-        optionsnotebook.tabJourney.txtRAAN_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[3]))
-        optionsnotebook.tabJourney.txtAOP_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[4]))
-        optionsnotebook.tabJourney.txtMA_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[5]))
-        optionsnotebook.tabJourney.txtSMA_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[6]))
-        optionsnotebook.tabJourney.txtECC_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[7]))
-        optionsnotebook.tabJourney.txtINC_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[8]))
-        optionsnotebook.tabJourney.txtRAAN_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[9]))
-        optionsnotebook.tabJourney.txtAOP_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[10]))
+        optionsnotebook.tabJourney.txtECC_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[2]))
+        optionsnotebook.tabJourney.txtINC_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[4]))
+        optionsnotebook.tabJourney.txtRAAN_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[6]))
+        optionsnotebook.tabJourney.txtAOP_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[8]))
+        optionsnotebook.tabJourney.txtMA_departure0.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[10]))
+        optionsnotebook.tabJourney.txtSMA_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[1]))
+        optionsnotebook.tabJourney.txtECC_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[3]))
+        optionsnotebook.tabJourney.txtINC_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[5]))
+        optionsnotebook.tabJourney.txtRAAN_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[7]))
+        optionsnotebook.tabJourney.txtAOP_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[9]))
         optionsnotebook.tabJourney.txtMA_departure1.SetValue(str(self.Journeys[self.ActiveJourney].journey_departure_elements_bounds[11]))
         optionsnotebook.tabJourney.cmbjourney_arrival_elements_type.SetSelection(self.Journeys[self.ActiveJourney].journey_arrival_elements_type)
         optionsnotebook.tabJourney.chkSMA_arrival.SetValue(self.Journeys[self.ActiveJourney].journey_arrival_elements_vary_flag[0])
@@ -1546,16 +1713,16 @@ class MissionOptions(object):
         optionsnotebook.tabJourney.txtAOP_arrival.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements[4]))
         optionsnotebook.tabJourney.txtMA_arrival.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements[5]))
         optionsnotebook.tabJourney.txtSMA_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[0]))
-        optionsnotebook.tabJourney.txtECC_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[1]))
-        optionsnotebook.tabJourney.txtINC_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[2]))
-        optionsnotebook.tabJourney.txtRAAN_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[3]))
-        optionsnotebook.tabJourney.txtAOP_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[4]))
-        optionsnotebook.tabJourney.txtMA_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[5]))
-        optionsnotebook.tabJourney.txtSMA_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[6]))
-        optionsnotebook.tabJourney.txtECC_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[7]))
-        optionsnotebook.tabJourney.txtINC_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[8]))
-        optionsnotebook.tabJourney.txtRAAN_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[9]))
-        optionsnotebook.tabJourney.txtAOP_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[10]))
+        optionsnotebook.tabJourney.txtECC_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[2]))
+        optionsnotebook.tabJourney.txtINC_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[4]))
+        optionsnotebook.tabJourney.txtRAAN_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[6]))
+        optionsnotebook.tabJourney.txtAOP_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[8]))
+        optionsnotebook.tabJourney.txtMA_arrival0.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[10]))
+        optionsnotebook.tabJourney.txtSMA_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[1]))
+        optionsnotebook.tabJourney.txtECC_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[3]))
+        optionsnotebook.tabJourney.txtINC_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[5]))
+        optionsnotebook.tabJourney.txtRAAN_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[7]))
+        optionsnotebook.tabJourney.txtAOP_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[9]))
         optionsnotebook.tabJourney.txtMA_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[11]))
 
         #if there is only one journey in the list then disable delete, up, and down
@@ -1588,7 +1755,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1 or self.Journeys[self.ActiveJourney].journey_timebounded == 3:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(True)
@@ -1597,7 +1764,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        else:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -1920,14 +2087,20 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_initial_velocity1.Show(False)
             optionsnotebook.tabJourney.txtjourney_initial_velocity2.Show(False)
 
-        if self.Journeys[self.ActiveJourney].journey_departure_type == 3 or self.Journeys[self.ActiveJourney].journey_departure_type == 4:
+        if self.Journeys[self.ActiveJourney].journey_departure_type == 3 or self.Journeys[self.ActiveJourney].journey_departure_type == 4 or self.Journeys[self.ActiveJourney].journey_departure_type == 6:
             optionsnotebook.tabJourney.lbljourney_wait_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_upper.Show(False)
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
         else:
             optionsnotebook.tabJourney.lbljourney_wait_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_wait_time_bounds_upper.Show(True)
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(True)
 
         if self.Journeys[self.ActiveJourney].journey_arrival_type == 4 or self.Journeys[self.ActiveJourney].journey_arrival_type == 5:
             optionsnotebook.tabJourney.lbljourney_final_velocity.Show(True)
@@ -1970,14 +2143,21 @@ class MissionOptions(object):
         if self.Journeys[self.ActiveJourney].journey_departure_type == 5:
             optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
-            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
             optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(True)
             optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(True)
+        #free direct departure
+        elif self.Journeys[self.ActiveJourney].journey_departure_type == 2:
+            optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(False)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(False)
+            optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(False)
+            optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(False)
         else:
             #hide the initial v-infinity options
             optionsnotebook.tabJourney.lbljourney_initial_impulse_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
-            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_lower.Show(True)
+            optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.Show(True)
             optionsnotebook.tabJourney.lbljourney_escape_spiral_starting_radius.Show(False)
             optionsnotebook.tabJourney.txtjourney_escape_spiral_starting_radius.Show(False)
 
@@ -2001,6 +2181,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.btnjourney_perturbation_bodies.Show(False)
 
         optionsnotebook.tabJourney.Layout()
+        optionsnotebook.tabJourney.SetupScrolling()
 
     def update_spacecraft_options_panel(self, optionsnotebook):
         optionsnotebook.tabSpacecraft.txtmaximum_mass.SetValue(str(self.maximum_mass))
@@ -2024,6 +2205,8 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtpropellant_margin.SetValue(str(self.propellant_margin))
         optionsnotebook.tabSpacecraft.txtpower_margin.SetValue(str(self.power_margin))
         optionsnotebook.tabSpacecraft.txtLV_margin.SetValue(str(self.LV_margin))
+        optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.SetValue(self.enable_maximum_propellant_mass_constraint)
+        optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.SetValue(str(self.maximum_propellant_mass))
         optionsnotebook.tabSpacecraft.cmbengine_type.SetSelection(self.engine_type)
         optionsnotebook.tabSpacecraft.txtnumber_of_engines.SetValue(str(self.number_of_engines))
         optionsnotebook.tabSpacecraft.cmbthrottle_logic_mode.SetSelection(self.throttle_logic_mode)
@@ -2038,11 +2221,15 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.SetValue(str(self.engine_input_thrust_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.SetValue(str(self.engine_input_thrust_coefficients[3]))
         optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.SetValue(str(self.engine_input_thrust_coefficients[4]))
+        optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.SetValue(str(self.engine_input_thrust_coefficients[5]))
+        optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.SetValue(str(self.engine_input_thrust_coefficients[6]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.SetValue(str(self.engine_input_mass_flow_rate_coefficients[0]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.SetValue(str(self.engine_input_mass_flow_rate_coefficients[1]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.SetValue(str(self.engine_input_mass_flow_rate_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.SetValue(str(self.engine_input_mass_flow_rate_coefficients[3]))
         optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.SetValue(str(self.engine_input_mass_flow_rate_coefficients[4]))
+        optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.SetValue(str(self.engine_input_mass_flow_rate_coefficients[5]))
+        optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.SetValue(str(self.engine_input_mass_flow_rate_coefficients[6]))
         optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.SetValue(str(self.engine_input_power_bounds[0]))
         optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.SetValue(str(self.engine_input_power_bounds[1]))
         optionsnotebook.tabSpacecraft.txtpower_at_1_AU.SetValue(str(self.power_at_1_AU))
@@ -2057,6 +2244,21 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtspacecraft_power_coefficients1.SetValue(str(self.spacecraft_power_coefficients[1]))
         optionsnotebook.tabSpacecraft.txtspacecraft_power_coefficients2.SetValue(str(self.spacecraft_power_coefficients[2]))
         optionsnotebook.tabSpacecraft.txtpower_decay_rate.SetValue(str(self.power_decay_rate))
+
+        #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible
+        if self.minimum_dry_mass > 0.0 or self.enable_maximum_propellant_mass_constraint > 0:
+            optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(True)
+            optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(True)
+        else:
+            optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(False)
+            optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(False)
+
+        if self.enable_maximum_propellant_mass_constraint:
+            optionsnotebook.tabSpacecraft.lblmaximum_propellant_mass.Show(True)
+            optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Show(True)
+        else:
+            optionsnotebook.tabSpacecraft.lblmaximum_propellant_mass.Show(False)
+            optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Show(False)
 
         #switch various spacecraft fields visible and invisible depending on the mission type
         #launch vehicle types
@@ -2087,8 +2289,8 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblIspDS.Show(True)
             optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients.Show(False)
             optionsnotebook.tabSpacecraft.lblcustom_LV_C3_bounds.Show(False)
-            optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(True)
-            optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(True)
+            optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(False)
+            optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.txtIspDS.Show(True)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients1.Show(False)
@@ -2098,8 +2300,8 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients5.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_C3_bounds_lower.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_C3_bounds_upper.Show(False)
-            optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Show(True)
-            optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Show(True)
+            optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Show(False)
+            optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.lblLV_margin.Show(False)
             optionsnotebook.tabSpacecraft.txtLV_margin.Show(False)
             optionsnotebook.tabSpacecraft.lblLV_adapter_mass.Show(False)
@@ -2136,7 +2338,7 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtLV_adapter_mass.Show(False)
 
         #impulsive vs low-thrust missions
-        if self.mission_type == 0 or self.mission_type == 1:
+        if self.mission_type == 0 or self.mission_type == 1 or self.mission_type == 4:
             #impulsive mission
             optionsnotebook.tabSpacecraft.powergridtitle.Show(False)
             optionsnotebook.tabSpacecraft.lblIspChem.Show(True)
@@ -2171,11 +2373,15 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+            optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
             optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
             optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)
@@ -2232,11 +2438,15 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)
@@ -2287,11 +2497,15 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                 optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Show(False)
@@ -2368,11 +2582,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2403,11 +2621,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2438,11 +2660,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(False)
@@ -2472,11 +2698,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(True)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(True)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(True)
@@ -2505,11 +2735,15 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Show(False)
+                    optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Show(False)
                     optionsnotebook.tabSpacecraft.lblthrottle_logic_mode.Show(True)
@@ -2519,17 +2753,25 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabSpacecraft.Layout()
+        optionsnotebook.tabSpacecraft.SetupScrolling()
 
 
 
 
     def update_solver_options_panel(self, optionsnotebook):
 
+        if self.snopt_max_run_time > self.MBH_max_run_time:
+            self.snopt_max_run_time = self.MBH_max_run_time - 1
+
         #inner-loop solver options
         optionsnotebook.tabSolver.cmbInnerLoopSolver.SetSelection(self.run_inner_loop)
         optionsnotebook.tabSolver.cmbNLP_solver_type.SetSelection(self.NLP_solver_type)
         optionsnotebook.tabSolver.cmbNLP_solver_mode.SetSelection(self.NLP_solver_mode)
         optionsnotebook.tabSolver.chkquiet_NLP.SetValue(self.quiet_NLP)
+        optionsnotebook.tabSolver.chkquiet_MBH.SetValue(self.quiet_basinhopping)
+        optionsnotebook.tabSolver.chkMBH_two_step.SetValue(self.MBH_two_step)
+        optionsnotebook.tabSolver.txtFD_stepsize.SetValue(str(self.FD_stepsize))
+        optionsnotebook.tabSolver.txtFD_stepsize_coarse.SetValue(str(self.FD_stepsize_coarse))
         optionsnotebook.tabSolver.chkACE_feasible_point_finder.SetValue(self.ACE_feasible_point_finder)
         optionsnotebook.tabSolver.txtMBH_max_not_improve.SetValue(str(self.MBH_max_not_improve))
         optionsnotebook.tabSolver.txtMBH_max_trials.SetValue(str(self.MBH_max_trials))
@@ -2544,11 +2786,36 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.cmbderivative_type.SetSelection(self.derivative_type)
         optionsnotebook.tabSolver.chkcheck_derivatives.SetValue(self.check_derivatives)
         optionsnotebook.tabSolver.chkseed_MBH.SetValue(self.seed_MBH)
+        optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.SetSelection(self.initial_guess_control_coordinate_system)
         optionsnotebook.tabSolver.chkinterpolate_initial_guess.SetValue(self.interpolate_initial_guess)
         optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.SetValue(str(self.initial_guess_num_timesteps))
         optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.SetSelection(self.initial_guess_step_size_distribution)
         optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.SetValue(str(self.initial_guess_step_size_stdv_or_scale))
+        optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.SetSelection(self.MBH_zero_control_initial_guess)
         optionsnotebook.tabSolver.txttrialX.SetValue(str(self.trialX))
+
+        if self.run_inner_loop == 2:
+            optionsnotebook.tabSolver.lblMBH_two_step.Show(True)
+            optionsnotebook.tabSolver.chkMBH_two_step.Show(True)
+
+            if self.MBH_two_step:
+                optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(True)
+                optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(True)
+            else:
+                optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(False)
+                optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(False)
+        else:
+            optionsnotebook.tabSolver.lblMBH_two_step.Show(False)
+            optionsnotebook.tabSolver.chkMBH_two_step.Show(False)
+            optionsnotebook.tabSolver.lblFD_stepsize_coarse.Show(False)
+            optionsnotebook.tabSolver.txtFD_stepsize_coarse.Show(False)
+
+        if self.derivative_type < 3 and (self.run_inner_loop == 2 or self.run_inner_loop == 4):
+            optionsnotebook.tabSolver.lblFD_stepsize.Show(True)
+            optionsnotebook.tabSolver.txtFD_stepsize.Show(True)
+        else:
+            optionsnotebook.tabSolver.lblFD_stepsize.Show(False)
+            optionsnotebook.tabSolver.txtFD_stepsize.Show(False)
         
         if self.run_inner_loop == 0: #trialX
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
@@ -2588,6 +2855,12 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
 
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
+
         elif self.run_inner_loop == 1: #batch trialX
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
             optionsnotebook.tabSolver.lblMBH_max_trials.Show(False)
@@ -2625,6 +2898,12 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         elif self.run_inner_loop == 2: #MBH
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(True)
@@ -2660,6 +2939,12 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.cmbNLP_solver_mode.Show(True)
             optionsnotebook.tabSolver.chkquiet_NLP.Show(True)
             optionsnotebook.tabSolver.chkACE_feasible_point_finder.Show(True)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(True)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(True)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(True)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(True)
 
             #change the available parameters and labels based on which distribution is selected
             if self.MBH_hop_distribution == 0: #uniform
@@ -2716,6 +3001,12 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         elif self.run_inner_loop == 4: #SNOPT
             optionsnotebook.tabSolver.lblMBH_max_not_improve.Show(False)
@@ -2754,6 +3045,12 @@ class MissionOptions(object):
 
             optionsnotebook.tabSolver.lblMBH_Pareto_alpha.Show(False)
             optionsnotebook.tabSolver.txtMBH_Pareto_alpha.Show(False)
+
+            optionsnotebook.tabSolver.lblMBH_zero_control_initial_guess.Show(False)
+            optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Show(False)
+
+            optionsnotebook.tabSolver.lblquiet_MBH.Show(False)
+            optionsnotebook.tabSolver.chkquiet_MBH.Show(False)
             
         if (self.run_inner_loop == 2 and self.seed_MBH == 1) or (self.run_inner_loop == 4):
             optionsnotebook.tabSolver.lblinterpolate_initial_guess.Show(True)
@@ -2802,10 +3099,20 @@ class MissionOptions(object):
                 optionsnotebook.tabSolver.lblinitial_guess_step_size_stdv_or_scale.Show(True)
                 optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.Show(True)
         
+
+        #control coordinate system is only shown for low-thrust mission types with MBH or SNOPT
+        if (self.mission_type == 2 or self.mission_type == 3) and ( (self.run_inner_loop == 2 and self.seed_MBH == 1) or self.run_inner_loop == 4):
+            optionsnotebook.tabSolver.lblinitial_guess_control_coordinate_system.Show(True)
+            optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Show(True)
+        else:
+            optionsnotebook.tabSolver.lblinitial_guess_control_coordinate_system.Show(False)
+            optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Show(False)
+
+
         #outer-loop solver options
 
                                                                                 
-        optionsnotebook.tabSolver.chkrun_outerloop.SetValue(self.run_outerloop)
+        optionsnotebook.tabSolver.cmbrun_outerloop.SetSelection(self.run_outerloop)
         optionsnotebook.tabSolver.txtouterloop_popsize.SetValue(str(self.outerloop_popsize))
         optionsnotebook.tabSolver.txtouterloop_genmax.SetValue(str(self.outerloop_genmax))
         optionsnotebook.tabSolver.txtouterloop_tournamentsize.SetValue(str(self.outerloop_tournamentsize))
@@ -2816,7 +3123,6 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_ntrials.SetValue(str(self.outerloop_ntrials))
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
-        
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(True)
@@ -2838,6 +3144,27 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(True)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(True)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
+        elif self.run_outerloop == 2:
+            optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_tournamentsize.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_CR.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_mu.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_stallmax.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_tolfit.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_ntrials.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_elitecount.Show(False)
+            optionsnotebook.tabSolver.txtouterloop_warmstart.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_popsize.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_genmax.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_tournamentsize.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_CR.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_mu.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_stallmax.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_tolfit.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
+            optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -2862,6 +3189,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()
+        optionsnotebook.tabSolver.SetupScrolling()
 
 
     def update_physics_options_panel(self, optionsnotebook):
@@ -2875,6 +3203,7 @@ class MissionOptions(object):
         optionsnotebook.tabPhysics.txtspacecraft_area.SetValue(str(self.spacecraft_area))
         optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.SetValue(str(self.coefficient_of_reflectivity))
         optionsnotebook.tabPhysics.cmbspiral_model_type.SetSelection(self.spiral_model_type)
+        optionsnotebook.tabPhysics.cmblambert_type.SetSelection(self.LambertSolver)
 
         #if SRP is disabled, make the options associated with it invisible
         if self.perturb_SRP == 1:
@@ -2890,6 +3219,7 @@ class MissionOptions(object):
 
         #re-size the panel
         optionsnotebook.tabPhysics.Layout()
+        optionsnotebook.tabPhysics.SetupScrolling()
 
 
     def update_output_options_panel(self, optionsnotebook):

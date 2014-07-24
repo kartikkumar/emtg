@@ -7,10 +7,14 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "missionoptions.h"
 #include "mission.h"
-#include "integerGA.h"
 #include "outerloop_NSGAII.h"
+#include "outerloop_SGA.h"
 
 
 #include "universe.h"
@@ -21,13 +25,10 @@
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
 #include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
 
 #include "SpiceUsr.h"
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
 
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
@@ -39,11 +40,32 @@ using namespace boost::filesystem;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 
+#ifdef _STONEAGECplusplus
+#include <execinfo.h>
+#include <signal.h>
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+#endif
+
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
+#ifndef _STONEAGECplusplus
 	fs::path fort(L"fort.1"); 
-	fs::remove(fort); 
+	fs::remove(fort);
+#else
+	signal(SIGSEGV, handler);
+#endif
 
 
 	cout << "program starting" << endl;
@@ -66,55 +88,79 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	//if we are running in parallel, start MPI
+#ifdef EMTG_MPI
+	boost::mpi::environment MPIEnvironment;
+	boost::mpi::communicator MPIWorld;
+#endif
+
+
 	//create a working directory for the problem
-	//TODO this may change when we develop a parallel version
+	//only the head node should do this, then broadcast the folder name to everyone else
 	//*****************************************************************
-	ptime now = second_clock::local_time();
-	std::stringstream timestream;
-	timestream << static_cast<int>(now.date().month()) << "_" << now.date().day() << "_" << now.date().year() << "_" << now.time_of_day().hours() << "_" << now.time_of_day().minutes() << "_" << now.time_of_day().seconds();
-
-		
-	//define a new working directory
-	options.working_directory = "..//EMTG_v8_results//solutions_" + options.mission_name + "_" + timestream.str();
-	//create the working directory
-	try 
-	{ 
-		path p(options.working_directory);
-		path puniverse(options.working_directory + "/Universe");
-        boost::filesystem::create_directories (p); 
-		boost::filesystem::create_directories (puniverse);
-    } 
-	catch (std::exception &e) 
-	{ 
-		std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl; 
-    } 
-
-
-	//print the options file to the new directory
-	options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
-	
-
-	//load all ephemeris data
-	vector<fs::path> SPICE_files;
-	EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
-	EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
-
-	string filestring;
-	for (size_t k = 0; k < SPICE_files.size(); ++k)
+#ifdef EMTG_MPI
+	if (MPIWorld.rank() == 0)
+#endif
 	{
-		filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
-		furnsh_c(filestring.c_str());
+		ptime now = second_clock::local_time();
+		std::stringstream timestream;
+		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
+
+
+		//define a new working directory
+		options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+
+		if (!(options.run_outerloop == 2))
+		{
+			//create the working directory
+			try
+			{
+				path p(options.working_directory);
+				//path puniverse(options.working_directory + "/Universe");
+				boost::filesystem::create_directories(p);
+				//boost::filesystem::create_directories(puniverse);
+			}
+			catch (std::exception &e)
+			{
+				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+			}
+
+
+			//print the options file to the new directory
+			options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
+		}
+	} //end working directory creation and options file printing for head node
+
+	//broadcast the working directory to the other nodes
+#ifdef EMTG_MPI
+	boost::mpi::broadcast(MPIWorld, options.working_directory, 0);
+#endif
+	
+	
+	//load all ephemeris data if using SPICE
+	vector<fs::path> SPICE_files;
+	string filestring;
+	if (options.ephemeris_source == 1)
+	{	
+		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
+		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
+
+		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		{
+			filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
+			furnsh_c(filestring.c_str());
+		}
+
+		//SPICE reference frame kernel
+		string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
+		string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
+		furnsh_c(leapsecondstring.c_str());
+		furnsh_c(referenceframestring.c_str());
+
+		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
+		errprt_c((SpiceChar*)"SET", 100, "NONE");
+		erract_c((SpiceChar*)"SET", 100, "RETURN");
 	}
-
-	//SPICE reference frame kernel
-	string leapsecondstring = options.universe_folder + "/ephemeris_files/" + options.SPICE_leap_seconds_kernel;
-	string referenceframestring = options.universe_folder + "/ephemeris_files/" + options.SPICE_reference_frame_kernel;
-	furnsh_c(leapsecondstring.c_str());
-	furnsh_c(referenceframestring.c_str());
-
-	//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-	errprt_c ("SET", 100, "NONE");
-	erract_c ("SET", 100, "RETURN");
 
 	//create a vector of universes for each journey
 	boost::ptr_vector<EMTG::Astrodynamics::universe> TheUniverse;
@@ -126,9 +172,9 @@ int main(int argc, char* argv[])
 
 		universenamestream << options.journey_central_body[j] + "_Journey_" << j << ".universe_output";
 
-		TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
+		//TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
 
-		cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
+		//cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
 
 		if (TheUniverse[j].TU > options.TU)
 			options.TU = TheUniverse[j].TU;
@@ -138,35 +184,41 @@ int main(int argc, char* argv[])
 
 
 	//next, it is time to start the outer-loop
-	//if we are running in parallel, start MPI
+
+	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
+	{
+		//Step 1: instantiate an SGA object
 #ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
-	boost::mpi::communicator MPIWorld;
+		GeneticAlgorithm::outerloop_SGA SGA(options, &MPIEnvironment, &MPIWorld);
+#else
+		GeneticAlgorithm::outerloop_SGA SGA(options);
 #endif
 
-	if (options.run_outerloop && options.outerloop_objective_function_choices.size() == 0)
-	{
-		// TODO call to outer-loop GA
+		//Step 2: generate a random population
+		SGA.set_populationsize(options.outerloop_popsize);
+		SGA.set_mutationrate(options.outerloop_mu);
+		SGA.set_max_generations(options.outerloop_genmax);
+		SGA.set_CR(options.outerloop_CR);
+		SGA.set_elitecount(options.outerloop_elitecount);
+		SGA.set_tournament_size(options.outerloop_tournamentsize);
+		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+			SGA.read_archive(options.outerloop_warm_archive);
 
-		//Step 1: instantiate a random number generator
-		boost::mt19937 RNG;
-		RNG.seed(std::time(0));
+		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+			SGA.readpop(options.outerloop_warm_population);
+		else
+			SGA.generatepop();
 
-		//Step 2: instantiate a GA object
-		integerGA outerloop(&options, TheUniverse, RNG);
+		SGA.startclock();
+		SGA.evolve(options, TheUniverse);
 
-		//Step 3: make sure that output files are defined
-		if (options.solutions_file == "")
-			options.solutions_file = options.working_directory + "//solutions.txt";
-		if (options.population_file == "")
-			options.population_file = options.working_directory + "//population.txt";
-		if (options.convergence_file == "")
-			options.convergence_file = options.working_directory + "//convergence.txt";
+		//Step 3: write out the population
+		SGA.writepop(options.working_directory + "//SGA_final_population.SGA");
 
-		//Step 4: run the GA
-		outerloop.evolve(&options, TheUniverse);
+		//Step 4: write out the archive
+		SGA.write_archive(options.working_directory + "//SGA_archive.SGA");
 	}
-	else if (options.run_outerloop && options.outerloop_objective_function_choices.size() > 0)
+	else if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() > 1)
 	{
 		//Step 1: instantiate an NSGA-II object
 #ifdef EMTG_MPI
@@ -179,18 +231,23 @@ int main(int argc, char* argv[])
 		NSGAII.set_populationsize(options.outerloop_popsize);
 		NSGAII.set_mutationrate(options.outerloop_mu);
 		NSGAII.set_max_generations(options.outerloop_genmax);
-		NSGAII.generatepop();
+		NSGAII.set_CR(options.outerloop_CR);
+		if (options.outerloop_warmstart && !(options.outerloop_warm_archive == "none"))
+			NSGAII.read_archive(options.outerloop_warm_archive);
+
+		if (options.outerloop_warmstart && !(options.outerloop_warm_population == "none"))
+			NSGAII.readpop(options.outerloop_warm_population);
+		else
+			NSGAII.generatepop();
+
 		NSGAII.startclock();
 		NSGAII.evolve(options, TheUniverse);
 
-		//Step 3: evaluate the population, in this case meaning just get the names of the files
-		//NSGAII.evaluatepop(options, TheUniverse);
+		//Step 3: write out the population
+		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.NSGAII");
 
-		//Step 4: write out the population
-		NSGAII.writepop(options.working_directory + "//NSGAII_final_population.csv");
-
-		//Step 5: write out the archive
-		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.csv");
+		//Step 4: write out the archive
+		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 	}
 	else
 	{
@@ -275,9 +332,17 @@ int main(int argc, char* argv[])
 						//if we are interpolating an initial guess to change the resolution
 						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
 						{
-							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
+							TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
 						}
-						
+
+						//convert coordinate systems if applicable
+						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+						{
+							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+						}	
 					}
 					else if (options.run_inner_loop == 2)
 					{
@@ -286,6 +351,14 @@ int main(int argc, char* argv[])
 						if (options.interpolate_initial_guess && options.seed_MBH)
 							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
 
+						//convert coordinate systems if applicable
+						if (((options.run_inner_loop == 2 && options.seed_MBH) || options.run_inner_loop == 4) && (options.mission_type == 2 || options.mission_type == 3))
+						{
+							if (options.control_coordinate_system == 1 && options.initial_guess_control_coordinate_system == 0)
+								TrialMission.convert_cartesian_solution_to_polar(TrialMission.options.current_trialX);
+							else if (options.control_coordinate_system == 0 && options.initial_guess_control_coordinate_system == 1)
+								TrialMission.convert_polar_solution_to_cartesian(TrialMission.options.current_trialX);
+						}
 					}
 
 					
@@ -334,15 +407,17 @@ int main(int argc, char* argv[])
 
 	//unload SPICE
 
-
-	for (size_t k = 0; k < SPICE_files.size(); ++k)
+	if (options.ephemeris_source == 1)
 	{
-		filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
-		unload_c(filestring.c_str());
-	}
+		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		{
+			filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
+			unload_c(filestring.c_str());
+		}
 
-	unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
-	unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());	
+		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_leap_seconds_kernel).c_str());
+		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());
+	}
 
 #ifndef BACKGROUND_MODE
 	std::cout << "EMTG run complete. Press enter to close window." << endl;

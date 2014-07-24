@@ -1,10 +1,11 @@
 //header file for EMTG body class
 
+#include <string>
+#include <vector>
+
 #include "missionoptions.h"
 #include "frame.h"
 
-#include <string>
-#include <vector>
 
 using namespace std;
 
@@ -61,6 +62,7 @@ namespace EMTG {namespace Astrodynamics {
 		double RAAN; //in radians, convert this from input degrees
 		double AOP; //in radians, convert this from input degrees
 		double MA; //in radians, convert this from input degrees
+		double true_anomaly;
 		double universe_mu; //gravitational constant for the local universe
 		double minimum_safe_flyby_altitude; //in km, if this number is <= 0, then the object will not be a member of the flyby menu
 

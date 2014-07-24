@@ -3,6 +3,7 @@
 
 #include "Astrodynamics.h"
 #include "missionoptions.h"
+#include "EMTG_math.h"
 
 //if the proprietary switch is turned on, include the proprietary functions. This header file is NOT distributed with the open-source version of EMTG
 #ifdef _EMTG_proprietary
@@ -29,7 +30,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 								double* dPdt)
 {
 	//placeholders for engine performance coefficients
-	double at, bt, ct, dt, et, af, bf, cf, df, ef, minP, maxP, power_penalty;
+	double at, bt, ct, dt, et, ht, gt, af, bf, cf, df, ef, hf, gf, minP, maxP, power_penalty;
 
 	if (options->engine_type == 0) //fixed thrust, Isp
 	{
@@ -103,7 +104,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		//if applicable, model the decay rate of the power system
 		if (options->power_decay_rate > 1.0e-5)
 		{
-			double decay_coeff = pow( (1 - options->power_decay_rate), total_flight_time / 365.25 );
+			double decay_coeff = pow( (1 - options->power_decay_rate), total_flight_time / (365.25 * 86400.0) );
 			input_power *= decay_coeff;
 
 			if (generate_derivatives)
@@ -139,7 +140,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		*power = (1.0 - options->power_margin) * (input_power - spacecraft_power);
 		if (generate_derivatives)
 			*dPdr *= (1.0 - options->power_margin);
-		*power = *power < 0.0 ? 0.0 : *power;
+		*power = *power < math::SMALL ? math::SMALL : *power;
 
 		//now, what subtype of engine is this?
 		if (options->engine_type == 2 || options->engine_type == 4) //Isp is independent variable, power uses power model, and efficiency is fixed
@@ -228,7 +229,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		else if (options->engine_type == 12) //VASIMR analytical model
 			{
 #ifdef _EMTG_proprietary
-				EMTG::Proprietary::VASIMR_model(power, Isp, max_thrust, max_mass_flow_rate, options);
+			EMTG::Proprietary::VASIMR_model(power, Isp, max_thrust, max_mass_flow_rate, dTdP, dmdotdP, options);
 #else
 				cout << "VASIMR model not included in open-source version" << endl;
 				throw 1711;
@@ -237,7 +238,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		else if (options->engine_type == 13) //Xenon hall thruster analytical model
 			{
 #ifdef _EMTG_proprietary
-				EMTG::Proprietary::HallThrusterXenon_model(power, Isp, max_thrust, max_mass_flow_rate, options);
+			EMTG::Proprietary::HallThrusterXenon_model(power, Isp, max_thrust, max_mass_flow_rate, dTdP, dmdotdP, options);
 #else
 				cout << "Xenon Hall thruster model not included in open-source version" << endl;
 				throw 1711;
@@ -253,38 +254,95 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				ct = options->engine_input_thrust_coefficients[2];
 				dt = options->engine_input_thrust_coefficients[3];
 				et = options->engine_input_thrust_coefficients[4];
+				gt = options->engine_input_thrust_coefficients[5];
+				ht = options->engine_input_thrust_coefficients[6];
 
 				af = options->engine_input_mass_flow_rate_coefficients[0];
 				bf = options->engine_input_mass_flow_rate_coefficients[1];
 				cf = options->engine_input_mass_flow_rate_coefficients[2];
 				df = options->engine_input_mass_flow_rate_coefficients[3];
 				ef = options->engine_input_mass_flow_rate_coefficients[4];
+				gf = options->engine_input_mass_flow_rate_coefficients[5];
+				hf = options->engine_input_mass_flow_rate_coefficients[6];
 
 				minP = options->engine_input_power_bounds[0];
 				maxP = options->engine_input_power_bounds[1];
+			}
+			else if (options->engine_type == 21) //13 kW STMD Hall high-Isp
+			{
+#ifdef _EMTG_proprietary
+				EMTG::Proprietary::STMDHall13kWHIsp_model(&at,
+														&bt,
+														&ct,
+														&dt,
+														&et,
+														&gt,
+														&ht,
+														&af,
+														&bf,
+														&cf,
+														&df,
+														&ef,
+														&gf,
+														&hf,
+														&minP,
+														&maxP);
+#else
+				cout << "STMD 13 kW Hall thruster model not included in open-source version" << endl;
+				throw 1711;
+#endif
+			}
+			else if (options->engine_type == 22) //13 kW STMD Hall high-thrust
+			{
+#ifdef _EMTG_proprietary
+				EMTG::Proprietary::STMDHall13kWHthrust_model(&at,
+															&bt,
+															&ct,
+															&dt,
+															&et,
+															&gt,
+															&ht,
+															&af,
+															&bf,
+															&cf,
+															&df,
+															&ef,
+															&gf,
+															&hf,
+															&minP,
+															&maxP);
+#else
+				cout << "STMD 13 kW Hall thruster model not included in open-source version" << endl;
+				throw 1711;
+#endif
 			}
 			else //standard engine from list - these models are available in the public literature
 			{
 				static double min_power[] = {0.525, 0.436, 0.302, 0.302, 0.302, 1.252, 0.638, 0.638, 1.15, 16.2, 7.0, 5.0, 0.354};
 				static double max_power[] = {2.6, 5.03, 4.839, 4.839, 4.839, 7.455, 7.266, 7.266, 4.91, 23.04, 12.0, 17.5, 3.821};
                 int k = options->engine_type < 12 ? options->engine_type - 6 : options->engine_type - 8;
+				k = options->engine_type > 20 ? k - 2 : k;
                 
 	
 				//1: NSTAR, 2: XIPS-25, 3: BPT-4000 High-Isp, 4: BPT-4000 High-Thrust, 5: BPT-4000 Ex-High-Isp, 6: NEXT high-Isp old, 7: NEXT high-Isp v10, 8: NEXT high-thrust v10, 9: BPT-4000 MALTO, 10: NEXIS, 11: H6MS, 12: BHT20K, 13: Aerojet HiVHAC EM
 	
 				//first, the coefficients for thrust
-				static double At[] = {5.145602, 0.0367, -0.095437, 0.173870, 1.174296, 0.02334, -0.19082, 0.09591, -0.6574, 0.0, 0.0, 0.0, 0.0};
-				static double Bt[] = {-36.720293, -0.4966, 1.637023, -1.150940, -10.102479, -0.6815, 2.96519, -1.98537, 6.2683, 0.0, 0.0, 0.0, 0.0};
+				static double Ht[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+				static double Gt[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+				static double Et[] = {5.145602, 0.0367, -0.095437, 0.173870, 1.174296, 0.02334, -0.19082, 0.09591, -0.6574, 0.0, 0.0, 0.0, 0.0};
+				static double Dt[] = {-36.720293, -0.4966, 1.637023, -1.150940, -10.102479, -0.6815, 2.96519, -1.98537, 6.2683, 0.0, 0.0, 0.0, 0.0};
 				static double Ct[] = {90.486509, 1.4111, -9.517167, -2.118891, 19.422224, 6.882, -14.41789, 11.47980, -14.2820, 0.119, -0.775176, 0.035143, -4.2897};
-				static double Dt[] = {-51.694393, 35.3591, 72.030104, 77.342132, 47.927765, 3.7746, 54.05382, 15.06977, 37.751, 5.042, 58.399388, 51.393286, 54.696};
-				static double Et[] = {26.337459, -0.3984, -7.181341, -8.597025, 1.454064, 36.467, -1.92224e-6, 14.51552, 49.466, 293.9, 64.444882, -10.812857, 1.0202};
+				static double Bt[] = {-51.694393, 35.3591, 72.030104, 77.342132, 47.927765, 3.7746, 54.05382, 15.06977, 37.751, 5.042, 58.399388, 51.393286, 54.696};
+				static double At[] = {26.337459, -0.3984, -7.181341, -8.597025, 1.454064, 36.467, -1.92224e-6, 14.51552, 49.466, 293.9, 64.444882, -10.812857, 1.0202};
 	
 				//next, the coefficients for mass flow rate
-				static double Af[] = {0.36985, 0.0091, -0.008432, -0.011949, 0.086106, 0.002892, -0.004776, 0.01492, 0.0025, 0.0, 0.0, 0.0, -0.0271};
-				static double Bf[] = {-2.5372, -0.1219, 0.148511, 0.235144, -0.727280, -0.0718, 0.05717, -0.27539, -0.2629, 0.0, 0.0, 0.0, 0.2499};
+				static double Hf[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+				static double Gf[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+				static double Ef[] = {0.36985, 0.0091, -0.008432, -0.011949, 0.086106, 0.002892, -0.004776, 0.01492, 0.0025, 0.0, 0.0, 0.0, -0.0271};
+				static double Df[] = {-2.5372, -0.1219, 0.148511, 0.235144, -0.727280, -0.0718, 0.05717, -0.27539, -0.2629, 0.0, 0.0, 0.0, 0.2499};
 				static double Cf[] = {6.2539, 0.5402, -0.802790, -1.632373, 1.328508, 0.6470, -0.09956, 1.60966, 2.712, 0.01084, -0.019616, 0.0012, -0.9465};
-				static double Df[] = {-5.3568, 0.0426, 3.743362, 6.847936, 1.998082, -1.7266, 0.03211, -2.53056, -7.232, -0.49113, 1.5188, 2.0157, 2.4711};
-				static double Ef[] = {2.5060, 0.8211, 1.244345, 0.352444, 1.653105, 3.630, 2.13781, 3.22089, 12.204, 11.979, 1.4558, 0.9977, 1.251};
+				static double Bf[] = {-5.3568, 0.0426, 3.743362, 6.847936, 1.998082, -1.7266, 0.03211, -2.53056, -7.232, -0.49113, 1.5188, 2.0157, 2.4711};
+				static double Af[] = {2.5060, 0.8211, 1.244345, 0.352444, 1.653105, 3.630, 2.13781, 3.22089, 12.204, 11.979, 1.4558, 0.9977, 1.251};
 
 				minP = min_power[k];
 				maxP = max_power[k];
@@ -293,16 +351,21 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				ct = Ct[k];
 				dt = Dt[k];
 				et = Et[k];
+				gt = Gt[k];
+				ht = Ht[k];
 
 				af = Af[k];
 				bf = Bf[k];
 				cf = Cf[k];
 				df = Df[k];
 				ef = Ef[k];
+				gf = Gf[k];
+				hf = Hf[k];
 			}
 
 			//how many engines will we operate and at what power level?
 			double P_eff = 0.0;
+			double P_eff2, P_eff3, P_eff4, P_eff5, P_eff6;
 			*number_of_active_engines = 0;
 			if (*power >= minP)
 			{
@@ -334,7 +397,12 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 						if (*power > n*minP)
 						{
 							P_eff = min(*power / n, maxP);
-							double CurrentThrust = n*(at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et);
+							P_eff2 = P_eff*P_eff;
+							P_eff3 = P_eff*P_eff2;
+							P_eff4 = P_eff*P_eff3;
+							P_eff5 = P_eff*P_eff4;
+							P_eff6 = P_eff*P_eff5;
+							double CurrentThrust = n*(ht * P_eff6 + gt * P_eff5 + et*P_eff4 + dt*P_eff3 + ct*P_eff2 + bt*P_eff + at);
 							if (CurrentThrust > BestThrust)
 							{
 								BestThrust = CurrentThrust;
@@ -357,8 +425,13 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 						if (*power > n*minP)
 						{
 							P_eff = min(*power / n, maxP);
-							double CurrentFlowRate = n*(af*P_eff*P_eff*P_eff*P_eff + bf*P_eff*P_eff*P_eff + cf*P_eff*P_eff + df*P_eff + ef);
-							double CurrentThrust = n*(at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et);
+							P_eff2 = P_eff*P_eff;
+							P_eff3 = P_eff*P_eff2;
+							P_eff4 = P_eff*P_eff3;
+							P_eff5 = P_eff*P_eff4;
+							P_eff6 = P_eff*P_eff5;
+							double CurrentFlowRate = n*(hf * P_eff6 + gf * P_eff5 + ef*P_eff4 + df*P_eff3 + cf*P_eff2 + bf*P_eff + af);
+							double CurrentThrust = n*(ht * P_eff6 + gt * P_eff5 + et*P_eff4 + dt*P_eff3 + ct*P_eff2 + bt*P_eff + at);
 							double CurrentIsp = CurrentThrust / CurrentFlowRate / options->g0 * 1000.0;
 							if (CurrentIsp > BestIsp)
 							{
@@ -382,8 +455,13 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 						if (*power > n*minP)
 						{
 							P_eff = min(*power / n, maxP);
-							double CurrentFlowRate = n*(af*P_eff*P_eff*P_eff*P_eff + bf*P_eff*P_eff*P_eff + cf*P_eff*P_eff + df*P_eff + ef);
-							double CurrentThrust = n*(at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et);
+							P_eff2 = P_eff*P_eff;
+							P_eff3 = P_eff*P_eff2;
+							P_eff4 = P_eff*P_eff3;
+							P_eff5 = P_eff*P_eff4;
+							P_eff6 = P_eff*P_eff5;
+							double CurrentFlowRate = n*(hf * P_eff6 + gf * P_eff5 + ef*P_eff4 + df*P_eff3 + cf*P_eff2 + bf*P_eff + af);
+							double CurrentThrust = n*(ht * P_eff6 + gt * P_eff5 + et*P_eff4 + dt*P_eff3 + ct*P_eff2 + bt*P_eff + at);
 							double CurrentIsp = CurrentThrust / CurrentFlowRate / options->g0 * 1000.0;
 							double CurrentEfficiency = CurrentThrust * CurrentIsp * options->g0 / (2000 * P_eff);
 							if (CurrentEfficiency > BestEfficiency)
@@ -436,10 +514,15 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			}
 
 			//next compute Thrust in mN
-			T = (1.0 - dX) * at*P_eff*P_eff*P_eff*P_eff + bt*P_eff*P_eff*P_eff + ct*P_eff*P_eff + dt*P_eff + et;
+			P_eff2 = P_eff*P_eff;
+			P_eff3 = P_eff*P_eff2;
+			P_eff4 = P_eff*P_eff3;
+			P_eff5 = P_eff*P_eff4;
+			P_eff6 = P_eff*P_eff5;
+			T = (1.0 - dX) * (ht * P_eff6 + gt * P_eff5 + et*P_eff4 + dt*P_eff3 + ct*P_eff2 + bt*P_eff + at);
 			
 			//next compute mass flow rate in mg/s
-			F = (1.0 - dX) * af*P_eff*P_eff*P_eff*P_eff + bf*P_eff*P_eff*P_eff + cf*P_eff*P_eff + df*P_eff + ef;
+			F = (1.0 - dX) * (hf * P_eff6 + gf * P_eff5 + ef*P_eff4 + df*P_eff3 + cf*P_eff2 + bf*P_eff + af);
 			
 
 			if (*power < minP)
@@ -455,11 +538,12 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			*Isp = *max_thrust / *max_mass_flow_rate / options->g0;
 			*active_power = *number_of_active_engines * P_eff;
 			
+			
 
 			if (generate_derivatives)
 			{
-				*dTdP = ((1.0 - dX)*(4*at*P_eff*P_eff*P_eff + 3*bt*P_eff*P_eff + 2*ct*P_eff + dt) + ddXdP*T) * 1.0e-3 * *number_of_active_engines;
-				*dmdotdP = ((1.0 - dX)*(4*af*P_eff*P_eff*P_eff + 3*bf*P_eff*P_eff + 2*cf*P_eff + df) + ddXdP*F)  * 1.0e-6 * *number_of_active_engines;
+				*dTdP = ((1.0 - dX)*(6*ht*P_eff5 + 5*gt*P_eff4 + 4*et*P_eff3 + 3*dt*P_eff2 + 2*ct*P_eff + bt) + ddXdP*T) * 1.0e-3 * *number_of_active_engines;
+				*dmdotdP = ((1.0 - dX)*(6*hf*P_eff5 + 5*gf*P_eff4 + 4*ef*P_eff3 + 3*df*P_eff2 + 2*cf*P_eff + bf) + ddXdP*F)  * 1.0e-6 * *number_of_active_engines;
 				*dTdIsp = 0.0;
 				*dmdotdIsp = 0.0;
 
@@ -475,7 +559,9 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			*power = input_power;
 		}
 	}
-	
+	*max_thrust /= 1000.0; //kN to N conversion
+	*dTdIsp /= 1000.0; //kN to N conversion
+	*dTdP /= 1000.0; //kN to N conversion
 	return 0;
 }
 

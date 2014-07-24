@@ -1,7 +1,7 @@
 //header file for Lagrangian Kepler
-
+#include <cmath>
 #include "STM.h"
-#include <math.h>
+
 
 
 namespace Kepler

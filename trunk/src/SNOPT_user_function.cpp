@@ -1,12 +1,14 @@
 //SNOPT user function
 
-#include "snoptProblem.h"
-#include "problem.h"
-
 #include <ctime>
 #include <iostream>
 
-using namespace std;
+#include "problem.h"
+
+#include "snopt.hh"
+
+
+
 
 namespace EMTG { namespace Solvers {
 
@@ -28,9 +30,11 @@ namespace EMTG { namespace Solvers {
 		{
 			Problem->evaluate(&(Problem->X[0]), F, G, *needG, Problem->iGfun, Problem->jGvar);
 		}
-		catch (int errorcode) //integration step error
+		catch (int errorcode)
 		{
-			if (errorcode == 13)
+			if (errorcode == 13)  //integration step error
+				*Status = -1;
+			if (errorcode == 1000000) //Kepler solver error
 				*Status = -1;
 		}
 
@@ -38,7 +42,7 @@ namespace EMTG { namespace Solvers {
 		time_t now = time(NULL);
 		if (now - (time_t) *iu > Problem->options.snopt_max_run_time)
 		{
-			cout << "Exceeded SNOPT time limit of " << Problem->options.snopt_max_run_time << " seconds. Aborting SNOPT run." << endl;
+			std::cout << "Exceeded SNOPT time limit of " << Problem->options.snopt_max_run_time << " seconds. Aborting SNOPT run." << std::endl;
 			*Status = -2;
 		}
 

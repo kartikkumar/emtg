@@ -5,6 +5,8 @@ import Universe
 import BodyPicker
 import Archive
 import ArchivePanel
+import NSGAIIpopulation
+import NSGAIIpanel
 import numpy as np
 import OptionsNotebook
 import UniverseNotebook
@@ -126,6 +128,10 @@ class PyEMTG_interface(wx.Frame):
         elif self.mode == "archive":
             self.archivepanel.SetSize((MySize.x, MySize.y))
             self.archivepanel.Layout()
+
+        elif self.mode == "NSGAII":
+            self.NSGAIIpanel.SetSize((MySize.x, MySize.y))
+            self.NSGAIIpanel.Layout()
         
     def OnNewMission(self, e):
         #If the GUI has not yet loaded anything then create a new mission. Otherwise as for permission first.
@@ -167,6 +173,11 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = ""
                     self.archive = []
                     self.archivepanel.Destroy()
+
+                elif self.mode == "NSGAII":
+                    self.mode = ""
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
                 #attempt to open a new options file
                 self.dirname = self.homedir
@@ -219,6 +230,11 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = ""
                     self.archive = []
                     self.archivepanel.Destroy()
+
+                elif self.mode == "NSGAII":
+                    self.mode = ""
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
                 #attempt to open a new universe file
                 self.dirname = self.homedir
@@ -283,7 +299,7 @@ class PyEMTG_interface(wx.Frame):
         
     
     def OpenFile(self, e):
-        dlg = wx.FileDialog(self, "Open an EMTG file", self.dirname, "", "*.emtg*", wx.OPEN)
+        dlg = wx.FileDialog(self, "Open an EMTG file", self.dirname, "", "*.emtg*;*.NSGAII", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
@@ -296,7 +312,6 @@ class PyEMTG_interface(wx.Frame):
                 self.missionoptions = []
                 self.optionsnotebook.Destroy()
                 
-
             elif self.mode == "mission":
                 self.mission = []
                 self.missionpanel.Destroy()
@@ -308,6 +323,10 @@ class PyEMTG_interface(wx.Frame):
             elif self.mode == "archive":
                     self.archive = []
                     self.archivepanel.Destroy()
+
+            elif self.mode == "NSGAII":
+                    self.NSGAII = []
+                    self.NSGAIIpanel.Destroy()
 
             self.mode = ""
 
@@ -348,6 +367,15 @@ class PyEMTG_interface(wx.Frame):
                     self.mode = "archive"
                     self.lblWelcome.Show(False)
                     self.InitializeArchiveProcessor()
+                    self.fileMenu.Enable(wx.ID_EDIT, True)
+                    self.fileMenu.Enable(wx.ID_SAVE, False)
+
+            elif fileparts[1] == "NSGAII":
+                self.NSGAII = NSGAIIpopulation.NSGAII_outerloop_population(os.path.join(self.dirname, self.filename))
+                if self.NSGAII.success == 1:
+                    self.mode = "NSGAII"
+                    self.lblWelcome.Show(False)
+                    self.InitializeNSGAIIPanel()
                     self.fileMenu.Enable(wx.ID_EDIT, True)
                     self.fileMenu.Enable(wx.ID_SAVE, False)
 
@@ -395,6 +423,10 @@ class PyEMTG_interface(wx.Frame):
         #create and size an Archive panel object
         self.archivepanel = ArchivePanel.ArchivePanel(self, self.archive)
         self.archivepanel.SetSize(self.GetSize())
+
+    def InitializeNSGAIIPanel(self):
+        self.NSGAIIpanel = NSGAIIpanel.NSGAIIpanel(self, self.NSGAII)
+        self.NSGAIIpanel.SetSize(self.GetSize())
         
     def InitializeMissionOptionsEditor(self):
         #create an options notebook object
@@ -409,6 +441,7 @@ class PyEMTG_interface(wx.Frame):
         #global mission options
         self.optionsnotebook.tabGlobal.txtMissionName.Bind(wx.EVT_KILL_FOCUS, self.ChangeMissionName)
         self.optionsnotebook.tabGlobal.cmbMissionType.Bind(wx.EVT_COMBOBOX, self.ChangeMissionType)
+        self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Bind(wx.EVT_KILL_FOCUS, self.Changemaximum_number_of_lambert_revolutions)
         self.optionsnotebook.tabGlobal.cmbobjective_type.Bind(wx.EVT_COMBOBOX,self.Changeobjective_type)
         self.optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.Bind(wx.EVT_CHECKBOX,self.Changeinclude_initial_impulse_in_cost)
         self.optionsnotebook.tabGlobal.txtmax_phases_per_journey.Bind(wx.EVT_KILL_FOCUS,self.Changemax_phases_per_journey)
@@ -417,6 +450,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabGlobal.txtnum_timesteps.Bind(wx.EVT_KILL_FOCUS,self.Changenum_timesteps)
         self.optionsnotebook.tabGlobal.cmbstep_size_distribution.Bind(wx.EVT_COMBOBOX,self.Changestep_size_distribution)
         self.optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.Bind(wx.EVT_KILL_FOCUS,self.Changestep_size_stdv_or_scale)
+        self.optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.Bind(wx.EVT_COMBOBOX, self.Changecontrol_coordinate_system)
         self.optionsnotebook.tabGlobal.txtDLA_bounds_lower.Bind(wx.EVT_KILL_FOCUS,self.ChangeDLA_bounds_lower)
         self.optionsnotebook.tabGlobal.txtDLA_bounds_upper.Bind(wx.EVT_KILL_FOCUS,self.ChangeDLA_bounds_upper)
         self.optionsnotebook.tabGlobal.chkglobal_timebounded.Bind(wx.EVT_CHECKBOX,self.Changeglobal_timebounded)
@@ -449,9 +483,12 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Bind(wx.EVT_KILL_FOCUS, self.Changeparking_orbit_altitude)
         self.optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Bind(wx.EVT_KILL_FOCUS, self.Changeparking_orbit_inclination)
         self.optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_Isp)
+        self.optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.Bind(wx.EVT_CHECKBOX, self.Changeenable_maximum_propellant_mass_constraint)
+        self.optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.Bind(wx.EVT_KILL_FOCUS, self.Changemaximum_propellant_mass)
         self.optionsnotebook.tabSpacecraft.txtpropellant_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepropellant_margin)
         self.optionsnotebook.tabSpacecraft.txtpower_margin.Bind(wx.EVT_KILL_FOCUS, self.Changepower_margin)
         self.optionsnotebook.tabSpacecraft.txtLV_margin.Bind(wx.EVT_KILL_FOCUS, self.ChangeLV_margin)
+        self.optionsnotebook.tabSpacecraft.txtLV_adapter_mass.Bind(wx.EVT_KILL_FOCUS, self.Change_LV_adapter_mass)
         self.optionsnotebook.tabSpacecraft.cmbengine_type.Bind(wx.EVT_COMBOBOX, self.Changeengine_type)
         self.optionsnotebook.tabSpacecraft.txtnumber_of_engines.Bind(wx.EVT_KILL_FOCUS, self.Changenumber_of_engines)
         self.optionsnotebook.tabSpacecraft.cmbthrottle_logic_mode.Bind(wx.EVT_COMBOBOX, self.Changethrottle_logic_mode)
@@ -466,11 +503,15 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients2)
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients3.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients3)
         self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients4)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients5)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_thrust_coefficients6)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients0)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients1.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients1)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients2.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients2)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients3.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients3)
         self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients4)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients5)
+        self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_mass_flow_rate_coefficients6)
         self.optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_lower.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_power_bounds_lower)
         self.optionsnotebook.tabSpacecraft.txtengine_input_power_bounds_upper.Bind(wx.EVT_KILL_FOCUS, self.Changeengine_input_power_bounds_upper)
         self.optionsnotebook.tabSpacecraft.txtpower_at_1_AU.Bind(wx.EVT_KILL_FOCUS, self.Changepower_at_1_AU)
@@ -586,6 +627,10 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.cmbNLP_solver_type.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_type)
         self.optionsnotebook.tabSolver.cmbNLP_solver_mode.Bind(wx.EVT_COMBOBOX, self.ChangeNLP_solver_mode)
         self.optionsnotebook.tabSolver.chkquiet_NLP.Bind(wx.EVT_CHECKBOX, self.Changequiet_NLP)
+        self.optionsnotebook.tabSolver.chkquiet_MBH.Bind(wx.EVT_CHECKBOX, self.Changequiet_MBH)
+        self.optionsnotebook.tabSolver.chkMBH_two_step.Bind(wx.EVT_CHECKBOX, self.ChangeMBH_two_step)
+        self.optionsnotebook.tabSolver.txtFD_stepsize.Bind(wx.EVT_KILL_FOCUS, self.ChangeFD_stepsize)
+        self.optionsnotebook.tabSolver.txtFD_stepsize_coarse.Bind(wx.EVT_KILL_FOCUS, self.ChangeFD_stepsize_coarse)
         self.optionsnotebook.tabSolver.chkACE_feasible_point_finder.Bind(wx.EVT_CHECKBOX, self.ChangeACE_feasible_point_finder)
         self.optionsnotebook.tabSolver.txtMBH_max_not_improve.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_not_improve)
         self.optionsnotebook.tabSolver.txtMBH_max_trials.Bind(wx.EVT_KILL_FOCUS, self.ChangeMBH_max_trials)
@@ -600,12 +645,14 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabSolver.cmbderivative_type.Bind(wx.EVT_COMBOBOX, self.Changederivative_type)
         self.optionsnotebook.tabSolver.chkcheck_derivatives.Bind(wx.EVT_CHECKBOX, self.ChangeCheckDerivatives)
         self.optionsnotebook.tabSolver.chkseed_MBH.Bind(wx.EVT_CHECKBOX, self.ChangeSeedMBH)
+        self.optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.Bind(wx.EVT_COMBOBOX, self.Changeinitial_guess_control_coordinate_system)
         self.optionsnotebook.tabSolver.chkinterpolate_initial_guess.Bind(wx.EVT_CHECKBOX, self.ChangeInterpolateInitialGuess)
         self.optionsnotebook.tabSolver.txtinitial_guess_num_timesteps.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_num_timesteps)
         self.optionsnotebook.tabSolver.cmbinitial_guess_step_size_distribution.Bind(wx.EVT_COMBOBOX, self.Changeinitial_guess_step_size_distribution)
         self.optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.Bind(wx.EVT_KILL_FOCUS, self.Changeinitial_guess_step_size_stdv_or_scale)
+        self.optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.Bind(wx.EVT_COMBOBOX, self.ChangeMBH_zero_control_initial_guess)
         
-        self.optionsnotebook.tabSolver.chkrun_outerloop.Bind(wx.EVT_CHECKBOX,self.Changerun_outerloop)
+        self.optionsnotebook.tabSolver.cmbrun_outerloop.Bind(wx.EVT_COMBOBOX,self.Changerun_outerloop)
         self.optionsnotebook.tabSolver.txtouterloop_popsize.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_popsize)
         self.optionsnotebook.tabSolver.txtouterloop_genmax.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_genmax)
         self.optionsnotebook.tabSolver.txtouterloop_tournamentsize.Bind(wx.EVT_KILL_FOCUS,self.Changeouterloop_tournamentsize)
@@ -633,6 +680,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabPhysics.txtspacecraft_area.Bind(wx.EVT_KILL_FOCUS,self.Changespacecraft_area)
         self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.Bind(wx.EVT_KILL_FOCUS,self.Changecoefficient_of_reflectivity)
         self.optionsnotebook.tabPhysics.cmbspiral_model_type.Bind(wx.EVT_COMBOBOX, self.Changespiral_model_type)
+        self.optionsnotebook.tabPhysics.cmblambert_type.Bind(wx.EVT_COMBOBOX, self.ChangeLambertSolver)
 
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
@@ -645,6 +693,10 @@ class PyEMTG_interface(wx.Frame):
         
     def ChangeMissionType(self, e):
         self.missionoptions.mission_type = self.optionsnotebook.tabGlobal.cmbMissionType.GetSelection()
+        self.missionoptions.update_all_panels(self.optionsnotebook)
+
+    def Changemaximum_number_of_lambert_revolutions(self, e):
+        self.missionoptions.maximum_number_of_lambert_revolutions = int(self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.GetValue())
         self.missionoptions.update_all_panels(self.optionsnotebook)
 
     def Changeobjective_type(self, e):
@@ -678,6 +730,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changestep_size_stdv_or_scale(self, e):
         self.missionoptions.step_size_stdv_or_scale = eval(self.optionsnotebook.tabGlobal.txtstep_size_stdv_or_scale.GetValue())
+        self.missionoptions.update_global_options_panel(self.optionsnotebook)
+
+    def Changecontrol_coordinate_system(self, e):
+        self.missionoptions.control_coordinate_system = self.optionsnotebook.tabGlobal.cmbcontrol_coordinate_system.GetSelection()
         self.missionoptions.update_global_options_panel(self.optionsnotebook)
 
     def ChangeDLA_bounds_lower(self, e):
@@ -797,6 +853,14 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.post_mission_Isp = eval(self.optionsnotebook.tabSpacecraft.txtpost_mission_Isp.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
+    def Changeenable_maximum_propellant_mass_constraint(self, e):
+        self.missionoptions.enable_maximum_propellant_mass_constraint = self.optionsnotebook.tabSpacecraft.chkenable_propellant_mass_constraint.GetValue()
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changemaximum_propellant_mass(self, e):
+        self.missionoptions.maximum_propellant_mass = eval(self.optionsnotebook.tabSpacecraft.txtmaximum_propellant_mass.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
     def Changepropellant_margin(self, e):
         self.missionoptions.propellant_margin = eval(self.optionsnotebook.tabSpacecraft.txtpropellant_margin.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
@@ -807,6 +871,10 @@ class PyEMTG_interface(wx.Frame):
 
     def ChangeLV_margin(self, e):
         self.missionoptions.LV_margin = eval(self.optionsnotebook.tabSpacecraft.txtLV_margin.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Change_LV_adapter_mass(self, e):
+        self.missionoptions.LV_adapter_mass = eval(self.optionsnotebook.tabSpacecraft.txtLV_adapter_mass.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
     def Changeengine_type(self, e):
@@ -865,6 +933,14 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.engine_input_thrust_coefficients[4] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients4.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
+    def Changeengine_input_thrust_coefficients5(self, e):
+        self.missionoptions.engine_input_thrust_coefficients[5] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients5.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_thrust_coefficients6(self, e):
+        self.missionoptions.engine_input_thrust_coefficients[6] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients6.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
     def Changeengine_input_mass_flow_rate_coefficients0(self, e):
         self.missionoptions.engine_input_mass_flow_rate_coefficients[0] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients0.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
@@ -883,6 +959,14 @@ class PyEMTG_interface(wx.Frame):
 
     def Changeengine_input_mass_flow_rate_coefficients4(self, e):
         self.missionoptions.engine_input_mass_flow_rate_coefficients[4] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients4.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_mass_flow_rate_coefficients5(self, e):
+        self.missionoptions.engine_input_mass_flow_rate_coefficients[5] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients5.GetValue())
+        self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
+
+    def Changeengine_input_mass_flow_rate_coefficients6(self, e):
+        self.missionoptions.engine_input_mass_flow_rate_coefficients[6] = eval(self.optionsnotebook.tabSpacecraft.txtengine_input_mass_flow_rate_coefficients6.GetValue())
         self.missionoptions.update_spacecraft_options_panel(self.optionsnotebook)
 
     def Changeengine_input_power_bounds_lower(self, e):
@@ -1061,8 +1145,8 @@ class PyEMTG_interface(wx.Frame):
 
     def Changejourney_initial_impulse_bounds_upper(self, e):
         self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = eval(self.optionsnotebook.tabJourney.txtjourney_initial_impulse_bounds_upper.GetValue())
-        if self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] < 1.0e-6:
-            self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = 1.0e-6
+        if self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] < 1.0e-8:
+            self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_initial_impulse_bounds[1] = 1.0e-8
 
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
@@ -1184,43 +1268,43 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtECC_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtECC_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtINC_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtINC_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtAOP_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtAOP_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_departure0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtMA_departure0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtMA_departure0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeSMA_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtSMA_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtSMA_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtECC_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtECC_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtINC_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtINC_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtRAAN_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_departure1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtAOP_departure1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_departure_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtAOP_departure1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_departure1(self, e):
@@ -1284,43 +1368,43 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtECC_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtECC_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[2] = eval(self.optionsnotebook.tabJourney.txtINC_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtINC_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[4] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_arrival0(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtMA_arrival0.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtMA_arrival0.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeSMA_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[6] = eval(self.optionsnotebook.tabJourney.txtSMA_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[1] = eval(self.optionsnotebook.tabJourney.txtSMA_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeECC_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtECC_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[3] = eval(self.optionsnotebook.tabJourney.txtECC_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeINC_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[8] = eval(self.optionsnotebook.tabJourney.txtINC_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[5] = eval(self.optionsnotebook.tabJourney.txtINC_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeRAAN_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[7] = eval(self.optionsnotebook.tabJourney.txtRAAN_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeAOP_arrival1(self, e):
-        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[10] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival1.GetValue())
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_elements_bounds[9] = eval(self.optionsnotebook.tabJourney.txtAOP_arrival1.GetValue())
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
     def ChangeMA_arrival1(self, e):
@@ -1416,6 +1500,22 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.quiet_NLP = int(self.optionsnotebook.tabSolver.chkquiet_NLP.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
+    def Changequiet_MBH(self, e):
+        self.missionoptions.quiet_basinhopping = int(self.optionsnotebook.tabSolver.chkquiet_MBH.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def ChangeMBH_two_step(self, e):
+        self.missionoptions.MBH_two_step = int(self.optionsnotebook.tabSolver.chkMBH_two_step.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def ChangeFD_stepsize(self, e):
+        self.missionoptions.FD_stepsize = eval(self.optionsnotebook.tabSolver.txtFD_stepsize.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def ChangeFD_stepsize_coarse(self, e):
+        self.missionoptions.FD_stepsize_coarse = eval(self.optionsnotebook.tabSolver.txtFD_stepsize_coarse.GetValue())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
     def ChangeACE_feasible_point_finder(self, e):
         self.missionoptions.ACE_feasible_point_finder = int(self.optionsnotebook.tabSolver.chkACE_feasible_point_finder.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
@@ -1469,6 +1569,10 @@ class PyEMTG_interface(wx.Frame):
     def ChangeSeedMBH(self, e):
         self.missionoptions.seed_MBH = int(self.optionsnotebook.tabSolver.chkseed_MBH.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+
+    def Changeinitial_guess_control_coordinate_system(self, e):
+        self.missionoptions.initial_guess_control_coordinate_system = self.optionsnotebook.tabSolver.cmbinitial_guess_control_coordinate_system.GetSelection()
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
     
     def ChangeInterpolateInitialGuess(self, e):
         self.missionoptions.interpolate_initial_guess = int(self.optionsnotebook.tabSolver.chkinterpolate_initial_guess.GetValue())
@@ -1485,11 +1589,15 @@ class PyEMTG_interface(wx.Frame):
     def Changeinitial_guess_step_size_stdv_or_scale(self, e):
         self.missionoptions.initial_guess_step_size_stdv_or_scale = eval(self.optionsnotebook.tabSolver.txtinitial_guess_step_size_stdv_or_scale.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
-        
-    def Changerun_outerloop(self, e):
-        self.missionoptions.run_outerloop=int(self.optionsnotebook.tabSolver.chkrun_outerloop.GetValue())
+    
+    def ChangeMBH_zero_control_initial_guess(self, e):
+        self.missionoptions.MBH_zero_control_initial_guess = self.optionsnotebook.tabSolver.cmbMBH_zero_control_initial_guess.GetSelection()
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
         
+    def Changerun_outerloop(self, e):
+        self.missionoptions.run_outerloop = int(self.optionsnotebook.tabSolver.cmbrun_outerloop.GetSelection())
+        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
+  
     def Changeouterloop_popsize(self, e):
         self.missionoptions.outerloop_popsize=eval(self.optionsnotebook.tabSolver.txtouterloop_popsize.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
@@ -1589,9 +1697,12 @@ class PyEMTG_interface(wx.Frame):
     def Changespiral_model_type(self, e):
         self.missionoptions.spiral_model_type = self.optionsnotebook.tabPhysics.cmbspiral_model_type.GetSelection()
 
+    def ChangeLambertSolver(self, e):
+        self.missionoptions.LambertSolver = self.optionsnotebook.tabPhysics.cmblambert_type.GetSelection()
+
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())

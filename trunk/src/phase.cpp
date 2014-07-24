@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "phase.h"
 #include "journey.h"
 #include "Astrodynamics.h"
@@ -13,10 +17,6 @@
 #include "universe.h"
 
 #include "SpiceUsr.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 using namespace std;
 
@@ -58,7 +58,7 @@ namespace EMTG {
 			this->Body2 = &Universe->bodies[boundary2_location_code - 1];
 
 		//we need to know if we are the first phase of the journey and the journey does not start with a flyby
-		if (p == 0 && !(options->journey_departure_type[j] == 3))
+		if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			//Step 1: extract the journey start epoch
 			//if this is the first journey, the first decision variable is the starting epoch
@@ -100,7 +100,7 @@ namespace EMTG {
 
 			//Step 3: compute the departure asymptote
 			//Step 3.1 extract the departure parameters
-			if (!(options->journey_departure_type[j] == 5)) //if this journey starts with an impulse
+			if (!(options->journey_departure_type[j] == 5 || options->journey_departure_type[j] == 2)) //if this journey starts with an impulse
 			{
 				vinf_out = X[*Xindex];
 				this->C3_departure = vinf_out*vinf_out;
@@ -164,10 +164,7 @@ namespace EMTG {
 						{
 							double expfun = exp(-vinf_out * 1000 / (options->IspDS * options->g0));
 
-							double initialmass = options->maximum_mass * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (options->maximum_mass + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -initialmass * 1000 / (options->IspDS * options->g0) * expfun;
@@ -178,20 +175,14 @@ namespace EMTG {
 						double expfun = exp(-vinf_out * 1000 / (options->IspChem * options->g0));
 						if (j > 0)
 						{
-							double initialmass = current_state[6] * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (current_state[6] + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -initialmass * 1000 / (options->IspChem * options->g0) * expfun;
 						}
 						else
 						{
-							double initialmass = options->maximum_mass * expfun;
-
-							//add the starting mass increment
-							initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+							double initialmass = (current_state[6] + this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j]) * expfun;
 
 							this->state_at_beginning_of_phase[6] = initialmass;
 							this->dmdvinf = -options->maximum_mass * 1000 / (options->IspChem * options->g0) * expfun;
@@ -203,6 +194,9 @@ namespace EMTG {
 
 						//add the starting mass increment
 						this->state_at_beginning_of_phase[6] += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+						this->C3_departure = 0.0;
+						this->RA_departure = 0.0;
+						this->DEC_departure = 0.0;
 
 						this->dmdvinf = 0.0;
 					}
@@ -241,6 +235,40 @@ namespace EMTG {
 					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
 				}
 			}//end code for journeys that start with an impulse
+			else if (options->journey_departure_type[j] == 2)//free direct departure
+			{
+				//journeys which start from a spiral have no initial impulse
+				this->C3_departure = 0;
+				this->RA_departure = 0;
+				this->DEC_departure = 0;
+
+				//Step 3.2 compute the outgoing velocity vector
+				this->V_infinity_out.assign_zeros();
+
+				
+				//*******************************************************
+				//Step 4: compute the state post-departure
+
+				for (int k = 0; k < 6; ++k)
+					this->state_at_beginning_of_phase[k] = boundary1_state[k];
+
+				double initialmass = j == 0 ? options->maximum_mass : current_state[6];
+
+				//add the starting mass increment
+				initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+
+				this->state_at_beginning_of_phase[6] = initialmass;
+				this->dmdvinf = 0.0;
+
+				if (j == 0 && options->allow_initial_mass_to_vary)
+				{
+					//if we have enabled varying the initial mass, then pass through a mass multiplier
+					this->mission_initial_mass_multiplier = X[*Xindex];
+					++(*Xindex);
+					this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
+					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
+				}
+			}
 			else if (options->journey_departure_type[j] == 5)//for journeys starting with a spiral
 			{
 				//journeys which start from a spiral have no initial impulse
@@ -362,7 +390,6 @@ namespace EMTG {
 
 				//Step 4.3 construct the post-spiral state
 				//Step 4.3.1 advance time
-				this->spiral_escape_time /= 86400.0;
 				*current_epoch += this->spiral_escape_time;
 
 				//Step 4.3.2 find the position of the body at the new phase start time and store it in state_at_beginning_of_phase
@@ -387,7 +414,80 @@ namespace EMTG {
 				//Step 4.3.3 fill in the new mass
 				this->state_at_beginning_of_phase[6] = this->spiral_escape_mass_after;
 			}
+
 		}//end departure code
+		else if (options->journey_departure_type[j] == 6)
+		{
+			//for first-phase zero-turn flybys
+			//there are no decision variables or constraints
+
+			//step 3.1 compute incoming v_infinity at flyby
+			if (p == 0)
+				this->locate_boundary_point(this->boundary1_location_code,
+				options->journey_departure_type[j],
+				true,
+				Universe,
+				boundary1_state,
+				current_state + 3,
+				*current_epoch,
+				X,
+				Xindex,
+				F,
+				Findex,
+				G,
+				Gindex,
+				needG,
+				j,
+				p,
+				options);
+
+			for (int k = 0; k < 3; ++k)
+				this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
+
+			//Step 3.2 extract V_infinity_out from decision vector and apply equal v-infinity constraint
+			for (int k = 0; k < 3; ++k)
+			{
+				this->V_infinity_out(k) = X[*Xindex];
+				++(*Xindex);
+				
+				double v_infinity_in_k = this->V_infinity_in(k);
+
+				F[*Findex] = (this->V_infinity_out(k) - v_infinity_in_k) / v_infinity_in_k;
+				++(*Findex);
+
+				if (options->derivative_type > 0 && needG)
+				{
+					G[flyby_velocity_magnitude_constraint_G_indices[k * 2]] = 1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2];
+					G[flyby_velocity_magnitude_constraint_G_indices[k * 2 + 1]] = -1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2 + 1];
+				}
+			}
+
+			this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();
+			this->C3_departure = this->flyby_outgoing_v_infinity*this->flyby_outgoing_v_infinity;
+
+			this->flyby_altitude = 0.0;
+			this->flyby_turn_angle = 0.0;
+			this->dV_departure_magnitude = 0.0;
+
+			//calculate the b-plane parameters, check the periapse altitude
+			this->BoundaryR.assign_all(boundary1_state);
+			this->BoundaryV.assign_all(boundary1_state + 3);
+
+
+
+			//store the state at the beginning of the phase, post-flyby
+			for (int k = 0; k < 3; ++k)
+			{
+				this->state_at_beginning_of_phase[k] = boundary1_state[k];
+				this->state_at_beginning_of_phase[k + 3] = boundary1_state[k + 3] + V_infinity_out(k);
+			}
+
+			//store the mass
+			if (p == 0)
+				this->state_at_beginning_of_phase[6] = current_state[6] + options->journey_starting_mass_increment[j];
+			else
+				this->state_at_beginning_of_phase[6] = current_state[6];
+		}
 		else
 		{
 			//there is no alternate step 2
@@ -594,7 +694,7 @@ namespace EMTG {
 	void phase::process_right_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{		
 		//Step 5.1: if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 5))
+		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 4))
 		{
 			if (options->engine_type == 1)
 			{
@@ -644,7 +744,7 @@ namespace EMTG {
 	
 		//Step 5.4: if this is not a terminal rendezvous, extract the terminal velocity increment
 		//otherwise, the terminal state is the body state or the terminal v-infinity
-		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 1 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
+		if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 6 || options->journey_arrival_type[j] == 7)))
 		{
 			dVarrival[0] = X[*Xindex];
 			dVarrival[1] = X[*Xindex+1];
@@ -680,9 +780,9 @@ namespace EMTG {
 		if (options->journey_arrival_type[j] == 7)//for journeys which end in a spiral
 		{
 			//journeys which end with a spiral have no terminal velocity vector
-			this->C3_arrival = 0;
-			this->RA_arrival = 0;
-			this->DEC_arrival = 0;
+			this->C3_arrival = 0.0;
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
 
 			//*******************************************************
 			//Step 4: compute the state pre-arrival
@@ -769,8 +869,7 @@ namespace EMTG {
 			}
 
 			//Step 4.3 construct the post-spiral state
-			//Step 4.3.1 advance time
-			this->spiral_capture_time /= 86400.0;
+			//Step 4.3.1 advance time (not required)
 
 			//Step 4.3.2 find the position of the body at the new phase start time and store it in spiral_capture_state_after_spiral
 			locate_boundary_point(boundary2_location_code, options->journey_departure_type[j], true, Universe, this->spiral_capture_state_after_spiral, current_state+3, *current_epoch + this->TOF + this->spiral_capture_time, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
@@ -781,7 +880,17 @@ namespace EMTG {
 
 	}
 
-	double phase::process_arrival(double* incoming_velocity, double* boundary_state, double* X_infinity, double mu, double r_SOI, double* F, int* Findex, int j, missionoptions* options, Astrodynamics::universe* Universe)
+	double phase::process_arrival(	double* incoming_velocity,
+									double* boundary_state,
+									double* X_infinity,
+									double* current_epoch,
+									double mu,
+									double r_SOI, 
+									double* F,
+									int* Findex, 
+									int j, 
+									missionoptions* options, 
+									Astrodynamics::universe* Universe)
 	{
 		switch (options->journey_arrival_type[j])
 			{
@@ -802,12 +911,17 @@ namespace EMTG {
 					this->dVarrival[1] = incoming_velocity[1] - boundary_state[4];
 					this->dVarrival[2] = incoming_velocity[2] - boundary_state[5];
 
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / vinf);
-
 					if (options->journey_arrival_declination_constraint_flag[j])
 					{
+						//first we need to rotate the incoming velocity vector into the reference frame of the arrival body
+						this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices(*current_epoch / 86400.0 + 2400000.5);
+						math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+						math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+						this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+						this->DEC_arrival = asin(rot_out_vec(2) / vinf);
+
 						F[*Findex] = this->DEC_arrival / options->journey_arrival_declination_bounds[j][1] - 1.0;
 						++(*Findex);
 					}
@@ -821,7 +935,7 @@ namespace EMTG {
 
 					double vinf = math::norm(dVarrival, 3);
 					this->C3_arrival = vinf*vinf;
-				
+
 					return vinf;
 				}
 			case 2: //flyby with bounded v-infinity
@@ -833,12 +947,17 @@ namespace EMTG {
 					F[*Findex] = C3_arrival / C3_max - 1;
 					++(*Findex);
 
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(C3_arrival));
-
 					if (options->journey_arrival_declination_constraint_flag[j])
 					{
+						//first we need to rotate the incoming velocity vector into the reference frame of the arrival body
+						this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices(*current_epoch / 86400.0 + 2400000.5);
+						math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+						math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+						this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+						this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+
 						F[*Findex] = this->DEC_arrival / options->journey_arrival_declination_bounds[j][1] - 1.0;
 						++(*Findex);
 					}
@@ -849,6 +968,8 @@ namespace EMTG {
 				{
 					//the low-thrust rendezvous constraints are implicity satisfied because no terminal velocity vector is added to the target's velocity to find the spacecraft velocity
 					this->C3_arrival = 0;
+					this->DEC_arrival = 0.0;
+					this->RA_arrival = 0.0;
 					return 0;
 				}
 			case 4: //match v-infinity vector (impulsive)
@@ -858,10 +979,6 @@ namespace EMTG {
 
 					double vinf = math::norm(dVarrival, 3);
 					this->C3_arrival = vinf*vinf;
-
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(vinf));
 				
 					return vinf;
 				}
@@ -872,10 +989,6 @@ namespace EMTG {
 					for (int k = 0; k < 3; ++k)
 						dVarrival[k] = boundary_state[k+3] - incoming_velocity[k];
 					this->C3_arrival = dVarrival[0]*dVarrival[0] + dVarrival[1]*dVarrival[1] + dVarrival[2]*dVarrival[2];
-
-					this->RA_arrival = atan2(dVarrival[1], dVarrival[0]);
-
-					this->DEC_arrival = asin(dVarrival[2] / sqrt(C3_arrival));
 
 					return 0;
 				}
@@ -936,10 +1049,6 @@ namespace EMTG {
 			}
 			else if (location == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
-				//note: boundary point is supplied in the local Universe frame
-				double temp_elements[6];
-				double local_frame_state[6];
-
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
 				//structure specifies that the element should be varied
 
@@ -948,24 +1057,25 @@ namespace EMTG {
 					if (options->journey_departure_elements_vary_flag[j][k])
 					{
 						//if the user selected to vary this orbit element, extract it from the decision vector
-						temp_elements[k] = X[*Xindex];
+						if (options->journey_departure_elements_type[j])
+							this->left_boundary_orbit_elements[k] = X[*Xindex];
+						else
+							this->left_boundary_local_frame_state[k] = X[*Xindex];
 						++(*Xindex);
 					}
 					else
 					{
 						//if the user selected to specify this orbit element
-						temp_elements[k] = options->journey_departure_elements[j][k];
+						if (options->journey_departure_elements_type[j])
+							this->left_boundary_orbit_elements[k] = options->journey_departure_elements[j][k];
+						else
+							this->left_boundary_local_frame_state[k] = options->journey_departure_elements[j][k];
 					}
 				}
 
 				//if the orbit was specified in COE, it needs to be converted to inertial coordinates
 				if (options->journey_departure_elements_type[j])
-					Astrodynamics::COE2inertial(temp_elements, Universe->mu, local_frame_state);
-				else
-				{
-					for (int k = 0; k < 6; ++k)
-						local_frame_state[k] = temp_elements[k];
-				}
+					Astrodynamics::COE2inertial(left_boundary_orbit_elements, Universe->mu, this->left_boundary_local_frame_state);
 
 				//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
 				//then there must be a nonlinear constraint to prevent this
@@ -974,9 +1084,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying SMA or ECC
 					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1])
 					{
-						double a = temp_elements[0];
-						double e = temp_elements[1];
-						double f = temp_elements[5];
+						double a = this->left_boundary_orbit_elements[0];
+						double e = this->left_boundary_orbit_elements[1];
+						double f = this->left_boundary_orbit_elements[5];
 						double cosf = cos(f);
 						double sinf = sqrt(1.0 - cosf*cosf);
 						double r = a * (1 - e*e) / (1 + e * cosf);
@@ -1015,9 +1125,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying x, y, or z
 					if (options->journey_departure_elements_vary_flag[j][0] || options->journey_departure_elements_vary_flag[j][1] || options->journey_departure_elements_vary_flag[j][2])
 					{
-						double x = temp_elements[0];
-						double y = temp_elements[1];
-						double z = temp_elements[2];
+						double x = this->left_boundary_local_frame_state[0];
+						double y = this->left_boundary_local_frame_state[1];
+						double z = this->left_boundary_local_frame_state[2];
 						double r = sqrt(x*x + y*y + z*z);
 
 						F[*Findex] = (r - Universe->minimum_safe_distance) / Universe->minimum_safe_distance;
@@ -1051,13 +1161,13 @@ namespace EMTG {
 				}
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
+				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
+				math::Matrix<double> rot_in_vec(3,1,this->left_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
 				{
 					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
+					rot_in_vec(k) = this->left_boundary_local_frame_state[k+3];
 				}
 				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1065,84 +1175,6 @@ namespace EMTG {
 					boundary_state[k+3] = rot_out_vec(k);
 				}
 
-			}
-			else if (location == -2) //if this boundary point is the periapse of an inbound hyperbola
-			{
-				//extract the orbit elements of the desired capture orbit
-				double arrival_orbit_elements[6], local_frame_state[6];
-				double rp = X[*Xindex];
-				double ra = X[*Xindex+1];
-				arrival_orbit_elements[0] = (rp + ra) / 2;
-				arrival_orbit_elements[1] = 1 - 2 * rp / (rp + ra);
-				arrival_orbit_elements[2] = X[*Xindex+2];
-				arrival_orbit_elements[3] = X[*Xindex+3];
-				arrival_orbit_elements[4] = X[*Xindex+4];
-				arrival_orbit_elements[5] = 0;
-				(*Xindex += 5);
-
-				//enforce constraint: rp < ra
-				F[*Findex] = rp - ra;
-				++(*Findex);
-
-				//convert orbit elements to a cartesian state
-				Astrodynamics::COE2inertial(arrival_orbit_elements, Universe->mu, local_frame_state);
-
-				//rotate the boundary state into the ICRF coordinate frame
-				//finally, rotate to the ICRF frame
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
-				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
-				for (int k = 0; k < 3; ++k)
-				{
-					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
-				}
-				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
-				for (int k = 0; k < 3; ++k)
-				{
-					boundary_state[k+3] = rot_out_vec(k);
-				}
-
-				//locate the central body
-				double body_state[6];
-				Universe->locate_central_body(epoch, body_state, options);
-			
-				//if we are starting from a hyperbolic arrival in the first journey, then we need to extract the incoming V-infinity vector from the options structure
-				if (j == 0)
-				{
-					V_infinity[0] = options->initial_V_infinity[0];
-					V_infinity[1] = options->initial_V_infinity[1];
-					V_infinity[2] = options->initial_V_infinity[2];
-				}
-				//if this is not the first journey, then the incoming velocity vector is in the sun-centered ICRF frame and needs to be translated to the body-centered ICRF frame
-				else
-				{
-					V_infinity[0] -= body_state[3];
-					V_infinity[1] -= body_state[4];
-					V_infinity[2] -= body_state[5];
-				}
-
-				//enforce constraint: inbound orbit must be a hyperbola
-				double incoming_v_infinity = math::norm(V_infinity, 3);
-				double vp_inbound = sqrt(2 * Universe->mu / rp - incoming_v_infinity * incoming_v_infinity);
-				double v_escape = sqrt(2 * Universe->mu / rp);
-				F[*Findex] = v_escape - vp_inbound;
-				if (v_escape < vp_inbound)
-					cout << "v_escape < vp_inbound" << endl;
-				++(*Findex);
-
-				//compute the b-plane parameters
-				math::Matrix<double> V_infinity_in(3,1);
-				math::Matrix<double> V_infinity_out(3,1);
-				for (int k = 0; k < 3; ++k)
-				{
-					V_infinity_in(k) = V_infinity[k];
-				}
-				math::Matrix<double> BoundaryR(3,1,body_state);
-				math::Matrix<double> BoundaryV(3,1,body_state+3);
-				Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-				Bplane.compute_Bradius_Btheta_from_periapse_position(Universe->mu, V_infinity_in, BoundaryR, &Bradius, &Btheta);
-				Bplane.convert_polar_to_cartesian(Bradius, Btheta, &BdotR, &BdotT);
 			}
 		}
 		else //this is the right boundary of the phase, so this is an arrival
@@ -1166,36 +1198,33 @@ namespace EMTG {
 			else if (location == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
 				//note: boundary point is supplied in the local Universe frame
-				double temp_elements[6];
-				double local_frame_state[6];
 
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
 				//structure specifies that the element should be varied
-
 				for (int k = 0; k < 6; ++k)
 				{
 					if (options->journey_arrival_elements_vary_flag[j][k])
 					{
 						//if the user selected to vary this orbit element, extract it from the decision vector
-						temp_elements[k] = X[*Xindex];
+						if (options->journey_arrival_elements_type[j])
+							this->right_boundary_orbit_elements[k] = X[*Xindex];
+						else
+							this->right_boundary_local_frame_state[k] = X[*Xindex];
 						++(*Xindex);
 					}
 					else
 					{
 						//if the user selected to specify this orbit element
-						temp_elements[k] = options->journey_arrival_elements[j][k];
+						if (options->journey_arrival_elements_type[j])
+							this->right_boundary_orbit_elements[k] = options->journey_arrival_elements[j][k];
+						else
+							this->right_boundary_local_frame_state[k] = options->journey_arrival_elements[j][k];
 					}
 				}
 
 				//if the orbit was specified in COE, it needs to be converted to inertial coordinates
 				if (options->journey_arrival_elements_type[j])
-					Astrodynamics::COE2inertial(temp_elements, Universe->mu, local_frame_state);
-				else
-				{
-					for (int k = 0; k < 6; ++k)
-						local_frame_state[k] = temp_elements[k];
-				}
-
+					Astrodynamics::COE2inertial(this->right_boundary_orbit_elements, Universe->mu, this->right_boundary_local_frame_state);
 				//if it is possible for the optimizer to select a point inside the exclusion zone of the central body
 				//then there must be a nonlinear constraint to prevent this
 				if (options->journey_arrival_elements_type[j]) //classical orbit elements
@@ -1203,9 +1232,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying SMA or ECC
 					if (options->journey_arrival_elements_vary_flag[j][0] || options->journey_arrival_elements_vary_flag[j][1])
 					{
-						double a = temp_elements[0];
-						double e = temp_elements[1];
-						double f = temp_elements[5];
+						double a = this->right_boundary_orbit_elements[0];
+						double e = this->right_boundary_orbit_elements[1];
+						double f = this->right_boundary_orbit_elements[5];
 						double cosf = cos(f);
 						double sinf = sqrt(1.0 - cosf*cosf);
 						double r = a * (1 - e*e) / (1 + e * cosf);
@@ -1244,9 +1273,9 @@ namespace EMTG {
 					//this constraint is applied if we are varying x, y, or z
 					if (options->journey_arrival_elements_vary_flag[j][0] || options->journey_arrival_elements_vary_flag[j][1] || options->journey_arrival_elements_vary_flag[j][2])
 					{
-						double x = temp_elements[0];
-						double y = temp_elements[1];
-						double z = temp_elements[2];
+						double x = this->right_boundary_local_frame_state[0];
+						double y = this->right_boundary_local_frame_state[1];
+						double z = this->right_boundary_local_frame_state[2];
 						double r = sqrt(x*x + y*y + z*z);
 
 						F[*Findex] = (r - Universe->minimum_safe_distance) / Universe->minimum_safe_distance;
@@ -1280,13 +1309,13 @@ namespace EMTG {
 				}
 
 				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
-				Universe->LocalFrame.construct_rotation_matrices(epoch + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
+				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
+				math::Matrix<double> rot_in_vec(3,1,this->right_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
 				{
 					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
+					rot_in_vec(k) = this->right_boundary_local_frame_state[k+3];
 				}
 				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
 				for (int k = 0; k < 3; ++k)
@@ -1336,7 +1365,7 @@ namespace EMTG {
 		math::Matrix<double> Shat = V_infinity.unitize();
 
 		//construct the unit vector in the direction of the planet's pole, expressed in Earth J2000Eq
-		TheBody.J2000_body_equatorial_frame.construct_rotation_matrices(epoch + 2400000.5);
+		TheBody.J2000_body_equatorial_frame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 		double zhatl[] = {0,0,1};
 		math::Matrix<double> zhat_local(3,1, zhatl);
 
@@ -1754,7 +1783,7 @@ namespace EMTG {
 		}
 
 		//next, we need to know if we are the first phase in the journey and the journey does not start with a flyby
-		if (p == 0 && !(options->journey_departure_type[j] == 3))
+		if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			//if we are the first phase, we also need to know if we are the first journey
 			if (j == 0)
@@ -1946,13 +1975,27 @@ namespace EMTG {
 			}
 
 			//then we have up to four variables to parameterize the departure
-			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)))
+			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)))
 			{
-				if (!(options->journey_departure_type[j] == 5)) //for journeys that do not start from a spiral
+				if (!(options->journey_departure_type[j] == 5 || options->journey_departure_type[j] == 2)) //for journeys that do not start from a spiral or a free direct departure
 				{
 					//First, we have outgoing velocity
 					Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);
 					Xupperbounds->push_back(options->journey_initial_impulse_bounds[j][1]);
+
+					//make sure that if we are launching on a rocket that the maximum C3 does not exceed that of the rocket
+					if (j == 0 && options->journey_departure_type[0] == 0)
+					{
+						double C3max = 100.0;
+						double C3max_LV[] = {35,50,40,60,60,60,60,60,60,60,60,60,200,0,100,0};
+						if (options->LV_type > 0)
+							C3max = C3max_LV[options->LV_type - 1];
+						else if (options->LV_type == -2)
+							C3max = options->custom_LV_C3_bounds[1];
+
+						if (Xupperbounds->back() > sqrt(C3max))
+							Xupperbounds->back() = sqrt(C3max);
+					}
 					Xdescriptions->push_back(prefix + "magnitude of outgoing velocity asymptote");
 
 					//then we have the angles defining the departure asymptote
@@ -2017,90 +2060,214 @@ namespace EMTG {
 				Xdescriptions->push_back(prefix + "initial velocity increment z");
 			}
 
-
-			//we must encode a flyby velocity match constraint
-			Flowerbounds->push_back(-math::SMALL);
-			Fupperbounds->push_back(math::SMALL);
-			Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity must match at the flyby");
-
-			//Jacobian entry (nonlinear) for the flyby velocity match constraint
-			//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
-			//
-			//Initial velocity:
-			for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+			if (p == 0 && options->journey_departure_type[j] == 6) //constraints for a zero-turn flyby
 			{
-				if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_x must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby X velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_constraints_X_indices.push_back(entry);
-					flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry-2);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-2 << "]: " << (*Xdescriptions)[entry-2];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry-2);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry-2] - (*Xlowerbounds)[entry-2]);
+						break;
+					}
+				}
+
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_y must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby Y velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry+1);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry+1);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry+1] - (*Xlowerbounds)[entry+1]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry-1);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry-1);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry-1] - (*Xlowerbounds)[entry-1]);
+						break;
+					}
+				}
+
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity_z must match at the flyby");
+
+				//Jacobian entry (nonlinear) for the flyby Z velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry+2);
+						stringstream entryNameStream;
+						entryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
+						Gdescriptions->push_back(entryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry+2);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry+2] - (*Xlowerbounds)[entry+2]);
+						break;
+					}
+				}
+				//Terminal velocity:
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						break;
+					}
 				}
 			}
-			//Terminal velocity:
-			int foundcount = 0;
-			for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+			else //constraints for other types of flyby
 			{
-				if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_constraints_X_indices.push_back(entry);
-					flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-					++foundcount;
-				}
-				if (foundcount >= 3)
-					break;
-			}
+				//we must encode a flyby velocity match constraint
+				Flowerbounds->push_back(-math::SMALL);
+				Fupperbounds->push_back(math::SMALL);
+				Fdescriptions->push_back(prefix + "Incoming and outcoming v_infinity must match at the flyby");
 
-			//we also need to encode a no-collision constraint
-			if (Universe->bodies[boundary1_location_code-1].mass < 1.0e+25)
-				Flowerbounds->push_back(-10.0);
-			else
-				Flowerbounds->push_back(-300.0);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "flyby altitude constraint (above minimum altitude but below [10x/300x] altitude for [rocky/gas] planets");
-		
-			//Jacobian entry (nonlinear) for the flyby no-collision constraint
-			//the no-collision constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
-			//
-			//Initial velocity:
-			for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-			{
-				if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+				//Jacobian entry (nonlinear) for the flyby velocity match constraint
+				//the velocity match constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+					}
 				}
-			}
-			//Terminal velocity:
-			foundcount = 0;
-			for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
-			{
-				if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+				//Terminal velocity:
+				int foundcount = 0;
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
-					++foundcount;
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_constraints_X_indices.push_back(entry);
+						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						flyby_constraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+						++foundcount;
+					}
+					if (foundcount >= 3)
+						break;
 				}
-				if (foundcount >= 3)
-					break;
+
+				//we also need to encode a no-collision constraint
+				if (Universe->bodies[boundary1_location_code - 1].mass < 1.0e+25)
+					Flowerbounds->push_back(-10.0);
+				else
+					Flowerbounds->push_back(-300.0);
+				Fupperbounds->push_back(0.0);
+				Fdescriptions->push_back(prefix + "flyby altitude constraint (above minimum altitude but below [10x/300x] altitude for [rocky/gas] planets");
+
+				//Jacobian entry (nonlinear) for the flyby no-collision constraint
+				//the no-collision constraint is dependent on this phase's initial velocity vector components and the previous phase's terminal velocity vector components
+				//
+				//Initial velocity:
+				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+				{
+					if ((*Xdescriptions)[entry].find("initial velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+					}
+				}
+				//Terminal velocity:
+				foundcount = 0;
+				for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+				{
+					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+					{
+						iGfun->push_back(Fdescriptions->size() - 1);
+						jGvar->push_back(entry);
+						stringstream EntryNameStream;
+						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						Gdescriptions->push_back(EntryNameStream.str());
+						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
+						++foundcount;
+					}
+					if (foundcount >= 3)
+						break;
+				}
 			}
 		}
 	}
@@ -2226,8 +2393,8 @@ namespace EMTG {
 		else
 			pseudoa2 = Universe->r_SOI / 5.0;
 
-		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu) / 86400;// pseudo-period of body 1 in days
-		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu) / 86400;// pseudo-period of body 2 in days
+		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu);// pseudo-period of body 1 in days
+		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu);// pseudo-period of body 2 in days
 	
 		double forced_coast_this_phase = 0.0;
 		if (p == 0 && j == 0)
@@ -2255,21 +2422,21 @@ namespace EMTG {
 			double lowerbound_temp = 0.1 * min(T1,T2);
 
 			lowerbound_temp = lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase;
-			Xlowerbounds->push_back(lowerbound_temp > 600.0 ? 600.0 : lowerbound_temp);
+			Xlowerbounds->push_back(lowerbound_temp > 600.0*86400.0 ? 600.0*86400.0 : lowerbound_temp);
 
 			if (max(pseudoa1,pseudoa2)/Universe->LU < 2.0) //outermost body is an inner body with a < 2 LU
-				Xupperbounds->push_back(2.0 * max(T1, T2) < 2500.0 ? 2500.0 : 2.0 * max(T1, T2));
+				Xupperbounds->push_back(2.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 2.0 * max(T1, T2));
 			 
 			else //outermost body is an outer body
-				Xupperbounds->push_back(1.0 * max(T1, T2) < 2500.0 ? 2500.0 : 1.0 * max(T1, T2));
+				Xupperbounds->push_back(1.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 1.0 * max(T1, T2));
 		}
 
 		Xdescriptions->push_back(prefix + "phase flight time");
 
 		//compute the synodic period of the boundary points, for use in the MBH synodic period perturbation
 		//these are "true" periods, not the pseudo-periods used for computing the bounds
-		T1 = 2*math::PI*sqrt(a1*a1*a1/Universe->mu) / 86400;
-		T2 = 2*math::PI*sqrt(a2*a2*a2/Universe->mu) / 86400;
+		T1 = 2*math::PI*sqrt(a1*a1*a1/Universe->mu);
+		T2 = 2*math::PI*sqrt(a2*a2*a2/Universe->mu);
 		synodic_periods->push_back(1.0 / (fabs(1.0/T1 - 1.0/T2)));
 	}
 
@@ -2444,7 +2611,7 @@ namespace EMTG {
 		}
 
 		//if this phase is a terminal intercept, then encode the terminal velocity increment
-		if (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0))
+		if (p == options->number_of_phases[j] - 1 && options->journey_arrival_type[j] == 2)
 		{
 			Xlowerbounds->push_back(-options->journey_final_velocity[j][1]);
 			Xupperbounds->push_back(options->journey_final_velocity[j][1]);

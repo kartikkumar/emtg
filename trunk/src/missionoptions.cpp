@@ -5,6 +5,11 @@
  *      Author: Jacob
  */
 
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "EMTG_math.h"
 
@@ -12,10 +17,6 @@
 
 #include "boost/algorithm/string.hpp"
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
 
 using namespace std;
 
@@ -30,6 +31,22 @@ missionoptions::missionoptions() {
 	this->outerloop_vary_thruster_type = false;
 	this->outerloop_vary_number_of_thrusters = false;
 	this->outerloop_vary_launch_vehicle = false;
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
+	this->quiet_outerloop = 1;
+	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0; 
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -44,6 +61,7 @@ missionoptions::missionoptions() {
 	this->MBH_time_hop_probability = 0.2;
 	this->interpolate_initial_guess = false;
 	this->seed_MBH = false;
+	this->MBH_zero_control_initial_guess = 1;
 	this->AU = 1.49597870691e+8;
 	this->snopt_max_run_time = 3600;
 	this->power_decay_rate = 0.0;
@@ -57,6 +75,8 @@ missionoptions::missionoptions() {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 	this->number_of_journeys = 1;
+
+	this->LambertSolver = 0;
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -72,6 +92,22 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_vary_thruster_type = false;
 	this->outerloop_vary_number_of_thrusters = false;
 	this->outerloop_vary_launch_vehicle = false;
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
+	this->quiet_outerloop = true;
+	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0;
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -86,6 +122,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->MBH_time_hop_probability = 0.1;
 	this->interpolate_initial_guess = false;
 	this->seed_MBH = false;
+	this->MBH_zero_control_initial_guess = 1;
 	this->AU = 1.49597870691e+8;
 	this->snopt_max_run_time = 3600;
 	this->power_decay_rate = 0.0;
@@ -99,7 +136,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 
-
+	this->LambertSolver = 0;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -174,7 +211,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "universe_folder") {
 		inputfile >> this->universe_folder;
 		return 0;
-	}	
+	}
 	if (choice == "mission_name")
 	{
 		inputfile >> this->mission_name;
@@ -223,7 +260,19 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 			this->journey_central_body.push_back(temp);
 		}
 		return 0;
-	}	
+	}
+
+	if (choice == "outerloop_warm_archive")
+	{
+		inputfile >> this->outerloop_warm_archive;
+		return 0;
+	}
+
+	if (choice == "outerloop_warm_population")
+	{
+		inputfile >> this->outerloop_warm_population;
+		return 0;
+	}
 
 	inputfile >> value;
 
@@ -235,12 +284,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 
 	//physical constants
-	if (choice ==  "G") 
+	if (choice == "G")
 	{
 		this->G = value;
 		return 0;
 	}
-	if (choice ==  "g0") 
+	if (choice == "g0")
 	{
 		this->g0 = value;
 		return 0;
@@ -253,10 +302,17 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 
+	//lambert solver settings
+	if (choice == "LambertSolver")
+	{
+		this->LambertSolver = (int)value;
+		return 0;
+	}
+
 	//outer loop solver settings
 	if (choice ==  "run_outerloop") 
 	{
-		this->run_outerloop = (bool) value;
+		this->run_outerloop = (int) value;
 		return 0;
 	}
 	if (choice == "outerloop_popsize")
@@ -314,6 +370,16 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->outerloop_warmstart = (int) value;
 		return 0;
 	}
+	if (choice == "outerloop_reevaluate_full_population")
+	{
+		this->outerloop_reevaluate_full_population = (bool) value;
+		return 0;
+	}
+	if (choice == "quiet_outerloop")
+	{
+		this->quiet_outerloop = (bool) value;
+		return 0;
+	}
 
 	//inner loop solver settings
 	if (choice == "NLP_solver_type") {
@@ -330,6 +396,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "quiet_NLP") {
 		this->quiet_NLP = (bool) value;
+		return 0;
+	}
+	if (choice == "quiet_basinhopping") {
+		this->quiet_basinhopping = (bool) value;
 		return 0;
 	}
 	if (choice == "MBH_max_not_improve") {
@@ -397,11 +467,37 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->initial_guess_step_size_stdv_or_scale = value;
 		return 0;
 	}
+	if (choice == "MBH_zero_control_initial_guess") {
+		this->MBH_zero_control_initial_guess = (int) value;
+		return 0;
+	}
+	if (choice == "MBH_two_step") {
+		this->MBH_two_step = (bool) value;
+		return 0;
+	}
+	if (choice == "FD_stepsize") {
+		this->FD_stepsize = value;
+		return 0;
+	}
+	if (choice == "FD_stepsize_coarse") {
+		this->FD_stepsize_coarse = value;
+		return 0;
+	}
 				
 	//low thrust solver parameters
 	if (choice == "num_timesteps") 
 	{
 		this->num_timesteps = (int) value;
+		return 0;
+	}
+	if (choice == "control_coordinate_system")
+	{
+		this->control_coordinate_system = (int) value;
+		return 0;
+	}
+	if (choice == "initial_guess_control_coordinate_system")
+	{
+		this->initial_guess_control_coordinate_system = (int) value;
 		return 0;
 	}
 	if (choice == "step_size_distribution")
@@ -417,6 +513,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "spiral_model_type")
 	{
 		this->spiral_model_type = (int) value;
+		return 0;
+	}
+
+	//impulsive thrust solver parameters
+	if (choice == "maximum_number_of_lambert_revolutions")
+	{
+		this->maximum_number_of_lambert_revolutions = (int)value;
 		return 0;
 	}
 
@@ -533,20 +636,42 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "engine_input_thrust_coefficients") {
 		this->engine_input_thrust_coefficients[0] = value;
-		for (int k = 1; k < 5; ++k)
+
+		string peek;
+		peek = inputfile.peek();
+		int count = 1;
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
 		{
 			inputfile >> value;
-			this->engine_input_thrust_coefficients[k] = value;
+			this->engine_input_thrust_coefficients[count] = value;
+
+			peek = inputfile.peek();
+			++count;
 		}
+
+		for (int k = count; k < 7; ++k)
+			this->engine_input_thrust_coefficients[k] = 0.0;
+
 		return 0;
 	}
 	if (choice == "engine_input_mass_flow_rate_coefficients") {
 		this->engine_input_mass_flow_rate_coefficients[0] = value;
-		for (int k = 1; k < 5; ++k)
+
+		string peek;
+		peek = inputfile.peek();
+		int count = 1;
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
 		{
 			inputfile >> value;
-			this->engine_input_mass_flow_rate_coefficients[k] = value;
+			this->engine_input_mass_flow_rate_coefficients[count] = value;
+
+			peek = inputfile.peek();
+			++count;
 		}
+
+		for (int k = count; k < 7; ++k)
+			this->engine_input_mass_flow_rate_coefficients[k] = 0.0;
+
 		return 0;
 	}
 	if (choice == "engine_input_power_bounds") {
@@ -579,6 +704,16 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	//minimum dry mass constraint and related parameters
 	if (choice == "minimum_dry_mass") {
 		this->minimum_dry_mass = value;
+		return 0;
+	}
+	if (choice == "enable_maximum_propellant_mass_constraint")
+	{
+		this->enable_maximum_propellant_mass_constraint = (bool)value;
+		return 0;
+	}
+	if (choice == "maximum_propellant_mass")
+	{
+		this->maximum_propellant_mass = value;
 		return 0;
 	}
 	if (choice == "post_mission_delta_v") {
@@ -652,6 +787,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->outerloop_vary_flight_time_upper_bound = (bool) value;
 		return 0;
 	}
+	if (choice == "outerloop_restrict_flight_time_lower_bound") {
+		this->outerloop_restrict_flight_time_lower_bound = (bool) value;
+		return 0;
+	}
 	if (choice == "outerloop_vary_thruster_type") {
 		this->outerloop_vary_thruster_type = (bool) value;
 		return 0;
@@ -662,6 +801,14 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "outerloop_vary_launch_vehicle") {
 		this->outerloop_vary_launch_vehicle = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_departure_C3") {
+		this->outerloop_vary_departure_C3 = (bool) value;
+		return 0;
+	}
+	if (choice == "outerloop_vary_arrival_C3") {
+		this->outerloop_vary_arrival_C3 = (bool) value;
 		return 0;
 	}
 	if (choice == "outerloop_vary_journey_destination") {
@@ -776,6 +923,36 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 
 		return 0;
 	}
+	if (choice == "outerloop_departure_C3_choices") {
+		this->outerloop_departure_C3_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_departure_C3_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
+	if (choice == "outerloop_arrival_C3_choices") {
+		this->outerloop_arrival_C3_choices.push_back((int) value);
+
+		string peek;
+		peek = inputfile.peek();
+		while (!(peek == "\n" || peek == "#" || peek == "\r")) 
+		{
+			inputfile >> value;
+			this->outerloop_arrival_C3_choices.push_back((int) value);
+
+			peek = inputfile.peek();
+		}
+
+		return 0;
+	}
 	if (choice == "outerloop_journey_destination_choices") 
 	{
 		vector<int> temp;
@@ -849,12 +1026,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "outerloop_journey_maximum_number_of_flybys") {
-		this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+		this->outerloop_journey_maximum_number_of_flybys.push_back((int) value);
 
 		for (int j = 1; j < this->number_of_journeys; ++j)
 		{
 			inputfile >> value;
-			this->outerloop_journey_maximum_number_of_flybys.push_back((bool) value);
+			this->outerloop_journey_maximum_number_of_flybys.push_back((int) value);
 		}
 
 		return 0;
@@ -921,13 +1098,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "launch_window_open_date") {
-		this->launch_window_open_date = value;
+		this->launch_window_open_date = value * 86400.0;
 		return 0;
 	}
 	if (choice == "total_flight_time_bounds") {
-		this->total_flight_time_bounds[0] = value;
+		this->total_flight_time_bounds[0] = value * 86400.0;
 		inputfile >> value;
-		this->total_flight_time_bounds[1] = value;
+		this->total_flight_time_bounds[1] = value * 86400.0;
 		return 0;
 	}
 	if (choice == "DLA_bounds") {
@@ -955,12 +1132,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 	if (choice == "forced_post_launch_coast")
 	{
-		this->forced_post_launch_coast = value;
+		this->forced_post_launch_coast = value * 86400.0;
 		return 0;
 	}
 	if (choice == "forced_flyby_coast")
 	{
-		this->forced_flyby_coast = value;
+		this->forced_flyby_coast = value * 86400.0;
 		return 0;
 	}
 
@@ -977,11 +1154,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_wait_time_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_wait_time_bounds.push_back(temp);
 		}
 		return 0;
@@ -990,11 +1171,15 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_flight_time_bounds.push_back(temp);
 
 		for (int k=1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_flight_time_bounds.push_back(temp);
 		}
 		return 0;
@@ -1003,28 +1188,32 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		vector<double> temp(2);
 		temp[0] = value;
 		inputfile >> temp[1];
+		temp[0] *= 86400.0;
+		temp[1] *= 86400.0;
 		this->journey_arrival_date_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> temp[0];
 			inputfile >> temp[1];
+			temp[0] *= 86400.0;
+			temp[1] *= 86400.0;
 			this->journey_arrival_date_bounds.push_back(temp);
 		}
 		return 0;
 	}
 	if (choice == "journey_initial_impulse_bounds") {
 		vector<double> temp;
-		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+		temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 		inputfile >> value;
-		temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+		temp.push_back(value > 1.0e-6 ? value : 1.0e-8);
 		this->journey_initial_impulse_bounds.push_back(temp);
 
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			temp.clear();
 			inputfile >> value;
-			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+			temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 			inputfile >> value;
-			temp.push_back(value > 1.0e-6 ? value : 1.0e-6);
+			temp.push_back(value > 1.0e-8 ? value : 1.0e-8);
 			this->journey_initial_impulse_bounds.push_back(temp);
 		}
 		return 0;
@@ -1061,18 +1250,17 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 					
 		this->journey_departure_type.push_back((int) value);
 
-		if (value > 5 || value < 0)
+		if (value > 6 || value < 0)
 		{
 			errorstream << "Invalid journey departure type, journey 1" << endl;
 			this->error_message = errorstream.str();
-
 		}
 					
 		for (int k = 1; k < this->number_of_journeys; ++k) {
 			inputfile >> value;
 			this->journey_departure_type.push_back((int) value);
 
-			if (value > 5 || value < 0)
+			if (value > 6 || value < 0)
 			{
 				errorstream << "Invalid journey departure type, journey " << k+1 << endl;
 				this->error_message = errorstream.str();
@@ -1597,7 +1785,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 
 		outputfile << "##outer-loop solver settings" << endl;
-		outputfile << "#whether or not to run the outer-loop" << endl;
+		outputfile << "#Do you want to run an outer-loop?" << endl;
+		outputfile << "#0: no" << endl;
+		outputfile << "#1: Genetic algorithm (number of objective functions determines which GA to run)" << endl;
+		outputfile << "#2: lazy race-tree search" << endl;
 		outputfile << "run_outerloop " << this->run_outerloop << endl;
 		outputfile << "#outer-loop population size" << endl;
 		outputfile << "outerloop_popsize " << this->outerloop_popsize << endl;
@@ -1621,6 +1812,14 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_useparallel " << this->outerloop_useparallel << endl;
 		outputfile << "#whether or not to perform an outer loop warm start" << endl;
 		outputfile << "outerloop_warmstart " << this->outerloop_warmstart << endl;
+		outputfile << "#Population file for outerloop warm start (set to none if not warm starting)" << endl;
+		outputfile << "outerloop_warm_population " << this->outerloop_warm_population << endl;
+		outputfile << "#Archive file for outerloop warm start (set to none if not warm starting)" << endl;
+		outputfile << "outerloop_warm_archive " << this->outerloop_warm_archive << endl;
+		outputfile << "#Re-evaluate the entire outerloop each generation? Otherwise read from the archive." << endl;
+		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
+		outputfile << "#Quiet outer-loop?" << endl;
+        outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
 		outputfile << endl;
 
 		outputfile << "##inner-loop solver settings" << endl;
@@ -1634,6 +1833,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "NLP_solver_mode " << this->NLP_solver_mode << endl;
 		outputfile << "#Quiet NLP solver?" << endl;
 		outputfile << "quiet_NLP " << this->quiet_NLP << endl;
+		outputfile << "#Quiet MBH?" << endl;
+		outputfile << "quiet_basinhopping " << this->quiet_basinhopping << endl;
 		outputfile << "#Enable ACE feasible point finder?" << endl;
 		outputfile << "ACE_feasible_point_finder " << this->ACE_feasible_point_finder << endl;
 		outputfile << "#quantity 'Max_not_improve' for MBH" << endl;
@@ -1664,7 +1865,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: finite difference" << endl;
 		outputfile << "#1: analytical flybys and objective function but finite difference the patch points" << endl;
 		outputfile << "#2: all but time derivatives" << endl;
-		outputfile << "#3: fully analytical" << endl;
+		outputfile << "#3: all but current phase flight time derivatives" << endl;
+		outputfile << "#4: fully analytical (experimental)" << endl;
 		outputfile << "derivative_type " << this->derivative_type << endl;
 		outputfile << "#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point." << endl;
 		outputfile << "seed_MBH " << this->seed_MBH << endl;
@@ -1680,11 +1882,30 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "initial_guess_step_size_distribution " << this->initial_guess_step_size_distribution << endl;
         outputfile << "#What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess" << endl;
         outputfile << "initial_guess_step_size_stdv_or_scale " << this->initial_guess_step_size_stdv_or_scale << endl;
+		outputfile << "#Apply zero-control initial guess in MBH?" << endl;
+		outputfile << "#0: do not use" << endl;
+		outputfile << "#1: zero-control for resets, random perturbations for hops" << endl;
+		outputfile << "#2: always use zero-control guess except when seeded" << endl;
+		outputfile << "MBH_zero_control_initial_guess " << this->MBH_zero_control_initial_guess << endl;
+		outputfile << "#Enable two-step MBH?" << endl;
+		outputfile << "MBH_two_step " << this->MBH_two_step << endl;
+		outputfile << "#'Fine' finite differencing step size" << endl;
+		outputfile << "FD_stepsize " << this->FD_stepsize << endl;
+		outputfile << "#'Coarse' finite differencing step size" << endl;
+		outputfile << "FD_stepsize_coarse " << this->FD_stepsize_coarse << endl;
         outputfile << endl;
 
 		outputfile << "##low-thrust solver parameters" << endl;
 		outputfile << "#number of time steps per phase" << endl;
 		outputfile << "num_timesteps " << this->num_timesteps << endl;
+		outputfile << "#Control coordinate system" << endl;
+		outputfile << "#0: Cartesian" << endl;
+		outputfile << "#1: Polar" << endl;
+		outputfile << "control_coordinate_system " << this->control_coordinate_system << endl;
+		outputfile << "#Initial guess control coordinate system" << endl;
+		outputfile << "#0: Cartesian" << endl;
+		outputfile << "#1: Polar" << endl;
+		outputfile << "initial_guess_control_coordinate_system " << this->initial_guess_control_coordinate_system << endl;
 		outputfile << "#Distribution from which to draw the step sizes for each phase" << endl;
         outputfile << "#0: uniform" << endl;
         outputfile << "#1: Gaussian" << endl;
@@ -1698,6 +1919,11 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "spiral_model_type " << this->spiral_model_type << endl;
 		outputfile << endl;
 
+		outputfile << "##impulsive-thrust solver parameters" << endl;
+		outputfile << "#maximum number of revolutions for Lambert's method" << endl;
+		outputfile << "maximum_number_of_lambert_revolutions " << this->maximum_number_of_lambert_revolutions << endl;
+		outputfile << endl;
+
 		outputfile << "##ephemeris data" << endl;
 		outputfile << "#ephemeris source" << endl;
 		outputfile << "#0: static" << endl;
@@ -1709,6 +1935,13 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "SPICE_leap_seconds_kernel " << this->SPICE_leap_seconds_kernel << endl;
 		outputfile << "#SPICE_reference_frame_kernel" << endl;
 		outputfile << "SPICE_reference_frame_kernel " << this->SPICE_reference_frame_kernel << endl;
+		outputfile << endl;
+
+		outputfile << "##lambert solver options" << endl;
+		outputfile << "#Lambert solver choice" << endl;
+		outputfile << "#0: Arora-Russell" << endl;
+		outputfile << "#1: Izzo (not included in open-source package)" << endl;
+		outputfile << "LambertSolver " << this->LambertSolver << endl;
 		outputfile << endl;
 
 		outputfile << "##vehicle parameters" << endl;
@@ -1747,9 +1980,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 		outputfile << "#Custom launch vehicle C3 bounds (two values)" << endl;
 		outputfile << "custom_LV_C3_bounds " << this->custom_LV_C3_bounds[0] << " " << this->custom_LV_C3_bounds[1] << endl;
-		outputfile << "#Parking orbit inclination (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+		outputfile << "#Parking orbit inclination (for use with in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_inclination " << this->parking_orbit_inclination << endl;
-        outputfile << "#Parking orbit altitude (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+        outputfile << "#Parking orbit altitude (for use in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_altitude " << this->parking_orbit_altitude << endl;
 		outputfile << endl;
 
@@ -1787,8 +2020,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#9: BPT-4000 High-Thrust" << endl;
 		outputfile << "#10: BPT-4000 Ex-High-Isp" << endl;
 		outputfile << "#11: NEXT high-Isp Phase 1" << endl;
-		outputfile << "#12: VASIMR (argon, using analytical model)" << endl;
-		outputfile << "#13: Hall Thruster (Xenon, using analytical model)" << endl;
+		outputfile << "#12: VASIMR (argon, using analytical model, not available in open-source)" << endl;
+		outputfile << "#13: Hall Thruster (Xenon, using analytical model, not available in open-source)" << endl;
 		outputfile << "#14: NEXT high-ISP v10" << endl;
         outputfile << "#15: NEXT high-thrust v10" << endl;
         outputfile << "#16: BPT-4000 MALTO" << endl;
@@ -1796,15 +2029,17 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#18: H6MS Cardiff 8-15-2013" << endl;
 		outputfile << "#19: BHT20K Cardiff 8-16-2013" << endl;
 		outputfile << "#20: Aerojet HiVHAC EM" << endl;
+		outputfile << "#21: 13 kW STMD Hall high-Isp (not available in open-source)" << endl;
+		outputfile << "#22: 13 kW STMD Hall high-thrust (not available in open-source)" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
-		outputfile << "#Custom engine thrust coefficients (T = A*P^4 + B*P^3 + C*P^2 + D*P + E)" << endl;
+		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
-		for (int k = 0; k < 5; ++k)
+		for (int k = 0; k < 7; ++k)
 			outputfile << " " << this->engine_input_thrust_coefficients[k];
 		outputfile << endl;
-		outputfile << "#Custom engine mass flow rate coefficients (mdot = A*P^4 + B*P^3 + C*P^2 + D*P + E)" << endl;
+		outputfile << "#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_mass_flow_rate_coefficients";
-		for (int k = 0; k < 5; ++k)
+		for (int k = 0; k < 7; ++k)
 			outputfile << " " << this->engine_input_mass_flow_rate_coefficients[k];
 		outputfile << endl;
 		outputfile << "#Custom engine lower and upper bounds on input power (per engine, in kW)" << endl;
@@ -1854,9 +2089,13 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "allow_initial_mass_to_vary " << allow_initial_mass_to_vary << endl;
 		outputfile << "#Minimum dry mass" << endl;
 		outputfile << "minimum_dry_mass " << this->minimum_dry_mass << endl;
+		outputfile << "#Enable maximum propellant mass constraint?" << endl;
+		outputfile << "enable_maximum_propellant_mass_constraint " << (int) this->enable_maximum_propellant_mass_constraint << endl;
+		outputfile << "#Maximum propellant mass (kg)" << endl;
+		outputfile << "maximum_propellant_mass " << this->maximum_propellant_mass << endl;
 		outputfile << "#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)" << endl;
 		outputfile << "post_mission_delta_v " << this->post_mission_delta_v << endl;
-		outputfile << "#Isp used to compute propellant for post-mission delta-, in seconds" << endl;
+		outputfile << "#Isp used to compute propellant for post-mission delta-v, in seconds" << endl;
 		outputfile << "post_mission_Isp " << this->post_mission_Isp << endl;
 		outputfile << "#Propellant margin, as a fraction of nominal propellant load" << endl;
 		outputfile << "propellant_margin " << this->propellant_margin << endl;
@@ -1870,13 +2109,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#1: MGA-DSM" << endl;
 		outputfile << "#2: MGA-LT" << endl;
 		outputfile << "#3: FBLT" << endl;
-		outputfile << "#4: FBLT-S" << endl;
-		outputfile << "#5: MGA-NDSM" << endl;
-		outputfile << "#6: DTLT" << endl;
-		outputfile << "#7: solver chooses (MGA, MGA-DSM)" << endl;
-		outputfile << "#8: solver chooses (MGA, MGA-LT)" << endl;
-		outputfile << "#9: solver chooses (MGA-DSM, MGA-LT)" << endl;
-		outputfile << "#10: solver chooses (MGA, MGA-DSM, MGA-LT)" << endl;
+		outputfile << "#4: MGA-NDSM" << endl;
+		outputfile << "#5: DTLT" << endl;
+		outputfile << "#6: solver chooses (MGA, MGA-DSM)" << endl;
+		outputfile << "#7: solver chooses (MGA, MGA-LT)" << endl;
+		outputfile << "#8: solver chooses (MGA-DSM, MGA-LT)" << endl;
+		outputfile << "#9: solver chooses (MGA, MGA-DSM, MGA-LT)" << endl;
 		outputfile << "mission_type " << this->mission_type << endl;
 		outputfile << "#number of journeys (user-defined endpoints)" << endl;
 		outputfile << "#Each journey has a central body and two boundary points" << endl;
@@ -1902,9 +2140,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#1: bounded total time (note that the global arrival date bound is by definition the same as the last journey's arrival date bound and is not duplicated" << endl;
 		outputfile << "global_timebounded " << this->global_timebounded << endl;
 		outputfile << "#MJD of the opening of the launch window" << endl;
-		outputfile << "launch_window_open_date " << this->launch_window_open_date << endl;
+		outputfile << "launch_window_open_date " << this->launch_window_open_date / 86400.0 << endl;
 		outputfile << "#total flight time bounds, in days" << endl;
-		outputfile << "total_flight_time_bounds " << this->total_flight_time_bounds[0] << " " << this->total_flight_time_bounds[1] << endl;
+		outputfile << "total_flight_time_bounds " << this->total_flight_time_bounds[0] / 86400.0 << " " << this->total_flight_time_bounds[1] / 86400.0  << endl;
 		outputfile << "#objective function type" << endl;
 		outputfile << "#0: minimum deltaV" << endl;
 		outputfile << "#1: minimum flight time" << endl;
@@ -1926,9 +2164,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#Initial V-Infinity vector (set to zeros unless starting the mission from periapse of a hyperbolic arrival)" << endl;
 		outputfile << "initial_V_infinity " << this->initial_V_infinity[0] << " " << this->initial_V_infinity[1] << " " << this->initial_V_infinity[2] << endl;
 		outputfile << "#Forced post-launch cost (in days, to be enforced after launch)" << endl;
-		outputfile << "forced_post_launch_coast " << this->forced_post_launch_coast << endl;
+		outputfile << "forced_post_launch_coast " << this->forced_post_launch_coast/86400.0 << endl;
 		outputfile << "#Forced post flyby/intercept coast (in days, to be enforced before/after each flyby/intercept)" << endl;
-		outputfile << "forced_flyby_coast " << this->forced_flyby_coast << endl;
+		outputfile << "forced_flyby_coast " << this->forced_flyby_coast/86400.0 << endl;
 		outputfile << endl;
 
 		outputfile << "##Settings for each journey" << endl;
@@ -1953,6 +2191,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: unbounded" << endl;
 		outputfile << "#1: bounded flight time" << endl;
 		outputfile << "#2: bounded arrival date" << endl;
+		outputfile << "#3: bounded aggregate flight time" << endl;
 		outputfile << "journey_timebounded";
 		for (int j=0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_timebounded[j];
@@ -1960,17 +2199,17 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#what are the wait time lower and upper bounds, in days, for each journey (two numbers per journey)" << endl;
 		outputfile << "journey_wait_time_bounds";
 			for (int j=0; j < this->number_of_journeys; ++j)
-				outputfile << " " << this->journey_wait_time_bounds[j][0] << " " << this->journey_wait_time_bounds[j][1];
+				outputfile << " " << this->journey_wait_time_bounds[j][0] / 86400.0  << " " << this->journey_wait_time_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the flight time bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)" << endl;
 		outputfile << "journey_flight_time_bounds";
 		for (int j = 0; j < this->number_of_journeys; ++j)
-			outputfile << " " << this->journey_flight_time_bounds[j][0] << " " << this->journey_flight_time_bounds[j][1];
+			outputfile << " " << this->journey_flight_time_bounds[j][0] / 86400.0  << " " << this->journey_flight_time_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the arrival date bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)" << endl;
 		outputfile << "journey_arrival_date_bounds";
 		for (int j = 0; j < this->number_of_journeys; ++j)
-			outputfile << " " << this->journey_arrival_date_bounds[j][0] << " " << this->journey_arrival_date_bounds[j][1];
+			outputfile << " " << this->journey_arrival_date_bounds[j][0] / 86400.0  << " " << this->journey_arrival_date_bounds[j][1] / 86400.0 ;
 		outputfile << endl;
 		outputfile << "#what are the bounds on the initial impulse for each journey in km/s (two numbers per journey)" << endl;
 		outputfile << "#you can set a very high upper bound if you are using a launchy vehicle model - the optimizer will find the correct value" << endl;
@@ -1985,6 +2224,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#3: flyby (only valid for successive journeys)" << endl;
 		outputfile << "#4: flyby with fixed v-infinity-out (only valid for successive journeys)" << endl;
 		outputfile << "#5: spiral-out from circular orbit (low-thrust missions only)" << endl;
+		outputfile << "#6: zero-turn flyby (for small bodies)" << endl;
 		outputfile << "journey_departure_type";
 		for (int j = 0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_departure_type[j];
@@ -1997,6 +2237,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#4: match final v-infinity vector" << endl;
 		outputfile << "#5: match final v-infinity vector (low-thrust)" << endl;
 		outputfile << "#6: escape (E = 0)" << endl;
+		outputfile << "#7: capture spiral" << endl;
 		outputfile << "journey_arrival_type";
 		for (int j = 0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_arrival_type[j];
@@ -2036,8 +2277,18 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "journey_departure_elements_bounds";
         for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-            for (int k = 0; k < 6; ++k)
-                outputfile << " " << this->journey_departure_elements_bounds[j][k][0] << " " << this->journey_departure_elements_bounds[j][k][1];
+            if (this->journey_departure_elements_type[j])
+			{
+				outputfile << " " << this->journey_departure_elements_bounds[j][0][0] << " " << this->journey_departure_elements_bounds[j][0][1];
+				outputfile << " " << this->journey_departure_elements_bounds[j][1][0] << " " << this->journey_departure_elements_bounds[j][1][1];
+				for (int k = 2; k < 6; ++k)
+					outputfile << " " << this->journey_departure_elements_bounds[j][k][0] * 180.0 / math::PI << " " << this->journey_departure_elements_bounds[j][k][1] * 180.0 / math::PI ;
+			}
+			else
+			{
+				for (int k = 0; k < 6; ++k)
+					outputfile << " " << this->journey_departure_elements_bounds[j][k][0] << " " << this->journey_departure_elements_bounds[j][k][1];
+			}
 		}
 		outputfile << endl;
 		outputfile << "#type of orbit elements specified at end of journey(0: inertial, 1: COE)" << endl;
@@ -2075,8 +2326,18 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "journey_arrival_elements_bounds";
         for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-            for (int k = 0; k < 6; ++k)
-                outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] << " " << this->journey_arrival_elements_bounds[j][k][1];
+			if (this->journey_arrival_elements_type[j])
+			{
+				outputfile << " " << this->journey_arrival_elements_bounds[j][0][0] << " " << this->journey_arrival_elements_bounds[j][0][1];
+				outputfile << " " << this->journey_arrival_elements_bounds[j][1][0] << " " << this->journey_arrival_elements_bounds[j][1][1];
+				for (int k = 2; k < 6; ++k)
+					outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] * 180.0 / math::PI << " " << this->journey_arrival_elements_bounds[j][k][1] * 180.0 / math::PI ;
+			}
+			else
+			{
+				for (int k = 0; k < 6; ++k)
+					outputfile << " " << this->journey_arrival_elements_bounds[j][k][0] << " " << this->journey_arrival_elements_bounds[j][k][1];
+			}
 		}
 		outputfile << endl;
 		outputfile << "#journey central body" << endl;
@@ -2155,12 +2416,18 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_vary_launch_epoch " << this->outerloop_vary_launch_epoch << endl;
 		outputfile << "#Allow outer-loop to vary flight time upper bound?" << endl;
 		outputfile << "outerloop_vary_flight_time_upper_bound " << this->outerloop_vary_flight_time_upper_bound << endl;
+		outputfile << "#Restrict flight-time lower bound when running outer-loop?" << endl;
+		outputfile << "outerloop_restrict_flight_time_lower_bound " << this->outerloop_restrict_flight_time_lower_bound << endl;
 		outputfile << "#Allow outer-loop to vary thruster type?" << endl;
 		outputfile << "outerloop_vary_thruster_type " << this->outerloop_vary_thruster_type << endl;
 		outputfile << "#Allow outer-loop to vary number of thrusters?" << endl;
 		outputfile << "outerloop_vary_number_of_thrusters " << this->outerloop_vary_number_of_thrusters << endl;
 		outputfile << "#Allow outer-loop to vary launch vehicle?" << endl;
 		outputfile << "outerloop_vary_launch_vehicle " << this->outerloop_vary_launch_vehicle << endl;
+		outputfile << "#Allow outer-loop to vary first journey departure C3?" << endl;
+		outputfile << "outerloop_vary_departure_C3 " << this->outerloop_vary_departure_C3 << endl;
+		outputfile << "#Allow outer-loop to vary last journey arrival C3?" << endl;
+		outputfile << "outerloop_vary_arrival_C3 " << this->outerloop_vary_arrival_C3 << endl;
 		outputfile << "#Allow outer-loop to vary journey destination? (one value per journey)" << endl;
 		outputfile << "outerloop_vary_journey_destination";
 		for (int j = 0; j < this->number_of_journeys; ++j)
@@ -2201,6 +2468,16 @@ int missionoptions::print_options_file(string filename) {
 		for (int entry = 0; entry < this->outerloop_launch_vehicle_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_launch_vehicle_choices[entry];
 		outputfile << endl;
+		outputfile << "#Outer-loop first journey departure C3 choices" << endl;
+		outputfile << "outerloop_departure_C3_choices";
+		for (int entry = 0; entry < this->outerloop_departure_C3_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_departure_C3_choices[entry];
+		outputfile << endl;
+		outputfile << "#Outer-loop last arrival departure C3 choices" << endl;
+		outputfile << "outerloop_arrival_C3_choices";
+		for (int entry = 0; entry < this->outerloop_arrival_C3_choices.size(); ++entry)
+			outputfile << " " << this->outerloop_arrival_C3_choices[entry];
+		outputfile << endl;
 		outputfile << "#Outer-loop maximum number of flybys (one value for each journey)" << endl;
 		outputfile << "outerloop_journey_maximum_number_of_flybys";
 		for (int j = 0; j < this->number_of_journeys; ++j)
@@ -2232,8 +2509,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#3: Thruster preference" << endl;
 		outputfile << "#4: Number of thrusters" << endl;
 		outputfile << "#5: Launch vehicle preference" << endl;
-		outputfile << "#6: Delivered mass to final target" << endl;
+		outputfile << "#6: Delivered mass to final target (kg)" << endl;
 		outputfile << "#7: Final journey mass increment (for maximizing sample return)" << endl;
+		outputfile << "#8: First journey departure C3 (km^2/s^2)" << endl;
+		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;
+		outputfile << "#10: Total delta-v (km/s)" << endl;
+		outputfile << "#11: Inner-loop objective (whatever it was)" << endl;
 		outputfile << "outerloop_objective_function_choices";
 		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_objective_function_choices[entry];
@@ -2299,6 +2580,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "run_inner_loop " << this->run_inner_loop << endl;
 		outputfile << "#trial decision vector" << endl;
 		outputfile << "#trialX" << endl;
+		outputfile.precision(20);
 		if (trialX.size() > 0)
 		{
 			outputfile << "trialX" << endl;
@@ -2367,6 +2649,8 @@ void missionoptions::construct_thruster_launch_vehicle_name_arrays()
 	this->thruster_names.push_back("H6MS");
 	this->thruster_names.push_back("BHT20K");
 	this->thruster_names.push_back("HiVHAc");
+	this->thruster_names.push_back("13kWSTMDHallHisp");
+	this->thruster_names.push_back("13kWSTMDHallHthrust");
 }
 
 } /* namespace EMTG */

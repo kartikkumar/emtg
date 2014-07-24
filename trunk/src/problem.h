@@ -5,11 +5,11 @@
  *      Author: Jacob
  */
 
-#include "missionoptions.h"
 #include <string>
 #include <vector>
 
-#include "snopt.h"
+#include "missionoptions.h"
+
 
 #ifndef PROBLEM_H_
 #define PROBLEM_H_
@@ -43,20 +43,25 @@ public:
 	virtual int parse_outer_loop(int* Xouter, int n_outer_loop);
 
 	//function to output X and F bounds, descriptions
-	virtual int output_problem_bounds_and_descriptions(string filestring);
+	int output_problem_bounds_and_descriptions();
+	int output_problem_bounds_and_descriptions(string filestring);
+	
 
 	//function to output the Jacobian sparsity information
 	virtual int output_Jacobian_sparsity_information(string filestring);
 
 	//function to check the derivatives via central differencing
-	virtual int check_and_print_derivatives(string filestring);
+	int check_and_print_derivatives();
+	int check_and_print_derivatives(string filestring);
+	
 
 	//virtual function templates
 	virtual int evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar) = 0;
 	virtual int output() = 0;
 	virtual vector<double> create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions) = 0;
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess) = 0;
-	
+	virtual void convert_cartesian_solution_to_polar(const vector<double>& initialguess) = 0;
+	virtual void convert_polar_solution_to_cartesian(const vector<double>& initialguess) = 0;
 	//performance characteristics function
 	//used to extract various pieces of mission data for a multi-objective GA
 	virtual void extract_objective_function_values(std::vector<double>& objective_functions) {};
@@ -77,6 +82,7 @@ public:
 	vector<double> F; //constraint vector
 	vector<double> G; //nonlinear Jacobian vector
 	vector<double> A; //linear Jacobian vector
+	double best_cost;
 	int total_number_of_constraints; //total number of nonlinear constraints
 	int total_number_of_NLP_parameters; //total number of NLP parameters
 	vector<double> Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds;

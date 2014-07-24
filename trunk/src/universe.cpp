@@ -1,5 +1,9 @@
 //header file for EMTG body class
 
+#include <string>
+#include <vector>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "body.h"
 #include "universe.h"
@@ -7,9 +11,9 @@
 
 #include "SpiceUsr.h"
 
-#include <string>
-#include <vector>
-#include <fstream>
+
+
+#include "boost/algorithm/string.hpp"
 
 using namespace std;
 
@@ -126,6 +130,7 @@ namespace EMTG {namespace Astrodynamics {
 						inputfile >> temp_mass;
 						inputfile >> temp_radius;
 						inputfile >> temp_epoch;
+						temp_epoch *= 86400.0;
 
 						for (int k = 0; k < 6; ++k)
 						{
@@ -156,10 +161,10 @@ namespace EMTG {namespace Astrodynamics {
 	//function to locate the central body relative to the sun
 	int universe::locate_central_body(const double& epoch, double* state, missionoptions* options)
 	{
-		if (!(central_body_name.c_str() == "SUN"))
+		if (!(boost::to_upper_copy(this->central_body_name) == "SUN"))
 		{
 			double LT_dump;
-			spkez_c (central_body_SPICE_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", 10, state, &LT_dump);
+			spkez_c (central_body_SPICE_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", 10, state, &LT_dump);
 		}
 		else
 		{

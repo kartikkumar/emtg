@@ -7,11 +7,10 @@
 
 #ifndef MISSIONOPTIONS_H_
 #define MISSIONOPTIONS_H_
-
-#include "boost/ptr_container/ptr_vector.hpp"
-
 #include <vector>
 #include <string>
+
+#include "boost/ptr_container/ptr_vector.hpp"
 
 using namespace std;
 
@@ -47,6 +46,8 @@ public:
 	// If you add new fields to the missionoptions class, make sure that you also add:
 	// 1. code to READ values into the field in missionoptions::parse_options_file(string filename)
 	// 2. code to WRITE the field out to the disk in missionoptions::print_options_file(string filename)
+	// 3. code to READ and WRITE the field in PyEMTG
+	// 4. a GUI widget to allow the user to modify the field in PyEMTG
 	//
 	//****************************************************************************************
 
@@ -61,7 +62,7 @@ public:
 	double AU;
 
 	//outer loop solver settings
-	bool run_outerloop; //whether or not to run the outer loop; if false
+	int run_outerloop; //whether or not to run the outer loop; if false
 	int outerloop_popsize; //population size
 	int outerloop_genmax; //number of generations
 	int outerloop_tournamentsize; //tournament size for selection
@@ -73,6 +74,10 @@ public:
 	int outerloop_elitecount; //how many elite individuals to retain
 	bool outerloop_useparallel; //whether or not to use the parallel outer-loop
 	int outerloop_warmstart; //if true, read "population.txt" and "solutions.txt"
+	string outerloop_warm_archive;
+	string outerloop_warm_population;
+	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
+	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 
 	//outer loop selectable options settings
 	bool outerloop_vary_power;
@@ -81,14 +86,19 @@ public:
 	bool outerloop_vary_thruster_type;
 	bool outerloop_vary_number_of_thrusters;
 	bool outerloop_vary_launch_vehicle;
+	bool outerloop_vary_departure_C3;
+	bool outerloop_vary_arrival_C3;
 	vector<bool> outerloop_vary_journey_destination;
 	vector<bool> outerloop_vary_journey_flyby_sequence;
 	vector<double> outerloop_power_choices;
 	vector<double> outerloop_launch_epoch_choices;
 	vector<double> outerloop_flight_time_upper_bound_choices;
+	bool outerloop_restrict_flight_time_lower_bound;
 	vector<int> outerloop_thruster_type_choices;
 	vector<int> outerloop_number_of_thrusters_choices;
 	vector<int> outerloop_launch_vehicle_choices;
+	vector<double> outerloop_departure_C3_choices;
+	vector<double> outerloop_arrival_C3_choices;
 	vector< vector<int> > outerloop_journey_destination_choices;
 	vector< vector<int> > outerloop_journey_flyby_sequence_choices;
 	vector<int> outerloop_journey_maximum_number_of_flybys;
@@ -117,6 +127,11 @@ public:
 	int initial_guess_num_timesteps;
 	int initial_guess_step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	double initial_guess_step_size_stdv_or_scale;
+	int MBH_zero_control_initial_guess; //0: do not use, 1: zero-control for resets, random perturbations for hops, 2: always use zero-control guess except when seeded
+	bool MBH_two_step; //whether or not to use the 2-step MBH (coarse then fine derivatives)
+	double FD_stepsize; //"fine" finite differencing step size
+	double FD_stepsize_coarse; //"coarse" finite differencing step
+	
 
 
 	//problem settings set by the user
@@ -127,11 +142,19 @@ public:
 	string universe_folder;
 	int ephemeris_source; //0: static, 1: SPICE (default to static if no SPICE file supplied for a body)
 
+	//Lambert solver
+	int LambertSolver; //0: Arora-Russell, 1: Izzo
+
 	//low thrust solver parameters
 	int num_timesteps; //number of timesteps per phase
+	int control_coordinate_system; //0: cartesian, 1: polar
+	int initial_guess_control_coordinate_system; //0: cartesian, 1: polar
 	int step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	int spiral_model_type; //0: Battin, 1: Edelbaum
 	double step_size_stdv_or_scale;
+
+	//impulsive thrust solver parameters
+	int maximum_number_of_lambert_revolutions;
 
 	//vehicle parameters
 	bool allow_initial_mass_to_vary;
@@ -189,8 +212,8 @@ public:
 	//1: maximum thrust
 	//2: minimum mass-flow rate
 	double spacecraft_power_coefficients[3];
-	double engine_input_thrust_coefficients[5];
-	double engine_input_mass_flow_rate_coefficients[5];
+	double engine_input_thrust_coefficients[7];
+	double engine_input_mass_flow_rate_coefficients[7];
 	double engine_input_power_bounds[2];
 	double user_defined_engine_efficiency;
 	int spacecraft_power_model_type;
@@ -198,6 +221,8 @@ public:
 
 	//terminal constraints
 	double minimum_dry_mass; //in kg
+	bool enable_maximum_propellant_mass_constraint;
+	double maximum_propellant_mass; // in kg
 	double post_mission_delta_v; //in km/s
 	double post_mission_Isp; //in s, Isp for post_mission_delta_v
 	double propellant_margin; //percent of propellant to be held as margin over the nominal propellant load
@@ -272,6 +297,7 @@ public:
 	vector< vector<int> > number_of_phases_input;
 	vector<int> number_of_phases;
 	int total_number_of_phases;
+	bool quiet_basinhopping;
 	string outputfile;
 	string GMAT_outputfile;
 	string description;

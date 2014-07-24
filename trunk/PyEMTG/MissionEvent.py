@@ -118,9 +118,11 @@ class MissionEvent(object):
                 CenterPointState = np.zeros(6)
                 CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
                 CenterPointState[3:6] *= TU
+                CenterPointStateAfterManeuver = copy.deepcopy(CenterPointState)
+                CenterPointStateAfterManeuver[3:6] += np.array(self.DeltaVorThrustVectorControl) * TU /LU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
-                ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                ForwardIntegrateObject.set_initial_value(CenterPointStateAfterManeuver).set_f_params(1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
                 StateHistoryForward = []
@@ -128,7 +130,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -169,7 +171,7 @@ class MissionEvent(object):
                 ScaledThrust = np.array(self.Thrust) / self.Mass / LU / 1000* TU*TU
                 ScaledMdot = self.MassFlowRate / self.Mass * TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -178,7 +180,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400 / TU / 10
@@ -238,21 +240,21 @@ class MissionEvent(object):
 
         #for launches a C3 and DLA are needed
         if self.EventType == 'launch':
-            description += '\nC3 = ' + "{0:.2f}".format(self.C3) + ' $km^2/s^2$'
+            description += '\nC3 = ' + "{0:.3f}".format(self.C3) + ' $km^2/s^2$'
             #add the LV to the description?
             description += '\nDLA = ' + "{0:.1f}".format(self.Declination) + '$^{\circ}$'
 
         #for non-launch departures only the C3 is needed
         if self.EventType == 'departure':
-            description += '\nC3 = ' + "{0:.2f}".format(self.C3) + ' $km^2/s^2$'
+            description += '\nC3 = ' + "{0:.3f}".format(self.C3) + ' $km^2/s^2$'
 
         #for spirals output only the delta-v
         if self.EventType == 'begin_spiral' or self.EventType == 'end_spiral':
-            description += '\n$\Delta v$ = ' + "{0:.2f}".format(self.DVmagorThrottle) + ' $km/s$'
+            description += '\n$\Delta v$ = ' + "{0:.3f}".format(self.DVmagorThrottle) + ' $km/s$'
 
         #for other events, output v-infinity and DLA
         if self.EventType == 'upwr_flyby' or self.EventType == 'pwr_flyby' or self.EventType == 'intercept' or self.EventType == 'interface' or self.EventType == 'insertion':
-            description += '\n$v_\infty$ = ' + "{0:.2f}".format(math.sqrt(self.C3)) + ' $km/s$'
+            description += '\n$v_\infty$ = ' + "{0:.3f}".format(math.sqrt(self.C3)) + ' $km/s$'
             description += '\nDEC = ' + "{0:.1f}".format(self.Declination) + '$^{\circ}$'
 
         #for flybys, altitude should be outputed
@@ -262,24 +264,26 @@ class MissionEvent(object):
 
         #for propulsive events, a deltaV is needed
         if self.EventType == 'departure' or self.EventType == 'pwr_flyby' or self.EventType == 'insertion' or self.EventType == 'chem_burn' or self.EventType == 'rendezvous':
-                description += '\n$\Delta v$ = ' + "{0:.2f}".format(self.DVmagorThrottle) + ' $km/s$'
+                description += '\n$\Delta v$ = ' + "{0:.3f}".format(self.DVmagorThrottle) + ' $km/s$'
+
         #always append the spacecraft Mass
         description += '\nm = ' + "{0:.0f}".format(self.Mass) + ' $kg$'
 
         #draw the text
+        #note, do not draw anything for chemical burns below 10 m/s
+        if not (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001):
+            x2D, y2D, _ = proj3d.proj_transform(self.SpacecraftState[0],self.SpacecraftState[1],self.SpacecraftState[2], GraphicsObject.get_proj())
 
-        x2D, y2D, _ = proj3d.proj_transform(self.SpacecraftState[0],self.SpacecraftState[1],self.SpacecraftState[2], GraphicsObject.get_proj())
+            self.eventlabel = plt.annotate(description, xycoords = 'data', xy = (x2D, y2D), xytext = (20, 20), textcoords = 'offset points', ha = 'left', va = 'bottom',
+                                           bbox = dict(boxstyle = 'round,pad=0.5', fc = 'white', alpha = 0.5), arrowprops = dict(arrowstyle = '->',
+                                           connectionstyle = 'arc3,rad=0'), size=PlotOptions.FontSize)
 
-        self.eventlabel = plt.annotate(description, xycoords = 'data', xy = (x2D, y2D), xytext = (20, 20), textcoords = 'offset points', ha = 'left', va = 'bottom',
-                                       bbox = dict(boxstyle = 'round,pad=0.5', fc = 'white', alpha = 0.5), arrowprops = dict(arrowstyle = '->',
-                                       connectionstyle = 'arc3,rad=0'), size=PlotOptions.FontSize)
-
-        self.AnnotationHelper = self.eventlabel.draggable(use_blit=True)
-        self.pcid = GraphicsObject.figure.canvas.mpl_connect('button_press_event', self.ClickAnnotation)
-        self.rcid = GraphicsObject.figure.canvas.mpl_connect('button_release_event', self.ReleaseAnnotation)
+            self.AnnotationHelper = self.eventlabel.draggable(use_blit=True)
+            self.pcid = GraphicsObject.figure.canvas.mpl_connect('button_press_event', self.ClickAnnotation)
+            self.rcid = GraphicsObject.figure.canvas.mpl_connect('button_release_event', self.ReleaseAnnotation)
 
     def UpdateLabelPosition(self, Figure, Axes):
-        if not (self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "FBLTSthrust" or self.EventType == "match_point"):
+        if not (self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "FBLTSthrust" or self.EventType == "match_point" or (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001)):
             x2, y2, _ = proj3d.proj_transform(self.SpacecraftState[0],self.SpacecraftState[1],self.SpacecraftState[2], Axes.get_proj())
             self.eventlabel.xy = x2,y2
             self.eventlabel.update_positions(Figure.canvas.renderer)
@@ -309,8 +313,10 @@ class MissionEvent(object):
             CenterPointState[6] = 1.0
 
             if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust":
-                CenterPointState = np.zeros(6)
-                CenterPointState[0:6] = np.array(self.SpacecraftState) / LU
+                CenterPointState = np.array(copy.deepcopy(self.SpacecraftState))
+                if self.EventType == "SFthrust":
+                    CenterPointState[3:6] += np.array(self.DeltaVorThrustVectorControl)
+                CenterPointState /= LU
                 CenterPointState[3:6] *= TU
 
                 ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
@@ -322,6 +328,11 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + 86400 / TU)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
                     TimeHistoryForward.append(ForwardIntegrateObject.t * TU)
+
+                #backward integration
+                CenterPointState = np.array(copy.deepcopy(self.SpacecraftState))
+                CenterPointState /= LU
+                CenterPointState[3:6] *= TU
 
                 BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0)
@@ -409,8 +420,8 @@ class MissionEvent(object):
                     timehistory.append(TimeLine + self.JulianDate * 86400)
 
         else:
-            statehistory = np.array(self.SpacecraftState[0:6])
-            accelhistory = np.array([0.0, 0.0, 0.0])
-            timehistory = self.JulianDate * 86400
+            statehistory.append(np.array(self.SpacecraftState[0:6]) * 1000.0)
+            accelhistory.append(np.array([0.0, 0.0, 0.0]))
+            timehistory.append(self.JulianDate * 86400)
 
         return timehistory, statehistory, accelhistory

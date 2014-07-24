@@ -8,12 +8,12 @@
 #ifndef MGADSMPHASE_H_
 #define MGADSMPHASE_H_
 
+#include <vector>
+
 #include "phase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
-
-#include <vector>
 
 namespace EMTG {
 

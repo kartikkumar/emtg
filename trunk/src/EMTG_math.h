@@ -3,7 +3,7 @@
 #ifndef _EMTG_MATH
 #define _EMTG_MATH
 
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 
 namespace EMTG { namespace math

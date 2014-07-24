@@ -8,14 +8,13 @@
 #ifndef MGALTPHASE_H_
 #define MGALTPHASE_H_
 
+#include <vector>
+
 #include "phase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
 #include "STM.h"
-//#include "UniversalKeplerPropagator.h"
-
-#include <vector>
 
 namespace EMTG {
 

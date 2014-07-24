@@ -8,13 +8,14 @@
 #ifndef MGANDSMPHASE_H_
 #define MGANDSMPHASE_H_
 
+#include <vector>
+
 #include "phase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
-#include "UniversalKeplerPropagator.h"
 
-#include <vector>
+
 
 namespace EMTG {
 
@@ -49,9 +50,6 @@ public:
 	vector<double> match_point_state;
 	math::Matrix<double> dV;
 	double DSM_magnitude;
-
-	//Propagator
-	Astrodynamics::UniversalKeplerPropagator Propagator;
 };
 
 } /* namespace EMTG */

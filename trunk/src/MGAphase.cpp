@@ -6,21 +6,28 @@
  *      Author: Jacob
  */
 
+#include <vector>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "MGAphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
+
+#ifdef _EMTG_proprietary
+#include "Lambert.h"
+#endif
+
 #include "Lambert_AroraRussell.h"
-#include "kepler_lagrange_laguerre_conway.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
 #include "universe.h"
 
 #include "SpiceUsr.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <fstream>
+
 
 using namespace std;
 
@@ -73,16 +80,6 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
 
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
-
 	//we need to know if we are the first phase of the journey
 	if (p == 0)
 	{
@@ -106,7 +103,23 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 		}
 
 		//Step 2: locate the first body
-		locate_boundary_point(boundary1_location_code, options->journey_departure_type[j], true, Universe, boundary1_state, current_state+3, *current_epoch, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+		this->locate_boundary_point(boundary1_location_code,
+									options->journey_departure_type[j],
+									true,
+									Universe, 
+									boundary1_state,
+									current_state+3,
+									*current_epoch, 
+									X, 
+									Xindex,
+									F,
+									Findex,
+									G, 
+									Gindex,
+									false,
+									j,
+									p,
+									options);
 	}
 	//there is no alternate step 2
 	
@@ -117,17 +130,152 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	++(*Xindex);
 
 	//Step 4: locate the second body
-	locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+	this->locate_boundary_point(boundary2_location_code, 
+								options->journey_arrival_type[j],
+								false,
+								Universe,
+								boundary2_state,
+								current_state+3, 
+								*current_epoch + TOF,
+								X,
+								Xindex, 
+								F, 
+								Findex,
+								G,
+								Gindex, 
+								false, 
+								j,
+								p, 
+								options);
 
 	//Step 5: solve Lambert's problem between the planets
-	double lambert_error;
-	int	actual_iterations;
-	EMTG::Astrodynamics::Lambert_AroraRussell (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 1, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
+	int Nrev;
+	bool ShortPeriod;
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		int LambertArcType = (int)X[*Xindex];
+		++(*Xindex);
+		Nrev = LambertArcType / 2;
+		ShortPeriod = LambertArcType % 2;
+	}
+	else
+	{
+		Nrev = 0;
+		ShortPeriod = 0;
+	}
 
-	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
+	double Lam_error;
+	int Lam_iterations;
 
-	if (hz < 0)
-		EMTG::Astrodynamics::Lambert_AroraRussell (boundary1_state, boundary2_state, 86400*TOF, Universe->mu, 0, 0, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
+#ifdef _EMTG_proprietary
+	if (options->LambertSolver == 1) //Izzo Lambert solver
+	{
+		EMTG::Astrodynamics::Lambert(boundary1_state,
+			boundary2_state,
+			this->TOF,
+			Universe->mu,
+			1,
+			Nrev,
+			lambert_v1,
+			lambert_v2);
+
+		//check the angular momentum vector to avoid going retrograde
+		hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
+
+		if (hz < 0)
+		{
+			EMTG::Astrodynamics::Lambert(boundary1_state,
+				boundary2_state,
+				this->TOF,
+				Universe->mu,
+				0,
+				Nrev,
+				lambert_v1,
+				lambert_v2);
+		}
+	}
+	else
+	{
+#endif
+		//note: if the Lambert solver fails it is almost always because there is no solution for that number of revolutions
+		//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
+		try
+		{
+			EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				Nrev,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+		catch (int& errorcode)
+		{
+			if (errorcode == 200000) //multi-rev error
+				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				0,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+
+
+		//check the angular momentum vector
+		hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
+
+		if (hz < 0)
+		{
+			try
+			{
+				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+					boundary2_state,
+					TOF,
+					Universe->mu,
+					Nrev,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+			catch (int& errorcode)
+			{
+				if (errorcode == 200000)
+					EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+					boundary2_state,
+					TOF,
+					Universe->mu,
+					0,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+		}
+#ifdef _EMTG_proprietary
+	}
+#endif
 
 	//Step 6: compute all parameters of the first event of the phase
 	//if this is the first phase in the journey, compute RA and DEC. Otherwise process the flyby at the beginning of the phase
@@ -287,9 +435,29 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 	if (p == options->number_of_phases[j] - 1)
 	{
 		if (boundary2_location_code > 0) //ending at body
-			dVmag[1] = process_arrival(lambert_v2, boundary2_state, current_state+3, Body2->mu, Body2->r_SOI, F, Findex, j, options, Universe);
+			dVmag[1] = this->process_arrival(	lambert_v2, 
+												boundary2_state,
+												current_state+3, 
+												current_epoch,
+												Body2->mu, 
+												Body2->r_SOI,
+												F,
+												Findex,
+												j,
+												options, 
+												Universe);
 		else //ending at point on central body SOI, fixed point, or fixed orbit
-			dVmag[1] = process_arrival(lambert_v2, boundary2_state, current_state+3, Universe->mu, Universe->r_SOI, F, Findex, j, options, Universe);
+			dVmag[1] = this->process_arrival(	lambert_v2, 
+												boundary2_state,
+												current_state+3, 
+												current_epoch,
+												Universe->mu,
+												Universe->r_SOI, 
+												F,
+												Findex,
+												j,
+												options,
+												Universe);
 		
 		state_at_end_of_phase[6] = state_at_beginning_of_phase[6] * exp(-dVmag[1] * 1000/ (options->IspChem * options->g0));
 		*current_deltaV += dVmag[1];
@@ -337,7 +505,15 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		periapse_R(1) = periapse_state(1);
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);		
+		
+		//compute RA and DEC in the frame of the target body
+		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+
+		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -392,7 +568,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch,
+						phase_start_epoch / 86400.0,
 						event_type,
 						boundary1_name,
 						0,
@@ -426,16 +602,28 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, output_state, Universe->mu, (epoch - phase_start_epoch) * 86400, this->Kepler_F_Current, this->Kepler_Fdot_Current, this->Kepler_G_Current, this->Kepler_Gdot_Current, this->Kepler_Fdotdot_Current, this->Kepler_Gdotdot_Current, this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													(epoch - phase_start_epoch),
+													this->Kepler_F_Current,
+													this->Kepler_Fdot_Current,
+													this->Kepler_G_Current,
+													this->Kepler_Gdot_Current,
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current,
+													this->Current_STM,
+													false);
 
 		//write the summary line
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						epoch,
+						epoch / 86400.0,
 						"coast",
 						"deep-space",
-						timestep,
+						timestep / 86400.0,
 						-1,
 						-1,
 						-1,
@@ -469,6 +657,23 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 			event_type = "intercept";
 		else if (options->journey_arrival_type[j] == 4)
 			event_type = "match-vinf";
+
+		//compute RA and DEC in the frame of the target body
+		if (options->destination_list[j][1] > 0)
+		{
+			this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+			math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+			math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+			this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+			this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+		}
+		else
+		{
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
+		}
 	
 		double dV_arrival_mag;
 		if (options->journey_arrival_type[j] == 2)
@@ -490,7 +695,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + TOF,
+						(phase_start_epoch + TOF) / 86400.0,
 						event_type,
 						boundary2_name,
 						0,
@@ -526,24 +731,6 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	prefixstream << "j" << j << "p" << p << ": ";
 	string prefix = prefixstream.str();
 	int first_X_entry_in_phase = Xupperbounds->size();
-
-	if (j ==0 && p == 0)
-	{
-		Flowerbounds->push_back(-math::LARGE);
-		Fupperbounds->push_back(math::LARGE);
-		Fdescriptions->push_back("objective function");
-	}
-
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			Xlowerbounds->push_back(0.0);
-			Xupperbounds->push_back(1.0);
-			Xdescriptions->push_back(prefix + "journey initial mass scale factor");
-		}
-	}
 
 	//first, we need to know if we are the first phase in the journey
 	if (p == 0)
@@ -785,6 +972,14 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	//next, we need to encode the phase flight time
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
+	//**************************************************************************
+	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		Xlowerbounds->push_back(0.0);
+		Xupperbounds->push_back(ceil((double)2 * options->maximum_number_of_lambert_revolutions + 1));
+		Xdescriptions->push_back(prefix + "Lambert arc type");
+	}
 
 	//******************
 	//if we are the last journey, then encode any variables necessary for the right hand boundary condition
@@ -960,6 +1155,17 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 

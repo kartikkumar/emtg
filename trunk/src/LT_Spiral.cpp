@@ -1,8 +1,10 @@
 //Battin spiral code
 
+#include <cmath>
+
 #include "missionoptions.h"
 #include "Astrodynamics.h"
-#include <math.h>
+
 
 namespace EMTG { namespace Astrodynamics {
 	void Battin_spiral	(const double& mass_before_spiral,
@@ -50,7 +52,7 @@ namespace EMTG { namespace Astrodynamics {
 
 
 		//compute tangential acceleration at the beginning of the spiral, to be held constant
-		double a_t = spiral_thrust * options->engine_duty_cycle / (1000*mass_before_spiral);
+		double a_t = spiral_thrust * options->engine_duty_cycle / (mass_before_spiral);
 
 		//compute circular orbit velocity
 		double v_c = sqrt(mu / r0);

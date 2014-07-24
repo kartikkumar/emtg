@@ -4,10 +4,12 @@
 #ifndef _EMTG_INTERPOLATOR
 #define _EMTG_INTERPOLATOR
 
-#include "EMTG_math.h"
-
 #include <vector>
 #include <utility>
+
+#include "EMTG_math.h"
+
+
 
 
 using namespace std;

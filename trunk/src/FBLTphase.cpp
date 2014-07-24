@@ -4,6 +4,8 @@
  *  Created on: September 17, 2012
  *      Author: Jacob
  */
+#include <sstream>
+#include <fstream>
 
 #include "FBLTphase.h"
 #include "Astrodynamics.h"
@@ -15,8 +17,7 @@
 
 #include "SpiceUsr.h"
 
-#include <sstream>
-#include <fstream>
+
 
 namespace EMTG {
 
@@ -125,7 +126,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 	//Step 6.2: propagate forward
 	phase_time_elapsed_forward = 0.0;
 	//store the initial prefered integration step size
-	double resumeH = time_step_sizes[0]/2.0 * 86400/Universe->TU;
+	double resumeH = time_step_sizes[0]/2.0/Universe->TU;
 	double resumeError = 1.0e-13;
 
 	//first initialize the forward integration
@@ -171,9 +172,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	spacecraft_state_forward,
 										state_at_initial_coast_midpoint,
 										empty_vector, 
-										(phase_start_epoch) * 86400/Universe->TU,
+										(phase_start_epoch) / Universe->TU,
 										X[0],
-										initial_coast_duration / 2.0 * 86400/Universe->TU, 
+										initial_coast_duration / 2.0 /Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -191,9 +192,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	state_at_initial_coast_midpoint,
 										spacecraft_state_end_coast,
 										empty_vector, 
-										(phase_start_epoch + initial_coast_duration / 2.0) * 86400/Universe->TU,
+										(phase_start_epoch + initial_coast_duration / 2.0) / Universe->TU,
 										X[0],
-										initial_coast_duration / 2.0 * 86400/Universe->TU, 
+										initial_coast_duration / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -248,9 +249,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	spacecraft_state_forward,
 										spacecraft_state[step].data(),
 										control[step].data(), 
-										(phase_start_epoch + phase_time_elapsed_forward) * 86400/Universe->TU,
+										(phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
 										X[0],
-										time_step_sizes[step]/2 * 86400/Universe->TU, 
+										time_step_sizes[step] / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -274,9 +275,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	spacecraft_state[step].data(),
 										spacecraft_state_forward,
 										control[step].data(),  
-										(event_epochs[step]) * 86400/options->TU,
+										(event_epochs[step]) / options->TU,
 										X[0],
-										time_step_sizes[step]/2 * 86400/Universe->TU, 
+										time_step_sizes[step]/2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -296,7 +297,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 	//Step 6.3: propagate backward
 	phase_time_elapsed_backward = 0.0;
 	//store the initial prefered integration step size
-	resumeH = -time_step_sizes[options->num_timesteps - 1] * 86400/Universe->TU;
+	resumeH = -time_step_sizes[options->num_timesteps - 1] / Universe->TU;
 	resumeError = 1.0e-6;
 	
 	//first initialize the backward integration
@@ -329,14 +330,14 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		//initial coast after flyby
 		terminal_coast_duration = options->forced_flyby_coast;
 
-		double resumeH = -terminal_coast_duration/2.0 * 86400/Universe->TU;
+		double resumeH = -terminal_coast_duration / 2.0 / Universe->TU;
 
 		integrator->adaptive_step_int(	spacecraft_state_backward,
 										state_at_terminal_coast_midpoint,
 										empty_vector, 
-										(phase_end_epoch) * 86400/Universe->TU,
+										(phase_end_epoch) / Universe->TU,
 										X[0],
-										-terminal_coast_duration / 2.0 * 86400/Universe->TU, 
+										-terminal_coast_duration / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -354,9 +355,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	state_at_terminal_coast_midpoint,
 										spacecraft_state_end_coast,
 										empty_vector, 
-										(phase_end_epoch - terminal_coast_duration / 2.0) * 86400/Universe->TU,
+										(phase_end_epoch - terminal_coast_duration / 2.0) / Universe->TU,
 										X[0],
-										-terminal_coast_duration / 2.0 * 86400/Universe->TU, 
+										-terminal_coast_duration / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -415,9 +416,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	spacecraft_state_backward,
 										spacecraft_state[backstep].data(),
 										control[backstep].data(),  
-										(phase_end_epoch - phase_time_elapsed_backward) * 86400/Universe->TU,
+										(phase_end_epoch - phase_time_elapsed_backward) / Universe->TU,
 										X[0],
-										-time_step_sizes[backstep]/2 * 86400/Universe->TU, 
+										-time_step_sizes[backstep] / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -440,9 +441,9 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		integrator->adaptive_step_int(	spacecraft_state[backstep].data(),
 										spacecraft_state_backward,
 										control[backstep].data(),  
-										(event_epochs[backstep]) * 86400/Universe->TU,
+										(event_epochs[backstep]) / Universe->TU,
 										X[0],
-										-time_step_sizes[backstep]/2 * 86400/Universe->TU, 
+										-time_step_sizes[backstep] / 2.0 / Universe->TU, 
 										&resumeH,
 										&resumeError,
 										1.0e-8,
@@ -499,9 +500,29 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 		{
 			//compute the arrival deltaV
 			if (boundary2_location_code > 0) //ending at body
-				dV_arrival_magnitude = process_arrival(state_at_end_of_phase+3, boundary2_state, current_state+3, Body2->mu, Body2->r_SOI, F, Findex, j, options, Universe);
+				dV_arrival_magnitude = process_arrival(	state_at_end_of_phase+3,
+														boundary2_state,
+														current_state+3,
+														current_epoch,
+														Body2->mu,
+														Body2->r_SOI,
+														F,
+														Findex, 
+														j, 
+														options,
+														Universe);
 			else //arriving at a boundary point in free space
-				dV_arrival_magnitude = process_arrival(state_at_end_of_phase+3, boundary2_state, current_state+3, Universe->mu, Universe->r_SOI, F, Findex, j, options, Universe);
+				dV_arrival_magnitude = process_arrival(	state_at_end_of_phase + 3, 
+														boundary2_state, 
+														current_state + 3,
+														current_epoch, 
+														Universe->mu,
+														Universe->r_SOI,
+														F,
+														Findex,
+														j,
+														options,
+														Universe);
 
 			//drop the electric propulsion stage
 			state_at_end_of_phase[6] -= options->EP_dry_mass;
@@ -523,7 +544,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 				//derivative with respect to z component of terminal velocity
 				G[terminal_velocity_constraint_G_indices[2]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[2] * X[terminal_velocity_constraint_X_indices[2]] / C3_desired;
 			}
-			if ( needG && options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
+			/*if ( needG && options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
 			{
 				double Vx = X[arrival_declination_constraint_X_indices[0]];
 				double Vy = X[arrival_declination_constraint_X_indices[1]];
@@ -539,7 +560,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 
 				//derivative with respect to z component of terminal velocity
 				G[arrival_declination_constraint_G_indices[2]] = arrival_declination_constraint_X_scale_ranges[0] * -A/B / options->journey_arrival_declination_bounds[j][1];
-			}
+			}*/
             else if (needG && options->journey_arrival_type[j] == 6)
 			{
 				double r = math::norm(boundary2_state, 3) / Universe->LU;
@@ -630,64 +651,102 @@ int FBLT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerb
 	//**************************************************************************
 	//next, we need to include the decision variables and constraints for each burn
 	//now, for each timestep
-	for (int w=0; w < options->num_timesteps; ++w)
+	if (options->control_coordinate_system == 0) //Cartesian control
 	{
-		stringstream stepstream;
-		stepstream << w;
-		//u_x
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_x");
-
-		//u_y
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_y");
-
-		//u_z
-		Xlowerbounds->push_back(-1.0);
-		Xupperbounds->push_back(1.0);
-		Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_z");
-		
-		//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
-		if (options->engine_type == 4 || options->engine_type == 13)
+		for (int w = 0; w < options->num_timesteps; ++w)
 		{
-			Xlowerbounds->push_back(options->IspLT_minimum);
-			Xupperbounds->push_back(options->IspLT);
-			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-		}
-		else if (options->engine_type == 12)
-		{
-			Xlowerbounds->push_back(3000.0);
-			Xupperbounds->push_back(5000.0);
-			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-		}
+			stringstream stepstream;
+			stepstream << w;
+			//u_x
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_x");
 
-		//and the throttle magnitude constraint
-		//throttle = 0
-		Flowerbounds->push_back(0.0);
-		Fupperbounds->push_back(1.0);
-		Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
+			//u_y
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_y");
 
-		//Jacobian entries for the throttle magnitude constraint
-		//The throttle magnitude constraint is dependent only on the preceding three throttle components
-		vector<int> step_G_indices;
-		vector<double> dummyvalues(3);
-		int vary_Isp_flag = (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13) ? 1 : 0;
-		for (size_t entry = Xdescriptions->size() - 1 - vary_Isp_flag; entry > Xdescriptions->size() - 4 - vary_Isp_flag; --entry)
-		{
-			iGfun->push_back(Fdescriptions->size() - 1);
-			jGvar->push_back(entry);
-			stringstream EntryNameStream;
-			EntryNameStream << "Derivative of " << prefix + "step " << w << " throttle magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-			Gdescriptions->push_back(EntryNameStream.str());
+			//u_z
+			Xlowerbounds->push_back(-1.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_z");
 
-			//store the position in the G vector
-			step_G_indices.push_back(iGfun->size() - 1);
+			//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
+			if (options->engine_type == 4 || options->engine_type == 13)
+			{
+				Xlowerbounds->push_back(options->IspLT_minimum);
+				Xupperbounds->push_back(options->IspLT);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+			else if (options->engine_type == 12)
+			{
+				Xlowerbounds->push_back(3000.0);
+				Xupperbounds->push_back(5000.0);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+
+			//and the throttle magnitude constraint
+			//throttle = 0
+			Flowerbounds->push_back(0.0);
+			Fupperbounds->push_back(1.0);
+			Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
+
+			//Jacobian entries for the throttle magnitude constraint
+			//The throttle magnitude constraint is dependent only on the preceding three throttle components
+			vector<int> step_G_indices;
+			vector<double> dummyvalues(3);
+			int vary_Isp_flag = (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13) ? 1 : 0;
+			for (size_t entry = Xdescriptions->size() - 1 - vary_Isp_flag; entry > Xdescriptions->size() - 4 - vary_Isp_flag; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix + "step " << w << " throttle magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+
+				//store the position in the G vector
+				step_G_indices.push_back(iGfun->size() - 1);
+			}
+			control_vector_G_indices.push_back(step_G_indices);
 		}
-		control_vector_G_indices.push_back(step_G_indices);
 	}
+	else if (options->control_coordinate_system == 1) //Polar control
+	{
+		for (int w = 0; w < options->num_timesteps; ++w)
+		{
+			stringstream stepstream;
+			stepstream << w;
+			//u_x
+			Xlowerbounds->push_back(1.0e-10);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_Throttle");
 
+			//u_y
+			Xlowerbounds->push_back(0.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_u");
+
+			//u_z
+			Xlowerbounds->push_back(0.0);
+			Xupperbounds->push_back(1.0);
+			Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_v");
+
+			//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
+			if (options->engine_type == 4 || options->engine_type == 13)
+			{
+				Xlowerbounds->push_back(options->IspLT_minimum);
+				Xupperbounds->push_back(options->IspLT);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+			else if (options->engine_type == 12)
+			{
+				Xlowerbounds->push_back(3000.0);
+				Xupperbounds->push_back(5000.0);
+				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
+			}
+		}
+	}
 
 
 
@@ -892,6 +951,14 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
 		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+
+		//compute RA and DEC in the frame of the target body
+		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+
+		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -951,10 +1018,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			this->write_summary_line(options,
 									Universe,
 									eventcount, 
-									this->phase_start_epoch - this->spiral_escape_time,
+									(this->phase_start_epoch - this->spiral_escape_time) / 86400.0,
 									"begin_spiral",
 									this->Body1->name,
-									this->spiral_escape_time,
+									this->spiral_escape_time / 86400.0,
 									0.0,
 									0.0,
 									0.0,
@@ -965,7 +1032,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 									empty_vector,
 									empty_vector,
 									this->spiral_escape_dv,
-									this->spiral_escape_thrust,
+									this->spiral_escape_thrust * 1000.0, //kN to N conversion
 									this->spiral_escape_Isp,
 									this->spiral_escape_power,
 									this->spiral_escape_mdot,
@@ -981,7 +1048,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch,
+						phase_start_epoch / 86400.0,
 						event_type,
 						boundary1_name,
 						0,
@@ -1017,10 +1084,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		write_summary_line(	options,
 							Universe,
 							eventcount,
-							phase_start_epoch + 0.5 * initial_coast_duration,
+							(phase_start_epoch + 0.5 * initial_coast_duration) / 86400.0,
 							"force-coast",
 							"deep-space",
-							initial_coast_duration,
+							initial_coast_duration / 86400.0,
 							-1,
 							-1,
 							-1,
@@ -1092,7 +1159,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		}*/
 		double thrust_vector[3];
 		for (int k = 0; k < 3; ++k)
-			thrust_vector[k] = control[step][k] * available_thrust[step];
+			thrust_vector[k] = control[step][k] * available_thrust[step] * 1000.0; //kN to N conversion
 
 		if (EMTG::math::norm(control[step].data(), 3) > 1.0e-2 && fabs(available_thrust[step]) > 1.0e-6)
 		{
@@ -1115,10 +1182,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + phase_time_elapsed + 0.5 * time_step_sizes[step],
+						(phase_start_epoch + phase_time_elapsed + 0.5 * time_step_sizes[step]) / 86400.0,
 						event_type,
 						"deep-space",
-						time_step_sizes[step],
+						time_step_sizes[step] / 86400.0,
 						-1,
 						-1,
 						-1,
@@ -1129,7 +1196,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 						this->control[step].data(),
 						thrust_vector,
 						EMTG::math::norm(this->control[step].data(), 3),
-						this->available_thrust[step],
+						this->available_thrust[step] * 1000.0, //kN to N conversion
 						this->available_Isp[step],
 						this->available_power[step],
 						math::norm(control[step].data(),3) * available_mass_flow_rate[step],
@@ -1143,7 +1210,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + phase_time_elapsed,
+						(phase_start_epoch + phase_time_elapsed) / 86400.0,
 						"match_point",
 						"deep-space",
 						0.0,
@@ -1179,10 +1246,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		write_summary_line(	options,
 							Universe,
 							eventcount,
-							phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration,
+							(phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration) / 86400.0,
 							"force-coast",
 							"deep-space",
-							terminal_coast_duration,
+							terminal_coast_duration / 86400.0,
 							-1,
 							-1,
 							-1,
@@ -1219,6 +1286,24 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
 			event_type = "match-vinf";
 	
+		//compute RA and DEC in the frame of the target body
+		//compute RA and DEC in the frame of the target body
+		if (options->destination_list[j][1] > 0)
+		{
+			this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+			math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+			math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+			this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+			this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+		}
+		else
+		{
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
+		}
+
 		double dV_arrival_mag;
 		if (options->journey_arrival_type[j] == 2)
 		{
@@ -1230,6 +1315,8 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			dVarrival[0] = 0;
 			dVarrival[1] = 0;
 			dVarrival[2] = 0;
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
 		}
 		else
 		{
@@ -1239,7 +1326,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + TOF,
+						(phase_start_epoch + TOF) / 86400.0,
 						event_type,
 						boundary2_name,
 						0,
@@ -1266,10 +1353,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			this->write_summary_line(options,
 								Universe,
 								eventcount, 
-								this->phase_start_epoch + this->TOF + this->spiral_capture_time,
+								(this->phase_start_epoch + this->TOF + this->spiral_capture_time) / 86400.0,
 								"end_spiral",
 								this->Body2->name,
-								this->spiral_capture_time,
+								this->spiral_capture_time / 86400.0,
 								0.0,
 								0.0,
 								0.0,
@@ -1280,7 +1367,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 								empty_vector,
 								empty_vector,
 								this->spiral_capture_dv,
-								this->spiral_capture_thrust,
+								this->spiral_capture_thrust * 1000.0, //kN to N conversion
 								this->spiral_capture_Isp,
 								this->spiral_capture_power,
 								this->spiral_capture_mdot,

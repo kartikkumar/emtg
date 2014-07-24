@@ -5,6 +5,12 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <set>
+
 #include "journey.h"
 #include "mission.h"
 #include "missionoptions.h"
@@ -20,12 +26,6 @@
 #include "boost/algorithm/string/predicate.hpp"
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
-
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <set>
 
 namespace EMTG {
 
@@ -129,7 +129,7 @@ int mission::parse_outer_loop(int* Xouter)
 
 	//if we have specified the mission type (all MGA, MGA-DSM, or MGA-LT) then it only takes one decision variable to encode a phase
 	//if we have NOT specified the mission type, it takes two decision variables to encode a phase
-	int phase_encode_length = (options.mission_type > 6 ? 2 : 1);
+	int phase_encode_length = (options.mission_type > 5 ? 2 : 1);
 
 	//loop through the journeys and figure out how many phases and what type they are
 	for (int j = 0; j < options.number_of_journeys; ++j)
@@ -142,36 +142,6 @@ int mission::parse_outer_loop(int* Xouter)
 		vector<int> temp_sequence;
 		vector<int> temp_phase_type;
 
-		//now add the first destination in the sequence. Note, in the second and later journeys, the destination list might claim that we start at the boundary of the central body SOI,
-		//but it actually means that we are starting at the boundary of the previous journey's central body SOI
-		//conversely, if in the second or later journey the destination list claims that we are starting from a body, we must check to see if we have actually just entered a new body's SOI
-/*		if (j > 0 && options.destination_list[j][0] == -1)
-		{
-			int previous_central_body_index = -1;
-			//first we need to find the body that matches the previous journey's central body
-			for (size_t k = 0; k < TheUniverse[j].bodies.size(); ++k)
-			{
-				if (boost::iequals(TheUniverse[j-1].central_body_name, TheUniverse[j].bodies[k].name))
-				{
-					previous_central_body_index = TheUniverse[j].bodies[k].body_code;
-					break;
-				}
-			}
-			if (previous_central_body_index < 0)
-			{
-				cout << "Central body of journey " << j-1 << " is not in the Universe file for journey " << j << ". Program halted." << endl;
-				throw 22;
-			}
-			temp_sequence.push_back(previous_central_body_index);
-		}
-		else if (j > 0 && options.destination_list[j][0] > 0)
-		{
-			if (boost::iequals(TheUniverse[j].central_body_name, TheUniverse[j-1].bodies[options.destination_list[j]-1].name))
-				temp_sequence.push_back(-1);
-			else
-				temp_sequence.push_back(options.destination_list[j]);
-		}
-		else //other than the specific situation of being a (after first) journey and starting from a body's SOI, we just read from the destination list*/
 		temp_sequence.push_back(options.destination_list[j][0]);
 
 		//options.description.push_back(planetcodes[options.destination_list[j]-1]);
@@ -202,7 +172,6 @@ int mission::parse_outer_loop(int* Xouter)
 			if (phase_encode_length == 2 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
 			{
 				//update the sequence array with a code for the next body
-				//temp_sequence.push_back(TheUniverse[j].flyby_menu[Xouter[j*(2*options.max_phases_per_journey + 1) + p]]);
 				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * (2*options.max_phases_per_journey + 1) + p] - 1]].body_code);
 
 				//if the outer-loop is choosing phase type, then extract the phase type
@@ -223,7 +192,6 @@ int mission::parse_outer_loop(int* Xouter)
 				temp_phase_type.push_back(options.mission_type);
 
 				//update the mission description
-				//options.description.append(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[temp_sequence[temp_sequence.size() - 1]] - 1].short_name);
 				options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1] - 1].short_name);
 
 				//keep track of the number of phases
@@ -386,9 +354,9 @@ int mission::calcbounds()
 	else if (options.objective_type == 1) //minimum flight time
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-        for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
-			if (Xdescriptions[entry].find("flight time") < 1024)
+			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
 				iGfun.push_back(0);
 				jGvar.push_back(entry);
@@ -515,9 +483,9 @@ int mission::calcbounds()
     else if (options.objective_type == 8) //arrive as early as possible
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-        for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
-			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("launch epoch") < 1024)
+			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("launch epoch") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
 				iAfun.push_back(0);
 				jAvar.push_back(entry);
@@ -792,7 +760,7 @@ int mission::calcbounds()
 	if (options.minimum_dry_mass > 0)
 	{
 		Flowerbounds.push_back(-math::LARGE);
-		Fupperbounds.push_back(0);
+		Fupperbounds.push_back(0.0);
 		Fdescriptions.push_back("mission dry mass constraint");
 
 		//derivative with respect to final mass
@@ -807,6 +775,7 @@ int mission::calcbounds()
 				Gdescriptions.push_back(EntryNameStream.str());
 				dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 				dry_mass_constraint_X_indices.push_back(entry);
+				this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 				break;
 			}
 		}
@@ -825,6 +794,7 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 					break;
 				}
 			}
@@ -842,8 +812,9 @@ int mission::calcbounds()
 					stringstream EntryNameStream;
 					EntryNameStream << "Derivative of dry mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
 					Gdescriptions.push_back(EntryNameStream.str());
-					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
-					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+					this->dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
 					break;
 				}
 			}
@@ -863,6 +834,96 @@ int mission::calcbounds()
 					Gdescriptions.push_back(EntryNameStream.str());
 					dry_mass_constraint_G_indices.push_back(iGfun.size() - 1);
 					dry_mass_constraint_X_indices.push_back(entry);
+					this->dry_mass_constraint_X_ranges.push_back(this->Xupperbounds[entry] - this->Xlowerbounds[entry]);
+					break;
+				}
+			}
+		}
+
+
+		//dependencies due to spirals
+		this->find_dependencies_due_to_escape_spiral(&Xupperbounds, &Xlowerbounds, &Flowerbounds, &Fupperbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &Adescriptions, &Gdescriptions, &options, Fdescriptions.size() - 1);
+		this->find_dependencies_due_to_capture_spiral(&Xupperbounds, &Xlowerbounds, &Flowerbounds, &Fupperbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &Adescriptions, &Gdescriptions, &options, Fdescriptions.size() - 1);
+	}
+
+	if (options.enable_maximum_propellant_mass_constraint)
+	{
+		Flowerbounds.push_back(0.0);
+		Fupperbounds.push_back(1.0);
+		Fdescriptions.push_back("mission propellant mass constraint");
+
+		//derivative with respect to final mass
+		for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+		{
+			if (Xdescriptions[entry].find("arrival mass") < 1024)
+			{
+				iGfun.push_back(Fdescriptions.size() - 1);
+				jGvar.push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of propellant mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+				Gdescriptions.push_back(EntryNameStream.str());
+				propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+				propellant_mass_constraint_X_indices.push_back(entry);
+				propellant_mass_constraint_X_ranges.push_back(entry);
+				break;
+			}
+		}
+
+		//derivative with respect to v-infinity
+		if (!(options.LV_type == 0))
+		{
+			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			{
+				if (Xdescriptions[entry].find("magnitude of outgoing velocity asymptote") < 1024)
+				{
+					iGfun.push_back(Fdescriptions.size() - 1);
+					jGvar.push_back(entry);
+					stringstream EntryNameStream;
+					EntryNameStream << "Derivative of propellant mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+					Gdescriptions.push_back(EntryNameStream.str());
+					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
+					break;
+				}
+			}
+		}
+
+		//derivative with respect to initial mass multiplier
+		if (options.allow_initial_mass_to_vary)
+		{
+			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			{
+				if (Xdescriptions[entry].find("initial mass multiplier") < 1024)
+				{
+					iGfun.push_back(Fdescriptions.size() - 1);
+					jGvar.push_back(entry);
+					stringstream EntryNameStream;
+					EntryNameStream << "Derivative of propellant mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+					Gdescriptions.push_back(EntryNameStream.str());
+					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
+					break;
+				}
+			}
+		}
+
+		//derivative entry with respect to final journey mass increment ratio
+		if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
+		{
+			for (int entry = Xdescriptions.size() - 1; entry >= 0; --entry)
+			{
+				if (Xdescriptions[entry].find("journey initial mass scale factor") < 1024)
+				{
+					iGfun.push_back(Fdescriptions.size() - 1);
+					jGvar.push_back(entry);
+					stringstream EntryNameStream;
+					EntryNameStream << "Derivative of propellant mass constraint F[" << Fdescriptions.size() - 1 << "] with respect to X[" << entry << "]: " << Xdescriptions[entry];
+					Gdescriptions.push_back(EntryNameStream.str());
+					propellant_mass_constraint_G_indices.push_back(iGfun.size() - 1);
+					propellant_mass_constraint_X_indices.push_back(entry);
+					propellant_mass_constraint_X_ranges.push_back(entry);
 					break;
 				}
 			}
@@ -891,7 +952,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	int Xindex = 0;
 	int Findex = 1; //F[0] is reserved for the objective function
 	int Gindex = 0;
-	current_deltaV = 0.0;
+	this->current_deltaV = 0.0;
 	int errcode = 0;
 
 	//process all of the journeys
@@ -931,8 +992,8 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	EMTG::journey* FinalJourney = &journeys[options.number_of_journeys - 1];
 	EMTG::phase* FinalPhase = &FinalJourney->phases[options.number_of_phases[options.number_of_journeys - 1] - 1];
 
-	//evaluate, if applicable, minimum dry mass bound
-	if (options.minimum_dry_mass > 0)
+	//evaluate, if applicable, minimum dry mass bound and propellant mass bound
+	if (options.minimum_dry_mass > 0 || options.enable_maximum_propellant_mass_constraint)
 	{
 		//compute the system and spacecraft masses at the end of the modeled mission
 		double final_system_mass = current_state[6];
@@ -949,42 +1010,65 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 			initial_spacecraft_mass = FirstJourney->phases[0].spiral_escape_state_before_spiral[6];
 		else
 			initial_spacecraft_mass = FirstPhase->state_at_beginning_of_phase[6];
-		double propellant_margin_kg = options.propellant_margin * (initial_spacecraft_mass - spacecraft_mass_after_post_mission_delta_v);
+		double propellant_mass_kg = initial_spacecraft_mass - spacecraft_mass_after_post_mission_delta_v;
+		double propellant_margin_kg = options.propellant_margin * propellant_mass_kg;
+
+		total_propellant_mass = propellant_mass_kg + propellant_margin_kg;
 
 		dry_mass = spacecraft_mass_after_post_mission_delta_v - propellant_margin_kg;
 
 
-		F[Findex] = -dry_mass / options.minimum_dry_mass + 1.0;
-
-		if (options.derivative_type > 0 && needG)
+		if (options.minimum_dry_mass > 0)
 		{
-			int whichderiv = 0;
-			//derivative with respect to arrival mass
-			G[dry_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1) / options.minimum_dry_mass;
-			++whichderiv;
+			F[Findex] = -dry_mass / options.minimum_dry_mass + 1.0;
+			++Findex;
 
-			//derivative with respect to v-infinity
-			if (!(options.LV_type == 0))
+			if (options.derivative_type > 0 && needG)
 			{
-				G[dry_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.minimum_dry_mass;
+				int whichderiv = 0;
+				//derivative with respect to arrival mass
+				G[dry_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1) / options.minimum_dry_mass;
 				++whichderiv;
+
+				//derivative with respect to v-infinity
+				if (!(options.LV_type == 0))
+				{
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.minimum_dry_mass;
+					++whichderiv;
+				}
+
+
+				//derivative with respect to initial mass scale factor
+				if (options.allow_initial_mass_to_vary)
+				{
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = (this->dry_mass_constraint_X_ranges[whichderiv] * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.minimum_dry_mass;
+					++whichderiv;
+				}
+
+				//derivative with respect to final journey mass increment ratio
+				if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
+					G[this->dry_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
 			}
+		}
 
+		if (options.enable_maximum_propellant_mass_constraint)
+		{
+			F[Findex] = -total_propellant_mass / options.maximum_propellant_mass + 1.0;
+			++Findex;
 
-			//derivative with respect to initial mass scale factor
-			if (options.allow_initial_mass_to_vary)
+			if (options.derivative_type > 0 && needG)
 			{
-				//the 0.8 is because initial mass scale factor varies in [0.2, 1.0]
-				G[dry_mass_constraint_G_indices[whichderiv]] = (0.8 * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.minimum_dry_mass;
-				++whichderiv;
+				int whichderiv = 0;
+				//add the derivatives of the propellant mass constraint, which are very non-trivial
 			}
-
-			//derivative with respect to final journey mass increment ratio
-			if (options.journey_variable_mass_increment[options.number_of_journeys - 1])
-				G[dry_mass_constraint_G_indices[whichderiv]] = FinalPhase->current_mass_increment * (options.propellant_margin + 1) / options.minimum_dry_mass;
 		}
 	}
-	else dry_mass = current_state[6];
+	else
+	{
+		dry_mass = current_state[6] - (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * options.propellant_margin;
+		total_propellant_mass = (FirstJourney->phases[0].state_at_beginning_of_phase[6] - current_state[6]) * (1.0 + options.propellant_margin);
+	}
+
 
 	switch (options.objective_type)
 	{
@@ -996,20 +1080,23 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	case 1:
 		{ //minimum flight time
 			double TU = TheUniverse[options.number_of_journeys - 1].TU;
-			F[0] = (current_epoch - X[0]) * 86400 / TU;
+			F[0] = (current_epoch - X[0]) / TU;
 
 			if (this->options.derivative_type > 0)
 			{
-				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size() - 1; ++ whichderiv)
+				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size(); ++ whichderiv)
 				{
-					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] * 86400 / TU;
+					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] / TU;
 				}
 			}
 			break;
 		}
 	case 2:
 		{ //maximum final mass
-			F[0] = -current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment);
+			if (options.mission_type > 1)
+				F[0] = -current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment);
+			else
+				F[0] = -current_state[6];
 			break;
 		}
 	case 3:
@@ -1093,7 +1180,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 				//if we allow initial mass to vary, derivative with respect to initial mass multiplier
 				if (options.allow_initial_mass_to_vary)
 				{
-					G[objectivefunction_G_indices[2]] = 0.8 * FirstPhase->unscaled_phase_initial_mass / (options.maximum_mass + FinalPhase->current_mass_increment);
+					G[this->objectivefunction_G_indices[2]] = this->objectivefunction_X_scale_ranges[2] * FirstPhase->unscaled_phase_initial_mass / (options.maximum_mass + FinalPhase->current_mass_increment);
 				}
 			}
 
@@ -1243,17 +1330,24 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 int mission::output()
 {
 	ofstream outputfile(options.outputfile.c_str(), ios::out | ios::trunc);
-	outputfile << "Mission " << options.mission_name << endl;
+	outputfile << "Mission: " << options.mission_name << endl;
 	outputfile << "Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
 	outputfile.close();
 
 	//next, output summary lines describing each event in the mission
 	int errcode = 0;
 	int eventcount = 1;
-	for (int j = 0; j < number_of_journeys; ++j) {
-		errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
-		if (!(errcode == 0))
-			return errcode;
+	try
+	{
+		for (int j = 0; j < number_of_journeys; ++j) {
+			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
+			if (!(errcode == 0))
+				return errcode;
+		}
+	}
+	catch (int e)
+	{
+		cout << "An error occurred while writing " << options.outputfile << endl;
 	}
 	
 
@@ -1263,14 +1357,18 @@ int mission::output()
 	for (int k = 0; k < 2; ++k)
 		outputfile << endl;
 
+	outputfile.precision(20);
 	//output total deltaV
 	outputfile << "Total deltaV: " << current_deltaV << endl;
 
 	//output dry mass
 	outputfile << "Spacecraft dry mass: " << dry_mass << endl;
+
+	//output propellant mass
+	outputfile << "Total propellant mass including margin: " << total_propellant_mass << endl;
 	
 	//output flight time in years
-	outputfile << "Flight time (y): " << (current_epoch - journeys[0].phases[0].phase_start_epoch) / 365.25 << endl;
+	outputfile << "Flight time (y): " << (current_epoch - journeys[0].phases[0].phase_start_epoch) / 86400.0 /365.25 << endl;
 
 	//objective-function specific information
 	if (options.objective_type == 12)
@@ -1293,19 +1391,40 @@ int mission::output()
 	//upper bounds
 	outputfile << "Xupperbounds";
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xupperbounds[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xupperbounds[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xupperbounds[k];
+	}
 	outputfile << endl;
 	//decision vector
 	outputfile << "Decision Vector:";
 	outputfile.unsetf(ios::fixed);
 	outputfile.precision(20);
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xopt[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xopt[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xopt[k];
+	}
 	outputfile << endl;
 	//lower bounds
 	outputfile << "Xlowerbounds";
 	for (int k = 0; k < total_number_of_NLP_parameters; ++k)
-		outputfile << " " << Xlowerbounds[k];
+	{
+		if (this->Xdescriptions[k].find("epoch") < 1024 || this->Xdescriptions[k].find("time") < 1024)
+		{
+			outputfile << " " << this->Xlowerbounds[k] / 86400.0;
+		}
+		else
+			outputfile << " " << this->Xlowerbounds[k];
+	}
 	outputfile << endl;
 	//descriptions
 	outputfile << "Xdescriptions";
@@ -1421,31 +1540,6 @@ vector<double> mission::create_initial_guess(vector<double> XFBLT, vector<string
 	{
 		for (int p = 0; p < options.number_of_phases[j]; ++p)
 		{
-			/*
-			//first we will need the flight time for this phase
-			stringstream prefixstream;
-			prefixstream << "j" << j << "p" << p;
-
-			for (int entry = 0; entry < Xdescriptions.size(); ++entry)
-			{
-			}
-
-			double state[8];
-			for (int k = 0; k < 7; ++k)
-				state[k] = journeys[j].phases[p].state_at_beginning_of_phase[k];
-
-			state[7] = 0;
-
-			double resumeH = timestep * 86400/Universe->TU;
-			double resumeError = 1.0e-6;
-
-			for (int step = 0; step < options.num_timesteps; ++step)
-			{
-
-				integrator.adaptive_step_int(state, state, journeys[j].phases[p].control[step].data(), 
-			}
-			*/
-			
 			double angle = acos(math::dot(journeys[j].phases[p].state_at_beginning_of_phase, journeys[j].phases[p].spacecraft_state[0].data(), 3) / (math::norm(journeys[j].phases[p].state_at_beginning_of_phase, 3) * math::norm(journeys[j].phases[p].spacecraft_state[0].data(), 3)));
 
 			for (int step = 1; step < options.num_timesteps; ++step)
@@ -1601,6 +1695,107 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 	return;
 }
 
+	//functions to convert betwen cartesian and polar initial guesses
+	void mission::convert_cartesian_solution_to_polar(const vector<double>& initialguess)
+	{
+		if (this->options.mission_type == 2 || this->options.mission_type == 3)
+		{
+			int Xindex = 0;
+			vector<double> new_initial_guess;
+			while (Xindex < initialguess.size())
+			{
+				if (!(this->Xdescriptions[Xindex].find("step") < 1024)) //non-control parameters
+				{
+					new_initial_guess.push_back(initialguess[Xindex]);
+					++Xindex;
+				}
+				else
+				{
+					//convert from cartesian to polar
+					double u_x = initialguess[Xindex];
+					double u_y = initialguess[Xindex + 1];
+					double u_z = initialguess[Xindex + 2];
+
+					Xindex += 3;
+
+					double throttle = sqrt(u_x*u_x + u_y*u_y + u_z*u_z);
+					double theta = atan2(u_y, u_x);
+					double phi = asin(u_z / throttle);
+
+					new_initial_guess.push_back(throttle);
+					new_initial_guess.push_back(theta / math::TwoPI);
+					new_initial_guess.push_back((cos(phi) + 1) / 2.0);
+
+					//if this is a VSI mission we leave the Isp for this time-step unchanged
+					if (this->options.engine_type == 4 || this->options.engine_type == 12 || this->options.engine_type == 13)
+					{
+						new_initial_guess.push_back(initialguess[Xindex]);
+						++Xindex;
+					}
+				}
+			}
+
+			this->options.current_trialX = new_initial_guess;
+		}
+		else
+		{
+			std::cout << "Converting between cartesian and polar coordinates only works for MGALT and FBLT mission types" << std::endl;
+			throw 98;
+		}
+
+		return;
+	}
+
+	void mission::convert_polar_solution_to_cartesian(const vector<double>& initialguess)
+	{
+		if (this->options.mission_type == 2 || this->options.mission_type == 3)
+		{
+			int Xindex = 0;
+			vector<double> new_initial_guess;
+			while (Xindex < initialguess.size())
+			{
+				if (!(this->Xdescriptions[Xindex].find("step") < 1024)) //non-control parameters
+				{
+					new_initial_guess.push_back(initialguess[Xindex]);
+					++Xindex;
+				}
+				else
+				{
+					//convert from cartesian to polar
+					double throttle = initialguess[Xindex];
+					double theta = initialguess[Xindex + 1] * math::TwoPI;
+					double cosphi = 2 * initialguess[Xindex + 2] - 1;
+					double sinphi = sqrt(1.0 - cosphi*cosphi);
+
+					Xindex += 3;
+
+					double u_x = throttle * cos(theta) * cosphi;
+					double u_y = throttle * sin(theta) * cosphi;
+					double u_z = throttle * sinphi;
+
+					new_initial_guess.push_back(u_x);
+					new_initial_guess.push_back(u_y);
+					new_initial_guess.push_back(u_z);
+
+					//if this is a VSI mission we leave the Isp for this time-step unchanged
+					if (this->options.engine_type == 4 || this->options.engine_type == 12 || this->options.engine_type == 13)
+					{
+						new_initial_guess.push_back(initialguess[Xindex]);
+						++Xindex;
+					}
+				}
+			}
+
+			this->options.current_trialX = new_initial_guess;
+		}
+		else
+		{
+			std::cout << "Converting between cartesian and polar coordinates only works for MGALT and FBLT mission types" << std::endl;
+			throw 98;
+		}
+
+		return;
+	}
 
 	//function to find constraint/objective function dependencies due to an escape spiral anywhere in the mission
 	void mission::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
@@ -2070,16 +2265,16 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				objective_functions[objective] = this->options.power_at_1_AU;
 				break;
 			case 1: //Launch epoch (MJD)
-				objective_functions[objective] = this->Xopt[0];
+				objective_functions[objective] = this->Xopt[0] / 86400.0;
 				break;
 			case 2: //Flight time (days)
-				objective_functions[objective] = this->current_epoch - this->journeys[0].phases[0].phase_start_epoch;
+				objective_functions[objective] = (this->current_epoch - this->journeys[0].phases[0].phase_start_epoch) / 86400.0;
 				break;
-			case 3: //number of thrusters
-				objective_functions[objective] = this->options.number_of_engines;
-				break;
-			case 4: //Thruster
+			case 3: //Thruster
 				objective_functions[objective] = this->options.engine_type;
+				break;
+			case 4: //number of thrusters
+				objective_functions[objective] = this->options.number_of_engines;
 				break;
 			case 5: //Launch vehicle
 				objective_functions[objective] = this->options.LV_type;
@@ -2089,6 +2284,18 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 7: //Final journey mass increment (for maximizing sample return)
 				objective_functions[objective] = -(this->journeys.back().phases.back().current_mass_increment * this->journeys.back().phases.back().journey_initial_mass_increment_scale_factor);
+				break;
+			case 8: //first journey departure C3
+				objective_functions[objective] = this->journeys[0].phases[0].C3_departure;
+				break;
+			case 9: //last journey arrival C3
+				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
+				break;
+			case 10: //delta-V
+				objective_functions[objective] = this->current_deltaV;
+				break;
+			case 11: //inner-loop objective function
+				objective_functions[objective] = this->F[0];
 				break;
 			}
 		}

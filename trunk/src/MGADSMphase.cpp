@@ -5,21 +5,28 @@
  *      Author: Jacob
  */
 
+#include <vector>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "MGADSMphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
+
+#ifdef _EMTG_proprietary
+#include "Lambert.h"
+#endif
+
 #include "Lambert_AroraRussell.h"
-#include "kepler_lagrange_laguerre_conway.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
 #include "universe.h"
 
 #include "SpiceUsr.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <fstream>
+
 
 using namespace std;
 
@@ -88,16 +95,6 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
 
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
-
 	//we need to know if we are the first phase of the journey and the journey does not start with a flyby
 	if (p == 0 && !(options->journey_departure_type[j] == 3))
 	{
@@ -126,7 +123,7 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 
 		//Step 3: compute the departure asymptote
 		//Step 3.1 extract the departure parameters
-		if (j == 0 || !(options->journey_departure_type[j] == 3))
+		if (j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			if (boundary1_location_code == -2) //if we are starting at periapse of a hyperbola
 			{
@@ -299,6 +296,78 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 				state_at_beginning_of_phase[6] = current_state[6] * exp(-dVmag[0] * 1000/ (options->IspDS * options->g0));
 		}
 	}
+	else if (options->journey_departure_type[j] == 6)
+	{
+		//for first-phase zero-turn flybys
+		//there are no decision variables or constraints
+
+		//step 3.1 compute incoming v_infinity at flyby
+		if (p == 0)
+			this->locate_boundary_point(this->boundary1_location_code,
+			options->journey_departure_type[j],
+			true,
+			Universe,
+			boundary1_state,
+			current_state + 3,
+			*current_epoch,
+			X,
+			Xindex,
+			F,
+			Findex,
+			G,
+			Gindex,
+			needG,
+			j,
+			p,
+			options);
+
+		for (int k = 0; k < 3; ++k)
+			this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
+
+		//Step 3.2 extract V_infinity_out from decision vector and apply equal v-infinity constraint
+		for (int k = 0; k < 3; ++k)
+		{
+			this->V_infinity_out(k) = X[*Xindex];
+			++(*Xindex);
+
+			double v_infinity_in_k = this->V_infinity_in(k);
+
+			F[*Findex] = (this->V_infinity_out(k) - v_infinity_in_k) / v_infinity_in_k;
+			++(*Findex);
+
+			if (options->derivative_type > 0 && needG)
+			{
+				G[flyby_velocity_magnitude_constraint_G_indices[k * 2]] = 1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2];
+				G[flyby_velocity_magnitude_constraint_G_indices[k * 2 + 1]] = -1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2 + 1];
+			}
+		}
+
+		this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();
+		this->C3_departure = this->flyby_outgoing_v_infinity*this->flyby_outgoing_v_infinity;
+
+		this->flyby_altitude = 0.0;
+		this->flyby_turn_angle = 0.0;
+		this->dV_departure_magnitude = 0.0;
+
+		//calculate the b-plane parameters, check the periapse altitude
+		this->BoundaryR.assign_all(boundary1_state);
+		this->BoundaryV.assign_all(boundary1_state + 3);
+
+
+
+		//store the state at the beginning of the phase, post-flyby
+		for (int k = 0; k < 3; ++k)
+		{
+			this->state_at_beginning_of_phase[k] = boundary1_state[k];
+			this->state_at_beginning_of_phase[k + 3] = boundary1_state[k + 3] + V_infinity_out(k);
+		}
+
+		//store the mass
+		if (p == 0)
+			this->state_at_beginning_of_phase[6] = current_state[6] + options->journey_starting_mass_increment[j];
+		else
+			this->state_at_beginning_of_phase[6] = current_state[6];
+	}
 	else
 	{
 		//there is no alternate step 2
@@ -319,9 +388,17 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 
 		//Step 3.2 process the flyby
 		double flyby_orbit_energy;
-		EMTG::Astrodynamics::unpowered_flyby(current_state+3, boundary1_state+3, Body1->mu, Body1->radius, Body1->r_SOI,
-											rp_ratio, b_plane_insertion_angle, state_at_beginning_of_phase+3,
-											&C3_departure, &flyby_turn_angle, &flyby_orbit_energy);
+		EMTG::Astrodynamics::unpowered_flyby(current_state+3,
+											boundary1_state+3,
+											Body1->mu,
+											Body1->radius,
+											Body1->r_SOI,
+											rp_ratio, 
+											b_plane_insertion_angle,
+											state_at_beginning_of_phase+3,
+											&C3_departure,
+											&flyby_turn_angle, 
+											&flyby_orbit_energy);
 
 		//Step 3.2.1 calculate the b-plane parameters, check the periapse altitude
 		for (int k = 0; k < 3; ++k)
@@ -362,17 +439,19 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	this->time_after_burn = this->TOF - this->time_before_burn;
 
 	//Step 5.3 propagate
-	Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase,
-										this->state_before_burn, 
-										Universe->mu, 
-										this->time_before_burn * 86400,
-										this->Kepler_F_Current,
-										this->Kepler_Fdot_Current,
-										this->Kepler_G_Current, 
-										this->Kepler_Gdot_Current, 
-										this->Kepler_Fdotdot_Current, 
-										this->Kepler_Gdotdot_Current,
-										this->Current_STM, false);
+	Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
+												this->state_before_burn, 
+												Universe->mu, 
+												Universe->LU,
+												this->time_before_burn,
+												this->Kepler_F_Current,
+												this->Kepler_Fdot_Current,
+												this->Kepler_G_Current, 
+												this->Kepler_Gdot_Current, 
+												this->Kepler_Fdotdot_Current, 
+												this->Kepler_Gdotdot_Current,
+												this->Current_STM,
+												false);
 
 	this->state_before_burn[6] = this->state_at_beginning_of_phase[6];
 
@@ -396,19 +475,143 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 							options);
 
 	//Step 7: solve Lambert's problem to the right hand boundary point
-	double lambert_error;
-	int	actual_iterations;
-	EMTG::Astrodynamics::Lambert_AroraRussell (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 1, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
+	int Nrev;
+	bool ShortPeriod;
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		int LambertArcType = (int)X[*Xindex];
+		++(*Xindex);
+		Nrev = LambertArcType / 2;
+		ShortPeriod = LambertArcType % 2;
+	}
+	else
+	{
+		Nrev = 0;
+		ShortPeriod = 0;
+	}
+	
+	double Lam_error;
+	int Lam_iterations;
 
-	//check the angular momentum vector
-	//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
-	//similarly if we are already retrograde, the burn shouldn't drive us prograde
-	//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way"
-	hz1 = this->state_before_burn[0]*this->state_before_burn[3]-this->state_before_burn[1]*this->state_before_burn[4]; //angular momentum before burn
-	hz2 = this->state_before_burn[0]*lambert_v1[1]-this->state_before_burn[1]*lambert_v1[0]; //angular momentum after burn
+#ifdef _EMTG_proprietary
+	if (options->LambertSolver == 1) //Izzo Lambert solver
+	{
+		EMTG::Astrodynamics::Lambert(this->state_before_burn,
+			boundary2_state,
+			time_after_burn,
+			Universe->mu,
+			1,
+			Nrev,
+			lambert_v1,
+			lambert_v2);
 
-	if (!(hz1 == hz2))
-			EMTG::Astrodynamics::Lambert_AroraRussell (this->state_before_burn, boundary2_state, 86400*time_after_burn, Universe->mu, 0, 0, 1.0e-8, 100, lambert_v1, lambert_v2, lambert_error, actual_iterations);
+		//check the angular momentum vector
+		//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
+		//similarly if we are already retrograde, the burn shouldn't drive us prograde
+		//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way")
+		hz1 = this->state_before_burn[0] * this->state_before_burn[4] - this->state_before_burn[1] * this->state_before_burn[3]; //angular momentum before burn
+		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
+		
+		if (!( math::sgn(hz1) == math::sgn(hz2) ))
+		{
+			EMTG::Astrodynamics::Lambert(state_before_burn,
+				boundary2_state,
+				time_after_burn,
+				Universe->mu,
+				0,
+				Nrev,
+				lambert_v1,
+				lambert_v2);
+		}
+	}
+	else
+	{
+#endif
+		//Arora-Russell Lambert solver
+		//note: if the Lambert solver fails it is almost always because there is no solution for that number of revolutions
+		//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
+		try
+		{
+			EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+				boundary2_state,
+				time_after_burn,
+				Universe->mu,
+				Nrev,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+		catch (int& errorcode)
+		{
+			if (errorcode == 200000) //multi-rev error
+				EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+					boundary2_state,
+					time_after_burn,
+					Universe->mu,
+					0,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+		}
+
+
+		//check the angular momentum vector
+		//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
+		//similarly if we are already retrograde, the burn shouldn't drive us prograde
+		//in other words, orbit direction switches should not be done by burns, only by flybys (this lets us pick Lambert "long way" or "short way")
+		hz1 = this->state_before_burn[0] * this->state_before_burn[4] - this->state_before_burn[1] * this->state_before_burn[3]; //angular momentum before burn
+		hz2 = this->state_before_burn[0] * lambert_v1[1] - this->state_before_burn[1] * lambert_v1[0]; //angular momentum after burn
+
+		if (!( math::sgn(hz1) == math::sgn(hz2) ))
+		{
+			try
+			{
+				EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+					boundary2_state,
+					time_after_burn,
+					Universe->mu,
+					Nrev,
+					0,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+			catch (int& errorcode)
+			{
+				if (errorcode == 200000)
+					EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
+					boundary2_state,
+					time_after_burn,
+					Universe->mu,
+					0,
+					0,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+		}
+
+#ifdef _EMTG_proprietary
+	}
+#endif
 
 	//Step 8: compute the state after the burn
 	for (int k = 0; k < 3; ++k)
@@ -430,9 +633,29 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	if (p == options->number_of_phases[j] - 1)
 	{
 		if (boundary2_location_code > 0) //ending at body
-			dVmag[dVindex] = process_arrival(lambert_v2, boundary2_state, current_state+3, Universe->bodies[boundary2_location_code-1].mu, Universe->bodies[boundary2_location_code-1].r_SOI, F, Findex, j, options, Universe);
+			dVmag[dVindex] = process_arrival(	lambert_v2,
+												boundary2_state,
+												current_state + 3,
+												current_epoch, 
+												Body2->mu,
+												Body2->r_SOI,
+												F,
+												Findex, 
+												j, 
+												options, 
+												Universe);
 		else //ending at point on central body SOI, fixed point, or fixed orbit
-			dVmag[dVindex] = process_arrival(lambert_v2, boundary2_state, current_state+3, Universe->mu, Universe->r_SOI, F, Findex, j, options, Universe);
+			dVmag[dVindex] = process_arrival(	lambert_v2, 
+												boundary2_state,
+												current_state + 3,
+												current_epoch,
+												Universe->mu,
+												Universe->r_SOI,
+												F, 
+												Findex,
+												j, 
+												options, 
+												Universe);
 		
 		state_at_end_of_phase[6] = state_after_burn[6] * exp(-dVmag[dVindex] * 1000/ (options->IspChem * options->g0));
 		*current_deltaV += dVmag[dVindex];
@@ -477,12 +700,20 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 	{
 		event_type = "upwr_flyby";
 		math::Matrix<double> periapse_state = calculate_flyby_periapse_state(V_infinity_in, V_infinity_out, flyby_altitude, *Body1);
-		math::Matrix<double> periapse_R(3,1);
+		math::Matrix<double> periapse_R(3, 1);
 		periapse_R(0) = periapse_state(0);
 		periapse_R(1) = periapse_state(1);
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
 		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+
+		//compute RA and DEC in the frame of the target body
+		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+
+		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
 	}
 
 	string boundary1_name;
@@ -538,7 +769,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch,
+						phase_start_epoch / 86400.0,
 						event_type,
 						boundary1_name,
 						0,
@@ -571,49 +802,51 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		double epoch = phase_start_epoch + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(this->state_at_beginning_of_phase, 
-											output_state,
-											Universe->mu,
-											(epoch - this->phase_start_epoch) * 86400, 
-											this->Kepler_F_Current,
-											this->Kepler_Fdot_Current, 
-											this->Kepler_G_Current,
-											this->Kepler_Gdot_Current,
-											this->Kepler_Fdotdot_Current,
-											this->Kepler_Gdotdot_Current, 
-											this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase, 
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													(epoch - this->phase_start_epoch), 
+													this->Kepler_F_Current,
+													this->Kepler_Fdot_Current, 
+													this->Kepler_G_Current,
+													this->Kepler_Gdot_Current,
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current, 
+													this->Current_STM,
+													false);
 
 		//write the summary line
 		write_summary_line(options,
-						Universe,
-						eventcount,
-						epoch,
-						"coast",
-						"deep-space",
-						timestep,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0,
-						output_state,
-						empty_vector,
-						empty_vector,
-						0,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0);
+							Universe,
+							eventcount,
+							epoch / 86400.0,
+							"coast",
+							"deep-space",
+							timestep / 86400.0,
+							-1,
+							-1,
+							-1,
+							0,
+							0,
+							0,
+							output_state,
+							empty_vector,
+							empty_vector,
+							0,
+							-1,
+							-1,
+							-1,
+							0,
+							0,
+							0);
 	}
 
 	//then print the DSM
 	write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + time_before_burn,
+						(phase_start_epoch + time_before_burn) / 86400.0,
 						"chem_burn",
 						"deep-space",
 						0,
@@ -644,42 +877,44 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		double epoch = phase_start_epoch + time_before_burn + timestep * (step + 0.5);
 
 		//propagate the spacecraft
-		Kepler::KeplerLagrangeLaguerreConway(this->state_after_burn,
-											output_state,
-											Universe->mu,
-											(epoch - this->time_before_burn) * 86400,
-											this->Kepler_F_Current,
-											this->Kepler_Fdot_Current, 
-											this->Kepler_G_Current, 
-											this->Kepler_Gdot_Current,
-											this->Kepler_Fdotdot_Current,
-											this->Kepler_Gdotdot_Current, 
-											this->Current_STM, false);
+		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_after_burn,
+													output_state,
+													Universe->mu,
+													Universe->LU,
+													timestep * (step + 0.5),
+													this->Kepler_F_Current,
+													this->Kepler_Fdot_Current, 
+													this->Kepler_G_Current, 
+													this->Kepler_Gdot_Current,
+													this->Kepler_Fdotdot_Current,
+													this->Kepler_Gdotdot_Current, 
+													this->Current_STM,
+													false);
 
 		//write the summary line
 		write_summary_line(options,
-						Universe,
-						eventcount,
-						epoch,
-						"coast",
-						"deep-space",
-						timestep,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0,
-						output_state,
-						empty_vector,
-						empty_vector,
-						0,
-						-1,
-						-1,
-						-1,
-						0,
-						0,
-						0);
+							Universe,
+							eventcount,
+							epoch / 86400.0,
+							"coast",
+							"deep-space",
+							timestep / 86400.0,
+							-1,
+							-1,
+							-1,
+							0,
+							0,
+							0,
+							output_state,
+							empty_vector,
+							empty_vector,
+							0,
+							-1,
+							-1,
+							-1,
+							0,
+							0,
+							0);
 	}
 
 	//*****************************************************************************
@@ -690,22 +925,31 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 	if (p == options->number_of_phases[j] - 1)
 	{
 		if (options->journey_arrival_type[j] == 0)
-		{
 			event_type = "insertion";
-		}
 		else if (options->journey_arrival_type[j] == 1 || options->journey_arrival_type[j] == 3)
-		{
 			event_type = "rendezvous";
-		}
 		else if (options->journey_arrival_type[j] == 2)
-		{
 			event_type = "intercept";
-		}
 		else if (options->journey_arrival_type[j] == 4)
-		{
-			event_type = "interface";
-		}
+			event_type = "match-vinf";
 	
+		//compute RA and DEC in the frame of the target body
+		if (options->destination_list[j][1] > 0)
+		{
+			this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+			math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+			math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+			this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+			this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+		}
+		else
+		{
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
+		}
+
 		double dV_arrival_mag;
 		if (options->journey_arrival_type[j] == 2)
 		{
@@ -733,7 +977,7 @@ int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int
 		write_summary_line(options,
 						Universe,
 						eventcount,
-						phase_start_epoch + TOF,
+						(phase_start_epoch + TOF) / 86400.0,
 						event_type,
 						boundary2_name,
 						0,
@@ -1056,9 +1300,17 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
 	//all MGA-DSM phases encode a burn index
-	Xlowerbounds->push_back(0.01);
-	Xupperbounds->push_back(0.99);
+	Xlowerbounds->push_back(0.05);
+	Xupperbounds->push_back(0.95);
 	Xdescriptions->push_back(prefix + "burn index");
+
+	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		Xlowerbounds->push_back(0.0);
+		Xupperbounds->push_back(ceil((double)2 * options->maximum_number_of_lambert_revolutions + 1));
+		Xdescriptions->push_back(prefix + "Lambert arc type");
+	}
 
 	/*//all MGA-DSM phases encode a no-collision constraint
 	Flowerbounds->push_back(Universe->minimum_safe_distance / Universe->LU);
@@ -1247,6 +1499,17 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 

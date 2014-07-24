@@ -13,7 +13,7 @@ mu 398600.440
 LU 42164
 #angles defining the local reference frame relative to ICRF, given in degrees
 #alpha0, alphadot, delta0, deltadot, W, Wdot
-reference_angles 0.0 -0.641 90.0 -0.557 190.147 360.9856235
+reference_angles -90.0 -0.641 90.0 -0.557 190.147 360.9856235
 #radius of the central body's sphere of influence
 r_SOI 1.47172e+006
 #minimum safe distance from the central body

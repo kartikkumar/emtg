@@ -1,12 +1,6 @@
 //Monotonic Basin Hopping
 //for EMTG version 8
 //Jacob Englander 7-27-2012
-
-#include "problem.h"
-#include "monotonic_basin_hopping.h"
-#include "EMTG_math.h"
-#include "SNOPT_user_function.h"
-
 #include <iostream>
 #include <fstream>
 #include <ctime>
@@ -15,9 +9,12 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 
-#include "snopt.h"
-#include "snoptProblem.h"
-#include "snfilewrapper.h"
+#include "problem.h"
+#include "monotonic_basin_hopping.h"
+#include "EMTG_math.h"
+#include "SNOPT_user_function.h"
+
+#include "snoptProblemExtension.h"
 
 #ifdef _use_WORHP
 #include "EMTG_WORHP_interface.h"
@@ -89,7 +86,7 @@ namespace EMTG { namespace Solvers {
 			Fmul[k] = 0.0;
 		}
 
-		SNOPTproblem = new snoptProblem(true);
+		SNOPTproblem = new snoptProblemExtension(true);
 
 		SNOPTproblem->setProblemSize( Problem->total_number_of_NLP_parameters, neF );
 		SNOPTproblem->setObjective  ( ObjRow, ObjAdd );
@@ -156,6 +153,16 @@ namespace EMTG { namespace Solvers {
 				if ( Problem->Xdescriptions[entry].find("flight time") < 1024)
 				{
 					this->time_variable_indices.push_back(entry);
+				}
+		}
+
+		//search through the problem object and identify which decision variables are significant (i.e. non-control)
+		if (Problem->options.MBH_time_hop_probability > 0.0)
+		{
+			for (int entry = 0; entry < Problem->total_number_of_NLP_parameters; ++entry)
+				if ( !(Problem->Xdescriptions[entry].find("u_x") < 1024 || Problem->Xdescriptions[entry].find("u_y") < 1024 || Problem->Xdescriptions[entry].find("u_z") < 1024 || Problem->Xdescriptions[entry].find("Isp") < 1024) )
+				{
+					this->significant_variable_indices.push_back(entry);
 				}
 		}
 	}
@@ -244,8 +251,18 @@ namespace EMTG { namespace Solvers {
 		++this->number_of_resets;
 
 		//generate a new random trial point
-		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
-			this->Xtrial_scaled[k] = DoubleDistribution(RNG);
+		if (Problem->options.MBH_zero_control_initial_guess > 0)
+		{
+			for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+				this->Xtrial_scaled[k] = 0.5;
+			for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				this->Xtrial_scaled[this->significant_variable_indices[sigk]] = DoubleDistribution(RNG);
+		}
+		else
+		{
+			for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+				this->Xtrial_scaled[k] = DoubleDistribution(RNG);
+		}
 
 		fcurrent = EMTG::math::LARGE;
 
@@ -279,52 +296,104 @@ namespace EMTG { namespace Solvers {
 		if (Problem->options.MBH_hop_distribution == 0)
 		{
 			//perform a uniform "hop"
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				double r = DoubleDistribution(RNG);
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					double r = DoubleDistribution(RNG);
 
-				step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
+					step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					double r = DoubleDistribution(RNG);
+
+					step_size = 2 * (r - 0.5) * Problem->options.MBH_max_step_size;
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 1)
 		{
 			//perform a Cauchy "hop"
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				///double r = DoubleDistribution(RNG);
-				//int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
 
-				//step_size = s * Problem->options.MBH_max_step_size * 1.0/(EMTG::math::PI*(1.0 + r*r));
+					double r = 0.0;
 
-				//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
+					while (r < math::SMALL)
+						r = DoubleDistribution(RNG);
 
-				double r = 0.0;
+					step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
 
-				while (r < math::SMALL)
-					r = DoubleDistribution(RNG);
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					//Cauchy generator v2 as per instructions from Arnold Englander 1-12-2014 using Cauchy CDF
 
-				step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
+					double r = 0.0;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					while (r < math::SMALL)
+						r = DoubleDistribution(RNG);
+
+					step_size = Problem->options.MBH_max_step_size * tan(math::PI*(r - 0.5));
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 2)
 		{
 			double alpha = Problem->options.MBH_Pareto_alpha;
 			//perform a Pareto hop
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
 
-				//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
-				double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
-				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+					//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
+					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
 
-				step_size = s * Problem->options.MBH_max_step_size * r;
+					step_size = s * Problem->options.MBH_max_step_size * r;
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+			{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					//Pareto distribution from x = 1.0 with alpha, modified to start from x = 0.0
+
+					//s*(((alpha-1)/xU_min)/power((xU_min/u),-alpha))
+					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+
+					step_size = s * Problem->options.MBH_max_step_size * r;
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 		else if (Problem->options.MBH_hop_distribution == 3)
@@ -332,14 +401,31 @@ namespace EMTG { namespace Solvers {
 			//perform a Gaussian hop
 			double sigma = Problem->options.MBH_max_step_size;
 			double sigma2 = sigma * sigma;
-			for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+			if (Problem->options.MBH_zero_control_initial_guess > 1)
 			{
-				double r = DoubleDistribution(RNG);
-				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+				for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
+					this->Xtrial_scaled[k] = 0.5;
+				for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+				{
+					double r = DoubleDistribution(RNG);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
 
-				step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
+					step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
 
-				Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+					this->Xtrial_scaled[this->significant_variable_indices[sigk]] = Xcurrent_scaled[this->significant_variable_indices[sigk]] + step_size;
+				}
+			}
+			else
+				{
+				for (int k=0; k < Problem->total_number_of_NLP_parameters; ++k)
+				{
+					double r = DoubleDistribution(RNG);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+
+					step_size = s / (sigma * sqrt(math::TwoPI)) * exp(-r*r / (2*sigma2));
+
+					Xtrial_scaled[k] = Xcurrent_scaled[k] + step_size;
+				}
 			}
 		}
 
@@ -377,6 +463,7 @@ namespace EMTG { namespace Solvers {
 		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
 		{
 			xstate[k] = 0;
+			xmul[k] = 0.0;
 			x[k] = Xtrial_scaled[k];
 		}
 
@@ -384,8 +471,11 @@ namespace EMTG { namespace Solvers {
 		if (!this->printed_sparsity)
 		{
 			this->printed_sparsity = true;
-			Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
-			Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
+			if (!Problem->options.quiet_basinhopping)
+			{
+				Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
+				Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
+			}
 		}
 
 		if (this->Problem->options.NLP_solver_type == 1)
@@ -403,7 +493,12 @@ namespace EMTG { namespace Solvers {
 		else
 		{
 			//run SNOPT
-
+			for (int k=0; k < Problem->total_number_of_constraints; ++k)
+			{
+				Fstate[k] = 0;
+				Fmul[k] = 0.0;
+				F[k] = 0.0;
+			}
 			//Step 2: attempt to calculate the Jacobian
 			SNOPTproblem->setX          ( x, xlow, xupp, xmul, xstate );
 			SNOPTproblem->setF          ( F, Flow, Fupp, Fmul, Fstate );
@@ -413,7 +508,8 @@ namespace EMTG { namespace Solvers {
 				vector<bool> cjacflag(neF);
 				if (true /*Problem->options.derivative_type > 0*/)
 				{
-					Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
+					if (!Problem->options.quiet_basinhopping)
+						Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions.csv");
 
 					for (size_t entry = 0; entry < Problem->Adescriptions.size(); ++entry)
 					{
@@ -435,8 +531,11 @@ namespace EMTG { namespace Solvers {
 				else
 				{
 					SNOPTproblem->computeJac    ();
-					write_sparsity("sparsitySNJac.txt");
-					Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions_SNJAC.csv");
+					if (!Problem->options.quiet_basinhopping)
+					{
+						write_sparsity("sparsitySNJac.txt");
+						Problem->output_Jacobian_sparsity_information(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_SparsityDescriptions_SNJAC.csv");
+					}
 
 					//Step 3: If the Jacobian calculation succeeded, then check if it is full rank
 					if (SNOPTproblem->getInform() == 102)
@@ -446,10 +545,10 @@ namespace EMTG { namespace Solvers {
 						for (int k=0; k<neF; ++k)
 							cjacflag[k] = false;
 
-						for (int i=0; i<SNOPTproblem->neG; ++i)
+						for (int i=0; i<SNOPTproblem->getNeG(); ++i)
 							cjacflag[iGfun[i]-1] = true;
 
-						for (int i=0; i<SNOPTproblem->neA; ++i)
+						for (int i=0; i<SNOPTproblem->getNeA(); ++i)
 							cjacflag[iAfun[i]-1] = true;
 			
 						jacfullrankflag = true;
@@ -468,7 +567,7 @@ namespace EMTG { namespace Solvers {
 				SNOPT_start_time = time(NULL);
 				SNOPTproblem->solve( 0 );
 			}
-			else
+			else if (!Problem->options.quiet_basinhopping)
 			{
 				cout << "Jacobian is not full rank. SNOPT cannot be run." << endl;
 			}
@@ -484,18 +583,20 @@ namespace EMTG { namespace Solvers {
 		{
 			try
 			{
-				Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+				Problem->evaluate(Problem->X.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
 			}
 			catch (int errorcode) //integration step error
 			{
-				cout << "EMTG::Invalid initial point or failure in objective function." << endl;
+				if (!Problem->options.quiet_basinhopping)
+					cout << "EMTG::Invalid initial point or failure in objective function." << endl;
 				F[0] = EMTG::math::LARGE;
 			}
 		}
 
 		else
 		{
-			cout << "EMTG::Invalid initial point or failure in objective function." << endl;
+			if (!Problem->options.quiet_basinhopping)
+				cout << "EMTG::Invalid initial point or failure in objective function." << endl;
 			F[0] = EMTG::math::LARGE;
 		}
 		for (int k = 0; k < Problem->total_number_of_constraints; ++k)
@@ -523,12 +624,13 @@ namespace EMTG { namespace Solvers {
 			new_point = false;
 		}
 
-		int number_of_attempts = true;
+		int number_of_attempts = 1;
 		bool continue_flag = true;
 
 		//print the archive header
 		string archive_file = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "archive.emtg_archive";
-		print_archive_header(archive_file);
+		if (!Problem->options.quiet_basinhopping)
+			print_archive_header(archive_file);
 
 		time_t tstart = time(NULL);
 
@@ -538,58 +640,94 @@ namespace EMTG { namespace Solvers {
 			if (new_point)
 			{
 				//Step 1: generate a random new point
-				reset_point();
+				this->reset_point();
 
-				number_of_failures_since_last_improvement = 0;
+				this->number_of_failures_since_last_improvement = 0;
 			}
 			else if (!seeded_step)
 			{
 				//Step 1 (alternate): perturb the existing point
-				hop();
+				this->hop();
 
 				if (Problem->options.MBH_time_hop_probability > 0.0)
-					time_hop();
+					this->time_hop();
 			}
+			
+			//if seeding MBH, only the first step runs from the seed. After that hopping occurs.
+			seeded_step = false;
 
 			//Step 2: apply the slide operator
-			//Step 2.1: If this is an MGA or MGA-DSM problem, make the finite differencing step coarse
-			if (Problem->options.mission_type < 2)
+			//Step 2.1: If we are in two-step mode, make the finite differencing step coarse
+			int temporary_derivative_code;
+			if (Problem->options.MBH_two_step)
 			{
-				cout << "Performing coarse optimization step" << endl;
-				SNOPTproblem->setRealParameter("Difference interval", 1.0e-2);
+				if (!Problem->options.quiet_basinhopping)
+					cout << "Performing coarse optimization step" << endl;
+				SNOPTproblem->setRealParameter("Difference interval", Problem->options.FD_stepsize_coarse);
+				temporary_derivative_code = Problem->options.derivative_type;
+				Problem->options.derivative_type = 1;
 			}
 
 			int ransnopt = slide();
 
 			//Step 3: determine if the new trial point is feasible and if so, operate on it
-			double feasibility = check_feasibility();
+			double feasibility = this->check_feasibility();
 
 			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
-			if (Problem->options.mission_type < 2 && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
+			if (Problem->options.MBH_two_step && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
-				cout << "Coarse optimization step succeeded with J = " << F[0] << endl;
-				cout << "Performing fine optimization step" << endl;
-				SNOPTproblem->setRealParameter("Difference interval", 1.5e-8);
+				if (!Problem->options.quiet_basinhopping)
+				{
+					cout << "Coarse optimization step succeeded with J = " << F[0] << endl;
+					cout << "Performing fine optimization step" << endl;
+				}
+				SNOPTproblem->setRealParameter("Difference interval", Problem->options.FD_stepsize);
+				Problem->options.derivative_type = temporary_derivative_code;
+				vector<double> coarseX = this->Xtrial_scaled;
+				double coarseF = this->F[0];
 				slide();
+
+				feasibility = check_feasibility();
 
 				if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 				{
-					cout << "Fine optimization step succeeded with J = " << F[0] << endl;
+					if (!Problem->options.quiet_basinhopping)
+						if (!Problem->options.quiet_basinhopping)
+							cout << "Fine optimization step succeeded with J = " << F[0] << endl;
+					if (this->F[0] > coarseF)
+					{
+						if (!Problem->options.quiet_basinhopping)
+							cout << "Coarse solution was better, retaining coarse solution." << endl;
+						this->Xtrial_scaled = coarseX;
+						try
+						{
+							Problem->evaluate(this->Xtrial_scaled.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
+						}
+						catch (int e)
+						{
+							if (!Problem->options.quiet_basinhopping)
+								std::cout << "Failure to evaluate " << Problem->options.description << std::endl;
+						}
+					}
 				}
 			}
 
-			if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
+			//note: I do not trust SNOPT's "requested accuracy could not be achieved" return state - I prefer my own feasibility check
+			if (SNOPTproblem->getInform() <= 2 || feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
 				//Step 3.1: if the trial point is feasible, add it to the archive
-				Problem->unscale(&Xtrial_scaled[0]);
+				Problem->unscale(Xtrial_scaled.data());
 				archive.push_back(Problem->X);
 				archive_scores.push_back(F[0]);
 				archive_timestamps.push_back(time(NULL) - tstart);
 				archive_step_count.push_back(number_of_attempts);
 				archive_reset_count.push_back(number_of_resets);
 
-				print_archive_line(archive_file, number_of_solutions);
-				cout << "Hop evaluated mission " << Problem->options.description << " with fitness " << F[0] << endl;
+				if (!Problem->options.quiet_basinhopping)
+				{
+					print_archive_line(archive_file, number_of_solutions);
+					cout << "Hop evaluated mission " << Problem->options.description << " with fitness " << F[0] << endl;
+				}
 
 				++number_of_solutions;
 
@@ -601,7 +739,8 @@ namespace EMTG { namespace Solvers {
 						fcurrent = F[0];
 						Xcurrent_scaled = Xtrial_scaled;
 
-						cout << "New local best" << endl;
+						if (!Problem->options.quiet_basinhopping)
+							cout << "New local best" << endl;
 
 						++number_of_improvements;
 
@@ -621,14 +760,25 @@ namespace EMTG { namespace Solvers {
 				if (F[0] < fbest)
 				{
 					fbest = F[0];
-					Xbest_scaled = Xtrial_scaled; 
-					Problem->unscale(&Xbest_scaled[0]);
+					Xbest_scaled = this->Xtrial_scaled; 
+					Problem->unscale(this->Xbest_scaled.data());
 					Problem->Xopt = Problem->X; //we store the unscaled Xbest
+					Problem->best_cost = fbest;
+					
 
-					cout << "New global best" << endl;
+					if (!Problem->options.quiet_basinhopping)
+						cout << "New global best" << endl;
 
 					//Write out a results file for the current global best
-					Problem->evaluate(&(Problem->X[0]), F, &Problem->G[0], 0, Problem->iGfun, Problem->jGvar);
+					try
+					{
+						Problem->evaluate(Problem->X.data(), this->F, Problem->G.data(), 0, Problem->iGfun, Problem->jGvar);
+					}
+					catch (int errorcode)
+					{
+						std::cout << "Failure to evaluate " << Problem->options.description << std::endl;
+						F[0] = EMTG::math::LARGE;
+					}
 					Problem->options.outputfile = Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + ".emtg";
 					Problem->output();
 				}
@@ -640,7 +790,8 @@ namespace EMTG { namespace Solvers {
 				//then we should see if this point is "more feasible" than best one we have so far
 				if (feasibility < best_feasibility)
 				{
-					std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+					if (!Problem->options.quiet_basinhopping)
+						std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
 					fcurrent = F[0];
 					Xcurrent_scaled = Xtrial_scaled;
 					best_feasibility = feasibility;
@@ -675,11 +826,14 @@ namespace EMTG { namespace Solvers {
 			*/
 		} while (number_of_attempts < Problem->options.MBH_max_trials && (time(NULL) - tstart) < Problem->options.MBH_max_run_time);
 
-		cout << endl;
-		if (number_of_solutions > 0)
-			cout << "Best value found was " << fbest << endl;
-		else
-			cout << "No feasible solutions found." << endl;
+		if (!Problem->options.quiet_basinhopping)
+		{
+			cout << endl;
+			if (number_of_solutions > 0)
+				cout << "Best value found was " << fbest << endl;
+			else
+				cout << "No feasible solutions found." << endl;
+		}
 
 		return number_of_solutions;
 	}
@@ -717,7 +871,14 @@ namespace EMTG { namespace Solvers {
 
 		//archive lines
 		for (int entry = 0; entry < Problem->total_number_of_NLP_parameters; ++entry)
-			outputfile << archive[linenumber][entry] << ",";
+		{
+			if (this->Problem->Xdescriptions[entry].find("epoch") < 1024 || this->Problem->Xdescriptions[entry].find("time") < 1024)
+			{
+				outputfile << this->archive[linenumber][entry] / 86400.0 << ",";
+			}
+			else
+				outputfile << this->archive[linenumber][entry] << ",";
+		}
 		outputfile << archive_reset_count[linenumber] << ",";
 		outputfile << archive_step_count[linenumber] << ",";
 		outputfile << archive_timestamps[linenumber] << ",";
@@ -733,10 +894,10 @@ namespace EMTG { namespace Solvers {
 	{
 		ofstream sparsityfile(filename.c_str(), ios::trunc);
 
-		for (int k = 0; k < SNOPTproblem->neA; ++k)
+		for (int k = 0; k < SNOPTproblem->getNeA(); ++k)
 			sparsityfile << "Linear, " << iAfun[k] << "," << jAvar[k] << endl;
 
-		for (int k = 0; k < SNOPTproblem->neG; ++k)
+		for (int k = 0; k < SNOPTproblem->getNeG(); ++k)
 			sparsityfile << "Nonlinear, " << iGfun[k] << "," << jGvar[k] << endl;
 
 		sparsityfile.close();
@@ -769,7 +930,7 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		return max_constraint_violation / EMTG::math::norm(&Xtrial_scaled[0], Problem->total_number_of_NLP_parameters);
+		return max_constraint_violation / EMTG::math::norm(this->Xtrial_scaled.data(), Problem->total_number_of_NLP_parameters);
 	}
 
 }} //close namespace

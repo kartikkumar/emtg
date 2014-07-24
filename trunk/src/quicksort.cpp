@@ -1,8 +1,10 @@
 //quicksort
 //algorithm from wikipedia http://en.wikipedia.org/wiki/Quicksort
 
-#include "quicksort.h"
 #include <vector>
+
+#include "quicksort.h"
+
 
 using namespace std;
 

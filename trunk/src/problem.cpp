@@ -4,6 +4,7 @@
  *  Created on: Jul 17, 2012
  *      Author: Jacob
  */
+#include <iostream>
 
 #include "problem.h"
 #include "mission.h"
@@ -11,7 +12,7 @@
 #include "AdaptiveConstrainedDiffEvolve.h"
 #include "EMTG_math.h"
 
-#include <iostream>
+
 
 namespace EMTG {
 
@@ -64,16 +65,36 @@ namespace EMTG {
 		{
 		case 0: //run trialX
 			{
+				//first convert the local copy of trialX from days to seconds
+				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				{
+					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+					{
+						this->options.current_trialX[entry] *= 86400.0;
+					}
+				}
+
 				this->Xopt = options.current_trialX;
 
-				this->evaluate(&this->Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				try
+				{
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+				}
+				catch (int e)
+				{
+					std::cout << "Failure to evaluate " << this->options.description << std::endl;
+				}
 
 				std::cout << "Fitness = " << F[0] << endl;
 
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 
 				if (options.check_derivatives)
+				{
+					this->X = this->options.current_trialX;
+					this->output_problem_bounds_and_descriptions(this->options.working_directory + "//" + this->options.mission_name + "_" + this->options.description + "XFfile.csv");
 					this->check_and_print_derivatives(options.working_directory + "//" + options.mission_name + "_" + options.description + "derivcheck.csv");
+				}
 
 				break;
 			}
@@ -87,7 +108,17 @@ namespace EMTG {
 				EMTG::Solvers::MBH solver(this);
 
 				if (options.seed_MBH)
+				{
+					//first convert the local copy of trialX from days to seconds
+					for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+					{
+						if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+						{
+							this->options.current_trialX[entry] *= 86400.0;
+						}
+					}
 					solver.seed(options.current_trialX);
+				}
 
 				this->number_of_solutions = solver.run();
 			
@@ -98,7 +129,19 @@ namespace EMTG {
 					Xopt = Xlowerbounds;
 					options.outputfile = options.working_directory + "//FAILURE_" + options.mission_name + "_" + options.description + ".emtg";
 				}
-				evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+				
+				try
+				{
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+				}
+				catch (int e)
+				{
+					if (e == 13)
+						cout << "EMTG::Integrator failure" << endl;
+					std::cout << "Failure to evaluate " << this->options.description << std::endl;
+					F[0] = EMTG::math::LARGE;
+					this->number_of_solutions = 0;
+				}
 
 				break;
 			}
@@ -119,9 +162,9 @@ namespace EMTG {
 					if (solver.BestConstraintNorm < options.snopt_feasibility_tolerance && solver.BestObjectiveValue < bestJ)
 					{
 						bestJ = solver.BestObjectiveValue;
-						unscale(solver.BestX.data());
-						Xopt = X;
-						evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+						this->unscale(solver.BestX.data());
+						this->Xopt = X;
+						this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 
 						this->output();
 					}
@@ -139,19 +182,28 @@ namespace EMTG {
 
 				EMTG::Solvers::MBH solver(this);
 
+				//first convert the local copy of trialX from days to seconds
+				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				{
+					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+					{
+						this->options.current_trialX[entry] *= 86400.0;
+					}
+				}
+
 				solver.seed(options.current_trialX);
 
 				solver.slide();
 
 				unscale(&(solver.Xtrial_scaled[0]));
 
-				Xopt = X;
+				this->Xopt = X;
 
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 			
 				try
 				{
-					evaluate(&Xopt[0], &F[0], &G[0], 0, iGfun, jGvar);
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
 				}
 				catch (int errorcode)
 				{
@@ -170,6 +222,11 @@ namespace EMTG {
 
 
 	//function to output X and F bounds, descriptions
+	int problem::output_problem_bounds_and_descriptions()
+	{
+		this->output_problem_bounds_and_descriptions("XFfile.csv");
+		return 0;
+	}
 	int problem::output_problem_bounds_and_descriptions(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
@@ -205,6 +262,12 @@ namespace EMTG {
 		return 0;
 	}
 
+	int problem::check_and_print_derivatives()
+	{
+		this->check_and_print_derivatives("derivcheck.csv");
+		return 0;
+	}
+
 	int problem::check_and_print_derivatives(string filestring)
 	{
 		//this function checks all of the analytical derivatives via central differencing about the current solution "Xopt"
@@ -213,7 +276,6 @@ namespace EMTG {
 		vector<double> G_central_differenced(this->Gdescriptions.size());
 		vector<double> Fforward(this->Fdescriptions.size());
 		vector<double> Fbackward(this->Fdescriptions.size());
-		double perturbation_step = 1.0e-6;
 
 		//evaluate the analytical derivatives
 		this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 1, this->iGfun, this->jGvar);
@@ -228,12 +290,17 @@ namespace EMTG {
 		outputfile << "iGfun, jGvar, analytical value, central-difference value, abs(error), relative error, sign flip(Y/N), text description" << endl;
 
 		//evaluate all of the derivatives via finite differencing, INCLUDING those which were not specified analytically (since we can't tell anyway)
-		for (int gIndex = 0; gIndex < Gdescriptions.size(); ++gIndex)
+		for (int gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
 		{
 			//reset X_perturbed
 			X_perturbed = Xopt;
 
 			//compute the central-difference forward step value of the constraint
+			double perturbation_step;
+			if ( this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024 )
+				perturbation_step = 10.0;
+			else
+				perturbation_step = 1.0e-6;
 			X_perturbed[jGvar[gIndex]] += perturbation_step;
 			
 			this->evaluate(X_perturbed.data(), Fforward.data(), this->G.data(), 0, this->iGfun, this->jGvar);

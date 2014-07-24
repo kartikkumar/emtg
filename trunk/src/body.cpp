@@ -1,5 +1,10 @@
 //EMTG body class
 
+#include <string>
+#include <vector>
+#include <cmath>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "body.h"
 #include "EMTG_math.h"
@@ -8,10 +13,7 @@
 
 #include "SpiceUsr.h"
 
-#include <string>
-#include <vector>
-#include <math.h>
-#include <fstream>
+
 
 namespace EMTG {namespace Astrodynamics {
 
@@ -31,25 +33,25 @@ namespace EMTG {namespace Astrodynamics {
 	void body::load_body_data(const int& ibody_code, const string& iname, const string& ishortname, const int& ispice_ID, const double& imininum_altitude, const double& imass, const double& iradius, const double& iepoch, vector<double>& ireference_angles, vector<double>& iclassical_orbit_elements, const double& iuniverse_mu, const int& icentral_body_SPICE_ID, const string& icentral_body_name, const double& icentral_body_radius, missionoptions* options)
 	{
 		//copy information from the inputs into the body
-		name = iname;
-		short_name = ishortname;
-		universe_mu = iuniverse_mu;
-		body_code = ibody_code;
-		central_body_spice_ID = icentral_body_SPICE_ID;
-		central_body_name = icentral_body_name;
-		central_body_radius = icentral_body_radius;
+		this->name = iname;
+		this->short_name = ishortname;
+		this->universe_mu = iuniverse_mu;
+		this->body_code = ibody_code;
+		this->central_body_spice_ID = icentral_body_SPICE_ID;
+		this->central_body_name = icentral_body_name;
+		this->central_body_radius = icentral_body_radius;
 
-		spice_ID = ispice_ID;
-		minimum_safe_flyby_altitude = imininum_altitude;
-		mass = imass;
-		radius = iradius;
-		reference_epoch = iepoch;
-		SMA = iclassical_orbit_elements[0];
-		ECC = iclassical_orbit_elements[1];
-		INC = iclassical_orbit_elements[2] * EMTG::math::PI / 180.0;
-		RAAN = iclassical_orbit_elements[3] * EMTG::math::PI / 180.0;
-		AOP = iclassical_orbit_elements[4] * EMTG::math::PI / 180.0;
-		MA = iclassical_orbit_elements[5] * EMTG::math::PI / 180.0;
+		this->spice_ID = ispice_ID;
+		this->minimum_safe_flyby_altitude = imininum_altitude;
+		this->mass = imass;
+		this->radius = iradius;
+		this->reference_epoch = iepoch;
+		this->SMA = iclassical_orbit_elements[0];
+		this->ECC = iclassical_orbit_elements[1];
+		this->INC = iclassical_orbit_elements[2] * EMTG::math::PI / 180.0;
+		this->RAAN = iclassical_orbit_elements[3] * EMTG::math::PI / 180.0;
+		this->AOP = iclassical_orbit_elements[4] * EMTG::math::PI / 180.0;
+		this->MA = iclassical_orbit_elements[5] * EMTG::math::PI / 180.0;
 		
 
 
@@ -72,7 +74,7 @@ namespace EMTG {namespace Astrodynamics {
 			//first, check to see if the body exists in the currently loaded SPICE kernels
 			double temp_state[6];
 			double LT_dump;
-			spkez_c (spice_ID, unitim_c(reference_epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
+			spkez_c (spice_ID, reference_epoch - (51544.5 * 86400.0), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
 			if (failed_c())
 				reset_c();
 
@@ -102,15 +104,15 @@ namespace EMTG {namespace Astrodynamics {
 		{
 			case 1: //SPICE
 				double LT_dump;
-				spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET"), "J2000", "NONE", central_body_spice_ID, state, &LT_dump);
+				spkez_c(spice_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", this->central_body_spice_ID, state, &LT_dump);
 
 				if (need_deriv)
 				{
 					double statepert[6];
-					spkez_c (spice_ID, unitim_c(epoch + 2400000.5, "JDTDB", "ET") + (1.0 / 86400.0), "J2000", "NONE", central_body_spice_ID, statepert, &LT_dump);
-					state[6] = (statepert[3] - state[3]) / (1.0 / 86400.0);
-					state[7] = (statepert[4] - state[4]) / (1.0 / 86400.0);
-					state[8] = (statepert[5] - state[5]) / (1.0 / 86400.0);
+					spkez_c(spice_ID, epoch - (51544.5 * 86400.0) + 10.0, "J2000", "NONE", this->central_body_spice_ID, statepert, &LT_dump);
+					state[6] = (statepert[3] - state[3]) / (10.0);
+					state[7] = (statepert[4] - state[4]) / (10.0);
+					state[8] = (statepert[5] - state[5]) / (10.0);
 				}
 
 				break;
@@ -118,26 +120,29 @@ namespace EMTG {namespace Astrodynamics {
 					//TODO static ephemeris is not ready!
 					//note, always should give in Earth equatorial J2000 coordinates for internal processing
 
-					DT = ( epoch - reference_epoch ) * 86400;
+					DT = ( epoch - this->reference_epoch );
 					
 
-					if (SMA > 0.0)
-						n = sqrt( universe_mu / (SMA*SMA*SMA) );
+					if (this->SMA > 0.0)
+						n = sqrt(this->universe_mu / (this->SMA*this->SMA*this->SMA));
 					else
-						n = sqrt( universe_mu / (-SMA*SMA*SMA) );
+						n = sqrt(this->universe_mu / (-this->SMA*this->SMA*this->SMA));
 					
-					M = MA + n*DT;
+					M = this->MA + n*DT;
 					M = fmod(M, 2 * EMTG::math::PI);
 
-					E = Kepler::KeplerLaguerreConway(ECC, M);
-					V[0] = SMA; 
-					V[1] = ECC; 
-					V[2] = INC;
-					V[3] = RAAN;
-					V[4] = AOP; 
-					V[5] = E;
+					E = Kepler::KeplerLaguerreConway(this->ECC, M);
+					V[0] = this->SMA; 
+					V[1] = this->ECC;
+					V[2] = this->INC;
+					V[3] = this->RAAN;
+					V[4] = this->AOP;
 
-					COE2inertial(V, universe_mu, state);
+					true_anomaly = 2.0*atan(sqrt((1.0 + this->ECC) / (1.0 - this->ECC))*tan(E / 2.0));
+					V[5] = true_anomaly;
+
+
+					COE2inertial(V, this->universe_mu, state);
 
 					if (need_deriv)
 					{

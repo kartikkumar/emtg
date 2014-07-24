@@ -1,7 +1,8 @@
 //header file for EMTG frame class
 //Jacob Englander 1/3/2013
 
-#pragma once
+#ifndef EMTG_FRAME
+#define EMTG_FRAME
 
 #include "EMTG_Matrix.h"
 
@@ -21,8 +22,8 @@ namespace EMTG { namespace Astrodynamics {
 		//methods
 		void initialize();
 		void initialize(const double& alpha0_in, const double& alphadot_in, const double& delta0_in, const double& deltadot_in, const double& W_in, const double& Wdot_in);
-		double convert_JED_to_TDB(const double& JEDepoch);
-		void construct_rotation_matrices(const double& JEDepoch);
+		double convert_ET_to_TDB(const double& ETepoch);
+		void construct_rotation_matrices(const double& ETepoch);
 
 		//fields
 		double alpha0, alphadot, delta0, deltadot, W, Wdot;
@@ -31,3 +32,5 @@ namespace EMTG { namespace Astrodynamics {
 	};
 
 }} //close namespace
+
+#endif //EMTG_FRAME
