@@ -106,7 +106,8 @@ public:
 
 	//pointer to SNOPT object
 	snoptProblemExtension* SNOPTproblem;
-	
+	SNOPT_INT_TYPE inform;
+
 	//other fields for SNOPT
 	integer neF;
 

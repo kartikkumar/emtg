@@ -329,7 +329,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>C:\Projects\EMTGv8_proprietary;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\include;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPToldclean;src</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary;Heritage_SNOPT7</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

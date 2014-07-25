@@ -493,7 +493,6 @@ namespace EMTG { namespace Solvers {
 		else
 		{
 			//run SNOPT
-			SNOPT_INT_TYPE inform;
 			for (int k=0; k < Problem->total_number_of_constraints; ++k)
 			{
 				Fstate[k] = 0;

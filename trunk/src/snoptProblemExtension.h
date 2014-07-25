@@ -21,13 +21,13 @@
 	#include "snfilewrapper.hh"
 	#define SNOPT_INT_TYPE integer
 	#define SNOPT_DOUBLE_TYPE doublereal
-	#define SNOPT_BASE_TYPE snoptProblem
+	#define SNOPT_BASE_TYPE public::snoptProblem
 #else
 	#include "SnoptProblem.hpp"
 	#include "snopt.h"
 	#define SNOPT_INT_TYPE int
 	#define SNOPT_DOUBLE_TYPE double
-	#define SNOPT_BASE_TYPE snoptProblemA
+	#define SNOPT_BASE_TYPE public::snoptProblemA
 #endif
 
 
