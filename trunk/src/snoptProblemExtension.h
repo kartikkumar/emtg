@@ -16,8 +16,8 @@
 #include <cassert>
 
 #include "snoptProblem.hh"
-#include "snfilewrapper.hh"
 #include "snopt.hh"
+#include "snfilewrapper.hh"
 
 
 #ifndef SNPT_EXT_H
