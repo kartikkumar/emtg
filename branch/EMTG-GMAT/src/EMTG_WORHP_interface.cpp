@@ -3,12 +3,14 @@
 //Jacob Englander 11/8/2013
 
 #ifdef _use_WORHP
+#include <cmath>
+#include <float.h>
+
 #include "missionoptions.h"
 #include "problem.h"
 #include "EMTG_WORHP_interface.h"
 
-#include <math.h>
-#include <float.h>
+
 
 namespace EMTG { namespace Solvers {
 	//default constructor is never used

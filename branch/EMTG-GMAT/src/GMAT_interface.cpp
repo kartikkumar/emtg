@@ -2,6 +2,12 @@
 //collected code written by Max Schadegg
 //also contains phase-specific code written by Jacob Englander
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <set>
+
 #include "mission.h"
 #include "Astrodynamics.h"
 #include "body.h"
@@ -14,11 +20,7 @@
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <set>
+
 
 
 using namespace std;

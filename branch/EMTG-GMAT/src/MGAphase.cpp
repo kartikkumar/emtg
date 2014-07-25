@@ -6,6 +6,11 @@
  *      Author: Jacob
  */
 
+#include <vector>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "MGAphase.h"
 #include "missionoptions.h"
 #include "Astrodynamics.h"
@@ -14,6 +19,7 @@
 #include "Lambert.h"
 #endif
 
+#include "Lambert_AroraRussell.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "mjd_to_mdyhms.h"
 #include "EMTG_math.h"
@@ -21,10 +27,7 @@
 
 #include "SpiceUsr.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <fstream>
+
 
 using namespace std;
 
@@ -76,16 +79,6 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 		Body1 = &Universe->bodies[boundary1_location_code - 1];
 	if (boundary2_location_code > 0)
 		Body2 = &Universe->bodies[boundary2_location_code - 1];
-
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}
-	}
 
 	//we need to know if we are the first phase of the journey
 	if (p == 0)
@@ -156,28 +149,132 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 								options);
 
 	//Step 5: solve Lambert's problem between the planets
+	int Nrev;
+	bool ShortPeriod;
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		int LambertArcType = (int)X[*Xindex];
+		++(*Xindex);
+		Nrev = LambertArcType / 2;
+		ShortPeriod = LambertArcType % 2;
+	}
+	else
+	{
+		Nrev = 0;
+		ShortPeriod = 0;
+	}
+
+	double Lam_error;
+	int Lam_iterations;
+
 #ifdef _EMTG_proprietary
-	EMTG::Astrodynamics::Lambert (boundary1_state,
-									boundary2_state,
-									TOF,
-									Universe->mu,
-									1, 
-									0, 
-									lambert_v1,
-									lambert_v2);
+	if (options->LambertSolver == 1) //Izzo Lambert solver
+	{
+		EMTG::Astrodynamics::Lambert(boundary1_state,
+			boundary2_state,
+			this->TOF,
+			Universe->mu,
+			1,
+			Nrev,
+			lambert_v1,
+			lambert_v2);
+
+		//check the angular momentum vector to avoid going retrograde
+		hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
+
+		if (hz < 0)
+		{
+			EMTG::Astrodynamics::Lambert(boundary1_state,
+				boundary2_state,
+				this->TOF,
+				Universe->mu,
+				0,
+				Nrev,
+				lambert_v1,
+				lambert_v2);
+		}
+	}
+	else
+	{
+#endif
+		//note: if the Lambert solver fails it is almost always because there is no solution for that number of revolutions
+		//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
+		try
+		{
+			EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				Nrev,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
+		catch (int& errorcode)
+		{
+			if (errorcode == 200000) //multi-rev error
+				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+				boundary2_state,
+				TOF,
+				Universe->mu,
+				0,
+				1,
+				ShortPeriod,
+				1e-13,
+				30,
+				lambert_v1,
+				lambert_v2,
+				Lam_error,
+				Lam_iterations);
+		}
 
 
-	hz = boundary1_state[0]*lambert_v1[1]-boundary1_state[1]*lambert_v1[0];
+		//check the angular momentum vector
+		hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
 
-	if (hz < 0)
-		EMTG::Astrodynamics::Lambert (boundary1_state, 
-										boundary2_state,
-										TOF, 
-										Universe->mu,
-										0,
-										0,
-										lambert_v1, 
-										lambert_v2);
+		if (hz < 0)
+		{
+			try
+			{
+				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+					boundary2_state,
+					TOF,
+					Universe->mu,
+					Nrev,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+			catch (int& errorcode)
+			{
+				if (errorcode == 200000)
+					EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
+					boundary2_state,
+					TOF,
+					Universe->mu,
+					0,
+					1,
+					ShortPeriod,
+					1e-13,
+					30,
+					lambert_v1,
+					lambert_v2,
+					Lam_error,
+					Lam_iterations);
+			}
+		}
+#ifdef _EMTG_proprietary
+	}
 #endif
 
 	//Step 6: compute all parameters of the first event of the phase
@@ -635,24 +732,6 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	string prefix = prefixstream.str();
 	int first_X_entry_in_phase = Xupperbounds->size();
 
-	if (j ==0 && p == 0)
-	{
-		Flowerbounds->push_back(-math::LARGE);
-		Fupperbounds->push_back(math::LARGE);
-		Fdescriptions->push_back("objective function");
-	}
-
-	//if applicable, vary the journey initial mass increment
-	if (p == 0)
-	{
-		if (options->journey_starting_mass_increment[j] > 0.0)
-		{
-			Xlowerbounds->push_back(0.0);
-			Xupperbounds->push_back(1.0);
-			Xdescriptions->push_back(prefix + "journey initial mass scale factor");
-		}
-	}
-
 	//first, we need to know if we are the first phase in the journey
 	if (p == 0)
 	{
@@ -893,6 +972,14 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	//next, we need to encode the phase flight time
 	calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
+	//**************************************************************************
+	//if the allowed number of Lambert revolutions is greater than zero then we must encode the Lambert type variable
+	if (options->maximum_number_of_lambert_revolutions)
+	{
+		Xlowerbounds->push_back(0.0);
+		Xupperbounds->push_back(ceil((double)2 * options->maximum_number_of_lambert_revolutions + 1));
+		Xdescriptions->push_back(prefix + "Lambert arc type");
+	}
 
 	//******************
 	//if we are the last journey, then encode any variables necessary for the right hand boundary condition
@@ -1068,6 +1155,17 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 			Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
 			Fupperbounds->push_back(0.0);
 			Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+			//Jacobian entry for a bounded v-infinity intercept
+			//this is a nonlinear constraint dependent on all previous variables
+			for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+			{
+				iGfun->push_back(Fdescriptions->size() - 1);
+				jGvar->push_back(entry);
+				stringstream EntryNameStream;
+				EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+				Gdescriptions->push_back(EntryNameStream.str());
+			}
 		}
 	}
 

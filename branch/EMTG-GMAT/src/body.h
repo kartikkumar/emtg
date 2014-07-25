@@ -1,10 +1,11 @@
 //header file for EMTG body class
 
+#include <string>
+#include <vector>
+
 #include "missionoptions.h"
 #include "frame.h"
 
-#include <string>
-#include <vector>
 
 using namespace std;
 

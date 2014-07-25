@@ -4,13 +4,15 @@
 
 #include "problem.h"
 
-#include "snopt.h"
-#include "snoptProblem.h"
-#include "snfilewrapper.h"
-
 #include "boost/random/uniform_int.hpp"
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
+
+#include "snopt.hh"
+#include "snoptProblemExtension.h"
+#include "snfilewrapper.hh"
+
+
 
 #ifdef _use_WORHP
 #include "EMTG_WORHP_interface.h"
@@ -103,7 +105,7 @@ public:
 	boost::uniform_real<> DoubleDistribution;
 
 	//pointer to SNOPT object
-	snoptProblem* SNOPTproblem;
+	snoptProblemExtension* SNOPTproblem;
 	
 	//other fields for SNOPT
 	integer neF;

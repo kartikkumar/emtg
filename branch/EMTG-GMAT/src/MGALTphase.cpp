@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+
+#include <sstream>
+#include <fstream>
+
 #include "MGALTphase.h"
 #include "Astrodynamics.h"
 #include "missionoptions.h"
@@ -16,8 +20,7 @@
 
 #include "SpiceUsr.h"
 
-#include <sstream>
-#include <fstream>
+
 
 namespace EMTG {
 

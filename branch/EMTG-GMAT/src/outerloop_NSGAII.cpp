@@ -1,13 +1,15 @@
 //outer-loop NSGA-II
 //written to solve systems optimization as formulated by J. Englander, M. Vavrina, and D. Ellison
 //collaborative effort by J. Englander and M. Vavrina based on A. Ghosh's abstract GA spec and M. Vavrina's NSGA-II spec
-#include "outerloop_NSGAII.h"
-#include "mission.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#include "outerloop_NSGAII.h"
+#include "mission.h"
+
+
 
 #include "boost/algorithm/string.hpp"
 
@@ -224,7 +226,6 @@ namespace GeneticAlgorithm
 		int obj_compare_lteq2_i;
 		int obj_compare_lt_j;
 		int obj_compare_lteq2_j;
-		int front;
 		std::vector< EMTG_outerloop_solution > local_front;
 
 		this->nondominated_fronts.clear();
@@ -749,7 +750,7 @@ namespace GeneticAlgorithm
 	{
 		std::ifstream inputfile(filename.c_str());
 		int linenumber = 0;
-		char line_buffer[2048];
+		char line_buffer[65536];
 		std::vector<std::string> linecell;
 		int number_of_genes = 0;
 
@@ -769,11 +770,11 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);	
+				inputfile.getline(line_buffer, 65536);
 			}
 			else 
 			{
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
 
 				//the number of fields with "Gene" as the first four letters is the number of decision variables
@@ -794,7 +795,7 @@ namespace GeneticAlgorithm
 				}
 
 				//skip the second header line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				break;
 			}
@@ -811,13 +812,13 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				break;
 			}
 			else
 			{
 				//grab a line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				//split the line by commas
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
@@ -890,7 +891,7 @@ namespace GeneticAlgorithm
 	{
 		std::ifstream inputfile(filename.c_str());
 		int linenumber = 0;
-		char line_buffer[2048];
+		char line_buffer[65536];
 		std::vector<std::string> linecell;
 		int number_of_genes = 0;
 
@@ -907,11 +908,11 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n' || peek == ',') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);	
+				inputfile.getline(line_buffer, 65536);
 			}
 			else 
 			{
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				boost::split(linecell, line_buffer, boost::is_any_of(","));
 
 				//the number of fields with "Gene" as the first four letters is the number of decision variables
@@ -932,7 +933,7 @@ namespace GeneticAlgorithm
 				}
 
 				//skip the second header line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 
 				break;
 			}
@@ -949,13 +950,13 @@ namespace GeneticAlgorithm
 			if (peek == '#' || peek == '\r' || peek == '\n') 
 			{
 				//comment or blank line, do not parse
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				break;
 			}
 			else
 			{
 				//grab a line
-				inputfile.getline(line_buffer, 2048);
+				inputfile.getline(line_buffer, 65536);
 				
 				//split the line by commas
 				boost::split(linecell, line_buffer, boost::is_any_of(","));

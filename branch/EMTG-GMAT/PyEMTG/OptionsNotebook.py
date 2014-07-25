@@ -9,7 +9,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
-        globaloptionsgrid = wx.FlexGridSizer(10,2,5,5)
+        globaloptionsgrid = wx.FlexGridSizer(20,2,5,5)
         self.lblMissionName = wx.StaticText(self, -1, "Mission Name")
         self.txtMissionName = wx.TextCtrl(self, -1, "mission_name", size=(500,-1))
 
@@ -18,6 +18,9 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     #,'6: solver chooses (MGA, MGA-DSM)','7: solver chooses (MGA, MGA-LT)',
                     #'8: solver chooses (MGA-DSM, MGA-LT)','9: solver chooses (MGA, MGA-DSM, MGA-LT)']
         self.cmbMissionType = wx.ComboBox(self, -1, choices=phasetypes, style=wx.CB_READONLY)
+
+        self.lblmaximum_number_of_lambert_revolutions = wx.StaticText(self, -1, "Maximum number of revolutions for solving Lambert's problem")
+        self.txtmaximum_number_of_lambert_revolutions = wx.TextCtrl(self, -1, "maximum_number_of_lambert_revolutions")
 
         self.lblobjective_type = wx.StaticText(self, -1, "Include initial impulse in cost")
         objectivetypes = ['0: minimum deltaV','1: minimum time','2: maximum final mass','3: GTOC 1 asteroid deflection function',
@@ -55,6 +58,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 
         globaloptionsgrid.AddMany(  [self.lblMissionName, self.txtMissionName,
                                     self.lblMissionType, self.cmbMissionType,
+                                    self.lblmaximum_number_of_lambert_revolutions, self.txtmaximum_number_of_lambert_revolutions,
                                     self.lblobjective_type, self.cmbobjective_type,
                                     self.lblinclude_initial_impulse_in_cost, self.chkinclude_initial_impulse_in_cost,
                                     self.lblmax_phases_per_journey, self.txtmax_phases_per_journey,
@@ -66,7 +70,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         globaloptionsgrid.SetFlexibleDirection(wx.BOTH)
 
         #constraint fields
-        constraintgrid = wx.FlexGridSizer(10, 2, 5, 5)
+        constraintgrid = wx.FlexGridSizer(20, 2, 5, 5)
 
         self.lblDLA_bounds = wx.StaticText(self, -1, "DLA bounds (degrees)")
         self.txtDLA_bounds_lower = wx.TextCtrl(self, -1, "DLA_bounds[0]")
@@ -141,7 +145,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
         #spacecraft and launch vehicle fields
-        spacecraftgrid = wx.FlexGridSizer(10,2,5,5)
+        spacecraftgrid = wx.FlexGridSizer(20,2,5,5)
         spacecraftgridtitle = wx.StaticText(self, -1, "Spacecraft and Launch Vehicle options")
 
         self.lblmaximum_mass = wx.StaticText(self, -1, "Maximum mass")
@@ -210,7 +214,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
 
         #terminal constraint/margining fields
-        constraintsgrid = wx.FlexGridSizer(4,2,5,5)
+        constraintsgrid = wx.FlexGridSizer(12,2,5,5)
         constraintsgridtitle = wx.StaticText(self, -1, "Margins and Constraints")
 
         self.lblpost_mission_Isp = wx.StaticText(self, -1, "Isp for post-mission delta-v (s)")
@@ -242,7 +246,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         constraintsbox.AddMany([constraintsgridtitle, constraintsgrid])
 
         #propulsion
-        propulsiongrid = wx.FlexGridSizer(13,2,5,5)
+        propulsiongrid = wx.FlexGridSizer(26,2,5,5)
         propulsiongridtitle = wx.StaticText(self, -1, "Propulsion options")
 
         self.lblIspChem = wx.StaticText(self, -1, "Chemical Isp (s)")
@@ -252,8 +256,8 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         enginetypes = ['0: fixed thrust/Isp','1: constant Isp, efficiency, EMTG computes input power','2: choice of power model, constant efficiency, EMTG chooses Isp',
                        '3: choice of power model, constant efficiency and Isp','4: continuously-varying specific impulse','5: custom thrust and mass flow rate polynomial',
                        '6: NSTAR','7: XIPS-25','8: BPT-4000 High-Isp','9: BPT-4000 High-Thrust','10: BPT-4000 Ex-High-Isp','11: NEXT high-Isp v9',
-                       '12: VASIMR (argon, using analytical model)','13: Hall Thruster (Xenon, using analytical model)','14: NEXT high-ISP v10',
-                       '15: NEXT high-thrust v10','16: BPT-4000 MALTO','17: NEXIS Cardiff 8-15-201','18: H6MS Cardiff 8-15-2013','19: BHT20K Cardiff 8-16-2013','20: HiVHAC EM']
+                       '12: VASIMR (argon, using analytical model, not available in open-source)','13: Hall Thruster (Xenon, using analytical model, not available in open-source)','14: NEXT high-ISP v10',
+                       '15: NEXT high-thrust v10','16: BPT-4000 MALTO','17: NEXIS Cardiff 8-15-201','18: H6MS Cardiff 8-15-2013','19: BHT20K Cardiff 8-16-2013','20: HiVHAC EM','21: 13 kW STMD Hall high-Isp (not available in open-source)','22: 13 kW STMD Hall high-thrust (not available in open-source)']
         self.cmbengine_type = wx.ComboBox(self, -1, choices = enginetypes, style=wx.CB_READONLY)
 
         self.lblnumber_of_engines = wx.StaticText(self, -1, "Number of thrusters")
@@ -331,7 +335,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         propulsionbox.AddMany([propulsiongridtitle, propulsiongrid])
 
         #power
-        powergrid = wx.FlexGridSizer(10,2,5,5)
+        powergrid = wx.FlexGridSizer(20,2,5,5)
         self.powergridtitle = wx.StaticText(self, -1, "Power options")
 
         self.lblpower_at_1_AU = wx.StaticText(self, -1, "Power at 1 AU (kW)")
@@ -525,7 +529,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         
 
-        JourneyInformationGrid = wx.FlexGridSizer(20,2,5,5)
+        JourneyInformationGrid = wx.FlexGridSizer(40,2,5,5)
         JourneyInformationGrid.AddMany([self.lbljourney_names, self.txtjourney_names,
                                         self.lbljourney_central_body, journey_central_body_box,
                                         self.lbldestination_list, destination_list_box,
@@ -595,7 +599,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtRAAN_departure1 = wx.TextCtrl(self, -1, "RAAN_val1")
         self.txtAOP_departure1 = wx.TextCtrl(self, -1, "AOP_val1")
         self.txtMA_departure1 = wx.TextCtrl(self, -1, "MA_val1")
-        DepartureElementsSizer = wx.FlexGridSizer(7,5,5,5)
+        DepartureElementsSizer = wx.FlexGridSizer(14,5,5,5)
         DepartureElementsSizer.AddMany([empty_departure_cell, self.lblvarydepartureelements, self.lbldepartureelementsvalue, self.lbldepartureelementslower, self.lbldepartureelementsupper, 
                                             self.lblSMA_departure, self.chkSMA_departure, self.txtSMA_departure, self.txtSMA_departure0, self.txtSMA_departure1,
                                             self.lblECC_departure, self.chkECC_departure, self.txtECC_departure, self.txtECC_departure0, self.txtECC_departure1,
@@ -656,7 +660,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtRAAN_arrival1 = wx.TextCtrl(self, -1, "RAAN_val1")
         self.txtAOP_arrival1 = wx.TextCtrl(self, -1, "AOP_val1")
         self.txtMA_arrival1 = wx.TextCtrl(self, -1, "MA_val1")
-        ArrivalElementsSizer = wx.FlexGridSizer(7,5,5,5)
+        ArrivalElementsSizer = wx.FlexGridSizer(14,5,5,5)
         ArrivalElementsSizer.AddMany([empty_arrival_cell, self.lblvaryarrivalelements, self.lblarrivalelementsvalue, self.lblarrivalelementslower, self.lblarrivalelementsupper, 
                                             self.lblSMA_arrival, self.chkSMA_arrival, self.txtSMA_arrival, self.txtSMA_arrival0, self.txtSMA_arrival1,
                                             self.lblECC_arrival, self.chkECC_arrival, self.txtECC_arrival, self.txtECC_arrival0, self.txtECC_arrival1,
@@ -684,7 +688,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
         
-        innerloopgrid = wx.GridSizer(23,2,5,5)
+        innerloopgrid = wx.GridSizer(28,2,5,5)
         
         self.lblInnerLoopSolver = wx.StaticText(self, -1, "Inner-loop Solver Mode")
         innerloopsolvertypes = ['Evaluate trialX', 'Evaluate a batch of trialX vectors','Monotonic Basin Hopping',
@@ -808,10 +812,10 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblinitial_guess_step_size_stdv_or_scale, self.txtinitial_guess_step_size_stdv_or_scale,
                                 self.lblMBH_zero_control_initial_guess, self.cmbMBH_zero_control_initial_guess])
                                 
-        outerloopgrid = wx.GridSizer(11,2,0,0)
+        outerloopgrid = wx.GridSizer(12,2,0,0)
         
         self.lblrun_outerloop = wx.StaticText(self, -1, "Outer-Loop Solver")
-        outerloop_choices = ["None","Genetic Algorithm","Lazy Race-Tree Search"]
+        outerloop_choices = ["None","Genetic Algorithm"]
         self.cmbrun_outerloop = wx.ComboBox(self, -1, choices=outerloop_choices, style = wx.CB_READONLY)
         
         self.lblouterloop_popsize = wx.StaticText(self, -1, "Population size")
@@ -846,10 +850,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         
         self.lblouterloop_warmstart = wx.StaticText(self, -1, "Warm-start the outer-loop?")
         self.txtouterloop_warmstart = wx.TextCtrl(self, -1, "outerloop_warmstart")
-
-        self.lbllazy_race_tree_allow_duplicates = wx.StaticText(self, -1, "Allow duplicates in lazy race-tree search?")
-        self.chklazy_race_tree_allow_duplicates = wx.CheckBox(self, -1)
-        
+    
         outerloopgrid.AddMany([self.lblrun_outerloop, self.cmbrun_outerloop,
                                self.lblouterloop_popsize, self.txtouterloop_popsize,
                                self.lblouterloop_genmax, self.txtouterloop_genmax,
@@ -860,8 +861,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                self.lblouterloop_tolfit, self.txtouterloop_tolfit,
                                self.lblouterloop_ntrials, self.txtouterloop_ntrials,
                                self.lblouterloop_elitecount, self.txtouterloop_elitecount,
-                               self.lblouterloop_warmstart, self.txtouterloop_warmstart,
-                               self.lbllazy_race_tree_allow_duplicates, self.chklazy_race_tree_allow_duplicates])
+                               self.lblouterloop_warmstart, self.txtouterloop_warmstart])
 
                                 
         vboxleft = wx.BoxSizer(wx.VERTICAL)
@@ -974,13 +974,23 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         spiralgrid.AddMany([self.lblspiral_model_type, self.cmbspiral_model_type])
         lblBottomTitle = wx.StaticText(self, -1, "Spiral settings")
         lblBottomTitle.SetFont(font)
-        vboxbottom = wx.BoxSizer(wx.VERTICAL)
-        vboxbottom.AddMany([lblBottomTitle, spiralgrid])
+        vboxspiral = wx.BoxSizer(wx.VERTICAL)
+        vboxspiral.AddMany([lblBottomTitle, spiralgrid])
+
+        lambertgrid = wx.GridSizer(2,2,5,5)
+        self.lbllambert_type = wx.StaticText(self, -1, "Lambert solver type")
+        lambert_choices = ['Arora-Russell','Izzo (not included in open-source)']
+        self.cmblambert_type = wx.ComboBox(self, -1, choices = lambert_choices, style = wx.CB_READONLY)
+        lambertgrid.AddMany([self.lbllambert_type, self.cmblambert_type])
+        lblLambertTitle = wx.StaticText(self, -1, "Lambert settings")
+        lblLambertTitle.SetFont(font)
+        vboxlambert = wx.BoxSizer(wx.VERTICAL)
+        vboxlambert.AddMany([lblLambertTitle, lambertgrid])
 
         self.mainvbox = wx.BoxSizer(wx.VERTICAL)
         self.mainvbox.Add(self.mainbox)
         self.mainvbox.AddSpacer(20)
-        self.mainvbox.Add(vboxbottom)
+        self.mainvbox.AddMany([vboxspiral, vboxlambert])
 
         self.SetSizer(self.mainvbox)
         self.SetupScrolling()
@@ -990,7 +1000,7 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent)
 
-        self.mainbox = wx.FlexGridSizer(10,2,5,5)
+        self.mainbox = wx.FlexGridSizer(20,2,5,5)
 
         self.lblcreate_GMAT_script = wx.StaticText(self, -1, "Create GMAT scripts")
         self.chkcreate_GMAT_script = wx.CheckBox(self, -1)

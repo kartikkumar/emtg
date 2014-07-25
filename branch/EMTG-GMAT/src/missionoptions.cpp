@@ -5,6 +5,11 @@
  *      Author: Jacob
  */
 
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "EMTG_math.h"
 
@@ -12,10 +17,6 @@
 
 #include "boost/algorithm/string.hpp"
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
 
 using namespace std;
 
@@ -37,7 +38,6 @@ missionoptions::missionoptions() {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = 1;
-	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -46,6 +46,7 @@ missionoptions::missionoptions() {
 	this->initial_guess_control_coordinate_system = 0; 
 	this->enable_maximum_propellant_mass_constraint = false;
 	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -75,6 +76,8 @@ missionoptions::missionoptions() {
 	this->power_margin = 0.0;
 	this->number_of_journeys = 1;
 
+	this->LambertSolver = 0;
+
 	this->file_status = parse_options_file("options.emtgopt");
 
 	this->construct_thruster_launch_vehicle_name_arrays();
@@ -96,7 +99,6 @@ missionoptions::missionoptions(string optionsfile) {
 	this->outerloop_warm_population = "none";
 	this->outerloop_warm_archive = "none";
 	this->quiet_outerloop = true;
-	this->lazy_race_tree_allow_duplicates = 0;
 	this->quiet_basinhopping = false;
 	this->MBH_two_step = false;
 	this->FD_stepsize = 1.5e-8;
@@ -105,6 +107,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->initial_guess_control_coordinate_system = 0;
 	this->enable_maximum_propellant_mass_constraint = false;
 	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
 	this->spiral_model_type = 1;
 	this->problem_type = 0;
@@ -133,7 +136,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_post_launch_coast = 0.0;
 	this->power_margin = 0.0;
 
-
+	this->LambertSolver = 0;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -208,7 +211,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "universe_folder") {
 		inputfile >> this->universe_folder;
 		return 0;
-	}	
+	}
 	if (choice == "mission_name")
 	{
 		inputfile >> this->mission_name;
@@ -281,12 +284,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	}
 
 	//physical constants
-	if (choice ==  "G") 
+	if (choice == "G")
 	{
 		this->G = value;
 		return 0;
 	}
-	if (choice ==  "g0") 
+	if (choice == "g0")
 	{
 		this->g0 = value;
 		return 0;
@@ -296,6 +299,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "ephemeris_source")
 	{
 		this->ephemeris_source = (int) value;
+		return 0;
+	}
+
+	//lambert solver settings
+	if (choice == "LambertSolver")
+	{
+		this->LambertSolver = (int)value;
 		return 0;
 	}
 
@@ -368,11 +378,6 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "quiet_outerloop")
 	{
 		this->quiet_outerloop = (bool) value;
-		return 0;
-	}
-	if (choice == "lazy_race_tree_allow_duplicates")
-	{
-		this->lazy_race_tree_allow_duplicates = (bool)value;
 		return 0;
 	}
 
@@ -508,6 +513,13 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "spiral_model_type")
 	{
 		this->spiral_model_type = (int) value;
+		return 0;
+	}
+
+	//impulsive thrust solver parameters
+	if (choice == "maximum_number_of_lambert_revolutions")
+	{
+		this->maximum_number_of_lambert_revolutions = (int)value;
 		return 0;
 	}
 
@@ -1808,12 +1820,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_reevaluate_full_population " << this->outerloop_reevaluate_full_population << endl;
 		outputfile << "#Quiet outer-loop?" << endl;
         outputfile << "quiet_outerloop " << this->quiet_outerloop << endl;
-		outputfile << "#Allow duplicates in lazy race-tree search?" << endl;
-		outputfile << "#0: no" << endl;
-		outputfile << "#1: yes" << endl;
-		outputfile << "lazy_race_tree_allow_duplicates " << this->lazy_race_tree_allow_duplicates << endl;
 		outputfile << endl;
-
 
 		outputfile << "##inner-loop solver settings" << endl;
 		outputfile << "#NLP solver type" << endl;
@@ -1912,6 +1919,11 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "spiral_model_type " << this->spiral_model_type << endl;
 		outputfile << endl;
 
+		outputfile << "##impulsive-thrust solver parameters" << endl;
+		outputfile << "#maximum number of revolutions for Lambert's method" << endl;
+		outputfile << "maximum_number_of_lambert_revolutions " << this->maximum_number_of_lambert_revolutions << endl;
+		outputfile << endl;
+
 		outputfile << "##ephemeris data" << endl;
 		outputfile << "#ephemeris source" << endl;
 		outputfile << "#0: static" << endl;
@@ -1923,6 +1935,13 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "SPICE_leap_seconds_kernel " << this->SPICE_leap_seconds_kernel << endl;
 		outputfile << "#SPICE_reference_frame_kernel" << endl;
 		outputfile << "SPICE_reference_frame_kernel " << this->SPICE_reference_frame_kernel << endl;
+		outputfile << endl;
+
+		outputfile << "##lambert solver options" << endl;
+		outputfile << "#Lambert solver choice" << endl;
+		outputfile << "#0: Arora-Russell" << endl;
+		outputfile << "#1: Izzo (not included in open-source package)" << endl;
+		outputfile << "LambertSolver " << this->LambertSolver << endl;
 		outputfile << endl;
 
 		outputfile << "##vehicle parameters" << endl;
@@ -1961,9 +1980,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 		outputfile << "#Custom launch vehicle C3 bounds (two values)" << endl;
 		outputfile << "custom_LV_C3_bounds " << this->custom_LV_C3_bounds[0] << " " << this->custom_LV_C3_bounds[1] << endl;
-		outputfile << "#Parking orbit inclination (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+		outputfile << "#Parking orbit inclination (for use with in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_inclination " << this->parking_orbit_inclination << endl;
-        outputfile << "#Parking orbit altitude (for use with ''depart from parking orbit'' launch vehicle option or for outputing GMAT scenarios)" << endl;
+        outputfile << "#Parking orbit altitude (for use in outputing GMAT scenarios)" << endl;
         outputfile << "parking_orbit_altitude " << this->parking_orbit_altitude << endl;
 		outputfile << endl;
 
@@ -2001,8 +2020,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#9: BPT-4000 High-Thrust" << endl;
 		outputfile << "#10: BPT-4000 Ex-High-Isp" << endl;
 		outputfile << "#11: NEXT high-Isp Phase 1" << endl;
-		outputfile << "#12: VASIMR (argon, using analytical model)" << endl;
-		outputfile << "#13: Hall Thruster (Xenon, using analytical model)" << endl;
+		outputfile << "#12: VASIMR (argon, using analytical model, not available in open-source)" << endl;
+		outputfile << "#13: Hall Thruster (Xenon, using analytical model, not available in open-source)" << endl;
 		outputfile << "#14: NEXT high-ISP v10" << endl;
         outputfile << "#15: NEXT high-thrust v10" << endl;
         outputfile << "#16: BPT-4000 MALTO" << endl;
@@ -2010,6 +2029,8 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#18: H6MS Cardiff 8-15-2013" << endl;
 		outputfile << "#19: BHT20K Cardiff 8-16-2013" << endl;
 		outputfile << "#20: Aerojet HiVHAC EM" << endl;
+		outputfile << "#21: 13 kW STMD Hall high-Isp (not available in open-source)" << endl;
+		outputfile << "#22: 13 kW STMD Hall high-thrust (not available in open-source)" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
 		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
@@ -2170,6 +2191,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#0: unbounded" << endl;
 		outputfile << "#1: bounded flight time" << endl;
 		outputfile << "#2: bounded arrival date" << endl;
+		outputfile << "#3: bounded aggregate flight time" << endl;
 		outputfile << "journey_timebounded";
 		for (int j=0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_timebounded[j];
@@ -2558,6 +2580,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "run_inner_loop " << this->run_inner_loop << endl;
 		outputfile << "#trial decision vector" << endl;
 		outputfile << "#trialX" << endl;
+		outputfile.precision(20);
 		if (trialX.size() > 0)
 		{
 			outputfile << "trialX" << endl;
@@ -2626,6 +2649,8 @@ void missionoptions::construct_thruster_launch_vehicle_name_arrays()
 	this->thruster_names.push_back("H6MS");
 	this->thruster_names.push_back("BHT20K");
 	this->thruster_names.push_back("HiVHAc");
+	this->thruster_names.push_back("13kWSTMDHallHisp");
+	this->thruster_names.push_back("13kWSTMDHallHthrust");
 }
 
 } /* namespace EMTG */

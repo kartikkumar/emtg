@@ -50,7 +50,6 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
-    lazy_race_tree_allow_duplicates = 0
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -90,6 +89,9 @@ class MissionOptions(object):
     SPICE_reference_frame_kernel = "pck00010.tpc"
     universe_folder = "../Universe/"
 
+    #Lambert solver
+    LambertSolver = 0 #0: Arora-Russell, 1: Izzo (not included in open-source)
+
     #low thrust solver parameters
     num_timesteps = 10 #number of timesteps per phase
     control_coordinate_system = 0 #0: cartesian, 1: polar
@@ -97,6 +99,9 @@ class MissionOptions(object):
     step_size_distribution = 0 #0: uniform, 1: Gaussian, 2: Cauchy
     step_size_stdv_or_scale = 1.0
     spiral_model_type = 1#0: Battin, 1: Edelbaum
+
+    #impulsive thrust solver parameters
+    maximum_number_of_lambert_revolutions = 0
 
     #vehicle parameters
     maximum_mass = 1000 #the maximum possible mass of the spacecraft (negative number means use LV max)
@@ -318,8 +323,6 @@ class MissionOptions(object):
                         self.outerloop_reevaluate_full_population = int(linecell[1])
                     elif choice == "quiet_outerloop":
                         self.quiet_outerloop = int(linecell[1])
-                    elif choice == "lazy_race_tree_allow_duplicates":
-                        self.lazy_race_tree_allow_duplicates = int(linecell[1])
 
                     #outer loop selectable options settings
                     elif choice == "outerloop_vary_power":
@@ -455,6 +458,9 @@ class MissionOptions(object):
                     elif choice ==  "universe_folder":
                         self.universe_folder = linecell[1]
 
+                    elif choice == "LambertSolver":
+                        self.LambertSolver = int(linecell[1])
+
                     #low thrust solver parameters
                     elif choice ==  "num_timesteps":
                         self.num_timesteps = int(linecell[1])
@@ -468,6 +474,11 @@ class MissionOptions(object):
                         self.step_size_stdv_or_scale = float(linecell[1])
                     elif choice == "spiral_model_type":
                         self.spiral_model_type = int(linecell[1])
+
+
+                    #impulsive thrust solver parameters
+                    elif choice == "maximum_number_of_lambert_revolutions":
+                        self.maximum_number_of_lambert_revolutions = int(linecell[1])
 
                     #vehicle parameters
                     elif choice == "maximum_mass":
@@ -738,7 +749,7 @@ class MissionOptions(object):
                         trialX_line_flag = 1
 
                     #deprecated options
-                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius":
+                    elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius" or choice == "lazy_race_tree_allow_duplicates":
                         print choice, " is deprecated."
                                 
                     #if option is not recognized
@@ -788,7 +799,6 @@ class MissionOptions(object):
         outputfile.write("#Do you want to run an outer-loop?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: Genetic algorithm (number of objective functions determines which GA to run)\n")
-        outputfile.write("#2: lazy race-tree search\n")
         outputfile.write("run_outerloop " + str(self.run_outerloop) + "\n")
         outputfile.write("#outer-loop population size\n")	
         outputfile.write("outerloop_popsize " + str(self.outerloop_popsize) + "\n")
@@ -820,10 +830,6 @@ class MissionOptions(object):
         outputfile.write("outerloop_reevaluate_full_population " + str(self.outerloop_reevaluate_full_population) + "\n")
         outputfile.write("#Quiet outer-loop?\n")
         outputfile.write("quiet_outerloop " + str(self.quiet_outerloop) + "\n")
-        outputfile.write("#Allow duplicates in lazy race-tree search?\n")
-        outputfile.write("#0: no\n")
-        outputfile.write("#1: yes\n")
-        outputfile.write("lazy_race_tree_allow_duplicates " + str(self.lazy_race_tree_allow_duplicates) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##inner-loop solver settings\n")
@@ -923,6 +929,11 @@ class MissionOptions(object):
         outputfile.write("spiral_model_type " + str(self.spiral_model_type) + "\n")
         outputfile.write("\n")
 
+        outputfile.write("##impulsive-thrust solver parameters\n")
+        outputfile.write("#maximum number of revolutions for Lambert's method\n")
+        outputfile.write("maximum_number_of_lambert_revolutions " + str(self.maximum_number_of_lambert_revolutions) + "\n")
+        outputfile.write("\n")
+
         outputfile.write("##ephemeris data\n")	
         outputfile.write("#ephemeris source\n")	
         outputfile.write("#0: static\n")	
@@ -934,6 +945,13 @@ class MissionOptions(object):
         outputfile.write("SPICE_leap_seconds_kernel " + str(self.SPICE_leap_seconds_kernel) + "\n")
         outputfile.write("#SPICE_reference_frame_kernel\n")
         outputfile.write("SPICE_reference_frame_kernel " + str(self.SPICE_reference_frame_kernel) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##lambert solver options\n")
+        outputfile.write("#Lambert solver choice\n")
+        outputfile.write("#0: Arora-Russell\n")
+        outputfile.write("#1: Izzo (not included in open-source package)\n")
+        outputfile.write("LambertSolver " + str(self.LambertSolver) + "\n")
         outputfile.write("\n")
             
         outputfile.write("##vehicle parameters\n")	
@@ -972,9 +990,9 @@ class MissionOptions(object):
         outputfile.write("\n")
         outputfile.write("#Custom launch vehicle C3 bounds (two values)\n")
         outputfile.write("custom_LV_C3_bounds " + str(self.custom_LV_C3_bounds[0]) + " " + str(self.custom_LV_C3_bounds[1]) + "\n")
-        outputfile.write("#Parking orbit inclination (for use with ""depart from parking orbit"" launch vehicle option or for outputing GMAT scenarios\n")
+        outputfile.write("#Parking orbit inclination (for use in outputing GMAT scenarios)\n")
         outputfile.write("parking_orbit_inclination " + str(self.parking_orbit_inclination) + "\n")
-        outputfile.write("#Parking orbit altitude (for use with ""depart from parking orbit"" launch vehicle option or for outputing GMAT scenarios\n")
+        outputfile.write("#Parking orbit altitude (for use in outputing GMAT scenarios)\n")
         outputfile.write("parking_orbit_altitude " + str(self.parking_orbit_altitude) + "\n")
         outputfile.write("\n")
 
@@ -1021,6 +1039,8 @@ class MissionOptions(object):
         outputfile.write("#18: H6MS Cardiff 8-15-2013\n")
         outputfile.write("#19: BHT20K Cardiff 8-16-2013\n")
         outputfile.write("#20: Aerojet HiVHAC EM\n")
+        outputfile.write("#21: 13 kW STMD Hall high-Isp (not available in open-source)\n")
+        outputfile.write("#22: 13 kW STMD Hall high-thrust (not available in open-source)\n")
         outputfile.write("engine_type " + str(self.engine_type) + "\n")
         outputfile.write("#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)\n")
         outputfile.write("engine_input_thrust_coefficients")
@@ -1512,10 +1532,10 @@ class MissionOptions(object):
             outputfile.write("trialX\n")
             for seq in range(0, self.number_of_trial_sequences):
                 currentX = self.trialX[seq]
-                outputfile.write(str(currentX[0]))
+                outputfile.write('%17.20f' % currentX[0])
                 for entry in range(1, len(currentX)):
                     outputfile.write(" ")
-                    outputfile.write(str(currentX[entry]))
+                    outputfile.write('%17.20f' % currentX[entry])
                 outputfile.write("\n")
         outputfile.write("\n")
             
@@ -1535,6 +1555,7 @@ class MissionOptions(object):
 
         optionsnotebook.tabGlobal.txtMissionName.SetValue(self.mission_name)
         optionsnotebook.tabGlobal.cmbMissionType.SetSelection(self.mission_type)
+        optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.SetValue(str(self.maximum_number_of_lambert_revolutions))
         optionsnotebook.tabGlobal.cmbobjective_type.SetSelection(self.objective_type)
         optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.SetValue(self.include_initial_impulse_in_cost)
         optionsnotebook.tabGlobal.txtmax_phases_per_journey.SetValue(str(self.max_phases_per_journey))
@@ -1557,6 +1578,14 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtinitial_V_infinity_z.SetValue(str(self.initial_V_infinity[2]))
         optionsnotebook.tabGlobal.txtminimum_dry_mass.SetValue(str(self.minimum_dry_mass))
         optionsnotebook.tabGlobal.txtpost_mission_delta_v.SetValue(str(self.post_mission_delta_v))
+
+        #for Lambert mission types, show number of Lambert revs
+        if self.mission_type == 0 or self.mission_type == 1:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(True)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(True)
+        else:
+            optionsnotebook.tabGlobal.lblmaximum_number_of_lambert_revolutions.Show(False)
+            optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Show(False)
 
         #if objective type is delta-v, show include initial impulse in cost
         if self.objective_type == 0:
@@ -1717,7 +1746,7 @@ class MissionOptions(object):
                 optionsnotebook.tabJourney.btnMoveJourneyDown.Enable()
 
         #hide or show flight time and arrival date bounds
-        if self.Journeys[self.ActiveJourney].journey_timebounded == 0 or self.Journeys[self.ActiveJourney].journey_timebounded == 2:
+        if self.Journeys[self.ActiveJourney].journey_timebounded == 0:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -1726,7 +1755,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 1 or self.Journeys[self.ActiveJourney].journey_timebounded == 3:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(True)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(True)
@@ -1735,7 +1764,7 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(False)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(False)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(False)
-        else:
+        elif self.Journeys[self.ActiveJourney].journey_timebounded == 2:
             optionsnotebook.tabJourney.lbljourney_flight_time_bounds.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabJourney.txtjourney_flight_time_bounds_upper.Show(False)
@@ -2260,8 +2289,8 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblIspDS.Show(True)
             optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients.Show(False)
             optionsnotebook.tabSpacecraft.lblcustom_LV_C3_bounds.Show(False)
-            optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(True)
-            optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(True)
+            optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(False)
+            optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.txtIspDS.Show(True)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients1.Show(False)
@@ -2271,8 +2300,8 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients5.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_C3_bounds_lower.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_C3_bounds_upper.Show(False)
-            optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Show(True)
-            optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Show(True)
+            optionsnotebook.tabSpacecraft.txtparking_orbit_altitude.Show(False)
+            optionsnotebook.tabSpacecraft.txtparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.lblLV_margin.Show(False)
             optionsnotebook.tabSpacecraft.txtLV_margin.Show(False)
             optionsnotebook.tabSpacecraft.lblLV_adapter_mass.Show(False)
@@ -3094,8 +3123,6 @@ class MissionOptions(object):
         optionsnotebook.tabSolver.txtouterloop_ntrials.SetValue(str(self.outerloop_ntrials))
         optionsnotebook.tabSolver.txtouterloop_elitecount.SetValue(str(self.outerloop_elitecount))
         optionsnotebook.tabSolver.txtouterloop_warmstart.SetValue(str(self.outerloop_warmstart))
-        optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.SetValue(self.lazy_race_tree_allow_duplicates)
-
         if self.run_outerloop == 1:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(True)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(True)
@@ -3117,8 +3144,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(True)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(True)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(True)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
         elif self.run_outerloop == 2:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3140,8 +3165,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(True)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(True)
         else:
             optionsnotebook.tabSolver.txtouterloop_popsize.Show(False)
             optionsnotebook.tabSolver.txtouterloop_genmax.Show(False)
@@ -3163,8 +3186,6 @@ class MissionOptions(object):
             optionsnotebook.tabSolver.lblouterloop_ntrials.Show(False)
             optionsnotebook.tabSolver.lblouterloop_elitecount.Show(False)
             optionsnotebook.tabSolver.lblouterloop_warmstart.Show(False)
-            optionsnotebook.tabSolver.lbllazy_race_tree_allow_duplicates.Show(False)
-            optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.Show(False)
 
         #re-size the panel
         optionsnotebook.tabSolver.Layout()
@@ -3182,6 +3203,7 @@ class MissionOptions(object):
         optionsnotebook.tabPhysics.txtspacecraft_area.SetValue(str(self.spacecraft_area))
         optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.SetValue(str(self.coefficient_of_reflectivity))
         optionsnotebook.tabPhysics.cmbspiral_model_type.SetSelection(self.spiral_model_type)
+        optionsnotebook.tabPhysics.cmblambert_type.SetSelection(self.LambertSolver)
 
         #if SRP is disabled, make the options associated with it invisible
         if self.perturb_SRP == 1:

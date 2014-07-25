@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+
 #include "phase.h"
 #include "MGAphase.h"
 #include "MGADSMphase.h"
@@ -15,10 +19,6 @@
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_math.h"
-
-#include <iostream>
-#include <sstream>
-#include <fstream>
 
 namespace EMTG
 {
@@ -141,7 +141,7 @@ namespace EMTG
 			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
 			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
 		}
-		if (options->journey_timebounded[j] == 2) //bounded journey arrival date
+		else if (options->journey_timebounded[j] == 2) //bounded journey arrival date
 		{
 			Flowerbounds->push_back(options->journey_arrival_date_bounds[j][0] / options->journey_arrival_date_bounds[j][1] - 1);
 			Fupperbounds->push_back(0.0);
@@ -169,6 +169,45 @@ namespace EMTG
 					jGvar->push_back(entry);
 					stringstream EntryNameStream;
 					EntryNameStream << "Derivative of journey arrival date constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+					Gdescriptions->push_back(EntryNameStream.str());
+					timeconstraints_G_indices.push_back(iGfun->size() - 1);
+					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+				}
+			}
+
+			//check for dependencies due to an escape spiral in this or a previous phase
+			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+		}
+
+		else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
+		{
+			Flowerbounds->push_back(options->journey_flight_time_bounds[j][0] / options->journey_flight_time_bounds[j][1] - 1);
+			Fupperbounds->push_back(0.0);
+			Fdescriptions->push_back(prefix + "journey aggregate flight time bounds");
+
+			//Generate the Jacobian entries for the journey arrival date constraint
+			//note:
+			//1. Only the time variables present in the current journey affect the arrival date constraint
+			//2. The journey arrival date constraint is linear but we express it as a nonlinear constraint
+			for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
+			{
+				if ((*Xdescriptions)[entry].find("time") < 1024)
+				{
+					iGfun->push_back(Fdescriptions->size() - 1);
+					jGvar->push_back(entry);
+					stringstream EntryNameStream;
+					EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+					Gdescriptions->push_back(EntryNameStream.str());
+					timeconstraints_G_indices.push_back(iGfun->size() - 1);
+					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+				}
+				else if ((*Xdescriptions)[entry].find("epoch") < 1024)
+				{
+					iGfun->push_back(Fdescriptions->size() - 1);
+					jGvar->push_back(entry);
+					stringstream EntryNameStream;
+					EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 					Gdescriptions->push_back(EntryNameStream.str());
 					timeconstraints_G_indices.push_back(iGfun->size() - 1);
 					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
@@ -259,7 +298,7 @@ namespace EMTG
 					}
 				}
 			}
-			else
+			else if (options->journey_timebounded[j] == 2) //bounded arrival date
 			{
 				F[*Findex] = journey_end_epoch / options->journey_arrival_date_bounds[j][1] - 1;
 				++(*Findex);
@@ -270,6 +309,19 @@ namespace EMTG
 					for (size_t entry = 0; entry < timeconstraints_G_indices.size(); ++entry)
 					{
 						G[timeconstraints_G_indices[entry]] = timeconstraints_X_scale_ranges[entry] / options->journey_arrival_date_bounds[j][1];
+					}
+				}
+			}
+			else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
+			{
+				F[*Findex] = (journey_end_epoch - X[0]) / options->journey_flight_time_bounds[j][1] - 1;
+				++(*Findex);
+
+				if (options->derivative_type > 0 && needG)
+				{
+					for (size_t entry = 0; entry < timeconstraints_G_indices.size(); ++entry)
+					{
+						G[timeconstraints_G_indices[entry]] = timeconstraints_X_scale_ranges[entry] / options->journey_flight_time_bounds[j][1];
 					}
 				}
 			}

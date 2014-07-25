@@ -7,11 +7,10 @@
 
 #ifndef MISSIONOPTIONS_H_
 #define MISSIONOPTIONS_H_
-
-#include "boost/ptr_container/ptr_vector.hpp"
-
 #include <vector>
 #include <string>
+
+#include "boost/ptr_container/ptr_vector.hpp"
 
 using namespace std;
 
@@ -80,9 +79,6 @@ public:
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 
-	//lazy race-tree search options
-	bool lazy_race_tree_allow_duplicates;
-
 	//outer loop selectable options settings
 	bool outerloop_vary_power;
 	bool outerloop_vary_launch_epoch;
@@ -146,6 +142,9 @@ public:
 	string universe_folder;
 	int ephemeris_source; //0: static, 1: SPICE (default to static if no SPICE file supplied for a body)
 
+	//Lambert solver
+	int LambertSolver; //0: Arora-Russell, 1: Izzo
+
 	//low thrust solver parameters
 	int num_timesteps; //number of timesteps per phase
 	int control_coordinate_system; //0: cartesian, 1: polar
@@ -153,6 +152,9 @@ public:
 	int step_size_distribution; //0: uniform, 1: Gaussian, 2: Cauchy
 	int spiral_model_type; //0: Battin, 1: Edelbaum
 	double step_size_stdv_or_scale;
+
+	//impulsive thrust solver parameters
+	int maximum_number_of_lambert_revolutions;
 
 	//vehicle parameters
 	bool allow_initial_mass_to_vary;

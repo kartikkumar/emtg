@@ -1,5 +1,6 @@
 import Journey
 import MissionEvent
+import SmallBodyList
 import os
 import math
 
@@ -37,7 +38,7 @@ class Mission(object):
             linecell = line.split(':')
 
             if linecell[0] == "Mission":
-                self.mission_name = linecell[1]
+                self.mission_name = linecell[1].strip('\n')
 
             elif linecell[0] == "Decision Vector":
                 DecisionCell = linecell[1].split(' ')
@@ -213,3 +214,65 @@ class Mission(object):
         else:
             for CurrentJourney in self.Journeys:
                 CurrentJourney.OutputSTKEphemeris(MissionPanel)
+
+    def BubbleSearch(self, BubbleOptions, outputfilename):
+        
+
+
+        bubblefile = open(outputfilename, mode = 'w')
+        bubblefile.write('#Bubble file for ' + self.mission_name + '\n')
+        bubblefile.write('#\n')
+        bubblefile.write('#\n')
+
+        SmallBodyDatabase = SmallBodyList.SmallBodyList(BubbleOptions.smallbodyfile, BubbleOptions.mu, BubbleOptions.LU)
+
+        if self.ActiveJourney <= len(self.Journeys) - 1:
+            bubblefile.write('Journey ' + str(self.ActiveJourney+1) + ': ' + self.Journeys[self.ActiveJourney].journey_name + '\n')
+            bubblefile.write('Julian Date, Gregorian Date, Body Name, SPICE ID, Tholen spectral type, Absolute Magnitude, Diameter, Distance (km), Relative Velocity (km/s)\n')
+
+            for event in self.Journeys[self.ActiveJourney].missionevents:
+                print "Searching for targets of opportunity on JD", event.JulianDate
+                event_body_list = SmallBodyDatabase.find_bubble_targets(event.SpacecraftState, event.JulianDate, BubbleOptions.RelativePositionFilterMagnitude, BubbleOptions.RelativeVelocityFilterMagnitude, BubbleOptions.MaximumMagnitude)
+
+                for body in event_body_list:
+                    if body.Tholen == '-1':
+                        Tholen = ''
+                    else:
+                        Tholen = body.Tholen
+
+                    if body.Diameter == -1:
+                        Diameter = ''
+                    else:
+                        Diameter = str(body.Diameter)
+
+                    bubblefile.write(str(event.JulianDate) + ',' + event.GregorianDate + ',' + body.name + ',' + str(body.SPICEID) + ',' + Tholen + ',' + str(body.H) + ',' + Diameter + ',' + str(body.RelativePositionMagnitude) + ',' + str(body.RelativeVelocityMagnitude) + '\n')
+                print "Found", len(event_body_list), "candidates"
+
+        else:
+            for j in range(0, len(self.Journeys)):
+                bubblefile.write('Journey ' + str(j+1) + ': ' + self.Journeys[j].journey_name + '\n')
+                bubblefile.write('Julian Date, Gregorian Date, Body Name, SPICE ID, Tholen spectral type, Absolute Magnitude, Diameter, Distance (km), Relative Velocity (km/s)\n')
+
+                for event in self.Journeys[j].missionevents:
+                    print "Searching for targets of opportunity on JD", event.JulianDate
+                    event_body_list = SmallBodyDatabase.find_bubble_targets(event.SpacecraftState, event.JulianDate, BubbleOptions.RelativePositionFilterMagnitude, BubbleOptions.RelativeVelocityFilterMagnitude, BubbleOptions.MaximumMagnitude)
+
+                    for body in event_body_list:
+                        if body.Tholen == '-1':
+                            Tholen = ''
+                        else:
+                            Tholen = body.Tholen
+
+                        if body.Diameter == -1:
+                            Diameter = ''
+                        else:
+                            Diameter = str(body.Diameter)
+
+                        bubblefile.write(str(event.JulianDate) + ',' + event.GregorianDate  + ',' + body.name + ',' + str(body.SPICEID) + ',' + Tholen + ',' + str(body.H) + ',' + Diameter + ',' + str(body.RelativePositionMagnitude) + ',' + str(body.RelativeVelocityMagnitude) + '\n')
+                    print "Found", len(event_body_list), "candidates"
+
+                bubblefile.write('\n')
+
+        print "Bubble search outputted to", bubblefile.name
+
+        bubblefile.close()

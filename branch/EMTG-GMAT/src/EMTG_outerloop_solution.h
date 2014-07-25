@@ -2,6 +2,10 @@
 //for use with NSGAII and SGA
 //M. Vavrina and J. Englander
 
+#include <vector>
+#include <string>
+#include <ctime>
+
 #include "missionoptions.h"
 #include "universe.h"
 
@@ -9,10 +13,6 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 #include "boost/ptr_container/ptr_vector.hpp"
-
-#include <vector>
-#include <string>
-#include <ctime>
 
 #ifdef EMTG_MPI
 #include "boost/serialization/string.hpp"

@@ -50,7 +50,7 @@ class NSGAII_outerloop_solution(object):
                     'F910','F911','AV551s48','F9H','D4H','SLSb1']
         thruster_names = ['NSTAR','XIPS25','BPT4000HIsp','BPT4000Hthrust','BPT4000XHIsp',
                           'NEXTHIspv9','VASIMRargon','VSIxenonhall','NEXTHIspv10','NEXTHthrustv10',
-                          'BPT4000MALTO','NEXIS','H6MS','BHT20K','HiVHAc']
+                          'BPT4000MALTO','NEXIS','H6MS','BHT20K','HiVHAc','13kWSTMDHallHisp','13kWSTMDHallHthrust']
 
         for column_index in range(0, len(column_headers)):
             if column_index < len(input_cell):
@@ -88,15 +88,16 @@ class NSGAII_outerloop_solution(object):
                 elif column_headers[column_index] == 'BOL power at 1 AU (kW)' \
                     or column_headers[column_index] == 'Launch epoch (MJD)' \
                     or column_headers[column_index] == 'Flight time (days)' \
-                    or column_headers[column_index] == 'Thruster preference' \
-		            or column_headers[column_index] == 'Number of thrusters' \
-		            or column_headers[column_index] == 'Launch vehicle preference' \
 		            or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)' \
                     or column_headers[column_index] == 'First journey departure C3 (km^2/s^2)' \
                     or column_headers[column_index] == 'Final journey arrival C3 (km^2/s^2)' \
                     or column_headers[column_index] == 'Total delta-v (km/s)':
                     #this entry is an objective function value
                     self.objective_values.append(float(input_cell[column_index]))
+                elif column_headers[column_index] == 'Thruster preference' \
+                    or column_headers[column_index] == 'Number of thrusters' \
+		            or column_headers[column_index] == 'Launch vehicle preference':
+                    self.objective_values.append(int(input_cell[column_index]))
                 elif column_headers[column_index] == 'Delivered mass to final target (kg)':
                     self.objective_values.append(-float(input_cell[column_index]))
 
@@ -143,6 +144,7 @@ class NSGAII_outerloop_population(object):
 
     def clear(self):
         self.solutions = [] #vector of NSGAII_outerloop_solution objects
+        self.legal_solutions = []
         self.global_column_headers = []
         self.gene_column_headers = []
         self.objective_column_headers = []
@@ -217,6 +219,7 @@ class NSGAII_outerloop_population(object):
 
         #build up a list of objective values to be plotted
         self.objective_values_matrix = []
+        self.legal_solutions = []
         for objective_index in range(0, len(self.ordered_list_of_objectives)):
             objective_values_vector = []
             for solution in self.solutions:
@@ -225,16 +228,18 @@ class NSGAII_outerloop_population(object):
                     if not (self.LowerBounds == None or self.UpperBounds == None):
                         #if bounds were supplied, check to see if the solution fits inside the bounds
                         for obj in range(0, len(self.ordered_list_of_objectives)):
-                            if solution.objective_values[obj] < self.LowerBounds[obj] or solution.objective_values[obj] > self.UpperBounds[obj]:
+                            if solution.objective_values[ordered_list_of_objectives[obj]] < self.LowerBounds[obj] or solution.objective_values[ordered_list_of_objectives[obj]] > self.UpperBounds[obj]:
                                 solution.Legal_Solution = False
                                 break
                     if solution.Legal_Solution:
+                        self.legal_solutions.append(solution)
+
                         if self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Flight time (days)' and self.TimeUnit == 0:
                             objective_values_vector.append(solution.objective_values[objective_index] / 365.25)
                         elif self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                            objective_values_vector.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[objective_index] + 2400000.5).GetTicks())))
+                            objective_values_vector.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[ordered_list_of_objectives[objective_index]] + 2400000.5).GetTicks())))
                         else:
-                            objective_values_vector.append(copy.deepcopy(solution.objective_values[objective_index]))
+                            objective_values_vector.append(copy.deepcopy(float(solution.objective_values[ordered_list_of_objectives[objective_index]])))
             self.objective_values_matrix.append(np.array(objective_values_vector))
 
         #determine upper and lower bounds on each objective
@@ -327,7 +332,7 @@ class NSGAII_outerloop_population(object):
                 else: #4D
                     if self.colorbar is None:
                         solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
+                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
                         if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
                             self.colorbar = self.PopulationFigure.colorbar(solution.point, label='Flight time (years)')
                         elif self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
@@ -336,7 +341,7 @@ class NSGAII_outerloop_population(object):
                             self.colorbar = self.PopulationFigure.colorbar(solution.point, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
                     else:
                         solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[self.ordered_list_of_objectives[3]], vmax = self.upperbounds[self.ordered_list_of_objectives[3]])
+                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
 
 
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
@@ -356,7 +361,7 @@ class NSGAII_outerloop_population(object):
         ind = event.ind[0]
         if len(self.ordered_list_of_objectives) == 2: #2D
             print '2D picker not implemented'
-        elif len(self.ordered_list_of_objectives) == 3: #3D plot
+        elif len(self.ordered_list_of_objectives) >= 3: #3D or 4D plot
             x, y, z = event.artist._offsets3d
 
             candidate_solution_indices_per_objective = []
@@ -364,71 +369,26 @@ class NSGAII_outerloop_population(object):
             idy = np.where(self.objective_values_matrix[1] == y[ind])
             idz = np.where(self.objective_values_matrix[2] == z[ind])
 
-            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))[0]]
-            
-            if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', x[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(x[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[0]], ': ', x[ind]
-        
-            if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', y[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(y[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[1]], ': ', y[ind]
+            SolutionIndex = np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))[0]
+            ThisSolution = self.legal_solutions[SolutionIndex]
 
-            if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', z[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(z[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[2]], ': ', z[ind]
-        else:
-            x, y, z = event.artist._offsets3d
+            print ThisSolution.description
 
-            candidate_solution_indices_per_objective = []
-            idx = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[0]] == x[ind])
-            idy = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[1]] == y[ind])
-            idz = np.where(self.objective_values_matrix[self.ordered_list_of_objectives[2]] == z[ind])
+            for objIndex in range(0, len(self.objective_column_headers)):
+                if self.objective_column_headers[objIndex] == 'Flight time (days)' and self.TimeUnit == 0:
+                    print 'Flight time (years)', ': ', ThisSolution.objective_values[objIndex] / 365.25
+                elif self.objective_column_headers[objIndex] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
+                    dt = datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(ThisSolution.objective_values[objIndex] + 2400000.5).GetTicks())
+                    #dt = datetime.datetime.fromordinal(int(ThisSolution.objective_values[objIndex]))
+                    print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
+                elif self.objective_column_headers[objIndex] == 'Thruster preference':
+                    print 'Thruster type: ', ThisSolution.thruster
+                elif self.objective_column_headers[objIndex] == 'Launch vehicle preference':
+                    print 'Launch vehicle: ', ThisSolution.launch_vehicle
+                else:
+                    print self.objective_column_headers[objIndex], ': ', ThisSolution.objective_values[objIndex]
 
-            print self.solution_names[np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))[0]]
-            if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', x[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(x[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[0]], ': ', x[ind]
-        
-            if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', y[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(y[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[1]], ': ', y[ind]
-
-            if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', z[ind] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(z[ind]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[2]], ': ', z[ind]
-
-            if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
-                print 'Flight time (years)', ': ', self.objective_values_matrix[3][np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))][0] 
-            elif self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                dt = datetime.datetime.fromordinal(int(self.objective_values_matrix[3][np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))][0]))
-                print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
-            else:
-                print self.objective_column_headers[self.ordered_list_of_objectives[3]], ': ', self.objective_values_matrix[3][np.intersect1d(idx[0], np.intersect1d(idy[0], idz[0]))][0]
+            print '---------------------------------------------------------------------------------------------'
 
     def format_date(self, x, pos=None):
      return dates.num2date(x).strftime('%Y-%m-%d')

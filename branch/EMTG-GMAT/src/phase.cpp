@@ -5,6 +5,10 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "phase.h"
 #include "journey.h"
 #include "Astrodynamics.h"
@@ -13,10 +17,6 @@
 #include "universe.h"
 
 #include "SpiceUsr.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 using namespace std;
 
@@ -389,7 +389,8 @@ namespace EMTG {
 				}
 
 				//Step 4.3 construct the post-spiral state
-				//Step 4.3.1 advance time not required since we are there already
+				//Step 4.3.1 advance time
+				*current_epoch += this->spiral_escape_time;
 
 				//Step 4.3.2 find the position of the body at the new phase start time and store it in state_at_beginning_of_phase
 				this->locate_boundary_point(this->boundary1_location_code,
@@ -1174,84 +1175,6 @@ namespace EMTG {
 					boundary_state[k+3] = rot_out_vec(k);
 				}
 
-			}
-			else if (location == -2) //if this boundary point is the periapse of an inbound hyperbola
-			{
-				//extract the orbit elements of the desired capture orbit
-				double arrival_orbit_elements[6], local_frame_state[6];
-				double rp = X[*Xindex];
-				double ra = X[*Xindex+1];
-				arrival_orbit_elements[0] = (rp + ra) / 2;
-				arrival_orbit_elements[1] = 1 - 2 * rp / (rp + ra);
-				arrival_orbit_elements[2] = X[*Xindex+2];
-				arrival_orbit_elements[3] = X[*Xindex+3];
-				arrival_orbit_elements[4] = X[*Xindex+4];
-				arrival_orbit_elements[5] = 0;
-				(*Xindex += 5);
-
-				//enforce constraint: rp < ra
-				F[*Findex] = rp - ra;
-				++(*Findex);
-
-				//convert orbit elements to a cartesian state
-				Astrodynamics::COE2inertial(arrival_orbit_elements, Universe->mu, local_frame_state);
-
-				//rotate the boundary state into the ICRF coordinate frame
-				//finally, rotate to the ICRF frame
-				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
-				math::Matrix<double> rot_in_vec(3,1,local_frame_state);
-				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
-				for (int k = 0; k < 3; ++k)
-				{
-					boundary_state[k] = rot_out_vec(k);
-					rot_in_vec(k) = local_frame_state[k+3];
-				}
-				rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
-				for (int k = 0; k < 3; ++k)
-				{
-					boundary_state[k+3] = rot_out_vec(k);
-				}
-
-				//locate the central body
-				double body_state[6];
-				Universe->locate_central_body(epoch, body_state, options);
-			
-				//if we are starting from a hyperbolic arrival in the first journey, then we need to extract the incoming V-infinity vector from the options structure
-				if (j == 0)
-				{
-					V_infinity[0] = options->initial_V_infinity[0];
-					V_infinity[1] = options->initial_V_infinity[1];
-					V_infinity[2] = options->initial_V_infinity[2];
-				}
-				//if this is not the first journey, then the incoming velocity vector is in the sun-centered ICRF frame and needs to be translated to the body-centered ICRF frame
-				else
-				{
-					V_infinity[0] -= body_state[3];
-					V_infinity[1] -= body_state[4];
-					V_infinity[2] -= body_state[5];
-				}
-
-				//enforce constraint: inbound orbit must be a hyperbola
-				double incoming_v_infinity = math::norm(V_infinity, 3);
-				double vp_inbound = sqrt(2 * Universe->mu / rp - incoming_v_infinity * incoming_v_infinity);
-				double v_escape = sqrt(2 * Universe->mu / rp);
-				F[*Findex] = v_escape - vp_inbound;
-				if (v_escape < vp_inbound)
-					cout << "v_escape < vp_inbound" << endl;
-				++(*Findex);
-
-				//compute the b-plane parameters
-				math::Matrix<double> V_infinity_in(3,1);
-				math::Matrix<double> V_infinity_out(3,1);
-				for (int k = 0; k < 3; ++k)
-				{
-					V_infinity_in(k) = V_infinity[k];
-				}
-				math::Matrix<double> BoundaryR(3,1,body_state);
-				math::Matrix<double> BoundaryV(3,1,body_state+3);
-				Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-				Bplane.compute_Bradius_Btheta_from_periapse_position(Universe->mu, V_infinity_in, BoundaryR, &Bradius, &Btheta);
-				Bplane.convert_polar_to_cartesian(Bradius, Btheta, &BdotR, &BdotT);
 			}
 		}
 		else //this is the right boundary of the phase, so this is an arrival

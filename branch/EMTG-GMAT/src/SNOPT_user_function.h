@@ -1,6 +1,6 @@
 //SNOPT user function
 
-#include "snoptProblem.h"
+#include "snopt.hh"
 
 
 namespace EMTG { namespace Solvers {

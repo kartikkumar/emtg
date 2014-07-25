@@ -1,11 +1,12 @@
 //Lagrange method Kepler solver
 
+#include <math.h>
+#include <iostream>
+
 #include "kepler_lagrange_laguerre_conway.h"
 #include "STM.h"
 #include "EMTG_math.h"
 
-#include <math.h>
-#include <iostream>
 
 namespace Kepler
 {

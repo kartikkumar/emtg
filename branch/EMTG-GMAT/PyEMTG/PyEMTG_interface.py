@@ -441,6 +441,7 @@ class PyEMTG_interface(wx.Frame):
         #global mission options
         self.optionsnotebook.tabGlobal.txtMissionName.Bind(wx.EVT_KILL_FOCUS, self.ChangeMissionName)
         self.optionsnotebook.tabGlobal.cmbMissionType.Bind(wx.EVT_COMBOBOX, self.ChangeMissionType)
+        self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.Bind(wx.EVT_KILL_FOCUS, self.Changemaximum_number_of_lambert_revolutions)
         self.optionsnotebook.tabGlobal.cmbobjective_type.Bind(wx.EVT_COMBOBOX,self.Changeobjective_type)
         self.optionsnotebook.tabGlobal.chkinclude_initial_impulse_in_cost.Bind(wx.EVT_CHECKBOX,self.Changeinclude_initial_impulse_in_cost)
         self.optionsnotebook.tabGlobal.txtmax_phases_per_journey.Bind(wx.EVT_KILL_FOCUS,self.Changemax_phases_per_journey)
@@ -679,6 +680,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabPhysics.txtspacecraft_area.Bind(wx.EVT_KILL_FOCUS,self.Changespacecraft_area)
         self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.Bind(wx.EVT_KILL_FOCUS,self.Changecoefficient_of_reflectivity)
         self.optionsnotebook.tabPhysics.cmbspiral_model_type.Bind(wx.EVT_COMBOBOX, self.Changespiral_model_type)
+        self.optionsnotebook.tabPhysics.cmblambert_type.Bind(wx.EVT_COMBOBOX, self.ChangeLambertSolver)
 
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
@@ -691,6 +693,10 @@ class PyEMTG_interface(wx.Frame):
         
     def ChangeMissionType(self, e):
         self.missionoptions.mission_type = self.optionsnotebook.tabGlobal.cmbMissionType.GetSelection()
+        self.missionoptions.update_all_panels(self.optionsnotebook)
+
+    def Changemaximum_number_of_lambert_revolutions(self, e):
+        self.missionoptions.maximum_number_of_lambert_revolutions = int(self.optionsnotebook.tabGlobal.txtmaximum_number_of_lambert_revolutions.GetValue())
         self.missionoptions.update_all_panels(self.optionsnotebook)
 
     def Changeobjective_type(self, e):
@@ -1591,11 +1597,7 @@ class PyEMTG_interface(wx.Frame):
     def Changerun_outerloop(self, e):
         self.missionoptions.run_outerloop = int(self.optionsnotebook.tabSolver.cmbrun_outerloop.GetSelection())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
-
-    def Changelazy_race_tree_allow_duplicates(self, e):
-        self.missionoptions.lazy_race_tree_allow_duplicates = int(self.optionsnotebook.tabSolver.chklazy_race_tree_allow_duplicates.GetValue)
-        self.missionoptions.update_solver_options_panel(self.optionsnotebook)
-        
+  
     def Changeouterloop_popsize(self, e):
         self.missionoptions.outerloop_popsize=eval(self.optionsnotebook.tabSolver.txtouterloop_popsize.GetValue())
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
@@ -1695,9 +1697,12 @@ class PyEMTG_interface(wx.Frame):
     def Changespiral_model_type(self, e):
         self.missionoptions.spiral_model_type = self.optionsnotebook.tabPhysics.cmbspiral_model_type.GetSelection()
 
+    def ChangeLambertSolver(self, e):
+        self.missionoptions.LambertSolver = self.optionsnotebook.tabPhysics.cmblambert_type.GetSelection()
+
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())

@@ -229,7 +229,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		else if (options->engine_type == 12) //VASIMR analytical model
 			{
 #ifdef _EMTG_proprietary
-				EMTG::Proprietary::VASIMR_model(power, Isp, max_thrust, max_mass_flow_rate, options);
+			EMTG::Proprietary::VASIMR_model(power, Isp, max_thrust, max_mass_flow_rate, dTdP, dmdotdP, options);
 #else
 				cout << "VASIMR model not included in open-source version" << endl;
 				throw 1711;
@@ -238,7 +238,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		else if (options->engine_type == 13) //Xenon hall thruster analytical model
 			{
 #ifdef _EMTG_proprietary
-				EMTG::Proprietary::HallThrusterXenon_model(power, Isp, max_thrust, max_mass_flow_rate, options);
+			EMTG::Proprietary::HallThrusterXenon_model(power, Isp, max_thrust, max_mass_flow_rate, dTdP, dmdotdP, options);
 #else
 				cout << "Xenon Hall thruster model not included in open-source version" << endl;
 				throw 1711;
@@ -268,18 +268,67 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				minP = options->engine_input_power_bounds[0];
 				maxP = options->engine_input_power_bounds[1];
 			}
+			else if (options->engine_type == 21) //13 kW STMD Hall high-Isp
+			{
+#ifdef _EMTG_proprietary
+				EMTG::Proprietary::STMDHall13kWHIsp_model(&at,
+														&bt,
+														&ct,
+														&dt,
+														&et,
+														&gt,
+														&ht,
+														&af,
+														&bf,
+														&cf,
+														&df,
+														&ef,
+														&gf,
+														&hf,
+														&minP,
+														&maxP);
+#else
+				cout << "STMD 13 kW Hall thruster model not included in open-source version" << endl;
+				throw 1711;
+#endif
+			}
+			else if (options->engine_type == 22) //13 kW STMD Hall high-thrust
+			{
+#ifdef _EMTG_proprietary
+				EMTG::Proprietary::STMDHall13kWHthrust_model(&at,
+															&bt,
+															&ct,
+															&dt,
+															&et,
+															&gt,
+															&ht,
+															&af,
+															&bf,
+															&cf,
+															&df,
+															&ef,
+															&gf,
+															&hf,
+															&minP,
+															&maxP);
+#else
+				cout << "STMD 13 kW Hall thruster model not included in open-source version" << endl;
+				throw 1711;
+#endif
+			}
 			else //standard engine from list - these models are available in the public literature
 			{
 				static double min_power[] = {0.525, 0.436, 0.302, 0.302, 0.302, 1.252, 0.638, 0.638, 1.15, 16.2, 7.0, 5.0, 0.354};
 				static double max_power[] = {2.6, 5.03, 4.839, 4.839, 4.839, 7.455, 7.266, 7.266, 4.91, 23.04, 12.0, 17.5, 3.821};
                 int k = options->engine_type < 12 ? options->engine_type - 6 : options->engine_type - 8;
+				k = options->engine_type > 20 ? k - 2 : k;
                 
 	
 				//1: NSTAR, 2: XIPS-25, 3: BPT-4000 High-Isp, 4: BPT-4000 High-Thrust, 5: BPT-4000 Ex-High-Isp, 6: NEXT high-Isp old, 7: NEXT high-Isp v10, 8: NEXT high-thrust v10, 9: BPT-4000 MALTO, 10: NEXIS, 11: H6MS, 12: BHT20K, 13: Aerojet HiVHAC EM
 	
 				//first, the coefficients for thrust
+				static double Ht[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 				static double Gt[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-				static double Ht[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 				static double Et[] = {5.145602, 0.0367, -0.095437, 0.173870, 1.174296, 0.02334, -0.19082, 0.09591, -0.6574, 0.0, 0.0, 0.0, 0.0};
 				static double Dt[] = {-36.720293, -0.4966, 1.637023, -1.150940, -10.102479, -0.6815, 2.96519, -1.98537, 6.2683, 0.0, 0.0, 0.0, 0.0};
 				static double Ct[] = {90.486509, 1.4111, -9.517167, -2.118891, 19.422224, 6.882, -14.41789, 11.47980, -14.2820, 0.119, -0.775176, 0.035143, -4.2897};
@@ -287,8 +336,8 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				static double At[] = {26.337459, -0.3984, -7.181341, -8.597025, 1.454064, 36.467, -1.92224e-6, 14.51552, 49.466, 293.9, 64.444882, -10.812857, 1.0202};
 	
 				//next, the coefficients for mass flow rate
+				static double Hf[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 				static double Gf[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-				static double Hf[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 				static double Ef[] = {0.36985, 0.0091, -0.008432, -0.011949, 0.086106, 0.002892, -0.004776, 0.01492, 0.0025, 0.0, 0.0, 0.0, -0.0271};
 				static double Df[] = {-2.5372, -0.1219, 0.148511, 0.235144, -0.727280, -0.0718, 0.05717, -0.27539, -0.2629, 0.0, 0.0, 0.0, 0.2499};
 				static double Cf[] = {6.2539, 0.5402, -0.802790, -1.632373, 1.328508, 0.6470, -0.09956, 1.60966, 2.712, 0.01084, -0.019616, 0.0012, -0.9465};
@@ -302,16 +351,16 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				ct = Ct[k];
 				dt = Dt[k];
 				et = Et[k];
-				ht = Ht[k];
 				gt = Gt[k];
+				ht = Ht[k];
 
 				af = Af[k];
 				bf = Bf[k];
 				cf = Cf[k];
 				df = Df[k];
 				ef = Ef[k];
-				hf = Hf[k];
 				gf = Gf[k];
+				hf = Hf[k];
 			}
 
 			//how many engines will we operate and at what power level?

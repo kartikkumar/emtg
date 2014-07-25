@@ -4,13 +4,12 @@
  *  Created on: Jul 17, 2012
  *      Author: Jacob
  */
+#include <vector>
+#include <memory>
 
 #include "missionoptions.h"
 #include "phase.h"
 #include "universe.h"
-
-#include <vector>
-#include <memory>
 
 #include "boost/ptr_container/ptr_vector.hpp"
 

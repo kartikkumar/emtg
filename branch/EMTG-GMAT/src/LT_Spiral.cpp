@@ -1,8 +1,10 @@
 //Battin spiral code
 
+#include <cmath>
+
 #include "missionoptions.h"
 #include "Astrodynamics.h"
-#include <math.h>
+
 
 namespace EMTG { namespace Astrodynamics {
 	void Battin_spiral	(const double& mass_before_spiral,

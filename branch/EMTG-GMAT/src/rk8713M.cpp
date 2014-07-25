@@ -2,12 +2,11 @@
 // DOPRI constants are from Numerical Recipies
 // Jacob Englander 9/10/2012
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <math.h>
-#include <string.h>
+#include <cstring>
 
 #include "rk8713M.h"
 #include "equations_of_motion.h"
@@ -539,7 +538,7 @@ namespace EMTG { namespace integration
 
 					if (fabs(effectiveH) < 1e-14) 
 					{//H is too small
-						cout << "rk8713M: H Got too Small.  Aborting." << endl;
+						cout << "rk8713M: H Got too Small. The integrator has Alexed. Aborting." << endl;
 						throw 13;
 					}
 

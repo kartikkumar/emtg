@@ -7,6 +7,10 @@
 // Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
 //============================================================================
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "missionoptions.h"
 #include "mission.h"
 #include "outerloop_NSGAII.h"
@@ -22,15 +26,10 @@
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
 #include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
 
 #include "SpiceUsr.h"
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
-#include "lazy_race_tree_search.h"
 
 #ifdef EMTG_MPI
 #include <boost/mpi/environment.hpp>
@@ -90,36 +89,54 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	//if we are running in parallel, start MPI
+#ifdef EMTG_MPI
+	boost::mpi::environment MPIEnvironment;
+	boost::mpi::communicator MPIWorld;
+#endif
+
+
 	//create a working directory for the problem
-	//TODO this may change when we develop a parallel version
+	//only the head node should do this, then broadcast the folder name to everyone else
 	//*****************************************************************
-	ptime now = second_clock::local_time();
-	std::stringstream timestream;
-	timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-
-		
-	//define a new working directory
-	options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
-
-	if (!(options.run_outerloop == 2))
+#ifdef EMTG_MPI
+	if (MPIWorld.rank() == 0)
+#endif
 	{
-		//create the working directory
-		try
-		{
-			path p(options.working_directory);
-			path puniverse(options.working_directory + "/Universe");
-			boost::filesystem::create_directories(p);
-			boost::filesystem::create_directories(puniverse);
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-		}
+		ptime now = second_clock::local_time();
+		std::stringstream timestream;
+		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 
 
-		//print the options file to the new directory
-		options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
-	}
+		//define a new working directory
+		options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+
+		if (!(options.run_outerloop == 2))
+		{
+			//create the working directory
+			try
+			{
+				path p(options.working_directory);
+				//path puniverse(options.working_directory + "/Universe");
+				boost::filesystem::create_directories(p);
+				//boost::filesystem::create_directories(puniverse);
+			}
+			catch (std::exception &e)
+			{
+				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
+			}
+
+
+			//print the options file to the new directory
+			options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");
+		}
+	} //end working directory creation and options file printing for head node
+
+	//broadcast the working directory to the other nodes
+#ifdef EMTG_MPI
+	boost::mpi::broadcast(MPIWorld, options.working_directory, 0);
+#endif
+	
 	
 	//load all ephemeris data if using SPICE
 	vector<fs::path> SPICE_files;
@@ -142,8 +159,8 @@ int main(int argc, char* argv[])
 		furnsh_c(referenceframestring.c_str());
 
 		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-		errprt_c("SET", 100, "NONE");
-		erract_c("SET", 100, "RETURN");
+		errprt_c((SpiceChar*)"SET", 100, "NONE");
+		erract_c((SpiceChar*)"SET", 100, "RETURN");
 	}
 
 	//create a vector of universes for each journey
@@ -168,11 +185,6 @@ int main(int argc, char* argv[])
 
 
 	//next, it is time to start the outer-loop
-	//if we are running in parallel, start MPI
-#ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
-	boost::mpi::communicator MPIWorld;
-#endif
 
 	if (options.run_outerloop == 1 && options.outerloop_objective_function_choices.size() == 1)
 	{
@@ -238,79 +250,6 @@ int main(int argc, char* argv[])
 		//Step 4: write out the archive
 		NSGAII.write_archive(options.working_directory + "//NSGAII_archive.NSGAII");
 	}
-
-	//
-	//
-	// LAZY RACE TREE SEARCH ALGORITHM
-	//
-	//
-	else if (options.run_outerloop == 2)
-	{
-		//This file name should be specified in options structure via the GUI
-		//The asteroid ID numbers provided should be the EMTG numbers (i.e. Num column from Universe file)
-		std::string asteroid_filename = "Koronis.txt"; //POSSIBLE OPTIONS STRUCTURE INCLUSION
-
-
-		std::vector <int> asteroid_list; //list of asteroids you want lazy race tree searched
-		std::vector <int> best_sequence; //the LRTS algorithm will populate this vector with the best sequence it finds
-
-
-		//First load the list of asteroids from file
-		//EMTG::load_asteroid_list(asteroid_filename, asteroid_list);
-
-		//create the directory in the results folder where everything will go
-		boost::posix_time::ptime now = second_clock::local_time();
-		std::stringstream timestream;
-		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
-		std::string branch_directory = "..//EMTG_v8_results//lazy_race_tree_" + timestream.str() + "//";
-
-		//create the race tree directory 
-		try
-		{
-			path p(branch_directory);
-			boost::filesystem::create_directories(p);
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
-		}
-
-		//define where the summary file is going to go and create it
-		std::string tree_summary_file_location = branch_directory + "tree_summary.LRTS";
-		std::ofstream outputfile(tree_summary_file_location.c_str(), std::ios::app);
-
-		//set up header line in summary file
-		outputfile.width(15); outputfile << left << "Tree Level";
-		outputfile.width(15); outputfile << "Branch #";
-		outputfile.width(35); outputfile << "Starting Asteroid EMTG Num ID";
-		outputfile.width(35); outputfile << "Destination Asteroid EMTG Num ID";
-		outputfile.width(25); outputfile << "Launch Window Open";
-		outputfile.width(20); outputfile << "Launch Epoch";
-		outputfile.width(20); outputfile << "Time of Flight";
-		outputfile.width(20); outputfile << "Arrival Epoch";
-		outputfile.width(20); outputfile << "Starting Wet mass";
-		outputfile.width(20); outputfile << "Final Wet mass";
-
-		outputfile << std::endl << std::endl;
-		//close the tree summary file
-		outputfile.close();
-
-		//Perform the lazy race tree search algorithm on the list of asteroids
-		EMTG::lazy_race_tree_search(&options, TheUniverse, asteroid_list, best_sequence, branch_directory, tree_summary_file_location);
-
-		//write the best sequence to file
-		outputfile.open(tree_summary_file_location.c_str(), std::ios::app);
-		outputfile << std::endl;
-		outputfile.width(15); outputfile << left << "Best Sequence Found:" << std::endl;
-
-		outputfile << best_sequence[0];
-		for (size_t i = 1; i < best_sequence.size(); ++i)
-			outputfile << ", " << best_sequence[i];
-
-		outputfile.close();
-			
-	}
-
 	else
 	{
 		//set up a batch output file

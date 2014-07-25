@@ -8,15 +8,14 @@
 #ifndef FBLTPHASE_H_
 #define FBLTPHASE_H_
 
+#include <vector>
+
 #include "phase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "rk8713M.h"
 #include "equations_of_motion.h"
 #include "universe.h"
-
-
-#include <vector>
 
 namespace EMTG {
 

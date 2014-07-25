@@ -1,5 +1,9 @@
 //header file for EMTG body class
 
+#include <string>
+#include <vector>
+#include <fstream>
+
 #include "missionoptions.h"
 #include "body.h"
 #include "universe.h"
@@ -7,9 +11,7 @@
 
 #include "SpiceUsr.h"
 
-#include <string>
-#include <vector>
-#include <fstream>
+
 
 #include "boost/algorithm/string.hpp"
 

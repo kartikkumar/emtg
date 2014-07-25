@@ -2,7 +2,7 @@
 //all LV functions are polynomial fit to performance curves from KSC launch vehicle website
 //all data is public domain except FH and SLS which are kept in a separate source file, NOT TO BE DISTRIBUTED
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include "missionoptions.h"
 

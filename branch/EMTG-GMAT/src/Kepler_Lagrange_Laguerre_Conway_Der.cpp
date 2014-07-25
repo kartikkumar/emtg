@@ -3,11 +3,12 @@
 //and "Classical and Advanced Kepler Algorithms" by Gim J. Der
 //STMs by Ellison
 
+#include <cmath>
+#include <iostream>
+
 #include "STM.h"
 #include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 
-#include <math.h>
-#include <iostream>
 
 namespace Kepler
 {

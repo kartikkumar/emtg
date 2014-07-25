@@ -5,6 +5,12 @@
  *      Author: Jacob
  */
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <set>
+
 #include "journey.h"
 #include "mission.h"
 #include "missionoptions.h"
@@ -20,12 +26,6 @@
 #include "boost/algorithm/string/predicate.hpp"
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
-
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <set>
 
 namespace EMTG {
 
@@ -1330,17 +1330,24 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 int mission::output()
 {
 	ofstream outputfile(options.outputfile.c_str(), ios::out | ios::trunc);
-	outputfile << "Mission " << options.mission_name << endl;
+	outputfile << "Mission: " << options.mission_name << endl;
 	outputfile << "Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
 	outputfile.close();
 
 	//next, output summary lines describing each event in the mission
 	int errcode = 0;
 	int eventcount = 1;
-	for (int j = 0; j < number_of_journeys; ++j) {
-		errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
-		if (!(errcode == 0))
-			return errcode;
+	try
+	{
+		for (int j = 0; j < number_of_journeys; ++j) {
+			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
+			if (!(errcode == 0))
+				return errcode;
+		}
+	}
+	catch (int e)
+	{
+		cout << "An error occurred while writing " << options.outputfile << endl;
 	}
 	
 
@@ -1350,6 +1357,7 @@ int mission::output()
 	for (int k = 0; k < 2; ++k)
 		outputfile << endl;
 
+	outputfile.precision(20);
 	//output total deltaV
 	outputfile << "Total deltaV: " << current_deltaV << endl;
 
@@ -2262,11 +2270,11 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			case 2: //Flight time (days)
 				objective_functions[objective] = (this->current_epoch - this->journeys[0].phases[0].phase_start_epoch) / 86400.0;
 				break;
-			case 3: //number of thrusters
-				objective_functions[objective] = this->options.number_of_engines;
-				break;
-			case 4: //Thruster
+			case 3: //Thruster
 				objective_functions[objective] = this->options.engine_type;
+				break;
+			case 4: //number of thrusters
+				objective_functions[objective] = this->options.number_of_engines;
 				break;
 			case 5: //Launch vehicle
 				objective_functions[objective] = this->options.LV_type;
@@ -2282,10 +2290,13 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 9: //last journey arrival C3
 				objective_functions[objective] = this->journeys.back().phases.back().C3_arrival;
+				break;
 			case 10: //delta-V
 				objective_functions[objective] = this->current_deltaV;
+				break;
 			case 11: //inner-loop objective function
 				objective_functions[objective] = this->F[0];
+				break;
 			}
 		}
 	}

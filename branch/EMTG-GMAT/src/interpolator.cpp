@@ -1,13 +1,15 @@
 //EMTG interpolation class header file
 //Jacob Englander 6/14/2013
 
-#include "interpolator.h"
-#include "EMTG_math.h"
-
 #include <vector>
 #include <utility>
 #include <algorithm>
 #include <iostream>
+
+#include "interpolator.h"
+#include "EMTG_math.h"
+
+
 
 using namespace std;
 
