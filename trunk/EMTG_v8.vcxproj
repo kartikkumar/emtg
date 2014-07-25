@@ -300,6 +300,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)</TargetName>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MPI_Release|Win32'">
     <OutDir>$(SolutionDir)bin\</OutDir>
@@ -431,16 +432,16 @@
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary</PreprocessorDefinitions>
       <DebugInformationFormat>None</DebugInformationFormat>
       <BufferSecurityCheck>true</BufferSecurityCheck>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPT;$(Configuration)/;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cspice.lib;SNOPTrelease.lib;vcf2c.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\SNOPToldclean;$(Configuration)/;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\cspice\lib;C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\boost_1_55_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cspice.lib;snoptRelease.lib;vcf2c.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;MSVCRTD.lib</IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <Profile>false</Profile>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MPI_Release|Win32'">
