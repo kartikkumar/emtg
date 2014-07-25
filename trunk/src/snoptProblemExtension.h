@@ -23,7 +23,7 @@
 	#define SNOPT_DOUBLE_TYPE doublereal
 	#define SNOPT_BASE_TYPE public::snoptProblem
 #else
-	#include "SnoptProblem.hpp"
+	#include "snoptProblem.hpp"
 	#include "snopt.h"
 	#define SNOPT_INT_TYPE int
 	#define SNOPT_DOUBLE_TYPE double
@@ -36,12 +36,15 @@
 class snoptProblemExtension : SNOPT_BASE_TYPE {
 
 public:
-	snoptProblemExtension(bool const & supress_input = false) : snoptProblem() { //extended contructor for enabling Alex's snopt silencer.  Parent default constructor is fine in most cases
+#ifdef Heritage_SNOPT7
+	snoptProblemExtension(bool const & suppress_input = false) : snoptProblem() { //extended contructor for enabling Alex's snopt silencer.  Parent default constructor is fine in most cases
+#else
+	snoptProblemExtension(bool const & suppress_input = false) : snoptProblemA() { //extended contructor for enabling Alex's snopt silencer.  Parent default constructor is fine in most cases
+#endif
 #ifdef QUIET_SNOPT
-		if (supress_input) {
+		if (suppress_input) {
 			initCalled = 1;
 			this->setIntParameter((char*) "Print No", 1);
-			initCalled = 0;
 		};
 #endif		
 #ifdef Heritage_SNOPT7	
@@ -53,7 +56,7 @@ public:
 	SNOPT_INT_TYPE getNeA() { return neA;};
 	SNOPT_INT_TYPE getNeG() {return neG;};
 
-
+#ifdef Heritage_SNOPT7	
 	void setSummaryFile(char asummaryname[] ) {
 		  assert( initCalled = 1 );
 		  if (iSumm != 0 ) {
@@ -64,7 +67,7 @@ public:
 		  snopenappend_( &iSumm, summaryname,   &inform, prnt_len );
 		  this->setIntParameter((char*)"Summary file", iSumm);
 		}
-	
+#endif
 	
 	
 #ifdef Heritage_SNOPT7	
@@ -101,7 +104,7 @@ public:
 	}
 #else
 	int computeJac() {
-	  SnoptProblemA::computeJac();
+	  snoptProblemA::computeJac();
 	  return inform;
 	}
 #endif

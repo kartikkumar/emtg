@@ -61,8 +61,6 @@ namespace EMTG { namespace Solvers {
 		xnames = new char[nxnames*8];
 		Fnames = new char[nFnames*8];
 
-		DummyReal = new SNOPT_DOUBLE_TYPE[10];
-
 		ObjRow = 0;
 		ObjAdd = 0;
 
@@ -93,8 +91,10 @@ namespace EMTG { namespace Solvers {
 		SNOPTproblem->setUserspace( (SNOPT_INT_TYPE*) &SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*) Problem, 500 );
 		SNOPTproblem->setA          ( lenA, iAfun, jAvar, A );
 		SNOPTproblem->setG          ( lenG, iGfun, jGvar );
+#ifdef Heritage_SNOPT7
 		SNOPTproblem->setXNames     ( xnames, nxnames );
 		SNOPTproblem->setFNames     ( Fnames, nFnames );
+#endif
 		SNOPTproblem->setProbName   ( "EMTG" );
 		SNOPTproblem->setUserFun    ( SNOPT_user_function );
 		SNOPTproblem->setIntParameter("Iterations limit", 100*Problem->options.snopt_major_iterations);
@@ -194,8 +194,6 @@ namespace EMTG { namespace Solvers {
 		delete [] Fstate;
 		delete [] xnames;
 		delete [] Fnames;
-
-		delete [] DummyReal;
 	}
 
 	
