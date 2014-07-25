@@ -32,8 +32,9 @@ GCC_INCLUDE_DIR = $(GCC_INSTALL_DIR)/include
 GCC_LIB_DIR = $(GCC_INSTALL_DIR)/lib
 BOOST_DIR = /usr/local/include/boost
 BOOST_LIB_DIR = /usr/local/lib 
-SNOPT_DIR = /home/jaengla2/libraries/snopt7.2-11/snopt7/cppsrc
-SNOPT_LIB_DIR = $(SNOPT_DIR)/../lib
+SNOPT_INTERFACES_DIR = /home/jaengla2/snopt7/interfaces
+SNOPT_CPP_DIR = /home/jaengla2/snopt7/interfaces/cppsrc
+SNOPT_LIB_DIR = /home/jaengla2/snopt7/lib/.libs
 CSPICE_DIR = cspice/include
 CSPICE_LIB_DIR = cspice/lib
 
@@ -56,7 +57,7 @@ SHELL       = /bin/sh
 #PROF = -ggdb -O2 
 PROF = -O3 -DEMTG_MPI -D_EMTG_proprietary -DQUIET_SNOPT -DBACKGROUND_MODE -D_STONEAGECplusplus
 ADDITIONAL_LIBS = 
-ADDITIONAL_LIBS = -lcspice -lsnopt_cpp -lsnopt_c -lsnprint_c  -lf2c -lboost_filesystem -lboost_system -lboost_serialization -lboost_mpi
+ADDITIONAL_LIBS = -lsnopt7_cpp -lsnopt7 -lcspice -lboost_filesystem -lboost_system -lboost_serialization -lboost_mpi
 SED  = $(shell which sed)
 GREP = $(shell which grep)
 
@@ -64,7 +65,7 @@ GREP = $(shell which grep)
 
 
 # Expand SRCDIR so that it turns into "-I <srcdir>" for each listed directory
-INCLUDE_DIRS = $(foreach dep, $(UNIQUE_DEPS), -I$($(dep)_INCLUDE_ROOT)) -I$(SNOPT_DIR) -I$(LOCAL_INCLUDE_ROOT) -I$(BOOST_DIR) -I$(CSPICE_DIR) -I$(GCC_INCLUDE_DIR)
+INCLUDE_DIRS = $(foreach dep, $(UNIQUE_DEPS), -I$($(dep)_INCLUDE_ROOT)) -I$(SNOPT_INTERFACES_DIR) -I$(SNOPT_CPP_DIR) -I$(LOCAL_INCLUDE_ROOT) -I$(BOOST_DIR) -I$(CSPICE_DIR) -I$(GCC_INCLUDE_DIR)
 
 #C_FLAGS  = -DROM $(PROF) $(WARNINGS) $(INCLUDE_DIRS)
 C_FLAGS = -DROM $(PROF) $(INCLUDE_DIRS) 
