@@ -19,15 +19,15 @@
 	#include "snoptProblem.hh"
 	#include "snopt.hh"
 	#include "snfilewrapper.hh"
-	#define SNOPT_INT_TYPE integer;
-	#define SNOPT_DOUBLE_TYPE doublereal;
-	#define SNOPT_BASE_TYPE SnoptProblem;
+	#define SNOPT_INT_TYPE integer
+	#define SNOPT_DOUBLE_TYPE doublereal
+	#define SNOPT_BASE_TYPE snoptProblem
 #else
 	#include "SnoptProblem.hpp"
 	#include "snopt.h"
-	#define SNOPT_INT_TYPE int;
-	#define SNOPT_DOUBLE_TYPE double;
-	#define SNOPT_BASE_TYPE SnoptProblemA;
+	#define SNOPT_INT_TYPE int
+	#define SNOPT_DOUBLE_TYPE double
+	#define SNOPT_BASE_TYPE snoptProblemA
 #endif
 
 
@@ -36,7 +36,7 @@
 class snoptProblemExtension : SNOPT_BASE_TYPE {
 
 public:
-	snoptProblemExtension(bool const & supress_input = false) : SnoptProblem() { //extended contructor for enabling Alex's snopt silencer.  Parent default constructor is fine in most cases
+	snoptProblemExtension(bool const & supress_input = false) : snoptProblem() { //extended contructor for enabling Alex's snopt silencer.  Parent default constructor is fine in most cases
 #ifdef QUIET_SNOPT
 		if (supress_input) {
 			initCalled = 1;
@@ -134,9 +134,10 @@ public:
 #endif
 protected:
 #ifdef Heritage_SNOPT7
-	integer    lenru, leniu;
+	integer    lenru, leniu, lencu;
 	doublereal *ru;
 	integer    *iu;
+	char       *cu;
 #endif	
 
 	char summaryname[200];
