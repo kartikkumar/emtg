@@ -20,7 +20,7 @@ namespace EMTG { namespace Solvers {
 							doublereal ru[],    integer *lenru )
 	{
 		//Step 1: create a pointer to the Problem object
-		EMTG::problem* Problem = (EMTG::problem*) cu;
+		EMTG::problem* Problem = (EMTG::problem*) ru;
 
 		//Step 2: unscale the decision vector
 		Problem->unscale(x);
