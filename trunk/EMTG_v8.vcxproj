@@ -62,7 +62,6 @@
     <ClInclude Include="..\..\EMTGv8_proprietary\Lambert.h" />
     <ClInclude Include="..\..\EMTGv8_proprietary\proprietary_functions.h" />
     <ClInclude Include="..\..\snopt7.2-12.2_FIXED\snopt7\lib\f2c.h" />
-    <ClInclude Include="..\..\snopt7.2-12.2_FIXED\snopt7\lib\snopt.h" />
     <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snfilewrapper.hh" />
     <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snopt.hh" />
     <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snoptProblem.hh" />
@@ -97,7 +96,6 @@
     <ClInclude Include="src\outerloop_SGA.h" />
     <ClInclude Include="src\phase.h" />
     <ClInclude Include="src\problem.h" />
-    <ClInclude Include="src\quicksort.h" />
     <ClInclude Include="src\rk8713M.h" />
     <ClInclude Include="src\snoptProblemExtension.h" />
     <ClInclude Include="src\SNOPT_user_function.h" />
@@ -147,7 +145,6 @@
     <ClCompile Include="src\phase.cpp" />
     <ClCompile Include="src\powered_flyby.cpp" />
     <ClCompile Include="src\problem.cpp" />
-    <ClCompile Include="src\quicksort.cpp" />
     <ClCompile Include="src\rk8713M.cpp" />
     <ClCompile Include="src\SNOPT_user_function.cpp" />
     <ClCompile Include="src\STM.cpp" />
