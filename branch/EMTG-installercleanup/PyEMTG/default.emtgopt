@@ -1,0 +1,556 @@
+##Options file for EMTG_v8
+
+##problem type
+#0: standard EMTG mission
+problem_type 0
+
+##physical constants
+#G in km^3/kg/s^2
+G 6.67428e-20
+#gravity at sea level on Earth in m/s^2
+g0 9.80665
+
+##outer-loop solver settings
+#Do you want to run an outer-loop?
+#0: no
+#1: Genetic algorithm (number of objective functions determines which GA to run)
+run_outerloop 0
+#outer-loop population size
+outerloop_popsize 200
+#maximum number of outer-loop generations
+outerloop_genmax 40
+#tournament size for selection
+outerloop_tournamentsize 4
+#crossover ratio
+outerloop_CR 0.3
+#mutation rate
+outerloop_mu 0.15
+#maximum number of stall generations
+outerloop_stallmax 20
+#fitness tolerance for the outer-loop
+outerloop_tolfit 0.0001
+#how many elite individuals to retain
+outerloop_elitecount 1
+#how many times to run the outer-loop
+outerloop_ntrials 1
+#whether or not to use the parallel outer-loop
+outerloop_useparallel 0
+#whether or not to perform an outer loop warm start
+outerloop_warmstart 0
+#Population file for outerloop warm start (set to none if not warm starting)
+outerloop_warm_population none
+#Archive file for outerloop warm start (set to none if not warm starting)
+outerloop_warm_archive none
+#Re-evaluate the entire outerloop each generation? Otherwise read from the archive.
+outerloop_reevaluate_full_population 0
+#Quiet outer-loop?
+quiet_outerloop 1
+
+##inner-loop solver settings
+#NLP solver type
+#0: SNOPT
+#1: WORHP
+NLP_solver_type 0
+#NLP solver mode
+#0: find feasible point only
+#1: find optimal solution
+NLP_solver_mode 1
+#Quiet NLP solver?
+quiet_NLP 0
+#Quiet MBH?
+quiet_basinhopping 0
+#Enable ACE feasible point finder?
+ACE_feasible_point_finder 0
+#quantity Max_not_improve for MBH
+MBH_max_not_improve 100000
+#maximum number of trials for MBH
+MBH_max_trials 100000
+#maximum run time for MBH, in seconds
+MBH_max_run_time 60
+#maximum step size for uniform MBH, or scaling factor for Cauchy MBH
+MBH_max_step_size 1.0
+#MBH hop probabilty distribution
+#0: uniform
+#1: Cauchy
+#2: Pareto
+#3: Gaussian
+MBH_hop_distribution 2
+#Pareto distribution alpha
+MBH_Pareto_alpha 1.5
+#probability of MBH time hop operation
+MBH_time_hop_probability 0.05
+#feasibility tolerance
+snopt_feasibility_tolerance 1e-05
+#maximum number of major iterations for SNOPT
+snopt_major_iterations 8000
+#Maximum run time, in seconds, for a single call to SNOPT
+snopt_max_run_time 59
+#method of specifying derivatives
+#0: finite difference
+#1: analytical flybys and objective function but finite difference the patch points
+#2: all but time derivatives
+#3: all but current phase flight time derivatives
+#4: fully analytical (experimental)
+derivative_type 2
+#Will MBH be seeded with an initial point? Otherwise MBH starts from a completely random point.
+seed_MBH 0
+#Will the initial guess be interpolated?
+#(i.e. are we solving a problem with a different number of time steps than the initial guess?)
+interpolate_initial_guess 0
+#How many time steps were used to create the initial guess?
+initial_guess_num_timesteps 20
+#Distribution from which the initial guess step sizes were drawn
+#0: uniform
+#1: Gaussian
+#2: Cauchy
+initial_guess_step_size_distribution 0
+#What scale width (Cauchy) or standard deviation (Gaussian) was used to create the step sizes in the initial guess
+initial_guess_step_size_stdv_or_scale 10.0
+#Apply zero-control initial guess in MBH?
+#0: do not use
+#1: zero-control for resets, random perturbations for hops
+#2: always use zero-control guess except when seeded
+MBH_zero_control_initial_guess 0
+#Enable two-step MBH?
+MBH_two_step 0
+#'Fine' finite differencing step size
+FD_stepsize 1.5e-08
+#'Coarse' finite differencing step size
+FD_stepsize_coarse 0.0001
+
+##low-thrust solver parameters
+#number of time steps per phase
+num_timesteps 20
+#Control coordinate system
+#0: Cartesian
+#1: Polar
+control_coordinate_system 0
+#Initial guess control coordinate system
+#0: Cartesian
+#1: Polar
+initial_guess_control_coordinate_system 0
+#Distribution from which to draw the step sizes for each phase
+#0: uniform
+#1: Gaussian
+#2: Cauchy
+step_size_distribution 0
+#What scale width (Cauchy) or standard deviation (Gaussian) is used to create the step sizes
+step_size_stdv_or_scale 10.0
+#Spiral model type
+#0: Battin
+#1: Edelbaum
+spiral_model_type 1
+
+##impulsive-thrust solver parameters
+#maximum number of revolutions for Lambert's method
+maximum_number_of_lambert_revolutions 0
+
+##ephemeris data
+#ephemeris source
+#0: static
+#1: SPICE (default to static if no SPICE file supplied for a body)
+ephemeris_source 1
+#Universe folder
+universe_folder C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\Universe\
+#SPICE leap seconds kernel - required for SPICE to work
+SPICE_leap_seconds_kernel naif0009.tls
+#SPICE_reference_frame_kernel
+SPICE_reference_frame_kernel pck00010.tpc
+
+##vehicle parameters
+#the maximum possible mass in kg of the spacecraft (negative number means use LV max)
+maximum_mass 525.2
+#Launch vehicle type
+#-2: custom launch vehicle
+#-1: burn with departure stage engine
+#0: fixed initial mass
+#1: Atlas V (401)	 NLSII
+#2: Atlas V (411)	NLSII
+#3: Atlas V (421)	NLSII
+#4: Atlas V (431)	NLSII
+#5: Atlas V (501)	NLSII
+#6: Atlas V (511)	NLSII
+#7: Atlas V (521)	NLSII
+#8: Atlas V (531)	NLSII
+#9: Atlas V (541)	NLSII
+#10: Atlas V (551)	NLSII
+#11: Falcon 9 (v1.0)	NLSII
+#12: Falcon 9 (v1.1)	NLSII
+#13: Atlas V (551) w/Star 48	NLSI
+#14: Falcon 9 Heavy
+#15: Delta IV Heavy	NLSI
+#16: SLS Block 1
+LV_type 0.0
+#Launch vehicle margin (0.0 - 1.0)
+LV_margin 0.0
+#Launch vehicle adapter mass (kg)
+LV_adapter_mass 0.0
+#Custom launch vehicle coefficients (must enter 6 coefficients)
+#as in a1*C3^5 + a2*C3^4 + a3*C3^3 + a4*C3^2 + a5*C3 + a6
+custom_LV_coefficients 0.0 0.0 0.0 0.0 0.0 0.0
+#Custom launch vehicle C3 bounds (two values)
+custom_LV_C3_bounds 0.0 0.0
+#Parking orbit inclination (for use in outputing GMAT scenarios)
+parking_orbit_inclination 28.5
+#Parking orbit altitude (for use in outputing GMAT scenarios)
+parking_orbit_altitude 300.0
+
+##parameters that are only relevant for missions that use chemical propulsion
+##dummy values should be used if the mission does not use chemical propulsion but are not strictly necessary
+#specific impulse in seconds of the engine used for impulsive maneuvers
+IspChem 10000.0
+
+##parameters that are only relevant for missions that use a chemical EDS
+##dummy values should be used if the mission does not use a chemical EDS but are not strictly necessary
+#specific impulse in seconds for the earth departure stage, if applicable
+IspDS 0.0
+
+##parameters that are only relevant for missions that use low-thrust
+##dummy values should be used if the mission does not use low-thrust but are not strictly necessary
+#specific impulse in seconds of the engine used for low-thrust maneuvers
+#for VSI systems, this represents maximum Isp
+IspLT 3000.0
+#minimum Isp for VSI systems
+IspLT_minimum 1.0
+#thrust of the spacecraft low-thrust motor, in Newtons
+Thrust 0.1
+#low-thrust engine type
+#0: fixed thrust/Isp
+#1: constant Isp, efficiency, EMTG computes input power
+#2: choice of power model, constant efficiency, EMTG chooses Isp
+#3: choice of power model, constant efficiency and Isp
+#4: continuously-varying specific impulse
+#5: custom thrust and mass flow rate polynomial
+#6: NSTAR
+#7: XIPS-25
+#8: BPT-4000 High-Isp
+#9: BPT-4000 High-Thrust
+#10: BPT-4000 Ex-High-Isp
+#11: NEXT high-Isp v9
+#12: VASIMR (argon, using analytical model)
+#13: Hall Thruster (Xenon, using analytical model)
+#14: NEXT high-ISP v10
+#15: NEXT high-thrust v10
+#16: BPT-4000 MALTO
+#17: NEXIS Cardiff 8-15-201
+#18: H6MS Cardiff 8-15-2013
+#19: BHT20K Cardiff 8-16-2013
+#20: Aerojet HiVHAC EM
+#21: 13 kW STMD Hall high-Isp (not available in open-source)
+#22: 13 kW STMD Hall high-thrust (not available in open-source)
+engine_type 6
+#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)
+engine_input_thrust_coefficients 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+#Custom engine mass flow rate coefficients (mdot = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)
+engine_input_mass_flow_rate_coefficients 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+#Custom engine lower and upper bounds on input power (per engine, in kW)
+engine_input_power_bounds 1.0 5.0
+#Custom engine input efficiency
+user_defined_engine_efficiency 0.7
+#number of low-thrust engines
+number_of_engines 1
+#Throttle logic mode
+#0: maximum power use
+#1: maximum thrust
+#2: maximum Isp
+#3: maximum efficiency
+throttle_logic_mode 0
+#Throttle sharpness (higher means more precise, lower means smoother)
+throttle_sharpness 100.0
+#engine duty cycle [0,1]
+engine_duty_cycle 1.0
+#electrical power available at 1 AU (kW)
+power_at_1_AU 5.0
+#power source type, 0: solar, 1: radioisotope (or other fixed power)
+power_source_type 0
+#solar power coefficients gamma_1 through gamma_5
+#if all gamma = [1 0 0 0 0], then solar power is a simple 1/r^2
+solar_power_gamma 1.32077 -0.10848 -0.11665 0.10843 -0.01279
+#Power margin (for thrusters, as a fraction)
+power_margin 0.0
+#Power system decay rate (per year)
+power_decay_rate 0.0
+#spacecraft power coefficients A, B, and C
+#represent the power requirements of the spacecraft at a distance r from the sun
+#i.e. heaters, communications, etc
+spacecraft_power_coefficients 0.0 0.0 0.0
+#spacecraft power model type
+#0: P_sc = A + B/r + C/r^2
+#1: P_sc = A if P > A, A + B(C - P) otherwise
+spacecraft_power_model_type 0
+#low-thrust propulsion stage dry mass in kg, will be subtracted before chemical arrival or mid-flight switchover to chemical propulsion
+EP_dry_mass 0.0
+#Allow initial mass to vary, up to maximum possible mass? (only relevant for MGALT and FBLT)
+allow_initial_mass_to_vary 0
+#Minimum dry mass
+minimum_dry_mass 0.0
+#Enable maximum propellant mass constraint?
+enable_maximum_propellant_mass_constraint 0
+#Maximum propellant mass (kg)
+maximum_propellant_mass 1000.0
+#Post-mission delta-v, in km/s (alternatively defined as delta-v margin)
+post_mission_delta_v 0.0
+#Isp used to compute propellant for post-mission delta-v, in seconds
+post_mission_Isp 3000.0
+#Propellant margin, as a fraction of nominal propellant load
+propellant_margin 0.0
+
+##Global problem settings
+#mission name
+mission_name Default
+#mission type - you can specify MGA, MGA-DSM, MGA-LT, or allow the outer-loop to choose
+#0: MGA
+#1: MGA-DSM
+#2: MGA-LT
+#3: FBLT
+#4: MGA-NDSM
+#5: DTLT
+#6: solver chooses (MGA, MGA-DSM)
+#7: solver chooses (MGA, MGA-LT)
+#8: solver chooses (MGA-DSM, MGA-LT)
+#9: solver chooses (MGA, MGA-DSM, MGA-LT)
+mission_type 2
+#number of journeys (user-defined endpoints)
+#Each journey has a central body and two boundary points
+#Each central body has a menu of destinations which is used to choose the boundary points. Every menu is structured:
+#-1: Boundary at a point in space, either fixed or free
+#0: Nothing happens. This code is only used to signify no flyby and should NEVER be coded as a destination.
+#1: Body 1 (i.e. Mercury, Io, etc)
+#2: Body 2 (i.e. Venus, Europa, etc)
+#...
+#N: Body N
+number_of_journeys 1
+#maximum number of phases allowed per journey
+max_phases_per_journey 8
+#destination list (number of journeys + 1)
+destination_list 3 4
+#the following option is relevant only if optimizing over total deltaV, should the initial impulse be included in the cost?
+include_initial_impulse_in_cost 1
+#global time bounds
+#0: unbounded
+#1: bounded total time (note that the global arrival date bound is by definition the same as the last journey arrival date bound and is not duplicated
+global_timebounded 1
+#MJD of the opening of the launch window
+launch_window_open_date 53782.0
+#total flight time bounds, in days
+total_flight_time_bounds 0.0 302.0
+#objective function type
+#0: minimum deltaV
+#1: minimum time
+#2: maximum final mass
+#3: GTOC 1 asteroid deflection function
+#4: launch as late as possible in the window
+#5: launch as early as possible in the window
+#6: maximize orbit energy
+#7: minimize launch mass
+#8: arrive as early as possible
+#9: arrive as late as possible
+#10: minimum propellant (not the same as #2)
+#11: maximum dry/wet ratio
+#12: maximum arrival kinetic energy
+#13: minimum BOL power
+objective_type 2
+#bounds on the DLA, in degrees (typically set to declination of your launch site)
+DLA_bounds -90.0 90.0
+
+#Initial V-Infinity vector (set to zeros unless starting the mission from periapse of a hyperbolic arrival)
+initial_V_infinity 0.0 0.0 0.0
+#Forced post-launch coast (in days, to be enforced after launch)
+forced_post_launch_coast 0.0
+#Forced post flyby/intercept coast (in days, to be enforced before/after each flyby/intercept)
+forced_flyby_coast 0.0
+
+##Settings for each journey
+##dummy values should be used - they should not be necessary but testing was not exhaustive so please use them
+#journey names
+journey_names Earth_to_Mars
+#How much mass to add to the spacecraft at the beginning of the journey (a negative number indicates a mass drop)
+journey_starting_mass_increment 0.0
+#Is the mass increment variable (i.e. can the optimizer choose how much mass to add)
+#This option is ignored for journeys with zero or negative mass increment
+journey_variable_mass_increment 0
+#is each journey time bounded (one value per journey)
+#0: unbounded
+#1: bounded flight time
+#2: bounded arrival date
+#3: bounded aggregate flight time
+journey_timebounded 0
+#what are the wait time lower and upper bounds, in days, for each journey (two numbers per journey)
+journey_wait_time_bounds 0.0 1000.0
+#what are the flight time bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)
+journey_flight_time_bounds 0.0 0.0
+#what are the arrival date bounds for each journey (two numbers per journey, use dummy values if no flight time bounds)
+journey_arrival_date_bounds 53982.0 60000.0
+#what are the bounds on the initial impulse for each journey in km/s (two numbers per journey)
+#you can set a very high upper bound if you are using a launchy vehicle model - the optimizer will find the correct value
+journey_initial_impulse_bounds 0.0 6.97
+#journey departure type (one value per journey)
+#0: launch or direct insertion
+#1: depart from parking orbit (you can use this one in place of a launch vehicle model, and the departure burn will be done with the EDS motor)
+#2: free direct departure, i.e. do not burn to get the departure v_infinity (used for when operations about a small body are not modeled but the departure velocity is known)
+#3: flyby (only valid for successive journeys)
+#4: flyby with fixed v-infinity-out (only valid for successive journeys)
+#5: spiral-out from circular orbit (low-thrust missions only)
+#6: zero-turn flyby (for small bodies)
+journey_departure_type 0
+#journey arrival type (one value per journey)
+#0: insertion into parking orbit (use chemical Isp)
+#1: rendezvous (use chemical Isp)
+#2: intercept with bounded V_infinity
+#3: low-thrust rendezvous (does not work if terminal phase is not low-thrust)
+#4: match final v-infinity vector
+#5: match final v-infinity vector (low-thrust)
+#6: escape (E = 0)
+#7: capture spiral
+journey_arrival_type 3
+#type of orbit elements specified at beginning of journey(0: inertial, 1: COE)
+journey_departure_elements_type 1
+#orbit elements at beginning of journey (a(km), e, i, RAAN, AOP, MA) supply angles in degrees
+journey_departure_elements 0.0 0.0 0.0 0.0 0.0 0.0
+#Vary journey departure elements? (one entry per element per journey: 0 means no, 1 means yes)
+journey_departure_elements_vary_flag 0 0 0 0 0 0
+#Lower and upper bounds on journey departure elements (two per element per journey, ignored if vary flag is off for that element)
+journey_departure_elements_bounds 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+journey_arrival_elements_type 1
+#orbit elements at end of journey (a(km), e, i, RAAN, AOP, MA) supply angles in degrees
+journey_arrival_elements 0.0 0.0 0.0 0.0 0.0 0.0
+#Vary journey arrival elements? (one entry per element per journey: 0 means no, 1 means yes)
+journey_arrival_elements_vary_flag 0 0 0 0 0 0
+#Lower and upper bounds on journey arrival elements (two per element per journey, ignored if vary flag is off for that element)
+journey_arrival_elements_bounds 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+#journey central body
+#use SPICE names, as per http://www-int.stsci.edu/~sontag/spicedocs/req/naif_ids.html
+journey_central_body Sun
+#initial VHP for journeys that begin with flybys, in km/s (three numbers per journey)
+journey_initial_velocity 0.0 0.0 0.0
+#final VHP for journeys that end in intercepts, in km/s (three numbers per journey)
+journey_final_velocity 0.0 0.0 0.0
+#Impose arrival declination constraint on each journey?
+#0: no
+#1: yes
+journey_arrival_declination_constraint_flag 0
+#Arrival declination bounds for each journey
+#Two numbers per journey, in degrees
+journey_arrival_declination_bounds 0.0 0.0
+#Starting orbital radius for an escape spiral at the beginning of the journey
+journey_escape_spiral_starting_radius 6678.0
+#Final orbital radius for a capture spiral at the end of the journey
+journey_capture_spiral_final_radius 6678.0
+
+##Perturbation settings
+#Enable solar radiation pressure?
+perturb_SRP 0
+#Enable third-body perturbations?
+perturb_thirdbody 0
+#Journey perturbation bodies. One line per journey. The numbers in the line correspond to
+#bodies in the journeys Universe file. If perturbations are off, each line should just have a zero
+#the numbers in the first line are the number of perturbation bodies for each journey
+journey_perturbation_bodies 1
+0
+#end_journey_perturbation_bodies
+#Spacecraft area (in m^2)
+spacecraft_area 1.0
+#Coefficient of reflectivity
+#0.0: perfectly translucent
+#1.0: perfectly absorbing
+#2.0: perfectly reflecting
+coefficient_of_reflectivity 1.0
+
+##Outer-loop selectable options settings
+#Allow outer-loop to vary power level?
+outerloop_vary_power 0
+#Allow outer-loop to vary launch epoch?
+outerloop_vary_launch_epoch 0
+#Allow outer-loop to vary flight time upper bound?
+outerloop_vary_flight_time_upper_bound 0
+#Restrict flight-time lower bound when running outer-loop?
+outerloop_restrict_flight_time_lower_bound 0
+#Allow outer-loop to vary thruster type?
+outerloop_vary_thruster_type 0
+#Allow outer-loop to vary number of thrusters?
+outerloop_vary_number_of_thrusters 0
+#Allow outer-loop to vary launch vehicle?
+outerloop_vary_launch_vehicle 0
+#Allow outer-loop to vary first journey departure C3?
+outerloop_vary_departure_C3 0
+#Allow outer-loop to vary last journey arrival C3?
+outerloop_vary_arrival_C3 0
+#Allow outer-loop to vary journey destination? (one value per journey)
+outerloop_vary_journey_destination 0
+#Allow outer-loop to vary journey flyby sequence? (one value per journey)
+outerloop_vary_journey_flyby_sequence 0
+#Outer-loop power at 1 AU choices (in kW)
+outerloop_power_choices 10.0
+#Outer-loop launch window open epoch choices (in MJD)
+outerloop_launch_epoch_choices 51544.5
+#Outer-loop flight time upper bound choices (in days)
+outerloop_flight_time_upper_bound_choices 365.25
+#Outer-loop thruster type choices (in order of most to least preferable)
+outerloop_thruster_type_choices 8
+#Outer-loop number of thruster choices
+outerloop_number_of_thrusters_choices 1
+#Outer-loop launch vehicle choices (in order of most to least preferable)
+outerloop_launch_vehicle_choices 1
+#Outer-loop first journey departure C3 choices
+outerloop_departure_C3_choices 25.0
+#Outer-loop last arrival departure C3 choices
+outerloop_arrival_C3_choices 25.0
+#Outer-loop maximum number of flybys (one value for each journey)
+outerloop_journey_maximum_number_of_flybys 8
+#Outer-loop journey destination choices (one line for each journey)
+outerloop_journey_destination_choices
+ 1
+#Outer-loop flyby sequence choices (one line for each journey)
+outerloop_journey_flyby_sequence_choices
+ 1
+
+##Outer-loop objective function settings
+#Pick as many as you want. The Pareto surface will be generated in these dimensions
+#0: BOL power at 1 AU (kW)
+#1: Launch epoch (MJD)
+#2: Flight time (days)
+#3: Thruster preference
+#4: Number of thrusters
+#5: Launch vehicle preference
+#6: Delivered mass to final target (kg)
+#7: Final journey mass increment (for maximizing sample return)
+#8: First journey departure C3 (km^2/s^2)
+#9: Final journey arrival C3 (km^2/s^2)
+#10: Total delta-v (km/s)
+#11: Inner-loop objective (whatever it was)
+#12: Sum of SMA spread
+#13: Sum of mean longitude spread
+outerloop_objective_function_choices 2 6
+
+##output format settings
+#output units, 0: km and km/s, 1: LU and LU/day
+output_units 0
+#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)
+create_GMAT_script 0
+
+##debug code
+##the purpose of this code is so that you can turn the inner-loop solver on and off, force a sequence of planets and/or phase types
+#sequence, must have (max_phases_per_journey) entries for each journey. Use 0 to encode no flyby
+#integer codes represent planets
+#this option is NOT used if the outer-loop is turned on
+#first number is the number of sequences listed, followed by the sequences
+sequence 1
+0 0 0 0 0 0 0 0
+#phase type, must have one entry for each phase in the mission
+#this option allows you to have different phases use different propulsion systems
+#0: MGA, 1: MGA-DSM, 2: MGA-LT, 3: FBLT, 4: FBLT-S 
+#if mission_type is set to 0, 1, 2 then the following option is ignored
+#if mission_type > 4 and the outer-loop is ON, then the following option is ignored
+#the following option is only used if the outer-loop is OFF and mission_type > 4
+#not specified because either the outer-loop is off or mission_type > 4
+#Check derivatives against finite differencing?
+check_derivatives 0
+#which inner loop solver to run?
+#0: none, evaluate trialX, 1: evaluate a batch of decision vectors, 2: run MBH, 3: run constrained DE, 4: run SNOPT using trialX as initial guess
+run_inner_loop 2
+#trial decision vector
+#trialX
+trialX
+60225.50000000000000000000 4.49380999999999986017 1.84119999999999994778 -0.42748999999999998112 1.00000000000000000000 1607.03999999999996362021 1267.45000000000004547474 -0.47902899999999998260 0.54451799999999994650 -0.68849899999999997213 -0.52039100000000004798 -0.32537800000000000056 0.78950799999999998757 -0.12755900000000000571 -0.35676499999999999879 0.92544499999999996209 -0.01712680000000000105 -0.32560899999999998178 0.94535000000000002363 0.10306200000000000083 -0.28057199999999998807 0.95428400000000002112 0.49473499999999998034 -0.02069539999999999921 0.86879700000000004145 0.47044300000000000006 0.75509999999999999343 -0.45662700000000000511 -0.10889300000000000368 0.80537499999999995204 -0.58267800000000002925 -0.77716600000000002346 0.52469200000000004724 -0.34743400000000002059 -0.95785100000000000797 -0.13740099999999999536 0.25227500000000002700 -0.59367400000000003502 -0.44046499999999999542 0.67345600000000005458 -0.31592700000000001337 -0.49818899999999999295 0.80746399999999995956 -0.13663800000000000945 -0.50535200000000002341 0.85202699999999997882 -0.00028290200000000002 -0.50092899999999995764 0.86548800000000003507 0.12197900000000000409 -0.49135400000000001297 0.86237600000000003142 0.24639600000000000390 -0.47537299999999999001 0.84457700000000002216 0.38486799999999998789 -0.44801900000000000057 0.80694200000000004813 0.54778000000000004466 -0.39934799999999998077 0.73515900000000000691 0.73899499999999995747 -0.30995400000000000729 0.59817600000000004101 0.92716100000000001291 -0.15023100000000000342 0.34322399999999997355 0.00000000000000000000 0.00000100000000000000 -0.61778900000000003256 1.06617999999999990557 2045.46000000000003637979 1183.28999999999996362021 -0.13911499999999998867 -0.02823480000000000087 -0.01616070000000000007 -0.03498740000000000183 -0.02943339999999999845 -0.00364087999999999998 -0.02422219999999999929 -0.08516250000000000209 -0.00176471000000000006 0.19206200000000001049 -0.45026800000000000157 0.02624369999999999828 0.55279500000000003634 -0.29896200000000000552 0.06432620000000000005 0.01166990000000000041 0.00085097700000000005 0.00118965000000000000 0.00032548400000000002 0.00023301100000000001 0.00003519510000000000 0.00005398970000000000 0.00004092840000000000 -0.00000173620000000000 0.00011828800000000000 0.00011009800000000000 0.00003196030000000000 0.00003358050000000000 0.00008855430000000000 -0.00001535560000000000 0.00002286260000000000 0.00005455940000000000 -0.00000018443700000000 0.00009195320000000001 0.00003458380000000000 0.00000906474000000000 0.00004964910000000000 0.00006999000000000000 0.00001382100000000000 0.00014059700000000001 0.00035793000000000001 0.00001161380000000000 -0.06875920000000000643 0.58991599999999999593 -0.01365760000000000064 -0.20549999999999998823 0.23497799999999999243 -0.02535559999999999897 -0.29830499999999998684 0.06273040000000000560 -0.03403500000000000275 -0.12675800000000000956 -0.04597289999999999710 -0.01372980000000000034 -0.01375219999999999915 -0.01436690000000000016 -0.00139684000000000010 -0.00078739100000000002 -0.00165138000000000004 -0.00007095050000000000
+
+#end options file
