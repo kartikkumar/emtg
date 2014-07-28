@@ -12,10 +12,7 @@
 
 #include "GMATScripter.h"
 #include "mission.h"
-#include "EMTG_math.h"
 
-//#include "boost/algorithm/string.hpp"
-//#include "boost/algorithm/string/predicate.hpp"
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
 
@@ -23,54 +20,53 @@
 
 #include <string>  //string
 #include <fstream> //ofstream
-//#include <sstream> //stringstream
 
 
 namespace EMTG {
 
 // default constructor; not intended for use
-gmatscripter::gmatscripter(){
-}
+gmatscripter::gmatscripter(){}
 
 // constructor
 gmatscripter::gmatscripter(mission* mission_in){
 	this->ptr_gmatmission = mission_in;
+	//instantiate a 'gmatmission'
+	gmatmission gmatMission(mission_in);
+	GMATMission = gmatMission;
 }
 
 // destructor
-gmatscripter::~gmatscripter(){
-}
-
+gmatscripter::~gmatscripter(){}
 
 // method to write out the GMAT script
 void gmatscripter::write_GMAT_script(){
 
+	//USE THE FOLLOWING to decided if we should use feasible or optimize mode
+	//this->ptr_gmatmission->options.NLP_solver_mode
+
 	// open a file for writing
 	this->create_GMAT_file();
-	
-	// collect the bodies used during the GMAT mission
-	this->get_GMAT_bodieslist();
-
-	// collect the step level parameters for the GMAT mission
-	this->get_GMAT_steplevelparameters();
 
 	// collect the mission level parameters for the GMAT mission
-	this->get_GMAT_missionlevelparameters();
+	this->create_GMAT_missions();
 
 	// collect the journey level parameters for the GMAT mission
-	this->get_GMAT_journeylevelparameters();
+	this->create_GMAT_journeys();
 
 	// collect the phase level parameters for the GMAT mission
-	this->get_GMAT_phaselevelparameters();
+	this->create_GMAT_phases();
+
+	// collect the step level parameters for the GMAT mission
+	this->create_GMAT_steps();
 
 	// write out the preamble
 	this->write_GMAT_preamble();
 
-	// write out the spacecraft hardware (i.e. thrusters and fuel tanks)
-	this->write_GMAT_hardware();
-
 	// write out the spacecraft
 	this->write_GMAT_spacecraft();
+
+	// write out the spacecraft hardware (i.e. thrusters and fuel tanks)
+	this->write_GMAT_hardware();
 
 	// write out additional models for bodies to be visited that are not planets
 	this->write_GMAT_nonstandardbody();
@@ -105,18 +101,6 @@ void gmatscripter::write_GMAT_script(){
 	// write out the optimization phase of the mission sequence
 	this->write_GMAT_optimization();
 
-	// write out the mission initial boundary conditions
-	//this->write_GMAT_initialboundaryconditions();
-
-	// write out the mission propagation
-	//this->write_GMAT_missionpropagate();
-
-	// write out the mission final boundary conditions
-	//this->write_GMAT_finalboundaryconditions();
-
-	// write out the objective function for the optimizer
-	//this->write_GMAT_objectivefunction();
-
 }
 
 
@@ -145,284 +129,49 @@ void gmatscripter::create_GMAT_file(){
 }
 
 
-// method to parse the bodies used in the mission
-void gmatscripter::get_GMAT_bodieslist(){
-
-	//declaration
-	int start_int = 0;
-	double boundary_state[6];
-	double state_difference[3];
-	double state_difference_norm;
-
-	//a loop structure over journeys and phases
-	//	1.) collect all the bodies for the mission 
-	//	2.) flag each body for ''
-	for (int j = 0; j < this->ptr_gmatmission->number_of_journeys; ++j)
-	{
-		if (j > 0) { start_int = 1; }
-		//add bodies of each phase for each journey to the missionbodies vector
-		for (int p = start_int; p < this->ptr_gmatmission->journeys[j].number_of_phases + 1; ++p) {
-			//push back body onto the vector
-			missionbodies.push_back(this->ptr_gmatmission->TheUniverse[j].bodies[this->ptr_gmatmission->options.sequence[j][p] - 1]);
-			//figure out if the spacecraft is within the SOI of the body
-			if (p < this->ptr_gmatmission->journeys[j].number_of_phases) {
-				//populate the boundary_state vector with the states of the body
-				missionbodies.back().locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-				//calculate whether the spacecraft for this phase will start within the SOI of the body
-				for (int index = 0; index < 3; ++index) {
-					state_difference[index] = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[index] - boundary_state[index];
-				}
-				state_difference_norm = math::norm(state_difference, 3);
-				//compare the norm of the state to the bodies SOI radius
-				if (state_difference_norm < missionbodies.back().r_SOI) { isSpaceCraftInSOI.push_back(true); }
-				else { isSpaceCraftInSOI.push_back(false); }
-			}
-			else {
-				//populate the boundary_state vector with the states of the body
-				missionbodies.back().locate_body(this->ptr_gmatmission->journeys[j].phases[p - 1].phase_end_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-				//calculate whether the spacecraft for this phase will end within the SOI of the body
-				for (int index = 0; index < 3; ++index) {
-					state_difference[index] = this->ptr_gmatmission->journeys[j].phases[p - 1].state_at_end_of_phase[index] - boundary_state[index];
-				}
-				state_difference_norm = math::norm(state_difference, 3);
-				//compare the norm of the state to the bodies SOI radius
-				if (state_difference_norm < missionbodies.back().r_SOI) { isSpaceCraftInSOI.push_back(true); }
-				else { isSpaceCraftInSOI.push_back(false); }
-			}
-			// for a departure phase, look at the journey conditions and flag the body for 'useCentralBodyInSOI'
-			if (p == 0) {
-				//    Journey Departure Types
-				switch (this->ptr_gmatmission->options.journey_departure_type[j]) {
-				case 0: //launch or direct insertion
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 1: //depart from parking orbit(you can use this one in place of a launch vehicle model, and the departure burn will be done with the EDS motor)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				case 2: //free direct departure, i.e. do not burn to get the departure v_infinity(used for when operations about a small body are not modeled but the departure velocity is known)
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 3: //flyby(only valid for successive journeys)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				case 4: //flyby with fixed v - infinity - out(only valid for successive journeys)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				case 5: //spiral - out from circular orbit(low - thrust missions only)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				case 6: //zero - turn flyby(for small bodies)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				}//end of switch
-			}//end of if(phase == 0)
-			// for an arrival phase, look at the journey conditions and flag the body for 'useCentralBodyInSOI'
-			else if (p == this->ptr_gmatmission->journeys[j].number_of_phases) {
-				//    Journey Arrival Types
-				switch (this->ptr_gmatmission->options.journey_arrival_type[j]) {
-				case 0: // insertion into parking orbit(use chemical Isp)
-					useCentralBodyInSOI.push_back(false);
-					break;
-				case 1: // rendezvous(use chemical Isp)
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 2: // intercept with bounded V_infinity
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 3: // low - thrust rendezvous(does not work if terminal phase is not low - thrust)
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 4: // match final v - infinity vector
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 5: // match final v - infinity vector(low - thrust)
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 6: // escape(E = 0)
-					useCentralBodyInSOI.push_back(true);
-					break;
-				case 7: // capture spiral
-					useCentralBodyInSOI.push_back(true);
-					break;
-				}//end of switch
-			}//end of else if(phase == n - 1)
-			// else the phase body is a flyby, so include 
-			else {
-				useCentralBodyInSOI.push_back(false);
-			}
-		}//end of phase for-statement
-
-		//MyTODO:: A perturb list of bodies for each journey to use in the .PointMasses field of Force Models
-		//string some_string = "blah blah";
-		//forcemodel_pointmass_list.pushback( some_string );
-
-	}//end of journeys for-statement
-
-
-	//TODO:: add other arrival/departure types
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//{
-	//	//add bodies of first journey to the mission body list
-	//	if (j == 0)
-	//	{
-	//		for (int p = 0; p < this->ptr_gmatmission->options.number_of_phases[0] + 1; ++p)
-	//			missionbodies.push_back(this->ptr_gmatmission->TheUniverse[0].bodies[this->ptr_gmatmission->options.sequence[0][p] - 1]);
-	//	}
-	//	//add all other bodies to mission body list
-	//	else
-	//	{
-	//		for (int p = 1; p < this->ptr_gmatmission->options.number_of_phases[j] + 1; ++p)
-	//			missionbodies.push_back(this->ptr_gmatmission->TheUniverse[j].bodies[this->ptr_gmatmission->options.sequence[j][p] - 1]);
-	//	}
-	//}
-
-
-	int body_flag = 0;
-	//remove duplicate entries in visited bodies list
-	for (int body_index = 0; body_index < missionbodies.size(); ++body_index)
-	{
-		body_flag = 0;
-		for (int body_index_unique = 0; body_index_unique < missionbodies_unique.size(); ++body_index_unique)
-		{
-			if (missionbodies[body_index].spice_ID == missionbodies_unique[body_index_unique].spice_ID)
-			{
-				body_flag = 1;
-			}
-		}
-		//if body flag not switch 'on', then the body is unique; add it to the missionbodies_unique vector
-		if (body_flag == 0)
-		{
-			missionbodies_unique.push_back(missionbodies[body_index]);
-
-			//push back the 'isbodySOI' and 'isbodyFlyby' to appropriate vectors
-			//use .size() then .erase( .begin(), .begin() + .size()) after push_back() is complete
-
-		}
-	}
-
-	//make sure that each body doesnt start with a number for GMAT's sake
-	for (int body_index = 0; body_index < missionbodies.size(); ++body_index)
-	{
-		if ((missionbodies[body_index].name[0] == 0) || (missionbodies[body_index].name[0] == 1) || (missionbodies[body_index].name[0] == 2) || (missionbodies[body_index].name[0] == 3) || (missionbodies[body_index].name[0] == 4) || (missionbodies[body_index].name[0] == 5) || (missionbodies[body_index].name[0] == 6) || (missionbodies[body_index].name[0] == 7) || (missionbodies[body_index].name[0] == 8) || (missionbodies[body_index].name[0] == 9))
-		{
-			missionbodies[body_index].name = "A" + missionbodies[body_index].name;
-		}
-	}
-	for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index)
-	{
-		if ((missionbodies_unique[body_index].name[0] == 0) || (missionbodies_unique[body_index].name[0] == 1) || (missionbodies_unique[body_index].name[0] == 2) || (missionbodies_unique[body_index].name[0] == 3) || (missionbodies_unique[body_index].name[0] == 4) || (missionbodies_unique[body_index].name[0] == 5) || (missionbodies_unique[body_index].name[0] == 6) || (missionbodies_unique[body_index].name[0] == 7) || (missionbodies_unique[body_index].name[0] == 8) || (missionbodies_unique[body_index].name[0] == 9))
-		{
-			missionbodies_unique[body_index].name = "A" + missionbodies_unique[body_index].name;
-		}
-	}
-
-	GMATDebug << "Central Bodies: ";
-	for (int b = 0; b < missionbodies.size(); b++){
-		GMATDebug << missionbodies[b].central_body_name << ", ";
-	}
-	GMATDebug << endl;
-	GMATDebug << endl;
-
-	GMATDebug << "Mission Bodies: ";
-	for (int b = 0; b < missionbodies.size(); b++){
-		GMATDebug << missionbodies[b].name << ", ";
-	}
-	GMATDebug << endl;
-	GMATDebug << endl;
-
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		GMATDebug << "Perturb ThirdBody: " << this->ptr_gmatmission->options.perturb_thirdbody << endl;
-		int numperb = this->ptr_gmatmission->options.journey_number_of_perturbation_bodies[j];
-		GMATDebug << "j" << j << " number of perturbation bodies: " << numperb << endl;
-		GMATDebug << "bodies: ";
-		for (int num = 0; num < numperb; ++num) {
-			GMATDebug << this->ptr_gmatmission->options.journey_perturbation_bodies[j][num] << ", ";
-		}
-		GMATDebug << endl;
-		GMATDebug << endl;
-	}
-
-}//end of get_GMAT_bodieslist() method
-
-
 // method to get the mission level parameters  
-void gmatscripter::get_GMAT_missionlevelparameters() {
+void gmatscripter::create_GMAT_missions() {
 
 	//declarations
-	stringstream tempstream;
-	vector <string> tempvector;
-
-	//what type of mission is being solved
-	//TODO: What about mission type 5? and confirm mission type 6-9 results in a mission type of 0-4.
-	if (this->ptr_gmatmission->options.mission_type == 0 || this->ptr_gmatmission->options.mission_type == 1 || this->ptr_gmatmission->options.mission_type == 4) {
-		isLT   = false;
-		isFBLT = false;
-	}
-	else if (this->ptr_gmatmission->options.mission_type == 2) {
-		isLT   = true;
-		isFBLT = false;
-	}
-	else if (this->ptr_gmatmission->options.mission_type == 3) {
-		isLT   = true;
-		isFBLT = true;
-	}
-
-	////find index in Xdescriptions where the time bounds for the mission are located
-	////it should always be the first entry, but for safety we will check the decision vector description until we 
-	////find the appropriate identifier 'j0p0: launch epoch (MJD)'
-	//for (int iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
-	//	if (this->ptr_gmatmission->Xdescriptions[iX] == "j0p0: launch epoch (MJD)") {
-	//		//define these bounds temporarily
-	//		LaunchDate_LowerBounds = this->ptr_gmatmission->Xlowerbounds[iX];
-	//		LaunchDate_UpperBounds = this->ptr_gmatmission->Xupperbounds[iX];
-	//		LaunchDate = this->ptr_gmatmission->Xopt[iX];
-	//		GMATDebug << "ix: " << iX << endl;
-	//	}
-	//}
-
-	LaunchDate_LowerBounds = this->ptr_gmatmission->Xlowerbounds[0];
-	LaunchDate_UpperBounds = this->ptr_gmatmission->Xupperbounds[0];
+	double LaunchDate_LowerBounds;
+	double LaunchDate_UpperBounds;
+	double LaunchWindow;
+	double LaunchDate;
+	double LaunchScaling;
+	//temporary descriptive parameters
+	LaunchDate_LowerBounds = (ptr_gmatmission->Xlowerbounds[0] / 86400.0) + TAIModJOffset;
+	LaunchDate_UpperBounds = (ptr_gmatmission->Xupperbounds[0] / 86400.0) + TAIModJOffset;
 	LaunchWindow = LaunchDate_UpperBounds - LaunchDate_LowerBounds;
-	LaunchDate = this->ptr_gmatmission->Xopt[0];
-
-	GMATDebug << " ------------ " << endl;
-	GMATDebug << "LaunchDate_LowerBounds " << LaunchDate_LowerBounds << endl;
-	GMATDebug << "LaunchDate_UpperBounds " << LaunchDate_UpperBounds << endl;
-	GMATDebug << "LaunchDate " << LaunchDate << endl;
-	//GMATDebug << this->ptr_gmatmission->X[0] << endl;
-	//GMATDebug << this->ptr_gmatmission->X0[0] << endl;
-	//GMATDebug << this->ptr_gmatmission->Xopt[0] << endl;
-	GMATDebug << " ------------ " << endl;
+	LaunchDate = (ptr_gmatmission->Xopt[0] / 86400.0) + TAIModJOffset;
+	LaunchScaling = (LaunchDate - LaunchDate_LowerBounds) / LaunchWindow;
 
 	// ---------------------------
 	//      VARIABLE CREATION
 	// ---------------------------
 	//store mission level variables that will be needed during the optimization sequence in GMAT
-	tempvector.push_back("ObjectiveFunction");
-	mission_level_variables.push_back(tempvector);
-	tempvector.clear();
-	//launch window date
-	tempvector.push_back("LaunchWindowOpenDate");
-	tempstream << " = " << (LaunchDate_LowerBounds / 86400) + TAIModJOffset;
-	tempvector.push_back(tempstream.str());
-	mission_level_variables.push_back(tempvector);
-	tempstream.str("");
-	tempvector.clear();
-	//launch window delta
-	tempvector.push_back("LaunchWindow");
-	tempstream << " = " << (LaunchWindow) / 86400.0;
-	tempvector.push_back(tempstream.str());
-	mission_level_variables.push_back(tempvector);
-	tempstream.str("");
-	tempvector.clear();
+	GMATMission.setVariable("ObjectiveFunction");
+	//launch window open date
+	GMATMission.setVariable("LaunchWindowOpenDate", std::to_string(LaunchDate_LowerBounds));
+	//launch window
+	GMATMission.setVariable("LaunchWindow", std::to_string(LaunchWindow));
 	//launch window scaling
-	tempvector.push_back("LaunchWindowScaling");
-	tempstream << " = " << (LaunchDate - LaunchDate_LowerBounds) / (LaunchWindow);
-	tempvector.push_back(tempstream.str());
-	mission_level_variables.push_back(tempvector);
-	tempstream.str("");
-	tempvector.clear();
-	
+	GMATMission.setVariable("LaunchWindowScaling", std::to_string(LaunchScaling));
+	//  Sometimes ENGINE Variables are Mission Type (i.e. fixed thrust Isp or Impulsive)
+	//+ OTHERWISE SEE "get_GMAT_missionlevelparameters" for creation of 'phase_level_parameters'
+	//if() low thrust & fixed thrust-Isp, else() impulsive
+	if (GMATMission.isLT && this->ptr_gmatmission->options.engine_type == 0) {
+		//Isp
+		GMATMission.setVariable("ThrusterIsp", std::to_string(this->ptr_gmatmission->options.IspLT));
+		//DutyCycle
+		GMATMission.setVariable("ThrusterDutyCycle", std::to_string(this->ptr_gmatmission->options.engine_duty_cycle));
+		//MaxThrust
+		GMATMission.setVariable("ThrusterMaxThrust", std::to_string(this->ptr_gmatmission->options.Thrust));
+	}
+	else if (!GMATMission.isLT) {
+		//Isp
+		GMATMission.setVariable("ThrusterIsp", std::to_string(this->ptr_gmatmission->options.IspChem));
+	}
+
 	
 	//this->ptr_gmatmission->options.total_flight_time_bounds;
 
@@ -432,49 +181,29 @@ void gmatscripter::get_GMAT_missionlevelparameters() {
 	//	mission_level_variables.push_back("FinalMass_Scaled");
 	//}
 
-	//  Sometimes ENGINE Variables are Mission Type (i.e. fixed thrust Isp or Impulsive)
-	//+ OTHERWISE SEE "get_GMAT_missionlevelparameters" for creation of 'phase_level_parameters'
-	//if() low thrust & fixed thrust-Isp, else() impulsive
-	if (isLT && this->ptr_gmatmission->options.engine_type == 0) {
-		//Isp
-		tempvector.push_back("ThrusterISP");
-		tempstream << " = " << this->ptr_gmatmission->options.IspLT;
-		tempvector.push_back(tempstream.str());
-		mission_level_variables.push_back(tempvector);
-		tempstream.str("");
-		tempvector.clear();
-		//DutyCycle
-		tempvector.push_back("ThrusterDutyCycle");
-		tempstream << " = " << this->ptr_gmatmission->options.Thrust;
-		tempvector.push_back(tempstream.str());
-		mission_level_variables.push_back(tempvector);
-		tempstream.str("");
-		tempvector.clear();
-		//MaxThrust
-		tempvector.push_back("ThrusterMaxThrust");
-		tempstream << " = " << this->ptr_gmatmission->options.engine_duty_cycle;
-		tempvector.push_back(tempstream.str());
-		mission_level_variables.push_back(tempvector);
-		tempstream.str("");
-		tempvector.clear();
-	}
-	else if (!isLT) {
-		tempvector.push_back("ThrusterISP");
-		tempstream << " = " << this->ptr_gmatmission->options.IspChem;
-		tempvector.push_back(tempstream.str());
-		mission_level_variables.push_back(tempvector);
-		tempstream.str("");
-		tempvector.clear();
-	}
+
+	//DEBUG FILE
+	GMATDebug << " ------------ " << endl;
+	GMATDebug << "LaunchDate_LowerBounds: " << LaunchDate_LowerBounds << endl;
+	GMATDebug << "LaunchDate_UpperBounds: " << LaunchDate_UpperBounds << endl;
+	GMATDebug << "LaunchDate: " << LaunchDate << endl;
+	GMATDebug << " ------------ " << endl;
 
 }//end of get_GMAT_missionlevelparameters() method
 
 
 // method to get the journey level parameters
-void gmatscripter::get_GMAT_journeylevelparameters() {
+void gmatscripter::create_GMAT_journeys() {
+
+	GMATDebug << endl;
+	GMATDebug << "create_GMAT_journeys()" << endl;
+	GMATDebug << endl; 
 
 	for (int index = 0; index < this->ptr_gmatmission->options.number_of_journeys; ++index) {
 		
+		//instantiate a 'gmatjourney'
+		gmatjourney agmatjourney(&GMATMission, index);
+
 		// ---------------------------
 		//      VARIABLE CREATION
 		// ---------------------------
@@ -483,90 +212,34 @@ void gmatscripter::get_GMAT_journeylevelparameters() {
 			//journey date, delta, and scaling
 			//GMATfile << "Create Variable Journey" << j + 1 << "_WaitTime_Scaled" << endl;
 		}
+
+		//pushback the 'gmatjourney' to the 'gmatmission' vector
+		GMATMission.myjourneys.push_back(agmatjourney);
+
 	}
 }
 
 
 // method to get the phase level parameters
-void gmatscripter::get_GMAT_phaselevelparameters() {
+void gmatscripter::create_GMAT_phases() {
 
-	//declarations
-	stringstream tempstream;
-	int body_index = 0;
+	GMATDebug << endl;
+	GMATDebug << "create_GMAT_phases()" << endl;
+	GMATDebug << endl;
 
 	//find the lower and upper bounds for both distance and velocity during flybys
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].number_of_emtg_phases; ++p) {
 
-			//construct a string that identifies the j#p#
-			tempstream << "j" << j << "p" << p << ": ";
-			
-
-			if ((p == 0) || (p == this->ptr_gmatmission->journeys[j].number_of_phases - 1)) {
-				//TODO:: hardcoded in for journey arrivals and departures :-/
-				if (missionbodies[body_index].mass < 1.0e25) {
-					Forward_Flyby_Distance_LowerBound.push_back(-10 * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-					Forward_Flyby_Distance_UpperBound.push_back(10 * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-				}
-				else {
-					Forward_Flyby_Distance_LowerBound.push_back(-300 * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-					Forward_Flyby_Distance_UpperBound.push_back(300 * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-				}
-				if (missionbodies[body_index + 1].mass < 1.0e25) {
-					Backward_Flyby_Distance_LowerBound.push_back(-10 * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-					Backward_Flyby_Distance_UpperBound.push_back(10 * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-				}
-				else {
-					Backward_Flyby_Distance_LowerBound.push_back(-300 * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-					Backward_Flyby_Distance_UpperBound.push_back(300 * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-				}
-				Forward_Flyby_Velocity_LowerBound.push_back(-sqrt(2 * missionbodies[body_index].mu / (missionbodies[body_index].radius + missionbodies[body_index].minimum_safe_flyby_altitude) + (-25) * (-25)));
-				Forward_Flyby_Velocity_UpperBound.push_back(sqrt(2 * missionbodies[body_index].mu / (missionbodies[body_index].radius + missionbodies[body_index].minimum_safe_flyby_altitude) + 25 * 25));
-				Backward_Flyby_Velocity_LowerBound.push_back(-sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + missionbodies[body_index + 1].minimum_safe_flyby_altitude) + (-25) * (-25)));
-				Backward_Flyby_Velocity_UpperBound.push_back(sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + missionbodies[body_index + 1].minimum_safe_flyby_altitude) + 25 * 25));
-			}
-			else {
-				for (int iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
-					//find index in Xdescriptions where the flyby altitude bounds for that phase are located
-					if (this->ptr_gmatmission->Xdescriptions[iX] == tempstream.str() + "flyby altitude constraint (above minimum altitude but below [100x/300x] altitude for [rocky/gas] planets")
-					{
-						Forward_Flyby_Distance_LowerBound.push_back(this->ptr_gmatmission->Xlowerbounds[iX] * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-						Forward_Flyby_Distance_UpperBound.push_back(-this->ptr_gmatmission->Xlowerbounds[iX] * (missionbodies[body_index].minimum_safe_flyby_altitude + missionbodies[body_index].radius));
-						Backward_Flyby_Distance_LowerBound.push_back(this->ptr_gmatmission->Xlowerbounds[iX] * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-						Backward_Flyby_Distance_UpperBound.push_back(-this->ptr_gmatmission->Xlowerbounds[iX] * (missionbodies[body_index + 1].minimum_safe_flyby_altitude + missionbodies[body_index + 1].radius));
-					}
-					//find index in Xdescriptions where the flyby velocity bounds for that phase are located
-					if (this->ptr_gmatmission->Xdescriptions[iX] == tempstream.str() + "initial velocity increment x") {
-						Forward_Flyby_Velocity_LowerBound.push_back(-sqrt(2 * missionbodies[body_index].mu / (missionbodies[body_index].radius + missionbodies[body_index].minimum_safe_flyby_altitude) + this->ptr_gmatmission->Xlowerbounds[iX] * this->ptr_gmatmission->Xlowerbounds[iX]));
-						Forward_Flyby_Velocity_UpperBound.push_back(sqrt(2 * missionbodies[body_index].mu / (missionbodies[body_index].radius + missionbodies[body_index].minimum_safe_flyby_altitude) + this->ptr_gmatmission->Xupperbounds[iX] * this->ptr_gmatmission->Xupperbounds[iX]));
-						Backward_Flyby_Velocity_LowerBound.push_back(-sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + missionbodies[body_index + 1].minimum_safe_flyby_altitude) + this->ptr_gmatmission->Xlowerbounds[iX] * this->ptr_gmatmission->Xlowerbounds[iX]));
-						Backward_Flyby_Velocity_UpperBound.push_back(sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + missionbodies[body_index + 1].minimum_safe_flyby_altitude) + this->ptr_gmatmission->Xupperbounds[iX] * this->ptr_gmatmission->Xupperbounds[iX]));
-					}
-				}
-			}
-			//increment
-			body_index++;
-			//clear 'tempstream'
-			tempstream.str("");
+			//instantiate a new 'gmatphase'
+			gmatphase agmatphase(&GMATMission.myjourneys[j], p);
 
 			// ---------------------------
 			//      VARIABLE CREATION
 			// ---------------------------
-			//tempstream << "% Journey #" << j << ", Phase #" << p << " Time Variables: ";
-			//phase_level_variables.push_back(tempstream.str());
-			//tempstream.str("");
-			//tempstream << "j" << j << "p" << p;
-			//phase_level_variables.push_back(tempstream.str() + "_TOF");
-			//phase_level_variables.push_back(tempstream.str() + "_TOF_Scaled");
 
-			////create time of flight variables
-			//GMATfile << "Create Variable TOF_Journey" << j + 1 << "Phase" << p + 1 << "Scaled" << endl;
-			//GMATfile << "Create Variable TOF_Journey" << j + 1 << "Phase" << p + 1 << endl;
-			//GMATfile << "Create Variable TimeStepLength_Journey" << j + 1 << "Phase" << p + 1 << endl;
-			//GMATfile << "Create Variable LeftBoundarySOITime_Journey" << j + 1 << "Phase" << p + 1 << endl;
-			//GMATfile << "Create Variable RightBoundarySOITime_Journey" << j + 1 << "Phase" << p + 1 << endl;
-			//GMATfile << endl;
-			//GMATfile << endl;
+			//pushback the 'gmatphase' to the 'gmatjourney' vector
+			GMATMission.myjourneys[j].myphases.push_back(agmatphase);
 
 		}//end of phases for-statement
 	}//end of journeys for-statement
@@ -575,835 +248,154 @@ void gmatscripter::get_GMAT_phaselevelparameters() {
 
 
 // method to get the step level parameters
-void gmatscripter::get_GMAT_steplevelparameters(){
+void gmatscripter::create_GMAT_steps(){
+
+	GMATDebug << endl;
+	GMATDebug << "create_GMAT_steps()" << endl;
+	GMATDebug << endl;
 
 	//declarations
-	bool isForwardStep;
-	int f2b_index;
-	bool usePushBack;
-	bool isStep_MatchPointAdjacent;
-	double body_istates[6];
-	double body_fstates[6];
-	double iepoch;
-	double fepoch;
-	double stepsize;
 	int body_index;
-	bool isInSOI_at_Start;
-	bool isInSOI_at_End;
-	double initial_position_diff[3];
-	double final_position_diff[3];
-	double initial_velocity_diff[3];
-	double final_velocity_diff[3];
 	double periapse_velocity_magnitude;
 	double approximate_time_in_SOI;
-	stringstream tempstream;
-	vector <string> forcemodel_storage;
-	vector <string> propagator_storage;
-	int gmatsteps_thus_far;
-	int gmatsteps_thus_far_in_phase;
-	int number_of_gmatsteps_added;
-	vector <double> thrustvector;
 	
-	//new architecture (2014_07_21)
-	//ClassMethod()
-	//gmatstep aGMATstep(0, 0, 0);
-	//GMATDebug << endl;
-	//GMATDebug << " ----- class() gmatstep TESTING ----- " << endl;
-	//GMATDebug << "j:  " << aGMATstep.j << endl;
-	//GMATDebug << "p:  " << aGMATstep.p << endl;
-	//GMATDebug << "gs: " << aGMATstep.gs << endl;
-	//GMATDebug << "identifier: " << aGMATstep.identifier << endl;
-	//GMATDebug << " ------------------------------------ " << endl;
+	// ---------------------------
+	//      VARIABLE CREATION
+	// ---------------------------
 
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int s = 0; s < ptr_gmatmission->options.num_timesteps; ++s) {
 
-	//loop over all the timesteps used for each journey, each phase
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
+				//instantiate a new 'gmatstep'
+				gmatstep agmatstep(&GMATMission.myjourneys[j].myphases[p], s);
 
-			//reset 'isForwardStep'
-			isForwardStep = true;
-			//reset 'useInsert'
-			usePushBack = true;
-			//set 'f2b_index', which indicates where in the vector storage variables
-			//items should be inserted when saving backward spacecraft information
-			f2b_index = gmat_step_forcemodel_storage.size();
-			//initialize counter of gmatsteps
-			gmatsteps_thus_far_in_phase = 0;
-
-			GMATDebug << "f2b_index: " << f2b_index << endl;
-
-			for (int s = 0; s < this->ptr_gmatmission->options.num_timesteps; ++s) {
-				
-				GMATDebug << "Step: " << s;
-
-				//save how many total gmat steps have been created thus far
-				gmatsteps_thus_far = gmat_step_timesteps.size();
-
-				//are we looking at a 'Forward' or 'Backward' step 's'
-				if (s >= (this->ptr_gmatmission->options.num_timesteps / 2)) { isForwardStep = false; }
-
-				//select the missionbody index to use in analysis
-				if (isForwardStep) { body_index = p; }
-				else { body_index = p + 1; }
-
-				//is the current step adjacent to the matchpoint
-				//if yes, then we will need to add an additional gmat step
-				if (s == ((this->ptr_gmatmission->options.num_timesteps / 2) - 1) || s == (this->ptr_gmatmission->options.num_timesteps / 2)) { isStep_MatchPointAdjacent = true; }
-				else { isStep_MatchPointAdjacent = false; }
-
-				//additional gmat step for half-step after matchpoint
-				if (!isForwardStep && isStep_MatchPointAdjacent) {
-
-					GMATDebug << " MP+ ";
-
-					//find the stepsize
-					stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s];
-					//advance 'iepoch' and 'fepoch'
-					iepoch = fepoch;
-					fepoch += stepsize;
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
-					//NOTE: could eliminate if (usePushBack) here because it "should" always be true before this if-statement.
-					//we assume that we are NOT exiting NOR entering bodies during the match point constraint, THERFORE,
-
-					//name of the forcemodel
-					tempstream << "FM_" << missionbodies[body_index].central_body_name;
-					tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name;
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), false);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str());
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					tempstream << missionbodies[body_index - 1].name << ", " << missionbodies[body_index].name;
-					forcemodel_storage.push_back(tempstream.str());
-
-					//clear the tempstream
-					tempstream.str("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize; }
-					else { aGMATstep.initial_timestep = -stepsize; }
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-					//store the forcemodel
-					if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
-					else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-					//store the propagator
-					if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
-					else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-
-					//add the thrust vector 
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					gmat_step_thrust_vectors.push_back(thrustvector);
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-
-					//thruster names
-					tempstream << "Thruster_j" << j << "p" << p << "_Backward";
-					gmat_step_thruster_names.push_back(tempstream.str());
-					tempstream.str("");
-
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					gmat_steps.push_back(aGMATstep);
-
-
-					//clear the temporary forcemodel_storage vector
-					forcemodel_storage.clear();
-					//clear the temporary propagator_storage vector
-					propagator_storage.clear();
-
-
-
-					//increment the steps taken thus far
-					gmatsteps_thus_far_in_phase++;
-					gmatsteps_thus_far++;
-
-					//by definition, we only enter this for-statement if we are NOT on a forward step
-					//we need to decrement 'f2b_index' to setup the correct index for using the insert() method for vectors
-					f2b_index--;
-					//bool flag for whether we should start using inserts instead of push_back
-					usePushBack = false;
-
+				//this is the step after the matchpoint; we will make this a half step
+				if (!agmatstep.myspacecraft->isForward && agmatstep.isMatchPointStep) {
+					GMATDebug << "MP+     ";
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(false);
+					//scale the stepsize to be one-half
+					agmatstep.scale_stepsize(0.5);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
 
-				//get the current step size, which by definition can be a variable timestep although we always use uniform in practice
-				if (s == 0 || s == this->ptr_gmatmission->options.num_timesteps - 1) { 
-					stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s]; 
+				//step is contained inside the SOI the entire time
+				if (agmatstep.inSOIatStart && agmatstep.inSOIatEnd) {
+					GMATDebug << "SOI-SOI ";
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(true);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
-				else { 
-					if (isForwardStep) { stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s - 1] + 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s]; }
-					else { stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s] + 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s + 1]; }
-				}
-
-				//get the starting and ending epoch of the current step for analysis
-				//note: we always have a half-step at the start and end of the phase as well as just before and after the match point
-				if (s == 0) {
-					iepoch = this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch;
-					fepoch = iepoch + stepsize;
-				}
-				else {
-					iepoch = fepoch;
-					fepoch += stepsize;
-				}
-
-				//get body's states at 'iepoch' and 'fepoch'
-				missionbodies[body_index].locate_body(iepoch, body_istates, false, &this->ptr_gmatmission->options);
-				missionbodies[body_index].locate_body(fepoch, body_fstates, false, &this->ptr_gmatmission->options);
-				//there is an odd case where we could analyze the 'body_istates' of the first body and 'body_fstates' of the
-				//second body across the matchpoint, but this appears unnecessary at this time.
-
-				//compute the state relative difference of the spacecraft and body at 'iepoch'
-				if (isForwardStep) {
-					if (s == 0) {
-						for (int index = 0; index < 3; ++index) {
-							initial_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[index] - body_istates[index];
-							initial_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[index + 3] - body_istates[index + 3];
-						}
-					}
-					else {
-						for (int index = 0; index < 3; ++index) {
-							initial_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s - 1][index] - body_istates[index];
-							initial_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s - 1][index + 3] - body_istates[index + 3];
-						}
-					}
-				}
-				else {
-					for (int index = 0; index < 3; ++index) {
-						initial_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s][index] - body_istates[index];
-						initial_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s][index + 3] - body_istates[index + 3];
-					}
-				}
-				//compute the state relative difference of the spacecraft and body at 'fepoch'
-				if (isForwardStep) {
-					for (int index = 0; index < 3; ++index) {
-						final_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s][index] - body_fstates[index];
-						final_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s][index + 3] - body_fstates[index + 3];
-					}
-				}
-				else {
-					if (s == (this->ptr_gmatmission->options.num_timesteps - 1)) {
-						for (int index = 0; index < 3; ++index) {
-							final_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[index] - body_fstates[index];
-							final_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[index + 3] - body_fstates[index + 3];
-						}
-					}
-					else {
-						for (int index = 0; index < 3; ++index) {
-							final_position_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s + 1][index] - body_fstates[index];
-							final_velocity_diff[index] = this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s + 1][index + 3] - body_fstates[index + 3];
-						}
-					}
-				}
-
-				//evaluate whether the spacecraft was in the body's SOI at 'iepoch' and 'fepoch'
-				if (math::norm(initial_position_diff, 3) < missionbodies[body_index].r_SOI) { isInSOI_at_Start = true; }
-				else { isInSOI_at_Start = false; }
-				if (math::norm(final_position_diff, 3) < missionbodies[body_index].r_SOI) { isInSOI_at_End = true; }
-				else { isInSOI_at_End = false; }
-
-				//is this the step where we exit or enter the SOI?
-				//if true, then we need to cut another GMAT step here to use a different Propagator (i.e. FM)
-				tempstream << "FM_" << missionbodies[body_index].central_body_name;
-				if (isInSOI_at_Start && isInSOI_at_End) {
-
-					GMATDebug << " SOI-SOI ";
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
-					//name of the forcemodel
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), true);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					forcemodel_storage.push_back("");
-
-
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize; }
-					else { aGMATstep.initial_timestep = -stepsize; }
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
-
-					//increment the 'f2b_index' variable if we are still on a forward step
-					if (isForwardStep) { f2b_index++; }
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
-				}
-				else if (isInSOI_at_Start && !isInSOI_at_End) {
-
-					GMATDebug << " SOI-> ";
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
+				//step starts in SOI, but exits it during emtg step; we should cut the step in two
+				else if (agmatstep.inSOIatStart && !agmatstep.inSOIatEnd) {
+					GMATDebug << "SOI --> ";
 					//for this case we must figure out how long we are in the SOI before exiting
-					periapse_velocity_magnitude = sqrt(2.0 * missionbodies[body_index].mu / (missionbodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(initial_velocity_diff, 3)*math::norm(initial_velocity_diff, 3));
-					approximate_time_in_SOI = (missionbodies[body_index].r_SOI / periapse_velocity_magnitude);
+					if (agmatstep.myspacecraft->isForward) { body_index = 0; }
+					else { body_index = 1; }
+					periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(agmatstep.initial_velocity_diff, 3)*math::norm(agmatstep.initial_velocity_diff, 3));
+					approximate_time_in_SOI     = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+					//reset the stepsize of the 'gmatstep'
+					agmatstep.set_stepsize(approximate_time_in_SOI);
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(true);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 
-					//approximate_time_in_SOI should be shorter than stepsize
-					
-					//Creation of the First Model
-					//name of the forcemodel
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), true);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					forcemodel_storage.push_back("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(approximate_time_in_SOI); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, approximate_time_in_SOI); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize; }
-					else { aGMATstep.initial_timestep = -stepsize; }
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
-					//store the forcemodel
-					if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
-					else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-					//clear the temporary forcemodel_storage vector
-					forcemodel_storage.clear();
-					//store the propagator
-					if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
-					else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-					//clear the temporary propagator_storage vector
-					propagator_storage.clear();
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
-					//ClassMethod()
-					gmatstep bGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					bGMATstep.setNames(isForwardStep);
-
-
-					//Creation of the Second Model
-					//name of the forcemodel
-					tempstream << "FM_" << missionbodies[body_index].central_body_name;
-					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name; }
-					else { tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					bGMATstep.setFMandProp(tempstream.str(), false);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str());
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					if (isForwardStep) { tempstream << missionbodies[body_index].name << ", " << missionbodies[body_index + 1].name; }
-					else { tempstream << missionbodies[body_index - 1].name << ", " << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize - approximate_time_in_SOI); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize - approximate_time_in_SOI); }
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.initial_timestep = stepsize - approximate_time_in_SOI; }
-					else { bGMATstep.initial_timestep = -(stepsize - approximate_time_in_SOI); }
-
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					bGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { bGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { bGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(bGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, bGMATstep); }
-
-					//increment the 'f2b_index' variable if we are still on a forward step
-					if (isForwardStep) { f2b_index += 2; }
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
+					//reset the stepsize of the 'gmatstep'
+					agmatstep.set_stepsize(agmatstep.stepsize - approximate_time_in_SOI);
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(false);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
-				else if (!isInSOI_at_Start && isInSOI_at_End) {
-
-					GMATDebug << " ->SOI ";
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
+				//step starts outside SOI, but enters it during emtg step
+				//we should cut the step in two
+				else if (!agmatstep.inSOIatStart && agmatstep.inSOIatEnd) {
+					GMATDebug << "-->SOI  ";
 					//for this case we must figure out how long we are in the SOI after entering
-					periapse_velocity_magnitude = sqrt(2.0 * missionbodies[body_index].mu / (missionbodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(final_velocity_diff, 3)*math::norm(final_velocity_diff, 3));
-					approximate_time_in_SOI = (missionbodies[body_index].r_SOI / periapse_velocity_magnitude);
+					if (agmatstep.myspacecraft->isForward) { body_index = 0; }
+					else { body_index = 1; }
+					periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(agmatstep.final_velocity_diff, 3)*math::norm(agmatstep.final_velocity_diff, 3));
+					approximate_time_in_SOI     = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+					//reset the stepsize of the 'gmatstep'
+					agmatstep.set_stepsize(agmatstep.stepsize - approximate_time_in_SOI);
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(false);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 
-					//approximate_time_in_SOI should be shorter than stepsize
-
-					//Creation of the First Model
-					//name of the forcemodel
-					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name; }
-					else { tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), false);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str());
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					if (isForwardStep) { tempstream << missionbodies[body_index].name << ", " << missionbodies[body_index + 1].name; }
-					else { tempstream << missionbodies[body_index - 1].name << ", " << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize - approximate_time_in_SOI); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize - approximate_time_in_SOI); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize - approximate_time_in_SOI; }
-					else { aGMATstep.initial_timestep = -(stepsize - approximate_time_in_SOI); }
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-					//store the forcemodel
-					if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
-					else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-					//clear the temporary forcemodel_storage vector
-					forcemodel_storage.clear();
-					//store the propagator
-					if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
-					else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-					//clear the temporary propagator_storage vector
-					propagator_storage.clear();
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
-					//ClassMethod()
-					gmatstep bGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					bGMATstep.setNames(isForwardStep);
-
-
-					//Creation of the Second Model
-					//name of the forcemodel
-					tempstream << "FM_" << missionbodies[body_index].central_body_name;
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					bGMATstep.setFMandProp(tempstream.str(), true);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str() + "_CloseApproach");
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					forcemodel_storage.push_back("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(approximate_time_in_SOI); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, approximate_time_in_SOI); }
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.initial_timestep = approximate_time_in_SOI; }
-					else { bGMATstep.initial_timestep = -approximate_time_in_SOI; }
-
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(true); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, true); }
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					bGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { bGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { bGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { bGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(bGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, bGMATstep); }
-
-					//increment the 'f2b_index' variable if we are still on a forward step
-					if (isForwardStep) { f2b_index += 2; }
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
+					//reset the stepsize of the 'gmatstep'
+					agmatstep.set_stepsize(approximate_time_in_SOI);
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(true);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
+				//step is outside SOI the entire time
 				else {
-
-					GMATDebug << " ---> ";
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
-					//name of the forcemodel
-					if (isForwardStep) { tempstream << "_3rdBodies_" << missionbodies[body_index].name     << "_" << missionbodies[body_index + 1].name; }
-					else {               tempstream << "_3rdBodies_" << missionbodies[body_index - 1].name << "_" << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), false);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str());
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					if (isForwardStep) { tempstream << missionbodies[body_index].name     << ", " << missionbodies[body_index + 1].name; }
-					else {               tempstream << missionbodies[body_index - 1].name << ", " << missionbodies[body_index].name; }
-					forcemodel_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize; }
-					else { aGMATstep.initial_timestep = -stepsize; }
-
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-					
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
-
-					//increment the 'f2b_index' variable if we are still on a forward step
-					if (isForwardStep) { f2b_index++; }
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
+					GMATDebug << " -----> ";
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(false);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
 
-				//store the forcemodel
-				if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
-				else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-				//clear the temporary forcemodel_storage vector
-				forcemodel_storage.clear();
-				//store the propagator
-				if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
-				else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-				//clear the temporary propagator_storage vector
-				propagator_storage.clear();
-
-				//additional gmat step for half-step before matchpoint
-				if (isForwardStep && isStep_MatchPointAdjacent) {
-
-					GMATDebug << " -MP ";
-
-					//ClassMethod()
-					gmatstep aGMATstep(j, p, gmatsteps_thus_far_in_phase, missionbodies);
-					aGMATstep.setNames(isForwardStep);
-
-					//find the stepsize
-					stepsize = 0.5*this->ptr_gmatmission->journeys[j].phases[p].time_step_sizes[s];
-					//advance 'iepoch' and 'fepoch'
-					iepoch = fepoch;
-					fepoch += stepsize;
-					
-					//we assume that we are NOT exiting NOR entering bodies during the match point constraint, THERFORE,
-
-					//name of the forcemodel
-					tempstream << "FM_" << missionbodies[body_index].central_body_name;
-					tempstream << "_3rdBodies_" << missionbodies[body_index].name << "_" << missionbodies[body_index + 1].name;
-					forcemodel_storage.push_back(tempstream.str());
-					//ClassMethod()
-					aGMATstep.setFMandProp(tempstream.str(), false);
-
-					//name of the propagator
-					propagator_storage.push_back("Propagator_" + tempstream.str());
-					propagator_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//the forcemodel central body
-					forcemodel_storage.push_back(missionbodies[body_index].central_body_name);
-					//the forcemodel 3rd body point masses
-					tempstream << missionbodies[body_index].name << ", " << missionbodies[body_index + 1].name;
-					forcemodel_storage.push_back(tempstream.str());
-					//clear the tempstream
-					tempstream.str("");
-					//save the timestep length
-					if (usePushBack) { gmat_step_timesteps.push_back(stepsize); }
-					else { gmat_step_timesteps.insert(gmat_step_timesteps.begin() + f2b_index, stepsize); }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.initial_timestep = stepsize; }
-					else { aGMATstep.initial_timestep = -stepsize; }
-
-
-					//save whether we are conducting a close approach
-					if (usePushBack) { gmat_step_propagator_isCloseApproach.push_back(false); }
-					else { gmat_step_propagator_isCloseApproach.insert(gmat_step_propagator_isCloseApproach.begin() + f2b_index, false); }
-
-					//store the forcemodel
-					if (usePushBack) { gmat_step_forcemodel_storage.push_back(forcemodel_storage); }
-					else { gmat_step_forcemodel_storage.insert(gmat_step_forcemodel_storage.begin() + f2b_index, forcemodel_storage); }
-					//clear the temporary forcemodel_storage vector
-					forcemodel_storage.clear();
-					//store the propagator
-					if (usePushBack) { gmat_step_propagator_storage.push_back(propagator_storage); }
-					else { gmat_step_propagator_storage.insert(gmat_step_propagator_storage.begin() + f2b_index, propagator_storage); }
-					//clear the temporary propagator_storage vector
-					propagator_storage.clear();
-
-					//ClassMethod()
-					aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-					aGMATstep.setThrust(thrustvector);
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6]; }
-					else { aGMATstep.spacecraft.Thrusters[0].Tank.FuelMass = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6]; }
-					//ClassMethod()
-					if (isForwardStep) { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000; }
-					else { aGMATstep.spacecraft.Epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000; }
-					//ClassMethod()
-					if (usePushBack) { gmat_steps.push_back(aGMATstep); }
-					else { gmat_steps.insert(gmat_steps.begin() + f2b_index, aGMATstep); }
-
-					//increment the 'f2b_index' variable if we are still on a forward step
-					if (isForwardStep) { f2b_index += 2; }
-
-					//increment the variable counting gmatsteps in the current phase
-					gmatsteps_thus_far_in_phase++;
-
+				//this is the step before the matchpoint; we will make this a half step
+				if (agmatstep.myspacecraft->isForward && agmatstep.isMatchPointStep) {
+					GMATDebug << "MP-     ";
+					//set the ForceModel and Propagator Parameters
+					agmatstep.setFMandProp(false);
+					//scale the stepsize to be one-half
+					agmatstep.scale_stepsize(0.5);
+					//append the 'gmatstep' to the 'gmatphase' collector
+					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
+					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
+					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					//reset the 'gmatstep'
+					agmatstep.reset();
 				}
-
-
-
-				//store the thrust vector initialize information for the gmat steps created above
-				number_of_gmatsteps_added = gmat_step_timesteps.size() - gmatsteps_thus_far;
-				aux_GMAT_populate_thrustvector(j, p, s, thrustvector, -1.0, 1.0);
-				for (int index = 0; index < number_of_gmatsteps_added; ++index) {
-					if (usePushBack) { gmat_step_thrust_vectors.push_back(thrustvector); }
-					else { gmat_step_thrust_vectors.insert(gmat_step_thrust_vectors.begin() + f2b_index, thrustvector); }
-				}
-				thrustvector.clear();
-
-				//store the thruster names for the gmat steps
-				if (isForwardStep) {
-					tempstream << "Thruster_j" << j << "p" << p << "_Forward";
-					for (int index = 0; index < number_of_gmatsteps_added; ++index) {
-						if (usePushBack) { gmat_step_thruster_names.push_back(tempstream.str()); }
-						else { gmat_step_thruster_names.insert(gmat_step_thruster_names.begin() + f2b_index, tempstream.str()); }
-					}
-				}
-				else {
-					tempstream << "Thruster_j" << j << "p" << p << "_Backward";
-					for (int index = 0; index < number_of_gmatsteps_added; ++index) {
-						if (usePushBack) { gmat_step_thruster_names.push_back(tempstream.str()); }
-						else { gmat_step_thruster_names.insert(gmat_step_thruster_names.begin() + f2b_index, tempstream.str()); }
-					}
-				}
-				tempstream.str("");
-
-
-
-				//on the last step, figure out how many gmat steps have been created for this phase
-				if (s == (this->ptr_gmatmission->options.num_timesteps - 1)) {
-					if (p == 0) { gmat_steps_per_phase.push_back(gmat_step_timesteps.size()); }
-					else { gmat_steps_per_phase.push_back(gmat_step_timesteps.size() - gmat_steps_per_phase.back()); }
-				}
-
-
-
-				GMATDebug << endl;
-				GMATDebug << endl;
-
-				//Debugging 
-				GMATDebug << "options.num_timesteps: " << this->ptr_gmatmission->options.num_timesteps << endl;
-				GMATDebug << "timestep number: " << s << endl;
-				GMATDebug << "-----------------------" << endl;
-				GMATDebug << this->ptr_gmatmission->journeys[0].phases[0].spacecraft_state.size() << endl;
-				for (int states = 0; states < this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s].size(); ++states) {
-					GMATDebug << this->ptr_gmatmission->journeys[j].phases[p].spacecraft_state[s][states] << endl;
-				}
-				GMATDebug << "-----------------------" << endl;
-
-				// for-statement for each step
-				// save information of forcemodeling etc.. into a structure with an index counter 
-				// that indicates upto which step some value is appropriate
-
-			}//end step for-statement
-		}//end phase for-statement
-	}//end journey for-statement
-
-
-	//debug check to make sure all the information was saved correctly
-	int number_of_total_steps = 0;
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
-			number_of_total_steps += this->ptr_gmatmission->options.num_timesteps;
+			}
 		}
 	}
-	GMATDebug << endl;
-	GMATDebug << "/////////////////////////////////////////" << endl;
-	GMATDebug << "number_of_total_steps: " << number_of_total_steps << endl;
-	GMATDebug << "gmat_step_forcemodel_storage.size(): " << gmat_step_forcemodel_storage.size() << endl;
-	GMATDebug << "gmat_step_propagator_storage.size(): " << gmat_step_propagator_storage.size() << endl;
-	GMATDebug << "gmat_step_propagator_isCloseApproach.size(): " << gmat_step_propagator_isCloseApproach.size() << endl;
-	GMATDebug << "gmat_step_timesteps.size(): " << gmat_step_timesteps.size() << endl;
-	GMATDebug << "gmat_step_thrust_vectors.size(): " << gmat_step_thrust_vectors.size() << endl;
-	GMATDebug << "gmat_step_thruster_name.size(): " << gmat_step_thruster_names.size() << endl;
-	GMATDebug << "gmat_steps.size(): " << gmat_steps.size() << endl;
-	for (int index = 0; index < gmat_step_forcemodel_storage.size(); ++index) {
-		GMATDebug << endl;
-		GMATDebug << " -----  GMAT STEP: " << index << " ----- " << endl;
-		GMATDebug << endl;
-		// Print ForceModel Info
-		GMATDebug << "ForceModel: ";
-		for (int i = 0; i < 3; ++i) {
-			GMATDebug << gmat_step_forcemodel_storage[index][i] << "   ";
-		}
-		GMATDebug << endl;
-		// Print Propagator Info
-		GMATDebug << "Propagator: ";
-		for (int i = 0; i < 2; ++i) {
-			GMATDebug << gmat_step_propagator_storage[index][i] << "   ";
-		}
-		GMATDebug << gmat_step_propagator_isCloseApproach[index] << endl;
-		// Print Control Info
-		GMATDebug << "Control: ";
-		for (int i = 0; i < 3; ++i) {
-			GMATDebug << gmat_step_thrust_vectors[index][i] << "   ";
-		}
-		GMATDebug << endl;
-		// Print the gmat timestep
-		GMATDebug << "Timestep: " << gmat_step_timesteps[index] << endl;
-		// Print the gmat thruster name
-		GMATDebug << "Thruster Name: " << gmat_step_thruster_names[index] << endl;
-
-		GMATDebug << endl;
-		GMATDebug << " <<< ClassMethod() >>> ";
-		GMATDebug << endl;
-		GMATDebug << "ForceModel: " << endl;
-		GMATDebug << gmat_steps[index].propagator.ForceModel.Name << endl;
-		GMATDebug << gmat_steps[index].propagator.ForceModel.CentralBody << endl;
-		for (int i = 0; i < gmat_steps[index].propagator.ForceModel.PointMasses.size(); ++i) {
-			GMATDebug << gmat_steps[index].propagator.ForceModel.PointMasses[i] << " ";
-		}
-		GMATDebug << endl;
-		GMATDebug << "Propagator: " << endl;
-		GMATDebug << gmat_steps[index].propagator.Name << "   ";
-		GMATDebug << "FM: " << gmat_steps[index].propagator.ForceModel.Name << "   ";
-		GMATDebug << "isCloseApproach: " << gmat_steps[index].propagator.isCloseApproach << endl;
-		GMATDebug << "Timestep: " << gmat_steps[index].initial_timestep << endl;
-
-	}
-	GMATDebug << "/////////////////////////////////////////" << endl;
 
 }//end method
 
@@ -1433,131 +425,8 @@ void gmatscripter::write_GMAT_preamble() {
 }
 
 
-// method to create hardware information
-void gmatscripter::write_GMAT_hardware() {
-
-	//declaration
-	vector <string> tempstrings;
-	bool hasNotBeenCopied;
-
-	////declarations
-	//stringstream fueltankname_stream;
-	//stringstream thrustername_stream;
-	//int body_index = 0;
-
-	//hardware header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Hardware components" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-
-	//save the first force model and copy its name to a temporary vector of strings
-	//we will check against the temporary vector of strings to make sure we are not 
-	//printing duplicates
-	this->create_GMAT_fueltank(gmat_steps[0].spacecraft.Thrusters[0].Tank.Name, gmat_steps[0].spacecraft.Thrusters[0].Tank.FuelMass);
-	tempstrings.push_back(gmat_steps[0].spacecraft.Thrusters[0].Tank.Name);
-
-	//generate the rest of the forcemodels
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved forcemodel names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current forcemodel, 
-			//then turn the bool flag to false and do not print the current forcemodel
-			if (tempstrings[j].compare(gmat_steps[i].spacecraft.Thrusters[0].Tank.Name) == 0) { hasNotBeenCopied = false; }
-		}
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_fueltank(gmat_steps[i].spacecraft.Thrusters[0].Tank.Name, gmat_steps[i].spacecraft.Thrusters[0].Tank.FuelMass);
-			tempstrings.push_back(gmat_steps[i].spacecraft.Thrusters[0].Tank.Name);
-		}
-	}
-	GMATfile << endl;
-
-
-	tempstrings.clear();
-	//save the first force model and copy its name to a temporary vector of strings
-	//we will check against the temporary vector of strings to make sure we are not 
-	//printing duplicates
-	this->create_GMAT_thruster(gmat_steps[0].spacecraft.Thrusters[0].Name, gmat_steps[0].propagator.ForceModel.CentralBody, gmat_steps[0].spacecraft.Thrusters[0].Tank.Name);
-	tempstrings.push_back(gmat_steps[0].spacecraft.Thrusters[0].Name);
-
-	//generate the rest of the forcemodels
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved forcemodel names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current forcemodel, 
-			//then turn the bool flag to false and do not print the current forcemodel
-			if (tempstrings[j].compare(gmat_steps[i].spacecraft.Thrusters[0].Name) == 0) { hasNotBeenCopied = false; }
-		}
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_thruster(gmat_steps[i].spacecraft.Thrusters[0].Name, gmat_steps[i].propagator.ForceModel.CentralBody, gmat_steps[i].spacecraft.Thrusters[0].Tank.Name);
-			tempstrings.push_back(gmat_steps[i].spacecraft.Thrusters[0].Name);
-		}
-	}
-	GMATfile << endl;
-
-	////for each journey
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//{
-	//	//for each phase
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//	{
-	//		//create a fuel tank for the forward propagating spacecraft of the phase
-	//		fueltankname_stream << "FuelTank_j" << j << "p" << p << "_Forward";
-	//		fueltank_forward_names.push_back(fueltankname_stream.str());
-	//		this->create_GMAT_fueltank(j, p, fueltank_forward_names.back(), "Forward");
-	//		//create a thruster for the foward propagating spacecraft of the phase
-	//		thrustername_stream << "Thruster_j" << j << "p" << p << "_Forward";
-	//		thruster_forward_names.push_back(thrustername_stream.str());
-	//		this->create_GMAT_thruster(j, p, thruster_forward_names.back(), missionbodies[body_index].name, fueltank_forward_names.back());
-	//		//clear the stringstreams
-	//		fueltankname_stream.str("");
-	//		thrustername_stream.str("");
-
-	//		//create some whitespace
-	//		GMATfile << endl;
-
-	//		//create a fuel tank for the backward propagating spacecraft of the phase
-	//		fueltankname_stream << "FuelTank_j" << j << "p" << p << "_Backward";
-	//		fueltank_backward_names.push_back(fueltankname_stream.str());
-	//		this->create_GMAT_fueltank(j, p, fueltank_backward_names.back(), "Backward");
-	//		//create a thruster for the foward propagating spacecraft of the phase
-	//		thrustername_stream << "Thruster_j" << j << "p" << p << "_Backward";
-	//		thruster_backward_names.push_back(thrustername_stream.str());
-	//		this->create_GMAT_thruster(j, p, thruster_backward_names.back(), missionbodies[body_index].name, fueltank_backward_names.back());
-	//		//clear the stringstreams
-	//		fueltankname_stream.str("");
-	//		thrustername_stream.str("");
-
-	//		//create some whitespace
-	//		GMATfile << endl;
-	//		//increment
-	//		++body_index;
-	//	}//end of journeys for-statement
-	//}//end of phases for-statement
-	////add some vertical whitespace
-	//GMATfile << endl;
-	//GMATfile << endl;
-
-}//end of write_GMAT_hardware() method
-
-
 // method to create spacecraft information
 void gmatscripter::write_GMAT_spacecraft() {
-
-	//declaration
-	vector <string> tempstrings;
-	bool hasNotBeenCopied;
-
-	////declarations
-	//stringstream spacecraftname_stream;
-	//int body_index = 0;
-	//double epoch = 0.0;
 
 	//spacecraft header
 	GMATfile << "%-------------------------------------------------------------------------" << endl;
@@ -1565,65 +434,41 @@ void gmatscripter::write_GMAT_spacecraft() {
 	GMATfile << "%-------------------------------------------------------------------------" << endl;
 	GMATfile << endl;
 
-	//save the first force model and copy its name to a temporary vector of strings
-	//we will check against the temporary vector of strings to make sure we are not 
-	//printing duplicates
-	this->create_GMAT_spacecraft(gmat_steps[0]);
-	tempstrings.push_back(gmat_steps[0].spacecraft.Name);
-
-	//generate the rest of the forcemodels
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved forcemodel names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current forcemodel, 
-			//then turn the bool flag to false and do not print the current forcemodel
-			if (tempstrings[j].compare(gmat_steps[i].spacecraft.Name) == 0) { hasNotBeenCopied = false; }
-		}
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_spacecraft(gmat_steps[i]);
-			tempstrings.push_back(gmat_steps[i].spacecraft.Name);
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//write out the forward spacecraft
+			this->create_GMAT_spacecraft(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
+			//write out the backward spacecraft
+			this->create_GMAT_spacecraft(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 		}
 	}
 	GMATfile << endl;
 
-	////create and write out two s/c for each phase in each journey (forward + backward)
-	////for-statement for counting through every journey
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//{
-	//	//for-statement for counting through each phase in a journey
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//	{
-	//		//create a name for the forward propagating spacecraft
-	//		spacecraftname_stream << "SpaceCraft_j" << j << "p" << p << "_Forward";
-	//		//add the name to the vector 'spacecraft_names'
-	//		spacecraft_names.push_back(spacecraftname_stream.str());
-	//		spacecraft_forward_names.push_back(spacecraftname_stream.str());
-	//		//create the GMAT spacecraft
-	//		this->create_GMAT_spacecraft(j, p, spacecraft_forward_names.back(), "Forward", missionbodies[body_index].name);
-	//		//clear the stringstream
-	//		spacecraftname_stream.str("");
-
-	//		//create a name for the backward propagating spacecraft
-	//		spacecraftname_stream << "SpaceCraft_j" << j << "p" << p << "_Backward";
-	//		spacecraft_names.push_back(spacecraftname_stream.str());
-	//		spacecraft_backward_names.push_back(spacecraftname_stream.str());
-	//		//create the GMAT spacecraft
-	//		this->create_GMAT_spacecraft(j, p, spacecraft_backward_names.back(), "Backward", missionbodies[body_index + 1].name);
-	//		//clear the stringstream
-	//		spacecraftname_stream.str("");
-
-	//		//increment
-	//		++body_index;
-
-	//		//spacing
-	//		GMATfile << endl;
-	//	}// end of phases for-statement
-	//}//end of journeys for-statement
-
 }//end of write_GMAT_spacecraft() method
+
+
+// method to create hardware information
+void gmatscripter::write_GMAT_hardware() {
+
+	//hardware header
+	GMATfile << "%-------------------------------------------------------------------------" << endl;
+	GMATfile << "%---------- Hardware components" << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << endl;
+	GMATfile << endl;
+
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//write out the forward spacecraft
+			this->create_GMAT_fueltank(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
+			this->create_GMAT_thruster(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
+			//write out the backward spacecraft
+			this->create_GMAT_fueltank(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
+			this->create_GMAT_thruster(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
+		}
+	}
+	GMATfile << endl;
+
+}//end of write_GMAT_hardware() method
 
 
 // method to create models for bodies that are non-standard (i.e. not a planet nor the moon)
@@ -1642,27 +487,27 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 	SpiceInt number_of_windows = 0;
 
 	//for each body in mission
-	for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index)
+	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 	{
 		//must create any bodies that are not already defined in GMAT
-		if ((missionbodies[body_index].name != "Sun") && (missionbodies[body_index].name != "Mercury") && (missionbodies[body_index].name != "Venus") && (missionbodies[body_index].name != "Earth") && (missionbodies[body_index].name != "Mars") && (missionbodies[body_index].name != "Jupiter") && (missionbodies[body_index].name != "Saturn") && (missionbodies[body_index].name != "Uranus") && (missionbodies[body_index].name != "Neptune") && (missionbodies[body_index].name != "Pluto"))
+		if ((GMATMission.missionbodies[body_index].name != "Sun") && (GMATMission.missionbodies[body_index].name != "Mercury") && (GMATMission.missionbodies[body_index].name != "Venus") && (GMATMission.missionbodies[body_index].name != "Earth") && (GMATMission.missionbodies[body_index].name != "Mars") && (GMATMission.missionbodies[body_index].name != "Jupiter") && (GMATMission.missionbodies[body_index].name != "Saturn") && (GMATMission.missionbodies[body_index].name != "Uranus") && (GMATMission.missionbodies[body_index].name != "Neptune") && (GMATMission.missionbodies[body_index].name != "Pluto"))
 		{
 			GMATfile << "%Must create model for body visited" << endl;
-			GMATfile << "Create Planet " << missionbodies_unique[body_index].name << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".NAIFId = " << missionbodies_unique[body_index].spice_ID << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".EquatorialRadius = " << missionbodies_unique[body_index].radius << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".Mu = " << missionbodies_unique[body_index].mu << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".PosVelSource = 'SPICE'" << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".CentralBody = '" << missionbodies_unique[body_index].central_body_name << "'" << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".RotationDataSource = 'IAUSimplified'" << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".OrientationEpoch = 21545" << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".SpinAxisRAConstant = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.alpha0 << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".SpinAxisRARate = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.alphadot << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".SpinAxisDECConstant = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.delta0 << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".SpinAxisDECRate = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.deltadot << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".RotationConstant = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.W << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".RotationRate = " << missionbodies_unique[body_index].J2000_body_equatorial_frame.Wdot << endl;
-			GMATfile << missionbodies_unique[body_index].name << ".OrbitSpiceKernelName = {";
+			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].name << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].spice_ID << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].radius << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".Mu = " << GMATMission.missionbodies_unique[body_index].mu << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".PosVelSource = 'SPICE'" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".CentralBody = '" << GMATMission.missionbodies_unique[body_index].central_body_name << "'" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationDataSource = 'IAUSimplified'" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".OrientationEpoch = 21545" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRAConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alpha0 << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRARate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alphadot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.delta0 << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.deltadot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.W << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.Wdot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".OrbitSpiceKernelName = {";
 
 			//find which spice file the body is located
 			EMTG::filesystem::get_all_files_with_extension(fs::path(this->ptr_gmatmission->options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
@@ -1673,7 +518,7 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 
 				//check if body is located in spice file
 				scard_c(0, &spice_coverage);
-				spkcov_c(filestring.c_str(), missionbodies_unique[body_index].spice_ID, &spice_coverage);
+				spkcov_c(filestring.c_str(), GMATMission.missionbodies_unique[body_index].spice_ID, &spice_coverage);
 				number_of_windows = wncard_c(&spice_coverage);
 				if (number_of_windows > 0)
 				{
@@ -1686,24 +531,24 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 		}
 
 		//must create any central bodies that are not already defined in GMAT
-		if ((missionbodies_unique[body_index].central_body_name != "Sun") && (missionbodies_unique[body_index].central_body_name != "Mercury") && (missionbodies_unique[body_index].central_body_name != "Venus") && (missionbodies_unique[body_index].central_body_name != "Earth") && (missionbodies_unique[body_index].central_body_name != "Mars") && (missionbodies_unique[body_index].central_body_name != "Jupiter") && (missionbodies_unique[body_index].central_body_name != "Saturn") && (missionbodies_unique[body_index].central_body_name != "Uranus") && (missionbodies_unique[body_index].central_body_name != "Neptune") && (missionbodies_unique[body_index].central_body_name != "Pluto"))
+		if ((GMATMission.missionbodies_unique[body_index].central_body_name != "Sun") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Mercury") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Venus") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Earth") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Mars") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Jupiter") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Saturn") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Uranus") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Neptune") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Pluto"))
 		{
 			GMATfile << "%Must create model for central body" << endl;
-			GMATfile << "Create Planet " << missionbodies_unique[body_index].central_body_name << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".NAIFId = " << missionbodies_unique[body_index].central_body_spice_ID << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".EquatorialRadius = " << missionbodies_unique[body_index].central_body_radius << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".Mu = " << missionbodies_unique[body_index].universe_mu << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".PosVelSource = 'SPICE'" << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".CentralBody = 'Sun'" << endl; //assume Sun for now
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".RotationDataSource = 'IAUSimplified'" << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".OrientationEpoch = 21545" << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".SpinAxisRAConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alpha0 << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".SpinAxisRARate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alphadot << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".SpinAxisDECConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.delta0 << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".SpinAxisDECRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.deltadot << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".RotationConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.W << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".RotationRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.Wdot << endl;
-			GMATfile << missionbodies_unique[body_index].central_body_name << ".OrbitSpiceKernelName = {";
+			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].central_body_name << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].central_body_spice_ID << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].central_body_radius << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".Mu = " << GMATMission.missionbodies_unique[body_index].universe_mu << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".PosVelSource = 'SPICE'" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".CentralBody = 'Sun'" << endl; //assume Sun for now
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationDataSource = 'IAUSimplified'" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".OrientationEpoch = 21545" << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRAConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alpha0 << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRARate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alphadot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.delta0 << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.deltadot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.W << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.Wdot << endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".OrbitSpiceKernelName = {";
 
 			//find which spice file the body is located
 			EMTG::filesystem::get_all_files_with_extension(fs::path(this->ptr_gmatmission->options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
@@ -1714,7 +559,7 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 
 				//check if body is located in spice file
 				scard_c(0, &spice_coverage);
-				spkcov_c(filestring.c_str(), missionbodies_unique[body_index].central_body_spice_ID, &spice_coverage);
+				spkcov_c(filestring.c_str(), GMATMission.missionbodies_unique[body_index].central_body_spice_ID, &spice_coverage);
 				number_of_windows = wncard_c(&spice_coverage);
 				if (number_of_windows > 0)
 				{
@@ -1745,79 +590,31 @@ void gmatscripter::write_GMAT_forcemodels(){
 	//save the first force model and copy its name to a temporary vector of strings
 	//we will check against the temporary vector of strings to make sure we are not 
 	//printing duplicates
-	this->create_GMAT_forcemodel(gmat_steps[0].propagator.ForceModel.Name, gmat_steps[0].propagator.ForceModel.CentralBody, gmat_steps[0].propagator.ForceModel.PointMasses);
-	tempstrings.push_back(gmat_steps[0].propagator.ForceModel.Name);
+	this->create_GMAT_forcemodel(GMATMission.myjourneys[0].myphases[0].mysteps[0].propagator.ForceModel);
+	tempstrings.push_back(GMATMission.myjourneys[0].myphases[0].mysteps[0].propagator.ForceModel.Name);
 
 	//generate the rest of the forcemodels
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved forcemodel names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current forcemodel, 
-			//then turn the bool flag to false and do not print the current forcemodel
-			if (tempstrings[j].compare(gmat_steps[i].propagator.ForceModel.Name) == 0) { hasNotBeenCopied = false; }
-		}
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_forcemodel(gmat_steps[i].propagator.ForceModel.Name, gmat_steps[i].propagator.ForceModel.CentralBody, gmat_steps[i].propagator.ForceModel.PointMasses);
-			tempstrings.push_back(gmat_steps[i].propagator.ForceModel.Name);
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				//set bool to true
+				hasNotBeenCopied = true;
+				//loop through any saved forcemodel names
+				for (int k = 0; k < tempstrings.size(); ++k) {
+					//if we have already saved out the current forcemodel, 
+					//then turn the bool flag to false and do not print the current forcemodel
+					if (tempstrings[k].compare(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.ForceModel.Name) == 0) { hasNotBeenCopied = false; }
+				}
+				//if it hasn't been printed yet, then print it!
+				if (hasNotBeenCopied) {
+					this->create_GMAT_forcemodel(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.ForceModel);
+					tempstrings.push_back(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.ForceModel.Name);
+				}
+			}
 		}
 	}
 	GMATfile << endl;
 
-
-
-
-
-
-
-
-	////save the first force model and copy its name to a temporary vector of strings
-	////we will check against the temporary vector of strings to make sure we are not 
-	////printing duplicates
-	//this->create_GMAT_forcemodel(gmat_step_forcemodel_storage[0][0],
-	//							 gmat_step_forcemodel_storage[0][1],
-	//							 gmat_step_forcemodel_storage[0][2]);
-	//tempstrings.push_back(gmat_step_forcemodel_storage[0][0]);
-
-	////generate the rest of the forcemodels
-	//for (int i = 1; i < gmat_step_forcemodel_storage.size(); ++i) {
-	//	//set bool to true
-	//	hasNotBeenCopied = true;
-	//	//loop through any saved forcemodel names
-	//	for (int j = 0; j < tempstrings.size(); ++j) {
-	//		//if we have already saved out the current forcemodel, 
-	//		//then turn the bool flag to false and do not print the current forcemodel
-	//		if (tempstrings[j].compare(gmat_step_forcemodel_storage[i][0]) == 0) { hasNotBeenCopied = false; }
-	//	}
-	//	//if it hasn't been printed yet, then print it!
-	//	if (hasNotBeenCopied) {
-	//		this->create_GMAT_forcemodel(gmat_step_forcemodel_storage[i][0],
-	//			gmat_step_forcemodel_storage[i][1],
-	//			gmat_step_forcemodel_storage[i][2]);
-	//		tempstrings.push_back(gmat_step_forcemodel_storage[i][0]);
-	//	}
-	//}
-
-
-
-	//create central force model (TODO:: assume for now that first body's central body is the principle central body)
-	//GMATfile << "%Create 2-body force model for central body" << endl;
-	//this->create_GMAT_forcemodel(missionbodies_unique[0].central_body_name + "2Bod", 
-	//						     missionbodies_unique[0].central_body_name, 
-	//						     missionbodies_unique[0].central_body_name);
-
-	//GMATfile << "%Create 2-body force models for all bodies visited" << endl;
-	//for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++) {
-	//	this->create_GMAT_forcemodel(missionbodies_unique[body_index].name + "2Bod",
-	//							     missionbodies_unique[body_index].name,
-	//							     missionbodies_unique[body_index].name);
-	//}
-
-	//add some vertical whitespace
-	//GMATfile << endl;
-	//GMATfile << endl;
 }//end of write_GMAT_forcemodels() method
 
 
@@ -1837,46 +634,30 @@ void gmatscripter::write_GMAT_propagators(){
 	//save the first propagator and copy its name to a temporary vector of strings
 	//we will check against the temporary vector of strings to make sure we are not 
 	//printing duplicates
-	this->create_GMAT_propagator(gmat_steps[0].propagator.Name, gmat_steps[0].propagator.ForceModel.Name, gmat_steps[0].propagator.isCloseApproach);
-	tempstrings.push_back(gmat_steps[0].propagator.Name);
+	this->create_GMAT_propagator(GMATMission.myjourneys[0].myphases[0].mysteps[0].propagator);
+	tempstrings.push_back(GMATMission.myjourneys[0].myphases[0].mysteps[0].propagator.Name);
 
 	//generate the rest of the propagators
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved propagator names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current propagator, 
-			//then turn the bool flag to false and do not print the current propagator
-			if (tempstrings[j].compare(gmat_steps[i].propagator.Name) == 0) { hasNotBeenCopied = false; }
-		}
-
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_propagator(gmat_steps[i].propagator.Name, gmat_steps[i].propagator.ForceModel.Name, gmat_steps[i].propagator.isCloseApproach);
-			tempstrings.push_back(gmat_steps[i].propagator.Name);
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				//set bool to true
+				hasNotBeenCopied = true;
+				//loop through any saved propagator names
+				for (int k = 0; k < tempstrings.size(); ++k) {
+					//if we have already saved out the current propagator, 
+					//then turn the bool flag to false and do not print the current propagator
+					if (tempstrings[k].compare(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name) == 0) { hasNotBeenCopied = false; }
+				}
+				//if it hasn't been printed yet, then print it!
+				if (hasNotBeenCopied) {
+					this->create_GMAT_propagator(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator);
+					tempstrings.push_back(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name);
+				}
+			}
 		}
 	}
 	GMATfile << endl;
-
-
-	////far planet propagator, larger time steps
-	////TODO:: for now it is assumed that the principle central body is the first central body
-	//GMATfile << "%Create propagation model for central body" << endl;
-	//this->create_GMAT_propagator(missionbodies_unique[0].central_body_name + "Prop", 
-	//						     missionbodies_unique[0].central_body_name + "2Bod", 
-	//						     false);
-
-	////create propagators for close body approaches, smaller time steps
-	//GMATfile << "%Create propagation models for other bodies" << endl;
-	//for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index) {
-	//	this->create_GMAT_propagator(missionbodies_unique[body_index].name + "Prop",
-	//							     missionbodies_unique[body_index].name + "2Bod",
-	//								 true);
-	//}
-	//add some vertical whitespace
-	//GMATfile << endl;
-	//GMATfile << endl;
 
 }//end of write_GMAT_propagators() method
 
@@ -1884,159 +665,23 @@ void gmatscripter::write_GMAT_propagators(){
 // method to create burn information
 void gmatscripter::write_GMAT_burns(){
 
-	//declaration
-	vector <string> tempstrings;
-	bool hasNotBeenCopied;
-
 	//burn header
 	GMATfile << "%-------------------------------------------------------------------------" << endl;
 	GMATfile << "%---------- Burns" << endl;
 	GMATfile << "%-------------------------------------------------------------------------" << endl;
 	GMATfile << endl;
 
-	//save the first force model and copy its name to a temporary vector of strings
-	//we will check against the temporary vector of strings to make sure we are not 
-	//printing duplicates
-	this->create_GMAT_finiteburn(gmat_steps[0].finiteburnname, gmat_steps[0].spacecraft.Thrusters[0].Name);
-	tempstrings.push_back(gmat_steps[0].finiteburnname);
-
-	//generate the rest of the forcemodels
-	for (int i = 1; i < gmat_steps.size(); ++i) {
-		//set bool to true
-		hasNotBeenCopied = true;
-		//loop through any saved forcemodel names
-		for (int j = 0; j < tempstrings.size(); ++j) {
-			//if we have already saved out the current forcemodel, 
-			//then turn the bool flag to false and do not print the current forcemodel
-			if (tempstrings[j].compare(gmat_steps[i].finiteburnname) == 0) { hasNotBeenCopied = false; }
-		}
-		//if it hasn't been printed yet, then print it!
-		if (hasNotBeenCopied) {
-			this->create_GMAT_finiteburn(gmat_steps[i].finiteburnname, gmat_steps[i].spacecraft.Thrusters[0].Name);
-			tempstrings.push_back(gmat_steps[i].finiteburnname);
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//write out the forward spacecraft
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Burn);
+			//write out the backward spacecraft
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Burn);
 		}
 	}
 	GMATfile << endl;
-
-	////impulsive or finitie burn
-	////for each journey
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//{
-	//	//for each phase
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//	{
-	//		//create two finite burn objects for each phase in each journey (forward + backward)
-	//		GMATfile << "% Journey #" << j << ", Phase #" << p << ", Forward and Backward FiniteBurn Objects" << endl;
-	//		finiteburnname_stream << "FiniteBurn_j" << j << "p" << p << "_Forward";
-	//		finiteburn_forward_names.push_back(finiteburnname_stream.str());
-	//		this->create_GMAT_finiteburn(finiteburn_forward_names.back(), thruster_forward_names[p]);
-	//		finiteburnname_stream.str("");
-	//		finiteburnname_stream << "FiniteBurn_j" << j << "p" << p << "_Backward";
-	//		finiteburn_backward_names.push_back(finiteburnname_stream.str());
-	//		this->create_GMAT_finiteburn(finiteburn_backward_names.back(), thruster_backward_names[p]);
-	//		//create some whitespace
-	//		GMATfile << endl;
-
-	//	}//end of journeys for-statement
-	//}//end of phases for-statement
-	//GMATfile << endl;
 
 }//end of write_GMAT_burns() method
-
-
-// method to create array and variable information
-void gmatscripter::write_GMAT_variables(){
-
-	//arrays and variables header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Arrays, Variables, Strings" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-
-	//write out mission level variables
-	GMATfile << "% --- Mission Level: Arrays, Variables, and Strings" << endl;
-	for (int index = 0; index < mission_level_variables.size(); ++index) {
-		GMATfile << "Create Variable " << mission_level_variables[index][0] << endl;
-		if (mission_level_variables[index].size() == 2) {
-			GMATfile << mission_level_variables[index][0] << mission_level_variables[index][1] << endl;
-		}
-	}
-
-	//write out journey level variables
-	GMATfile << "% --- Journey Level: Arrays, Variables, and Strings" << endl;
-	for (int index = 0; index < journey_level_variables.size(); ++index) {
-		GMATfile << "Create Variable " << journey_level_variables[index][0] << endl;
-		if (journey_level_variables[index].size() == 2) {
-			GMATfile << journey_level_variables[index][0] << journey_level_variables[index][1] << endl;
-		}
-	}
-
-	//write out phase level variables
-	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
-	for (int index = 0; index < phase_level_variables.size(); ++index) {
-		GMATfile << "Create Variable " << phase_level_variables[index][0] << endl;
-		if (phase_level_variables[index].size() == 2) {
-			GMATfile << phase_level_variables[index][0] << phase_level_variables[index][1] << endl;
-		}
-	}
-	//create arrays for spacecraft thrust vectors
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
-			GMATfile << "Create Array ThrustVector_j" << j << "p" << p << "[" << gmat_steps_per_phase[p] << ", 3];" << endl;
-			GMATfile << "Create Array ThrustUnitVectorMagnitude_j" << j << "p" << p << "[" << gmat_steps_per_phase[p] << ", 1];" << endl;
-		}
-	}
-	GMATfile << endl;
-
-	//create time related variables
-
-	//write out spacecraft variables
-	//create scaled states for each spacecraft
-	for (int index = 0; index < spacecraft_names.size(); ++index) {
-		GMATfile << "%Scaled States of " << spacecraft_names[index] << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_X_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_Y_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_Z_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_VX_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_VY_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_VZ_Scaled" << endl;
-		GMATfile << "Create Variable " << spacecraft_names[index] << "_FuelMass_Scaled" << endl;
-		GMATfile << endl;
-	}
-	GMATfile << endl;
-
-
-	////write out variables without a current home
-	//GMATfile << "% --- Homeless: Arrays, Variables, and Strings" << endl;
-	//GMATfile << "Create Variable FinalEpoch" << endl;
-	//GMATfile << "Create Variable LaunchEpoch_Scaled" << endl;
-	////create variable for each s/c create rdotv temp variable
-	//for (int index = 0; index < spacecraft_names.size(); ++index) {
-	//	GMATfile << "Create Variable " << spacecraft_names[index] << "_RdotV_Scaled " << endl;
-	//	GMATfile << "Create Variable " << spacecraft_names[index] << "_PeriapseRadius_Scaled" << endl;
-	//}
-	//GMATfile << endl;
-
-
-	//write out report variables
-	//create temporary strings to identify time steps during phases
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
-			for (int gs = 0; gs < gmat_steps_per_phase[p]; gs++){
-				GMATfile << "Create String tempString_j" << j << "p" << p << "gs" << gs << "_tminus" << endl;
-				GMATfile << "tempString_j" << j << "p" << p << "gs" << gs << "_tminus = 'j" << j << "p" << p << "gs" << gs << "_tminus: '" << endl;
-				GMATfile << "Create String tempString_j" << j << "p" << p << "gs" << gs << "_tplus" << endl;
-				GMATfile << "tempString_j" << j << "p" << p << "gs" << gs << "_tplus = 'j" << j << "p" << p << "gs" << gs << "_tplus: '" << endl;
-			}
-		}
-	}
-
-
-	//add some vertical whitespace
-	GMATfile << endl;
-	GMATfile << endl;
-
-}//end of write_GMAT_variables() method
 
 
 // method to create coordinate systems information
@@ -2051,10 +696,10 @@ void gmatscripter::write_GMAT_coordinatesystems(){
 	//always in J2000 Eq. Syst.
 	//TODO:: as of now it is assumed that the first central body is the principle central body
 	GMATfile << "%Create coordinate systems for plotting/viewing" << endl;
-	this->create_GMAT_coordinatesystem(missionbodies_unique[0].central_body_name);
+	this->create_GMAT_coordinatesystem(GMATMission.missionbodies_unique[0].central_body_name);
 
-	for (int b = 0; b < missionbodies_unique.size(); ++b) {
-		this->create_GMAT_coordinatesystem(missionbodies_unique[b].name);
+	for (int b = 0; b < GMATMission.missionbodies_unique.size(); ++b) {
+		this->create_GMAT_coordinatesystem(GMATMission.missionbodies_unique[b].name);
 	}
 	//add some vertical whitespace
 	GMATfile << endl;
@@ -2111,88 +756,101 @@ void gmatscripter::write_GMAT_subscribers(){
 	//includes orbit views, plots, etc...
 	//add central universe body view
 	GMATfile << "%Create subscriber for central body view" << endl;
-	GMATfile << "Create OrbitView " << missionbodies_unique[0].central_body_name << "View" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << endl;
+	GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[0].central_body_name << "View" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << endl;
 
 	//add which bodies and s/c to plot 
-	GMATfile << missionbodies_unique[0].central_body_name << "View.Add =	{";
-	for (int index_SC = 0; index_SC < spacecraft_names.size(); ++index_SC)
-	{
-		GMATfile << spacecraft_names[index_SC] << ", ";
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.Add =	{";
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			GMATfile << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << ", ";
+			GMATfile << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << ", ";
+		}
 	}
-	for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index)
+	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 	{
-		GMATfile << missionbodies_unique[body_index].name;
-		if (body_index < missionbodies_unique.size() - 1)
+		GMATfile << GMATMission.missionbodies_unique[body_index].name;
+		if (body_index < GMATMission.missionbodies_unique.size() - 1)
 		{
 			GMATfile << ", ";
 		}
 	}
-	GMATfile << ", " << missionbodies_unique[0].central_body_name << "}" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.CoordinateSystem =		" << missionbodies_unique[0].central_body_name << "J2000Eq" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.DrawObject = [";
-
-	//create flag parameters for plotting
-	for (int index_plot = 0; index_plot < (missionbodies_unique.size() + spacecraft_names.size()); ++index_plot)
+	GMATfile << ", " << GMATMission.missionbodies_unique[0].central_body_name << "}" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.CoordinateSystem =		" << GMATMission.missionbodies_unique[0].central_body_name << "J2000Eq" << endl;
+	//bool flag parameters for drawing objects
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.DrawObject = [";
+	for (int index_plot = 0; index_plot < (GMATMission.missionbodies_unique.size()); ++index_plot)
 	{
 		GMATfile << "true ";
 	}
-	GMATfile << " true]" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.DataCollectFrequency   = 1" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.UpdatePlotFrequency    = 50" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.NumPointsToRedraw      = 300" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ViewScaleFactor        = 35" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ViewPointReference	  = " << missionbodies_unique[0].central_body_name << ";" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ViewDirection		  = " << missionbodies_unique[0].central_body_name << ";" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ViewPointVector		  = [ 0 0 30000000 ];" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.ViewUpAxis             = X" << endl;
-	GMATfile << missionbodies_unique[0].central_body_name << "View.UseInitialView         = On" << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			GMATfile << "true true ";
+		}
+	}
+	GMATfile << "true]" << endl;
+	//other parameters
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.DataCollectFrequency   = 1" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UpdatePlotFrequency    = 50" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.NumPointsToRedraw      = 300" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewScaleFactor        = 35" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointVector		  = [ 0 0 30000000 ];" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewUpAxis             = X" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UseInitialView         = On" << endl;
 	GMATfile << endl;
 
 	//create orbit views for all bodies visited
 	GMATfile << "%Create subscribers for other body views" << endl;
-	for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index)
+	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 	{
-		GMATfile << "Create OrbitView " << missionbodies_unique[body_index].name << "View" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ShowPlot               = true" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.SolverIterations       = All" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.RelativeZOrder         = 501" << endl;
+		GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[body_index].name << "View" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ShowPlot               = true" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.SolverIterations       = All" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.RelativeZOrder         = 501" << endl;
 
 		//add which bodies and s/c to plot
-		GMATfile << missionbodies_unique[body_index].name << "View.Add                    = {";
-		for (int index_SC = 0; index_SC < spacecraft_names.size(); ++index_SC)
-		{
-			GMATfile << spacecraft_names[index_SC] << ", ";
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.Add                    = {";
+		for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+			for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+				GMATfile << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << ", ";
+				GMATfile << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << ", ";
+			}
 		}
-		for (int body_index = 0; body_index < missionbodies_unique.size(); ++body_index)
+		for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 		{
-			GMATfile << missionbodies_unique[body_index].name;
-			if (body_index < missionbodies_unique.size() - 1)
+			GMATfile << GMATMission.missionbodies_unique[body_index].name;
+			if (body_index < GMATMission.missionbodies_unique.size() - 1)
 			{
 				GMATfile << ", ";
 			}
 		}
 		GMATfile << "}" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.CoordinateSystem       = " << missionbodies_unique[body_index].name << "J2000Eq" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.DrawObject             = [";
-
-		//create flag parameters for plotting
-		for (int index_plot = 0; index_plot < (missionbodies_unique.size() + spacecraft_names.size()); ++index_plot)
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.CoordinateSystem       = " << GMATMission.missionbodies_unique[body_index].name << "J2000Eq" << endl;
+		//bool flag parameters for drawing objects
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.DrawObject             = [";
+		for (int index_plot = 0; index_plot < (GMATMission.missionbodies_unique.size()); ++index_plot)
 		{
 			GMATfile << "true ";
 		}
+		for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+			for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+				GMATfile << "true true";
+			}
+		}
 		GMATfile << "]" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.DataCollectFrequency   = 1" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.UpdatePlotFrequency    = 50" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.NumPointsToRedraw      = 300" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ViewScaleFactor        = 35" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ViewUpAxis             = X" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.UseInitialView         = On" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ViewPointReference	  = " << missionbodies_unique[body_index].name << ";" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ViewDirection		  = " << missionbodies_unique[body_index].name << ";" << endl;
-		GMATfile << missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 3000000 ];" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.DataCollectFrequency   = 1" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UpdatePlotFrequency    = 50" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.NumPointsToRedraw      = 300" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewScaleFactor        = 35" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewUpAxis             = X" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UseInitialView         = On" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[body_index].name << ";" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[body_index].name << ";" << endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 3000000 ];" << endl;
 		GMATfile << endl;
 	}
 	GMATfile << endl;
@@ -2206,7 +864,7 @@ void gmatscripter::write_GMAT_subscribers(){
 	GMATfile << "%Create reports for debugging purposes" << endl;
 	GMATfile << "%Create a report for the central body and each unique body of the mission" << endl;
 
-	report_name_stream << "Report_Spacecraft_" << missionbodies[0].central_body_name << "_States";
+	report_name_stream << "Report_Spacecraft_" << GMATMission.missionbodies[0].central_body_name << "_States";
 	report_name = report_name_stream.str();
 	GMATfile << "Create ReportFile " << report_name << endl;
 	GMATfile << report_name << ".SolverIterations = Current;" << endl;
@@ -2214,7 +872,7 @@ void gmatscripter::write_GMAT_subscribers(){
 	GMATfile << report_name << ".Size = [ 0 0 ];" << endl;
 	GMATfile << report_name << ".RelativeZOrder = 0;" << endl;
 	GMATfile << report_name << ".Maximized = false;" << endl;
-	GMATfile << report_name << ".Filename = 'Report_" << missionbodies[0].central_body_name << "Centered_States.txt';" << endl;
+	GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies[0].central_body_name << "Centered_States.txt';" << endl;
 	GMATfile << report_name << ".Precision = 16;" << endl;
 	GMATfile << report_name << ".WriteHeaders = true;" << endl;
 	GMATfile << report_name << ".LeftJustify = On;" << endl;
@@ -2223,12 +881,12 @@ void gmatscripter::write_GMAT_subscribers(){
 	GMATfile << report_name << ".WriteReport = true;" << endl;
 	GMATfile << endl;
 
-	for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++){
+	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); body_index++){
 		// new report name
 		report_name.erase (report_name.begin(), report_name.end());
-		//report_name_stream << "Report_Spacecraft_" << missionbodies_unique[body_index].name << "_States";
+		//report_name_stream << "Report_Spacecraft_" << GMATMission.missionbodies_unique[body_index].name << "_States";
 		//report_name = report_name_stream.str();
-		report_name = "Report_Spacecraft_" + missionbodies_unique[body_index].name + "_States";
+		report_name = "Report_Spacecraft_" + GMATMission.missionbodies_unique[body_index].name + "_States";
 		// GMAT script printing
 		GMATfile << "Create ReportFile " << report_name << endl;
 		GMATfile << report_name << ".SolverIterations = Current;" << endl;
@@ -2236,7 +894,7 @@ void gmatscripter::write_GMAT_subscribers(){
 		GMATfile << report_name << ".Size = [ 0 0 ];" << endl;
 		GMATfile << report_name << ".RelativeZOrder = 0;" << endl;
 		GMATfile << report_name << ".Maximized = false;" << endl;
-		GMATfile << report_name << ".Filename = 'Report_" << missionbodies_unique[body_index].name << "Centered_States.txt';" << endl;
+		GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies_unique[body_index].name << "Centered_States.txt';" << endl;
 		GMATfile << report_name << ".Precision = 16;" << endl;
 		GMATfile << report_name << ".WriteHeaders = true;" << endl;
 		GMATfile << report_name << ".LeftJustify = On;" << endl;
@@ -2265,6 +923,63 @@ void gmatscripter::write_GMAT_subscribers(){
 }//end of write_GMAT_subscribers() method
 
 
+// method to create array and variable information
+void gmatscripter::write_GMAT_variables(){
+
+	//arrays and variables header
+	GMATfile << "%-------------------------------------------------------------------------" << endl;
+	GMATfile << "%---------- Arrays, Variables, Strings" << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << endl;
+	GMATfile << endl;
+
+	//write out mission level variables
+	GMATfile << "% --- Mission Level: Arrays, Variables, and Strings" << endl;
+	create_GMAT_variables(GMATMission.variables);
+	GMATfile << endl;
+
+	//write out journey level variables
+	GMATfile << "% --- Journey Level: Arrays, Variables, and Strings" << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) { create_GMAT_variables(GMATMission.myjourneys[j].variables); }
+	GMATfile << endl;
+
+	//write out the phase level variables
+	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			create_GMAT_variables(GMATMission.myjourneys[j].myphases[p].variables);
+		}
+	}
+
+	//write out the step level variables
+	GMATfile << "% --- Step Level: Arrays, Variables, and Strings" << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				create_GMAT_variables(GMATMission.myjourneys[j].myphases[p].mysteps[gs].variables);
+			}	
+		}
+	}
+
+	//write out report variables
+	//create temporary strings to identify time steps during phases
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus" << endl;
+				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus: '" << endl;
+				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus" << endl;
+				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus: '" << endl;
+			}
+		}
+	}
+
+	//add some vertical whitespace
+	GMATfile << endl;
+	GMATfile << endl;
+
+}//end of write_GMAT_variables() method
+
+
 // method to create the initial state guesses for the mission sequence
 void gmatscripter::write_GMAT_initialguess(){
 
@@ -2286,23 +1001,14 @@ void gmatscripter::write_GMAT_initialguess(){
 	GMATfile << "BeginScript 'Initial Guess Values' " << endl;
 	GMATfile << endl;
 
-	// write out the initial guess for the spacecraft engine parameters
-	for (int index = 0; index < spacecraft_names.size(); ++index) {
-		if (!isLT) {
-			GMATfile << "   " << spacecraft_names[index] << ".K1 = ThrusterISP" << endl;
-		}
-		else if (isLT && this->ptr_gmatmission->options.engine_type == 0) {
-			GMATfile << "   " << spacecraft_names[index] << ".DutyCycle = ThrusterDutyCycle" << endl;
-			GMATfile << "   " << spacecraft_names[index] << ".C1        = ThrusterMaxThrust" << endl;
-			GMATfile << "   " << spacecraft_names[index] << ".K1        = ThrusterISP" << endl;
-			GMATfile << endl;
-		}
-	}
-
-	//write out the initial guess values for the thrust vector history
-	for (int index = 0; index < gmat_steps.size(); ++index) {
-		for (int subindex = 0; subindex < 3; ++subindex) {
-			GMATfile << "   " << gmat_steps[index].thrustvectornames[subindex] << " = " << gmat_steps[index].thrustvector[subindex] << endl;
+	//write out the phase level variables
+	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//forward spacecraft
+			this->create_GMAT_initialconditions(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
+			//backward spacecraft
+			this->create_GMAT_initialconditions(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 		}
 	}
 
@@ -2730,16 +1436,8 @@ void gmatscripter::write_GMAT_beginmissionsequence(){
 // method to create the optimization sequence for the mission
 void gmatscripter::write_GMAT_optimization() {
 
-	//declarations
-	//stringstream tempstream0;
-	//stringstream tempstream1;
-	//stringstream tempstream2;
-	//stringstream tempstream3;
-	//stringstream tempstream;
-	//double epoch;
-
 	GMATfile << "	" << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "	" << "%---------- Initial State Guesses" << endl;
+	GMATfile << "	" << "%---------- Optimization Sequence" << endl;
 	GMATfile << "	" << "%-------------------------------------------------------------------------" << endl;
 	GMATfile << endl;
 
@@ -2751,8 +1449,8 @@ void gmatscripter::write_GMAT_optimization() {
 	GMATfile << "	" << "%Vary Launch Epoch" << endl;
 	this->aux_GMAT_vary("LaunchWindowScaling");
 	//set launch spacecraft epoch
-	this->aux_GMAT_calculate(gmat_steps[0].spacecraft.Name + ".Epoch." + gmat_steps[0].spacecraft.DateFormat, 
-							 gmat_steps[0].spacecraft.Name + ".Epoch." + gmat_steps[0].spacecraft.DateFormat, 
+	this->aux_GMAT_calculate(GMATMission.myjourneys[0].myphases[0].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[0].myphases[0].spacecraft_forward.DateFormat,
+							 GMATMission.myjourneys[0].myphases[0].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[0].myphases[0].spacecraft_forward.DateFormat,
 							"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
 	GMATfile << endl;
 
@@ -2766,79 +1464,54 @@ void gmatscripter::write_GMAT_optimization() {
 	//include Calculate(TimeSteps)
 	//include Constraint(TOF, MatchPoint)
 	//include Active Subscribers(Reports, Figures)
-	
-	//write out the "gmat steps"
-	for (int index = 0; index < gmat_steps.size(); ++index) {
-		GMATfile << "   " << "% Step ID: " << gmat_steps[index].longid << endl;
-		//write out the 'PenUp' command
-		this->aux_GMAT_penUp();
-		//write out the vary commands
-		for (int subindex = 0; subindex < gmat_steps[index].vary.size(); ++subindex) {
-			this->aux_GMAT_vary(gmat_steps[index].vary[subindex]);
+
+	//write out the vary, calculate, and constraint commands for the optimization sequence
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				GMATfile << "   " << "% Step ID: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << endl;
+				//write out the 'PenUp' command
+				this->aux_GMAT_penUp();
+				//write out the vary commands
+				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].vary.size(); ++subindex) {
+					this->aux_GMAT_vary(GMATMission.myjourneys[j].myphases[p].mysteps[gs].vary[subindex]);
+				}
+				//write out the calculcation commands
+				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate.size(); ++subindex) {
+					this->aux_GMAT_calculate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][0], 
+											 GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][1], 
+											 GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][2]);
+				}
+				//write out the constraint commands
+				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints.size(); ++subindex) {
+					this->aux_GMAT_nonlinearconstraint(GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][0], 
+													   GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][1], 
+													   GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][2]);
+				}
+				//write out the 'BeginFiniteBurn' command
+				this->aux_GMAT_beginburn(GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Burn.Name, 
+										 GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name);
+				//write out the 'Propagate' command with '0.0' secs if the zeroPropagate flag is 'true' for the 'gmatstep'
+				if (GMATMission.myjourneys[j].myphases[p].mysteps[gs].zeroPropagate) {
+					this->aux_GMAT_propagate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name, GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft);
+				}
+				//write out the 'PenDown' command
+				this->aux_GMAT_penDown();
+				//write out the 'Propagate' command
+				GMATDebug << "spacecraft name: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name << " isForward: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->isForward << endl;
+				GMATDebug << "id: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << " stepsize: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].stepsize << "  zeroPropagate: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].zeroPropagate;
+				this->write_GMAT_report(GMATMission.myjourneys[j].myphases[p].mysteps[gs], true, true);
+				this->aux_GMAT_propagate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name, GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft, GMATMission.myjourneys[j].myphases[p].mysteps[gs].stepsize);
+				this->write_GMAT_report(GMATMission.myjourneys[j].myphases[p].mysteps[gs], false, true);
+				//write out the 'EndFiniteBurn' command
+				this->aux_GMAT_endburn(GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Burn.Name,
+									   GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name);
+				GMATfile << endl;
+				//write out reports
+			}
 		}
-		//write out the calculcation commands
-		for (int subindex = 0; subindex < gmat_steps[index].calculate.size(); ++subindex) {
-			this->aux_GMAT_calculate(gmat_steps[index].calculate[subindex][0], gmat_steps[index].calculate[subindex][1], gmat_steps[index].calculate[subindex][2]);
-		}
-		//write out the constraint commands
-		for (int subindex = 0; subindex < gmat_steps[index].constraints.size(); ++subindex) {
-			this->aux_GMAT_nonlinearconstraint(gmat_steps[index].constraints[subindex][0], gmat_steps[index].constraints[subindex][1], gmat_steps[index].constraints[subindex][2]);
-		}
-		//write out the 'BeginFiniteBurn' command
-		this->aux_GMAT_beginburn(gmat_steps[index].finiteburnname, gmat_steps[index].spacecraft.Name);
-		//write out the 'Propagate' command
-		this->aux_GMAT_propagate(gmat_steps[index].propagator.Name, gmat_steps[index].spacecraft.Name, 0.0);
-		//write out the 'PenDown' command
-		this->aux_GMAT_penDown();
-		//write out the 'Propagate' command
-		this->aux_GMAT_propagate(gmat_steps[index].propagator.Name, gmat_steps[index].spacecraft.Name, gmat_steps[index].initial_timestep);
-		//write out the 'EndFiniteBurn' command
-		this->aux_GMAT_endburn(gmat_steps[index].finiteburnname, gmat_steps[index].spacecraft.Name);
-		GMATfile << endl;
-		//write out reports
 	}
-
-
-	/*BeginFiniteBurn 'BeginFiniteBurn_Journey1Phase1Step1Forward' FiniteBurn_Journey1Phase1Forward(SC_Journey1Phase1Forward);
-	Propagate 'PropJourney1Phase1Step1Forward' SunProp(SC_Journey1Phase1Forward);
-	PenDown 'PenDown' SunView EarthView MarsView;
-	Propagate 'PropJourney1Phase1Step1Forward' SunProp(SC_Journey1Phase1Forward) { SC_Journey1Phase1Forward.ElapsedSecs = 1304640.0000000116 };
-	EndFiniteBurn 'EndFiniteBurn_Journey1Phase1Step1Forward' FiniteBurn_Journey1Phase1Forward(SC_Journey1Phase1Forward);*/
-
-
-
-	//vary the thrust vectors for each gmat step
-	//gmat_step_thrust_vectors
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
-	//		for (int gs = 0; gs < gmat_step_timesteps[j*p + p]; ++gs) {
-	//			//vary thrust direction
-	//			tempstream0 << "ThrustVector_j" << j << "p" << p << "(" << gs << ", 0)";
-	//			tempstream1 << "ThrustVector_j" << j << "p" << p << "(" << gs << ", 1)";
-	//			tempstream2 << "ThrustVector_j" << j << "p" << p << "(" << gs << ", 2)";
-	//			this->aux_GMAT_vary(tempstream0.str());
-	//			this->aux_GMAT_vary(tempstream1.str());
-	//			this->aux_GMAT_vary(tempstream2.str());
-	//			//calculate the thrust unit vector magnitude
-	//			tempstream << "ThrustUnitVectorMagnitude_j" << j << "p" << p << "(" << gs << ", 1)";
-	//			tempstream3 << "sqrt(( " << tempstream0.str() << " * 2 - 1) ^ 2 + ( " << tempstream1.str() << " * 2 - 1) ^ 2 + ( " << tempstream2.str() << " * 2 - 1) ^ 2)";
-	//			this->aux_GMAT_calculate(tempstream.str(), tempstream3.str());
-	//			//constrain the thrust unit vector magnitude
-	//			this->aux_GMAT_nonlinearconstraint(tempstream.str(),"<=","1");
-
-
-	//			GMATfile << endl;
-
-	//			//clear the tempstreams
-	//			tempstream0.str(""); tempstream1.str(""); tempstream2.str(""); tempstream3.str(""); tempstream.str("");
-
-
-	//		}
-	//	}
-	//}
-
-
-
+	
 	// if launch or direct departure, can vary launch vector
 	// WITH
 	// constraint on max velocity magnitude
@@ -2862,641 +1535,58 @@ void gmatscripter::write_GMAT_optimization() {
 	//TEMPORARY DEBUG CODE
 	GMATDebug << endl;
 	GMATDebug << " *** spacecraft vector<struct> print out *** " << endl;
-	for (int index = 0; index < spacecraft.size(); ++index) {
-		GMATDebug << spacecraft[index].Name << " | " << "Epoch: " << spacecraft[index].Epoch << endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Epoch << endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Epoch << endl;
+		}
 	}
 
 }
 
 
-// method to create the initial boundary conditions for the mission sequence
-void gmatscripter::write_GMAT_initialboundaryconditions(){
 
-	//declarations
-	double CumulatedTOF = 0;
-	int body_index = 0;
-	int name_index = 0;
-
-	//begin optimization loop
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%------------ Initial Boundary Constraints" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-	GMATfile << "Optimize 'OptimizeSequence' NLPObject {SolveMode = Solve, ExitMode = DiscardAndContinue}" << endl;
-	GMATfile << endl;
-
-	//vary the launch date and journey wait times
-	GMATfile << "	%Vary launch epoch and journey wait times" << endl;
-	GMATfile << "	Vary 'VaryLaunchEpoch_Scaled' NLPObject(LaunchEpoch_Scaled = LaunchEpoch_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-
-	//for each journey vary each subsequent journey wait time
-	for (int j = 1; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		GMATfile << "	Vary 'VaryJourney" << j + 1 << "_WaitTime_Scaled' NLPObject(Journey" << j + 1 << "_WaitTime_Scaled = Journey" << j + 1 << "_WaitTime_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	}
-
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			//insert unscaled epoch values
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " s/c unscaled epochs" << endl;
-
-			//if subsequent journey, add unscaled wait times
-			if (j > 0)
-			{
-				GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << ".Epoch.TAIModJulian' " << spacecraft_forward_names[name_index] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << " + " << LaunchDate_LowerBounds << ") / 86400.0";
-				for (int jj = 0; jj < j + 1; ++jj)
-				{
-					GMATfile << " + (Journey" << jj + 1 << "_WaitTime_Scaled * " << (this->ptr_gmatmission->options.journey_wait_time_bounds[jj][1] - this->ptr_gmatmission->options.journey_wait_time_bounds[jj][0]) << " + " << this->ptr_gmatmission->options.journey_wait_time_bounds[jj][0] << ")";
-				}
-				GMATfile << " + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
-				//add time of flight for backward s/c (end of phase)
-				CumulatedTOF = CumulatedTOF + this->ptr_gmatmission->journeys[j].phases[p].TOF;
-				GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian' " << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << " + " << LaunchDate_LowerBounds << ") / 86400.0";
-				for (int jj = 0; jj < j + 1; ++jj)
-				{
-					GMATfile << " + (Journey" << jj + 1 << "_WaitTime_Scaled * " << (this->ptr_gmatmission->options.journey_wait_time_bounds[jj][1] - this->ptr_gmatmission->options.journey_wait_time_bounds[jj][0]) << " + " << this->ptr_gmatmission->options.journey_wait_time_bounds[jj][0] << ")";
-				}
-				GMATfile << " + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
-			}
-			//for the first journey
-			else
-			{
-				GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << ".Epoch.TAIModJulian' " << spacecraft_forward_names[name_index] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << " + " << LaunchDate_LowerBounds << ") / 86400.0 + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
-				//add time of flight for backward s/c (end of phase)
-				CumulatedTOF = CumulatedTOF + this->ptr_gmatmission->journeys[j].phases[p].TOF;
-				GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian' " << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian = (LaunchEpoch_Scaled * " << (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << " + " << LaunchDate_LowerBounds << ") / 86400.0 + " << CumulatedTOF / 86400.0 << " + 2400000.5 - 2430000" << endl;
-			}
-			name_index++;
-			GMATfile << endl;
-		}
-	}
-	//store final epoch value
-	GMATfile << "	'CalcFinalEpoch' FinalEpoch = " << spacecraft_backward_names[name_index - 1] << ".Epoch.TAIModJulian" << endl;
-
-	//reset spacecraft name index to zero
-	name_index = 0;
-
-	//add inequality constraints for min flyby altitude and ensure that each s/c begins at periapse
-	GMATfile << "	%Add periapse and flyby altitude constraints for each phase" << endl;
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			if ((p < this->ptr_gmatmission->journeys[j].number_of_phases) && (p != 0))
-			{
-				GMATfile << "	'Constraint" << spacecraft_forward_names[name_index] << "_PeriapseRadius_Scaled' " << spacecraft_forward_names[name_index] << "_PeriapseRadius_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << ".RadPer / " << missionbodies[body_index].minimum_safe_flyby_altitude << endl;
-				GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_PeriapseRadius_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_PeriapseRadius_Scaled >= 1)" << endl;
-				GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_RdotV_Scaled' " << spacecraft_forward_names[name_index] << "_RdotV_Scaled = (" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X * " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX + " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y * " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY + " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z * " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ + " << sqrt(2 * missionbodies[body_index].mu * missionbodies[body_index].radius) << ") / " << 2 * sqrt(2 * missionbodies[body_index].mu * missionbodies[body_index].radius) << endl;
-				GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_RdotV_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_RdotV_Scaled = 0.5);" << endl;
-				GMATfile << endl;
-			}
-			//increment our spacecraft name and body indices
-			name_index++;
-			body_index++;
-		}
-	}
-
-	//reset spacecraft name index to zero
-	name_index = 0;
-	body_index = 0;
-
-	//vary the initial states of s/c
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			//vary all forward s/c
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " vary forward s/c scaled states" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_X_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_X_Scaled = " << spacecraft_forward_names[name_index] << "_X_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_Y_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_Y_Scaled = " << spacecraft_forward_names[name_index] << "_Y_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_Z_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_Z_Scaled = " << spacecraft_forward_names[name_index] << "_Z_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_VX_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VX_Scaled = " << spacecraft_forward_names[name_index] << "_VX_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_VY_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VY_Scaled = " << spacecraft_forward_names[name_index] << "_VY_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'Vary" << spacecraft_forward_names[name_index] << "_VZ_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VZ_Scaled = " << spacecraft_forward_names[name_index] << "_VZ_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << "	Vary 'VaryFuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled' NLPObject(FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled = FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-			GMATfile << endl;
-			name_index++;
-		}
-	}
-	//vary last s/c state for mission (backward from last body)
-	GMATfile << "	%Journey #" << this->ptr_gmatmission->options.number_of_journeys << ", Phase #" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << " vary backward s/c scaled states" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_X_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_X_Scaled = " << spacecraft_backward_names[name_index - 1] << "_X_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_Y_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_Y_Scaled = " << spacecraft_backward_names[name_index - 1] << "_Y_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_Z_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_Z_Scaled = " << spacecraft_backward_names[name_index - 1] << "_Z_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_VX_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_VX_Scaled = " << spacecraft_backward_names[name_index - 1] << "_VX_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_VY_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_VY_Scaled = " << spacecraft_backward_names[name_index - 1] << "_VY_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'Vary" << spacecraft_backward_names[name_index - 1] << "_VZ_Scaled' NLPObject(" << spacecraft_backward_names[name_index - 1] << "_VZ_Scaled = " << spacecraft_backward_names[name_index - 1] << "_VZ_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	Vary 'VaryFuelMass_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward_Scaled' NLPObject(FuelMass_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward_Scaled = FuelMass_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward_Scaled, {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-	GMATfile << "	'CalcFinalMass_Scaled' FinalMass_Scaled = FuelMass_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward_Scaled" << endl;
-	GMATfile << endl;
-
-	//reset spacecraft name index to zero
-	name_index = 0;
-
-	//now we must define states to their unscaled values
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " set forward s/c unscaled states" << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X = " << spacecraft_forward_names[name_index] << "_X_Scaled * " << (Forward_Flyby_Distance_UpperBound[p] - Forward_Flyby_Distance_LowerBound[p]) << " + " << Forward_Flyby_Distance_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y = " << spacecraft_forward_names[name_index] << "_Y_Scaled * " << (Forward_Flyby_Distance_UpperBound[p] - Forward_Flyby_Distance_LowerBound[p]) << " + " << Forward_Flyby_Distance_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z = " << spacecraft_forward_names[name_index] << "_Z_Scaled * " << (Forward_Flyby_Distance_UpperBound[p] - Forward_Flyby_Distance_LowerBound[p]) << " + " << Forward_Flyby_Distance_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << spacecraft_forward_names[name_index] << "_VX_Scaled * " << (Forward_Flyby_Velocity_UpperBound[p] - Forward_Flyby_Velocity_LowerBound[p]) << " + " << Forward_Flyby_Velocity_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << spacecraft_forward_names[name_index] << "_VY_Scaled * " << (Forward_Flyby_Velocity_UpperBound[p] - Forward_Flyby_Velocity_LowerBound[p]) << " + " << Forward_Flyby_Velocity_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ' " << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << spacecraft_forward_names[name_index] << "_VZ_Scaled * " << (Forward_Flyby_Velocity_UpperBound[p] - Forward_Flyby_Velocity_LowerBound[p]) << " + " << Forward_Flyby_Velocity_LowerBound[p] << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Forward.FuelMass' " << spacecraft_forward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Forward.FuelMass = FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled * " << (this->ptr_gmatmission->options.maximum_mass) << endl;
-			GMATfile << endl;
-
-			//match forward and backward s/c states and epochs		
-			if (name_index < (spacecraft_forward_names.size() - 1))
-			{
-				if (p < this->ptr_gmatmission->journeys[j].number_of_phases - 1)
-				{
-					//match only odd phase backward s/c == subsequent even phase forward s/c
-					GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " match forward and backward s/c unscaled states and epochs" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.X;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ' " << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ = " << spacecraft_forward_names[name_index + 1] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ;" << endl;
-					GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian' " << spacecraft_backward_names[name_index] << ".Epoch.TAIModJulian = " << spacecraft_forward_names[name_index + 1] << ".Epoch.TAIModJulian;" << endl;
-					if (p < this->ptr_gmatmission->journeys[j].number_of_phases - 1)
-					{
-						GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Backward.FuelMass' " << spacecraft_backward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Backward.FuelMass = " << spacecraft_forward_names[name_index + 1] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 2 << "Forward.FuelMass" << endl;
-					}
-					else
-					{
-						GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Backward.FuelMass' " << spacecraft_backward_names[name_index] << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << "Backward.FuelMass = " << spacecraft_forward_names[name_index + 1] << ".FuelTank_Journey" << j + 2 << "Phase" << 1 << "Forward.FuelMass" << endl;
-					}
-					GMATfile << endl;
-				}
-			}
-			name_index++;
-			body_index++;
-		}//end of phase for-statement
-	}//end of journey for-statement
-
-	//set last backward states to unscaled values
-	GMATfile << "	%Journey #" << this->ptr_gmatmission->options.number_of_journeys << ", Phase #" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << " set backward s/c unscaled states" << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.X' "  << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.X = "  << spacecraft_backward_names[name_index - 1] << "_X_Scaled * "  << (Backward_Flyby_Distance_UpperBound.back() - Backward_Flyby_Distance_LowerBound.back()) << " + " << Backward_Flyby_Distance_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.Y' "  << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.Y = "  << spacecraft_backward_names[name_index - 1] << "_Y_Scaled * "  << (Backward_Flyby_Distance_UpperBound.back() - Backward_Flyby_Distance_LowerBound.back()) << " + " << Backward_Flyby_Distance_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.Z' "  << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.Z = "  << spacecraft_backward_names[name_index - 1] << "_Z_Scaled * "  << (Backward_Flyby_Distance_UpperBound.back() - Backward_Flyby_Distance_LowerBound.back()) << " + " << Backward_Flyby_Distance_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VX' " << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << spacecraft_backward_names[name_index - 1] << "_VX_Scaled * " << (Backward_Flyby_Velocity_UpperBound.back() - Backward_Flyby_Velocity_LowerBound.back()) << " + " << Backward_Flyby_Velocity_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VY' " << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << spacecraft_backward_names[name_index - 1] << "_VY_Scaled * " << (Backward_Flyby_Velocity_UpperBound.back() - Backward_Flyby_Velocity_LowerBound.back()) << " + " << Backward_Flyby_Velocity_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VZ' " << spacecraft_backward_names[name_index - 1] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << spacecraft_backward_names[name_index - 1] << "_VZ_Scaled * " << (Backward_Flyby_Velocity_UpperBound.back() - Backward_Flyby_Velocity_LowerBound.back()) << " + " << Backward_Flyby_Velocity_LowerBound.back() << endl;
-	GMATfile << "	'Calc" << spacecraft_backward_names[name_index - 1] << ".FuelTank_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward.FuelMass' " << spacecraft_backward_names[name_index - 1] << ".FuelTank_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward.FuelMass = FuelMass_Journey" << this->ptr_gmatmission->options.number_of_journeys << "Phase" << this->ptr_gmatmission->journeys[this->ptr_gmatmission->options.number_of_journeys - 1].number_of_phases << "Backward_Scaled * " << (this->ptr_gmatmission->options.maximum_mass) << endl;
-	GMATfile << endl;
-	GMATfile << endl;
-
-}// end of write_GMAT_initialboundaryconditions() method
-
-
-// method to create the mission propagation lines
-void gmatscripter::write_GMAT_missionpropagate(){
-
-	//declarations
-	int name_index = 0;
-	int body_index = 0;
-	double elapsed_secs;
-
-	GMATfile << "	%-------------------------------------------------------------------------" << endl;
-	GMATfile << "	%---------- Propagation" << endl;
-	GMATfile << "	%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			//declarations
-			double periapse_velocity_magnitude;
-			math::Matrix<double> Vinf_out(3, 1), Vinf_in(3, 1);
-			double delta_t;
-			double boundary_state[6];
-			int index_delta_t;
-
-			//declare thrust unit vector bounds to scale between 0 and 1
-			double ThrustUnitVector_lowerbounds = -1;
-			double ThrustUnitVector_upperbounds =  1;
-
-			//GMAT PenUp()
-			this->aux_GMAT_penUp(); GMATfile << endl;
-
-			//propagate forward s/c using finite burns (must scale unit vectors to between 0 and 1)
-			for (int step = 0; step < (this->ptr_gmatmission->options.num_timesteps / 2); ++step)
-			{
-				//header
-				GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << ", Time Step #" << step + 1 << ", Forward Propagation";
-				GMATfile << endl;
-				//vary thrust vector for each step
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				//calculate the thrust unit vector magnitude of the step
-				GMATfile << "	'CalcThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << 
-							"' ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = sqrt(" <<
-							"(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2 + " << 
-						    "(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2 + " << 
-							"(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2);"  << endl;
-				//create a nonlinear constraint for the thrust unit vector magnitude
-				GMATfile << "	NonlinearConstraint 'ConstraintThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)' NLPObject(ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) <= 1)" << endl;
-				//assign thrust unit directions to thruster
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection1' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection1 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection2' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection2 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection3' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.ThrustDirection3 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				//assign value to thrust coefficient
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.C1' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.C1 = ThrusterMaxThrust * ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-
-				//locate the position of the bodies at beginning and end of phase
-				missionbodies[body_index].locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-				GMATDebug << "j" << j << "p" << p << "s" << step << " ";
-				//calculate time spent in SOI of body and during which timestep the boundary occurs
-				for (int k = 0; k < 3; ++k)
-				{
-					//calculate the vinf_out vector
-					Vinf_out(k) = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[k + 3] - boundary_state[k + 3];
-					GMATDebug << "  |  Vinf_out(" << k << "): " << Vinf_out(k);
-				}
-
-				//velocity magnitude at the periapse
-				periapse_velocity_magnitude = sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + Vinf_out.dot(Vinf_out));
-				GMATDebug << "  |  velocity at periapse: " << periapse_velocity_magnitude;
-				//delta time in (days)
-				delta_t = (missionbodies[body_index].r_SOI / periapse_velocity_magnitude) / 86400;
-				GMATDebug << "  |  delta time: " << delta_t;
-				//the step index at which the spacecraft will leave the SOI
-				index_delta_t = floor(delta_t / (this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps));
-				GMATDebug << "  |  step index: " << index_delta_t;
-
-				//report things for debugging
-				this->write_GMAT_report(j, p, step, spacecraft_forward_names[name_index], missionbodies[0].central_body_name, true, true, true);
-				for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++){
-					this->write_GMAT_report(j, p, step, spacecraft_forward_names[name_index], missionbodies_unique[body_index].name, true, true, false);
-				}
-
-				//GMAT BeginFiniteBurn()
-				//this->aux_GMAT_beginburn(j, p, step, spacecraft_forward_names[name_index], "Forward");
-				//GMAT PenDown()
-				this->aux_GMAT_penDown();
-
-				//check if inside SOI
-				//TODO:: remove second part of if-statement after fixing arrival/departures
-				if ((step < index_delta_t) && (p != 0))
-				{
-					GMATDebug << "  |  if()" << endl;
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps;
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_forward_names[name_index], "Forward", missionbodies[body_index].name, elapsed_secs);
-				}
-				//check if it leaves SOI during time step  
-				else if ((step == index_delta_t) && (p != 0))
-				{
-					GMATDebug << "  |  else if()" << endl;
-					//if so, propagate only until outside estimated SOI of body
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = delta_t - (this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps) * index_delta_t;
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_forward_names[name_index], "Forward", missionbodies[body_index].name, elapsed_secs);
-
-					//then propagate the rest of the timestep
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = (this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps) * (index_delta_t + 1) - delta_t;
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_forward_names[name_index], "Forward", missionbodies[0].central_body_name, elapsed_secs);
-				}
-				//otherwise propagate the full timestep
-				else
-				{
-					GMATDebug << "  |  else()" << endl;
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps;
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_forward_names[name_index], "Forward", missionbodies[0].central_body_name, elapsed_secs);
-				}
-
-				//GMAT EndFiniteBurn()
-				//aux_GMAT_endburn(j, p, step, spacecraft_forward_names[name_index], "Forward");
-
-				//report things for debugging
-				this->write_GMAT_report(j, p, step, spacecraft_forward_names[name_index], missionbodies[0].central_body_name, true, false, false);
-				for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++){
-					this->write_GMAT_report(j, p, step, spacecraft_forward_names[name_index], missionbodies_unique[body_index].name, true, false, false);
-				}
-
-				//GMAT PenUp()
-				this->aux_GMAT_penUp(); GMATfile << endl;
-			}
-
-
-			//propagate backward s/c using finite burns (must scale unit vectors to between 0 and 1)
-			for (int step = this->ptr_gmatmission->options.num_timesteps - 1; (step >= this->ptr_gmatmission->options.num_timesteps / 2); --step)
-			{
-				GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << ", Time Step #" << step + 1 << ", Backward Propagation";
-				GMATfile << endl;
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				GMATfile << "	Vary 'VaryThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3)' NLPObject(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) = ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3), {Perturbation = 0.00001,  Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-				GMATfile << "	'CalcThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "Step" << step + 1 << "' ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = sqrt((ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)* " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2 + " << "(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2 + " << "(ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") ^ 2);" << endl;
-
-				//assign thrust unit directions to thruster
-				GMATfile << "	NonlinearConstraint 'ConstraintThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)' NLPObject(ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) <= 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection1' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection1 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection2' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection2 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection3' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.ThrustDirection3 = (ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) * " << (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << " + " << ThrustUnitVector_lowerbounds << ") / ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-				GMATfile << "	'CalcThruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.C1' Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.C1 = ThrusterMaxThrust * ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)" << endl;
-
-				//begin propagation of finite burn
-
-				//locate the position of the bodies at beginning and end of phase
-				missionbodies[body_index + 1].locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-				//calculate time spent in SOI of body and during which timestep the boundary occurs
-				for (int k = 0; k < 3; ++k)
-				{
-					Vinf_in(k) = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[k + 3] - boundary_state[k + 3];
-				}
-				periapse_velocity_magnitude = sqrt(2 * missionbodies[body_index + 1].mu / (missionbodies[body_index + 1].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + Vinf_in.dot(Vinf_in));
-				delta_t = (missionbodies[body_index + 1].r_SOI / periapse_velocity_magnitude) / 86400;
-				index_delta_t = (this->ptr_gmatmission->options.num_timesteps - 1) - floor(delta_t / (this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps));
-
-				//report things for debugging
-				this->write_GMAT_report(j, p, step, spacecraft_backward_names[name_index], missionbodies[0].central_body_name, false, true, true);
-				for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++){
-					this->write_GMAT_report(j, p, step, spacecraft_backward_names[name_index], missionbodies_unique[body_index].name, false, true, false);
-				}
-
-				//GMAT BeginFiniteBurn()
-				//this->aux_GMAT_beginburn(j, p, step, spacecraft_backward_names[name_index], "Backward");
-				//GMAT PenDown()
-				this->aux_GMAT_penDown();
-
-				//check if inside SOI
-				//TODO:: remove second part of if-statement after fixing arrival/departures
-				if ((step > index_delta_t) && (p != this->ptr_gmatmission->options.number_of_phases[j] - 1))
-				{
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = -this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps;
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_backward_names[name_index], "Backward", missionbodies[body_index + 1].name, elapsed_secs);
-				}
-
-				//check if it leaves SOI during time step  
-				else if ((step == index_delta_t) && (p != this->ptr_gmatmission->options.number_of_phases[j] - 1))
-				{
-					//is so, propagate only until outside estimated SOI of body
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = -(delta_t - (this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps) * ((this->ptr_gmatmission->options.num_timesteps - 1) - index_delta_t));
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_backward_names[name_index], "Backward", missionbodies[body_index + 1].name, elapsed_secs);
-
-					//then propagate the rest of the timestep
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = -((this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps) * (this->ptr_gmatmission->options.num_timesteps - index_delta_t) - delta_t);
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_backward_names[name_index], "Backward", missionbodies[0].central_body_name, elapsed_secs);
-				}
-
-				//otherwise propagate the full timestep
-				else
-				{
-					//calculate elapsed time for propagation and then propagate
-					elapsed_secs = -(this->ptr_gmatmission->journeys[j].phases[p].TOF / this->ptr_gmatmission->options.num_timesteps);
-					//this->aux_GMAT_propagate(j, p, step, spacecraft_backward_names[name_index], "Backward", missionbodies[0].central_body_name, elapsed_secs);
-				}
-
-				//GMAT EndFiniteBurn()
-				//aux_GMAT_endburn(j, p, step, spacecraft_backward_names[name_index], "Backward");
-
-				//report things for debugging
-				this->write_GMAT_report(j, p, step, spacecraft_backward_names[name_index], missionbodies[0].central_body_name, false, false, false);
-				for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++){
-					this->write_GMAT_report(j, p, step, spacecraft_backward_names[name_index], missionbodies_unique[body_index].name, false, false, false);
-				}
-
-				//GMAT PenUp()
-				this->aux_GMAT_penUp(); GMATfile << endl;
-			}
-			name_index++;
-			body_index++;
-
-			this->aux_GMAT_penDown();
-			
-		}// end of phase for-statement
-	}// end of journey for-statement
-	GMATfile << endl;
-	GMATfile << endl;
-
-}// end of write_GMAT_missionpropagate() method
-
-
-// method to create the final boundary conditions for the mission sequence
-void gmatscripter::write_GMAT_finalboundaryconditions(){
-
-	//declarations
-	int name_index = 0;
-	int body_index = 0;
-
-	//apply all boundary constraints at match points
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Final Boundary Constraints" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-
-	//for each journey
-	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	{
-		//for each phase
-		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-		{
-			//scale final forward states for constraints
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Forward, scale final states for constraints" << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_X_Scaled' " << spacecraft_forward_names[name_index] << "_X_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.X / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_Y_Scaled' " << spacecraft_forward_names[name_index] << "_Y_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.Y / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_Z_Scaled' " << spacecraft_forward_names[name_index] << "_Z_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.Z / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_VX_Scaled' " << spacecraft_forward_names[name_index] << "_VX_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VX / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_VY_Scaled' " << spacecraft_forward_names[name_index] << "_VY_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VY / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << "	'Calc" << spacecraft_forward_names[name_index] << "_VZ_Scaled' " << spacecraft_forward_names[name_index] << "_VZ_Scaled = " << spacecraft_forward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VZ / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << endl;
-
-			//scale final backward states for constraints
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Backward, scale final states for constraints" << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_X_Scaled' " << spacecraft_backward_names[name_index] << "_X_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.X / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_Y_Scaled' " << spacecraft_backward_names[name_index] << "_Y_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.Y / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_Z_Scaled' " << spacecraft_backward_names[name_index] << "_Z_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.Z / " << this->ptr_gmatmission->TheUniverse[j].LU << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_VX_Scaled' " << spacecraft_backward_names[name_index] << "_VX_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VX / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_VY_Scaled' " << spacecraft_backward_names[name_index] << "_VY_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VY / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << "	'Calc" << spacecraft_backward_names[name_index] << "_VZ_Scaled' " << spacecraft_backward_names[name_index] << "_VZ_Scaled = " << spacecraft_backward_names[name_index] << "." << missionbodies[0].central_body_name << "J2000Eq.VZ / " << this->ptr_gmatmission->TheUniverse[j].LU << " * " << this->ptr_gmatmission->TheUniverse[j].TU << endl;
-			GMATfile << endl;
-
-			//apply match point constraints
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Backward, apply match point constraints" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_X_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_X_Scaled = " << spacecraft_backward_names[name_index] << "_X_Scaled)" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_Y_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_Y_Scaled = " << spacecraft_backward_names[name_index] << "_Y_Scaled)" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_Z_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_Z_Scaled = " << spacecraft_backward_names[name_index] << "_Z_Scaled)" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_VX_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VX_Scaled = " << spacecraft_backward_names[name_index] << "_VX_Scaled)" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_VY_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VY_Scaled = " << spacecraft_backward_names[name_index] << "_VY_Scaled)" << endl;
-			GMATfile << "	NonlinearConstraint 'Constraint" << spacecraft_forward_names[name_index] << "_VZ_Scaled' NLPObject(" << spacecraft_forward_names[name_index] << "_VZ_Scaled = " << spacecraft_backward_names[name_index] << "_VZ_Scaled)" << endl;
-			GMATfile << endl;
-
-			//apply fuel mass constraints
-			GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " apply fuel mass constraint at match point" << endl;
-			GMATfile << "	'CalcFuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled' FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled = " << spacecraft_forward_names[name_index] << ".TotalMass / " << (2 * this->ptr_gmatmission->options.maximum_mass) << endl;
-			GMATfile << "	'CalcFuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Backward_Scaled' FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Backward_Scaled = " << spacecraft_forward_names[name_index] << ".TotalMass / " << (2 * this->ptr_gmatmission->options.maximum_mass) << endl;
-			GMATfile << "	NonlinearConstraint 'ConstraintFuelMass_Journey" << j + 1 << "Phase" << p + 1 << "' NLPObject(FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled = FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Backward_Scaled)" << endl;
-			GMATfile << endl;
-			GMATfile << endl;
-			
-			//increment
-			name_index++;
-			body_index++;
-		}//end of phase for-statement
-	}//end of journey for-statement
-
-}//end of write_GMAT_finalboundaryconditions() method
-
-
-// method to create the objective function
-void gmatscripter::write_GMAT_objectivefunction(){
-
-	//declarations
-	int TotalNumberTimeSteps = 0;
-
-	//optimize the user-defined objective function
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Objective Function" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-
-	switch (this->ptr_gmatmission->options.objective_type)
-	{
-	case 0: // minimize delta-V
-		GMATfile << "	%Objective function is to minimize delta-V" << endl;
-		GMATfile << "	'CalcObjectiveFunction' ObjectiveFunction = (0";
-		for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-		{
-			for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-			{
-				for (int step = 0; step < this->ptr_gmatmission->options.num_timesteps; ++step)
-				{
-					GMATfile << " + ThrustUnitVectorMag_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1)";
-					++TotalNumberTimeSteps;
-				}
-			}
-		}
-		GMATfile << ") / " << TotalNumberTimeSteps << endl;
-		break;
-	case 1: //minimize time
-		GMATfile << "	%Objective function is to minimize time" << endl;
-		GMATfile << "	'CalcObjectiveFunction' ObjectiveFunction = (FinalEpoch - LaunchEpoch_Scaled * " << (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << " + " << LaunchDate_LowerBounds << ") / " << this->ptr_gmatmission->options.total_flight_time_bounds[1] << endl;
-		break;
-	case 2: //maximize final mass
-		GMATfile << "	%Objective function is to maximize final mass" << endl;
-		GMATfile << "	'CalcObjectiveFunction' ObjectiveFunction = -FinalMass_Scaled" << endl;
-		break;
-	case 3: //GTOC 1 asteroid deflection function
-		break;
-	case 4: //launch as late as possible in window
-		break;
-	case 5: //launch as early as possible in window
-		break;
-	case 6: //maximize orbit energy
-		break;
-	case 7: //minimize launch mass
-		break;
-	case 8: //arrive as early as possible
-		break;
-	case 9: //arrive as late as possible
-		break;
-	case 10: //minimum propellant
-		break;
-	}
-
-	//currently vf13 does not like to obey set bounds if an objective function is given
-	GMATfile << "	%Minimize objective function" << endl;
-	GMATfile << "	%Minimize NLPObject(ObjectiveFunction)" << endl;
-	GMATfile << endl;
-	GMATfile << "EndOptimize" << endl;
-
-}// end of write_GMAT_objectivefunction() method
 
 
 // method to report results for debugging
-void gmatscripter::write_GMAT_report(int j, int p, int s, string spacecraft_name, string body_name, 
-									 bool isforwardspacecraft, bool isbeforemaneuver, bool writecontrolhistory){
+void gmatscripter::write_GMAT_report(class gmatstep& agmatstep, bool isbeforemaneuver, bool writecontrolhistory){
 
 	// declaration
-	string prefix;
+	int body_index;
 	string tempString;
 	stringstream tempStringStream;
 
-	// prefix to be added if Forward or Backward Spacecraft
-	if (isforwardspacecraft) { prefix = "Forward";}
-	else { prefix = "Backward"; }
+	if (agmatstep.myspacecraft->isForward) { body_index = 0; }
+	else { body_index = 1; }
 
 	// prefix to be added if before a finite burn maneuver
 	if (isbeforemaneuver) { 
-		tempStringStream << "tempString_j" << j << "p" << p << "s" << s << "_tminus ";
+		tempStringStream << "tempString_" << agmatstep.id << "_tminus ";
 		tempString = tempStringStream.str();
 	}
 	else {
-		tempStringStream << "tempString_j" << j << "p" << p << "s" << s << "_tplus ";
+		tempStringStream << "tempString_" << agmatstep.id << "_tplus ";
 		tempString = tempStringStream.str();
 	}
 
 	// write the spacecraft controls
 	if (writecontrolhistory) {
 		GMATfile << "	Report 'Report_SpacecraftControl' Report_SpacecraftControl " << tempString;
-		GMATfile << spacecraft_name << ".Thruster_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".ThrustDirection1 ";
-		GMATfile << spacecraft_name << ".Thruster_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".ThrustDirection2 ";
-		GMATfile << spacecraft_name << ".Thruster_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".ThrustDirection3 ";
-		GMATfile << spacecraft_name << ".Thruster_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".C1" << endl;
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection1 ";
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection2 ";
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection3 ";
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".C1" << endl;
 	}
 	// write the spacecraft states in the central body frame
-	GMATfile << "	Report 'Report_SpacecraftState' Report_Spacecraft_" << body_name << "_States " << tempString;
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.X ";
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.Y ";
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.Z ";
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.VX ";
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.VY ";
-	GMATfile << spacecraft_name << "." << body_name << "J2000Eq.VZ ";
-	GMATfile << spacecraft_name << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".FuelMass;" << endl;
-	//GMATfile << "	Report 'Report_SpacecraftState' Report_SpacecraftState " << tempString;
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.X ";
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.Y ";
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.Z ";
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.VX ";
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.VY ";
-	//GMATfile << spacecraft_name << "." << missionbodies[0].central_body_name << "J2000Eq.VZ ";
-	//GMATfile << spacecraft_name << ".FuelTank_Journey" << j + 1 << "Phase" << p + 1 << prefix << ".FuelMass;" << endl;
-	// write the spacecraft states in the unique body frames
-	//for (int body_index = 0; body_index < missionbodies_unique.size(); body_index++) {
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.X ";
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.Y ";
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.Z ";
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.VX ";
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.VY ";
-	//	GMATfile << spacecraft_name << "." << missionbodies_unique[body_index].name << "J2000Eq.VZ ";
-	//}
-	
+	GMATfile << "	Report 'Report_SpacecraftState' Report_Spacecraft_" << agmatstep.myphase->mybodies[body_index].name << "_States " << tempString;
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".X ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".Y ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".Z ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".VX ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".VY ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->CoordinateSystem << ".VZ ";
+	GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Tank.Name << ".FuelMass;" << endl;
 
-}
-
-
-// method to populate an array of type double that holds x,y,z thrust vector information
-void gmatscripter::aux_GMAT_populate_thrustvector(int j, int p, int s, vector <double>& x, double lower_bound, double upper_bound) {
-	for (int index = 0; index < 3; ++index) {
-		x.push_back((this->ptr_gmatmission->journeys[j].phases[p].control[s][index] - lower_bound) / (upper_bound - lower_bound));
-	}
 }
 
 
@@ -3521,70 +1611,47 @@ void gmatscripter::aux_GMAT_nonlinearconstraint(string object2constrain, string 
 // method to write a GMAT BeginFiniteBurn Command
 void gmatscripter::aux_GMAT_beginburn(string finiteburnobject, string spacecraft_name){
 	GMATfile << "	BeginFiniteBurn 'BeginFiniteBurn " << finiteburnobject << "' " << finiteburnobject << "( " << spacecraft_name << " )" << endl;
-	//previous aux_GMAT_beginburn resembled the following....
-	//aux_GMAT_endburn(int j, int p, int s, string spacecraft_name, string prefix)
-	//GMATfile << "	EndFiniteBurn 'EndFiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << "Step" << s + 1
-	//	<< prefix << "' FiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << prefix << "(" << spacecraft_name << ");" << endl;
 }
 
 
 // method to write a GMAT EndFiniteBurn Command
 void gmatscripter::aux_GMAT_endburn(string finiteburnobject, string spacecraft_name){
 	GMATfile << "	EndFiniteBurn 'EndFiniteBurn " << finiteburnobject << "' " << finiteburnobject << "( " << spacecraft_name << " )" << endl;
-	//GMATfile << "	EndFiniteBurn 'EndFiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << "Step" << s + 1
-	//	<< prefix << "' FiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << prefix << "(" << spacecraft_name << ");" << endl;
 }
-//void gmatscripter::aux_GMAT_endburn(int j, int p, int s, string spacecraft_name, string prefix){
-//
-//	GMATfile << "	EndFiniteBurn 'EndFiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << "Step" << s + 1 
-//					  << prefix << "' FiniteBurn_Journey" << j + 1 << "Phase" << p + 1 << prefix << "(" << spacecraft_name << ");" << endl;
-//
-//}
 
 
 // method to write a GMAT Propagate Command
-void gmatscripter::aux_GMAT_propagate(string propagatorname, string spacecraft_name, double elapsed_secs){
+void gmatscripter::aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft) {
+	GMATfile << "	Propagate 'Propagate " << spacecraft->Name << "' " << propagatorname << "( " << spacecraft->Name << " ) {" << spacecraft->Name << ".ElapsedSecs = " << 0.0 << "}" << endl;
+}
 
+
+// method to write a GMAT Propagate Command
+void gmatscripter::aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft, double elapsed_secs){
 	//declarations
 	string str;
 
-	if (elapsed_secs < 0.0){ str = "BackProp"; }
-	else { str = ""; }
-
-	if (elapsed_secs == 0.0){
-		GMATfile << "	Propagate 'Propagate " << spacecraft_name << "' " << str << " " << propagatorname << "( " << spacecraft_name << " )" << endl;
+	if (spacecraft->isForward) {
+		if (elapsed_secs < 0.0) { elapsed_secs = -1.0*elapsed_secs; }
+		str = "";
 	}
 	else {
-		GMATfile << "	Propagate 'Propagate " << spacecraft_name << "' " << str << " " << propagatorname << "( " << spacecraft_name << " ) {" << spacecraft_name << ".ElapsedSecs = " << elapsed_secs << "}" << endl;
+		if (elapsed_secs > 0.0) { elapsed_secs = -1.0*elapsed_secs; }
+		str = "BackProp";
 	}
 
+	GMATDebug << " str: " << str << endl;
+	//write out the propagate command line
+	GMATfile << "	Propagate 'Propagate " << spacecraft->Name << "' " << str << " " << propagatorname << "( " << spacecraft->Name << " ) {" << spacecraft->Name << ".ElapsedSecs = " << elapsed_secs << "}" << endl;
 }
-//void gmatscripter::aux_GMAT_propagate(int j, int p, int s, string spacecraft_name, string prefix, string body_name, double elapsed_secs){
-//
-//	//declarations
-//	string str;
-//
-//	if (elapsed_secs < 0.0){ str = "BackProp "; }
-//	else { str = ""; }
-//
-//	if (elapsed_secs == 0.0){
-//		GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << s + 1 << prefix << "' " << str
-//			<< body_name << "Prop(" << spacecraft_name << ");" << endl;
-//	}
-//	else {
-//		GMATfile << "	Propagate 'PropJourney" << j + 1 << "Phase" << p + 1 << "Step" << s + 1 << prefix << "' " << str
-//			<< body_name << "Prop(" << spacecraft_name << ") {" << spacecraft_name << ".ElapsedSecs = " << elapsed_secs << "};" << endl;
-//	}
-//
-//}
 
 
 // method to write a GMAT PenUp Command
 void gmatscripter::aux_GMAT_penUp(){
 
-	GMATfile << "	PenUp 'PenUp' " << missionbodies[0].central_body_name << "View";
-	for (int body_index = 0; body_index < missionbodies.size(); ++body_index) {
-		GMATfile << " " << missionbodies[body_index].name << "View";
+	GMATfile << "	PenUp 'PenUp' " << GMATMission.missionbodies[0].central_body_name << "View";
+	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
+		GMATfile << " " << GMATMission.missionbodies[body_index].name << "View";
 	}
 	GMATfile << ";" << endl;
 
@@ -3594,9 +1661,9 @@ void gmatscripter::aux_GMAT_penUp(){
 // method to write a GMAT PenDown Command
 void gmatscripter::aux_GMAT_penDown(){
 
-	GMATfile << "	PenDown 'PenDown' " << missionbodies[0].central_body_name << "View";
-	for (int body_index = 0; body_index < missionbodies.size(); ++body_index) {
-		GMATfile << " " << missionbodies[body_index].name << "View";
+	GMATfile << "	PenDown 'PenDown' " << GMATMission.missionbodies[0].central_body_name << "View";
+	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
+		GMATfile << " " << GMATMission.missionbodies[body_index].name << "View";
 	}
 	GMATfile << ";" << endl;
 
@@ -3604,188 +1671,102 @@ void gmatscripter::aux_GMAT_penDown(){
 
 
 // method to write a GMAT ForceModel Resource
-void gmatscripter::create_GMAT_forcemodel(string forcemodelname, string centralbody, vector <string> pointmasses){
+void gmatscripter::create_GMAT_forcemodel(struct gmat_forcemodel& forcemodel){
 
-	GMATfile << "Create ForceModel " << forcemodelname << endl;
-	GMATfile << forcemodelname << ".CentralBody = " << centralbody << endl;
-	GMATfile << forcemodelname << ".PointMasses = {";
-	for (int item = 0; item < pointmasses.size(); ++item) {
-		if (item == pointmasses.size() - 1) { GMATfile << pointmasses[item]; }
-		else { GMATfile << pointmasses[item] << ", "; }
+	GMATfile << "Create ForceModel " << forcemodel.Name << endl;
+	GMATfile << forcemodel.Name << ".CentralBody = " << forcemodel.CentralBody << endl;
+	GMATfile << forcemodel.Name << ".PointMasses = {";
+	for (int item = 0; item < forcemodel.PointMasses.size(); ++item) {
+		if (item == forcemodel.PointMasses.size() - 1) { GMATfile << forcemodel.PointMasses[item]; }
+		else { GMATfile << forcemodel.PointMasses[item] << ", "; }
 	}
 	GMATfile << "};" << endl;
-	GMATfile << forcemodelname << ".Drag = None;" << endl;
-	GMATfile << forcemodelname << ".SRP = Off;" << endl;
+	GMATfile << forcemodel.Name << ".Drag = None;" << endl;
+	GMATfile << forcemodel.Name << ".SRP = Off;" << endl;
 	GMATfile << endl;
 
 }
-//void gmatscripter::create_GMAT_forcemodel(string forcemodelname, string centralbody, string pointmasses){
-//
-//	GMATfile << "Create ForceModel " << forcemodelname << endl;
-//	GMATfile << forcemodelname << ".CentralBody = " << centralbody << endl;
-//	GMATfile << forcemodelname << ".PointMasses = {" << pointmasses << "};" << endl;
-//	GMATfile << forcemodelname << ".Drag = None;" << endl;
-//	GMATfile << forcemodelname << ".SRP = Off;" << endl;
-//	GMATfile << endl;
-//
-//}
 
 
 // method to write a GMAT Propagator Resource
-void gmatscripter::create_GMAT_propagator(string propagatorname, string forcemodelname, bool isCloseApproach) {
+void gmatscripter::create_GMAT_propagator(struct gmat_propagator& propagator) {
 
 	//declarations
 	double initialstepsize = 60.0;
 	double maxstepsize = 86400.0;
 
-	if (isCloseApproach) {
+	if (propagator.isCloseApproach) {
 		initialstepsize = 30.0;
 		maxstepsize = 8640.0;
 	}
 
-	GMATfile << "Create Propagator " << propagatorname << endl;
-	GMATfile << propagatorname << ".FM = " << forcemodelname << endl;
-	GMATfile << propagatorname << ".Type = PrinceDormand78; " << endl;
-	GMATfile << propagatorname << ".InitialStepSize = " << initialstepsize << endl;
-	GMATfile << propagatorname << ".Accuracy = 1e-11; " << endl;
-	GMATfile << propagatorname << ".MinStep = 0.0; " << endl;
-	GMATfile << propagatorname << ".MaxStep = " << maxstepsize << endl;
+	GMATfile << "Create Propagator " << propagator.Name << endl;
+	GMATfile << propagator.Name << ".FM = " << propagator.ForceModel.Name << endl;
+	GMATfile << propagator.Name << ".Type = PrinceDormand78; " << endl;
+	GMATfile << propagator.Name << ".InitialStepSize = " << initialstepsize << endl;
+	GMATfile << propagator.Name << ".Accuracy = 1e-11; " << endl;
+	GMATfile << propagator.Name << ".MinStep = 0.0; " << endl;
+	GMATfile << propagator.Name << ".MaxStep = " << maxstepsize << endl;
 	GMATfile << endl;
 
 }
 
 
 // method to write a GMAT Spacecraft Resource
-void gmatscripter::create_GMAT_spacecraft(class gmatstep& agmatstep) {
+void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 
 	//write out the spacecraft information
-	GMATfile << "Create Spacecraft " << agmatstep.spacecraft.Name << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".DateFormat = " << agmatstep.spacecraft.DateFormat << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".Epoch = " << agmatstep.spacecraft.Epoch << ";" << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".DryMass = 0" << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".CoordinateSystem = " << agmatstep.spacecraft.CoordinateSystem << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".Tanks = {" << agmatstep.spacecraft.Thrusters[0].Tank.Name << "};" << endl;
-	GMATfile << agmatstep.spacecraft.Name << ".Thrusters = {" << agmatstep.spacecraft.Thrusters[0].Name << "};" << endl;
+	GMATfile << "Create Spacecraft " << spacecraft.Name << endl;
+	GMATfile << spacecraft.Name << ".DateFormat = " << spacecraft.DateFormat << endl;
+	GMATfile << spacecraft.Name << ".Epoch      = " << spacecraft.Epoch << endl;
+	GMATfile << spacecraft.Name << ".DryMass    = " << spacecraft.DryMass << endl;
+	GMATfile << spacecraft.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << endl;
+	GMATfile << spacecraft.Name << ".Tanks     = {" << spacecraft.Thruster.Tank.Name << "}" << endl;
+	GMATfile << spacecraft.Name << ".Thrusters = {" << spacecraft.Thruster.Name << "}" << endl;
 	GMATfile << endl;
 
 }
-//void gmatscripter::create_GMAT_spacecraft(int j, int p, string spacecraftname, string prefix, string thebody_coordinatesystem) {
-//
-//	//declarations
-//	double epoch;
-//	string fueltankname;
-//	string thrustername;
-//	gmat_spacecraft aSpaceCraft;
-//	struct gmat_tank aTank;
-//	struct gmat_thruster aThruster;
-//
-//	//decision branching
-//	if (prefix == "Forward") {
-//		epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000;
-//		fueltankname = fueltank_forward_names[p];
-//		thrustername = thruster_forward_names[p];
-//	}
-//	else if (prefix == "Backward") {
-//		epoch = (this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000;
-//		fueltankname = fueltank_backward_names[p];
-//		thrustername = thruster_backward_names[p];
-//	}
-//
-//	//write out the spacecraft information
-//	GMATfile << "% Journey #" << j << ", Phase #" << p << ", " << prefix << " Propagated Spacecraft" << endl;
-//	GMATfile << "Create Spacecraft " << spacecraftname << endl;
-//	GMATfile << spacecraftname << ".DateFormat = TAIModJulian;" << endl;
-//	GMATfile << spacecraftname << ".Epoch = " << epoch << ";" << endl;
-//	GMATfile << spacecraftname << ".DryMass = 0" << endl;
-//	GMATfile << spacecraftname << ".CoordinateSystem = " << thebody_coordinatesystem << "J2000Eq;" << endl;
-//	GMATfile << spacecraftname << ".Tanks = {" << fueltankname << "};" << endl;
-//	GMATfile << spacecraftname << ".Thrusters = {" << thrustername << "};" << endl;
-//	GMATfile << endl;
-//
-//	//create a tank
-//	aTank.Name = "{ " + fueltankname + " }";
-//	aThruster.Name = "{ " + thrustername + " }";
-//	aThruster.Tank = aTank;
-//	//create and push_back a spacecraft struct type
-//	aSpaceCraft.Name = spacecraftname;
-//	aSpaceCraft.Epoch = epoch;
-//	aSpaceCraft.CoordinateSystem = thebody_coordinatesystem + "J2000Eq";
-//	aSpaceCraft.Tanks.push_back(aTank);
-//	aSpaceCraft.Thrusters.push_back(aThruster);
-//	spacecraft.push_back(aSpaceCraft);
-//
-//}
 
 
 // method to write a GMAT FuelTank Resource
-void gmatscripter::create_GMAT_fueltank(string fueltankname, double mass) {
+void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 
-	GMATfile << "Create FuelTank " << fueltankname << endl;
-	GMATfile << fueltankname << ".AllowNegativeFuelMass = false;" << endl;
-	GMATfile << fueltankname << ".Volume = 10;" << endl;
-	GMATfile << fueltankname << ".FuelMass = " << mass << endl;
+	GMATfile << "Create FuelTank " << spacecraft.Thruster.Tank.Name << endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".AllowNegativeFuelMass = false" << endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".Volume = 10" << endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".FuelMass = " << spacecraft.Thruster.Tank.FuelMass << endl;
 	GMATfile << endl;
 	
 }
-//void gmatscripter::create_GMAT_fueltank(int j, int p, string fueltankname, string prefix) {
-//
-//	GMATfile << "% Journey #" << j << ", Phase #" << p << ", " << prefix << " Spacecraft FuelTank" << endl;
-//	GMATfile << "Create FuelTank " << fueltankname << endl;
-//	GMATfile << fueltankname << ".AllowNegativeFuelMass = false;" << endl;
-//	GMATfile << fueltankname << ".Volume = 10;" << endl;
-//	if (prefix == "Forward") {
-//		GMATfile << fueltankname << ".FuelMass = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6] << endl;
-//	}
-//	else if (prefix == "Backward") {
-//		GMATfile << fueltankname << ".FuelMass = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6] << endl;
-//	}
-//	GMATfile << endl;
-//
-//}
 
 
 // method to write a GMAT Thruster Resource
-void gmatscripter::create_GMAT_thruster(string thrustername, string thebody_coordinatesystem, string fueltankname) {
+void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 
 	//GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << endl;
-	GMATfile << "Create Thruster " << thrustername << endl;
-	GMATfile << thrustername << ".CoordinateSystem = " << thebody_coordinatesystem << "J2000Eq" << endl;
-	GMATfile << thrustername << ".ThrustDirection1 = 1;" << endl;
-	GMATfile << thrustername << ".ThrustDirection2 = 0;" << endl;
-	GMATfile << thrustername << ".ThrustDirection3 = 0;" << endl;
-	GMATfile << thrustername << ".DutyCycle = 1;" << endl;
-	GMATfile << thrustername << ".Tank = " << fueltankname << endl;
-	GMATfile << thrustername << ".ThrustScaleFactor = 1;" << endl;
-	GMATfile << thrustername << ".DecrementMass = true;" << endl;
-	GMATfile << thrustername << ".C1 = .1;" << endl;
-	GMATfile << thrustername << ".K1 = 3000;" << endl;
+	GMATfile << "Create Thruster " << spacecraft.Thruster.Name << endl;
+	GMATfile << spacecraft.Thruster.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection3 = 0;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".DutyCycle = 1;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".C1 = .1;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000;" << endl;
 	GMATfile << endl;
 
 }
-//void gmatscripter::create_GMAT_thruster(int j, int p, string thrustername, string thebody_coordinatesystem, string fueltankname) {
-//
-//	GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << endl;
-//	GMATfile << "Create Thruster " << thrustername << endl;
-//	GMATfile << thrustername << ".CoordinateSystem = " << thebody_coordinatesystem << "J2000Eq" << endl;
-//	GMATfile << thrustername << ".ThrustDirection1 = 1;" << endl;
-//	GMATfile << thrustername << ".ThrustDirection2 = 0;" << endl;
-//	GMATfile << thrustername << ".ThrustDirection3 = 0;" << endl;
-//	GMATfile << thrustername << ".DutyCycle = 1;" << endl;
-//	GMATfile << thrustername << ".Tank = " << fueltankname << endl;
-//	GMATfile << thrustername << ".ThrustScaleFactor = 1;" << endl;
-//	GMATfile << thrustername << ".DecrementMass = true;" << endl;
-//	GMATfile << thrustername << ".C1 = .1;" << endl;
-//	GMATfile << thrustername << ".K1 = 3000;" << endl;
-//	GMATfile << endl;
-//
-//}
 
 
 // method to write a GMAT FiniteBurn Resource
-void gmatscripter::create_GMAT_finiteburn(string finiteburnname, string thrustername) {
+void gmatscripter::create_GMAT_burn(struct gmat_burn& burn) {
 
-	GMATfile << "Create FiniteBurn " << finiteburnname << endl;
-	GMATfile << finiteburnname << ".Thrusters = {" << thrustername << "};" << endl;
+	if (burn.Type == "FiniteBurn") {
+		GMATfile << "Create FiniteBurn " << burn.Name << endl;
+		GMATfile << burn.Name << ".Thrusters = {" << burn.ThrusterName << "};" << endl;
+	}
 
 }
 
@@ -3799,5 +1780,98 @@ void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 	GMATfile << endl;
 
 }
+
+
+// method to write a list of GMAT variables
+void gmatscripter::create_GMAT_variables(vector <vector<string>> variablelist) {
+	
+	for (int i = 0; i < variablelist.size(); ++i) {
+		GMATfile << "Create Variable " << variablelist[i][0] << endl;
+		if (variablelist[i].size() == 2) { GMATfile << variablelist[i][0] << variablelist[i][1] << endl; }
+	}
+
+}
+
+
+void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft) {
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Z  = " << spacecraft.initialconditions[2] << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VX = " << spacecraft.initialconditions[3] << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VY = " << spacecraft.initialconditions[4] << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VZ = " << spacecraft.initialconditions[5] << endl;
+	GMATfile << endl;
+}
+
+
+// -------------------------------------------- //
+// ----- 'gmat' Class() universal methods ----- //
+// -------------------------------------------- //
+
+////method
+//void setVariable(string avariable) {
+//	//declarations
+//	vector <string> tempvector;
+//	tempvector.push_back(avariable);
+//	variables.push_back(tempvector);
+//}
+//
+////method
+//void setVariable(string avariable, string anassignment) {
+//	//declarations
+//	vector <string> tempvector;
+//	tempvector.push_back(avariable);
+//	tempvector.push_back(" = " + anassignment);
+//	variables.push_back(tempvector);
+//}
+
+
+// ------------------------- //
+// ----- 'gmatmission' ----- //
+// ------------------------- //
+
+//constructor
+gmatmission::gmatmission(){}
+
+//constructor
+gmatmission::gmatmission(mission* anemtgmission) {
+	emtgmission = anemtgmission;
+	this->get_mission_bodies();
+	this->setMissionThrustType();
+}
+
+//destructor
+gmatmission::~gmatmission(){}
+
+
+// --------------------------- //
+// ------ 'gmatjourney' ------ //
+// --------------------------- //
+
+//constructor
+gmatjourney::gmatjourney(){}
+
+//constructor
+gmatjourney::gmatjourney(gmatmission* amission, int journey) {
+	mymission = amission;
+	j = journey;
+	id = "j" + std::to_string(journey);
+	number_of_emtg_phases = 1; // mymission->emtgmission->journeys[j].number_of_phases;
+}
+
+//destructor
+gmatjourney::~gmatjourney(){}
+
+
+// ------------------------- //
+// ------ 'gmatphase' ------ //
+// ------------------------- //
+
+//method
+void gmatphase::append_step(gmatstep agmatstep) {
+	if (agmatstep.usePushBack) { mysteps.push_back(agmatstep); }
+	else { mysteps.insert(mysteps.begin() + agmatstep.theInsertIndex, agmatstep); }
+}
+
 
 } // end of EMTG namespace
