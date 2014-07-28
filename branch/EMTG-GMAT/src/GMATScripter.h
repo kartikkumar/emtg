@@ -26,6 +26,7 @@ namespace EMTG {
 
 	//declarations
 	class gmatscripter;
+	class gmatbaseclass;
 	class gmatmission;
 	class gmatjourney;
 	class gmatphase;
@@ -83,9 +84,131 @@ struct gmat_propagator {
 	bool isCloseApproach;
 };
 
+//Class() 'gmatbaseclass'
+class gmatbaseclass {
+
+public:
+	//constructor
+	gmatbaseclass(){};
+
+	//desstructor
+	~gmatbaseclass(){};
+
+	//collection members
+	vector <vector <string>> variables;		//collection of 'variables' (n x (1 or 2))
+	vector <string> vary;					//collection of vary 'variables' to be performed in the optimize sequence.           (n x 1)
+	vector <vector <string>> calculate;		//collection of calculate 'variables' to be performed in the optimize sequence.  n x (3 x 1)
+	vector <vector <string>> constraints;	//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
+
+	//method
+	void setVariable(string avariable) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(avariable);
+		variables.push_back(tempvector);
+	}
+	
+	//method
+	void setVariable(string avariable, string anassignment) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(avariable);
+		tempvector.push_back(" = " + anassignment);
+		variables.push_back(tempvector);
+	}
+
+	//method 
+	void setVariable(string avariable, double anassignment) {
+		//declarations
+		vector <string> tempvector;
+		stringstream tempstream;
+		tempstream.precision(25);
+		tempstream << anassignment;
+		tempvector.push_back(avariable);
+		tempvector.push_back(" = " + tempstream.str());
+		variables.push_back(tempvector);
+	}
+
+	//method
+	void setVary(string avary) {
+		vary.push_back(avary);
+	}
+
+	//method
+	void setCalculate(string lhs_string, string rhs_string) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(lhs_string);
+		tempvector.push_back(lhs_string);
+		tempvector.push_back(rhs_string);
+		calculate.push_back(tempvector);
+	}
+
+	//method
+	void setCalculate(string message, string lhs_string, string rhs_string) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(message);
+		tempvector.push_back(lhs_string);
+		tempvector.push_back(rhs_string);
+		calculate.push_back(tempvector);
+	}
+
+	//method
+	void setConstraint(string lhs, string relation, string rhs) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(lhs);
+		tempvector.push_back(lhs);
+		tempvector.push_back(relation);
+		tempvector.push_back(rhs);
+		constraints.push_back(tempvector);
+	}
+
+	//method
+	void setConstraint(string message, string lhs, string relation, string rhs) {
+		//declarations
+		vector <string> tempvector;
+		tempvector.push_back(message);
+		tempvector.push_back(lhs);
+		tempvector.push_back(relation);
+		tempvector.push_back(rhs);
+		constraints.push_back(tempvector);
+	}
+
+	//method to write a GMAT 'Variable' line
+	void printVariable(std::ofstream& File) {
+		for (int index = 0; index < this->variables.size(); ++index) {
+			File << "Create Variable " << this->variables[index][0] << endl;
+			if (this->variables[index].size() == 2) { File << variables[index][0] << variables[index][1] << endl; }
+		}
+	}
+
+	//method to write a GMAT 'Vary' line
+	void printVary(std::ofstream& File) {
+		for (int index = 0; index < this->vary.size(); ++index) {
+			File << "	" << "Vary 'Vary " << this->vary[index] << "' NLPObject(" << this->vary[index] << " = " << this->vary[index] << ", {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
+		}
+	}
+
+	//method to write a GMAT 'Calculate' line
+	void printCalculate(std::ofstream& File) {
+		for (int index = 0; index < this->calculate.size(); ++index){
+			File << "   " << "'Calculate " << this->calculate[index][0] << "' " << this->calculate[index][1] << " = " << this->calculate[index][2] << endl;
+		}
+	}
+
+	// method to write a GMAT 'NonlinearConstraint' line
+	void printConstraint(std::ofstream& File) {
+		for (int index = 0; index < this->constraints.size(); ++index) {
+			File << "   " << "NonlinearConstraint '" << this->constraints[index][0] << "' NLPObject( " << this->constraints[index][1] << " " << this->constraints[index][2] << " " << this->constraints[index][3] << " )" << endl;
+		}
+	}
+
+};
 
 //Class() 'gmatmission'
-class gmatmission {
+class gmatmission: public EMTG::gmatbaseclass {
 
 public:
 	//constructors
@@ -102,8 +225,6 @@ public:
 	bool isLT;    //bool for whether LT   or Impulsive is being used
 	bool isFBLT;  //bool for whether FBLT or Sims-Flanagan is being used
 	vector <gmatjourney> myjourneys;
-	//variables
-	vector <vector<string>> variables;
 
 	//method
 	void get_mission_bodies() {
@@ -167,28 +288,11 @@ public:
 		}
 	}
 
-	//method
-	void setVariable(string avariable) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		variables.push_back(tempvector);
-	}
-
-	//method
-	void setVariable(string avariable, string anassignment) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		tempvector.push_back(" = " + anassignment);
-		variables.push_back(tempvector);
-	}
-
 };
 
 
 //Class() 'gmatjourney'
-class gmatjourney {
+class gmatjourney: public EMTG::gmatbaseclass {
 
 public:
 	//constructors
@@ -204,31 +308,12 @@ public:
 	string id;
 	int number_of_emtg_phases;
 	vector <gmatphase> myphases;
-	//variables
-	vector <vector<string>> variables;
-
-	//method
-	void setVariable(string avariable) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		variables.push_back(tempvector);
-	}
-
-	//method
-	void setVariable(string avariable, string anassignment) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		tempvector.push_back(" = " + anassignment);
-		variables.push_back(tempvector);
-	}
 
 };
 
 
 //Class() 'gmatphase'
-class gmatphase {
+class gmatphase: public EMTG::gmatbaseclass {
 
 public:
 	//constructors
@@ -257,11 +342,8 @@ public:
 	struct gmat_spacecraft spacecraft_backward;
 	vector <EMTG::Astrodynamics::body> mybodies;
 	bool isFirstPhase = false;
-	bool isLastPhase = false;
+	bool isLastPhase  = false;
 	vector <gmatstep> mysteps;
-	//variables
-	vector <vector<string>> variables;
-
 
 	//method
 	void set_names() {
@@ -289,12 +371,23 @@ public:
 		//backward spacecraft
 		spacecraft_backward.Thruster.Tank.FuelMass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_end_of_phase[6];
 		spacecraft_backward.Epoch = (this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000;
+		//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
+		setVariable(spacecraft_backward.Name + "_FuelLowerBound", 0.0);
+		setVariable(spacecraft_backward.Name + "_FuelWindow", spacecraft_forward.Thruster.Tank.FuelMass);
+		setVariable(spacecraft_backward.Name + "_FuelScaling", spacecraft_backward.Thruster.Tank.FuelMass / spacecraft_forward.Thruster.Tank.FuelMass);
+		setVary(spacecraft_backward.Name + "_FuelScaling");
+		setCalculate(spacecraft_backward.Name + "." + spacecraft_backward.Thruster.Tank.Name + ".FuelMass",
+					 spacecraft_backward.Name + "_FuelScaling * " + spacecraft_backward.Name + "_FuelWindow" + " + " + spacecraft_backward.Name + "_FuelLowerBound");
 	}
 
 	//method
 	void get_my_bodies() {
+		//get the bodies
 		mybodies.push_back(this->myjourney->mymission->missionbodies[p]);
 		mybodies.push_back(this->myjourney->mymission->missionbodies[p + 1]);
+		//set the spacecraft coordinate systems
+		spacecraft_forward.CoordinateSystem = mybodies[0].name + "J2000Eq";
+		spacecraft_backward.CoordinateSystem = mybodies[1].name + "J2000Eq";
 	}
 
 	//method
@@ -366,28 +459,11 @@ public:
 	//method
 	virtual void append_step(gmatstep agmatstep);
 
-	//method
-	void setVariable(string avariable) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		variables.push_back(tempvector);
-	}
-
-	//method
-	void setVariable(string avariable, string anassignment) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		tempvector.push_back(" = " + anassignment);
-		variables.push_back(tempvector);
-	}
-
 };
 
 
 //Class() 'gmatstep'
-class gmatstep {
+class gmatstep: public EMTG::gmatbaseclass {
 
 public:
 	//constructors
@@ -405,7 +481,6 @@ public:
 		this->set_epochs();
 		this->set_r_v_wrt_to_body();
 		this->set_thrust();
-		this->set_zeroPropagate();
 	};
 
 	//destructor
@@ -432,16 +507,7 @@ public:
 	bool isMatchPointStep;
 	bool usePushBack;
 	int theInsertIndex;
-	bool zeroPropagate = false;
-	//variables
-	vector <vector<string>> variables;
-	//collection members
-	vector <string> vary; //collection of vary 'variables' to be performed in the optimize sequence. (n x 1)
-	vector <vector <string>> calculate; //collection of calculate 'variables' to be performed in the optimize sequence. n x (2 x 1)
-	vector <vector <string>> constraints; //collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
-	//temporary variables for DEBUGGING
-	bool flag0 = false;
-	bool flag1 = false;
+	bool zeroPropagate = true;
 
 	//method
 	void find_my_spacecraft() {
@@ -455,52 +521,20 @@ public:
 
 	//method
 	void set_names() {
-		//declaration
-		vector <string> tempvector;
-
-		//create and store my thrust vector GMAT variable name
-		thrustvectornames.push_back("ThrustVector_" + this->id + "_Direction1");
-		thrustvectornames.push_back("ThrustVector_" + this->id + "_Direction2");
-		thrustvectornames.push_back("ThrustVector_" + this->id + "_Direction3");
-		//store my thrust vector name, allowing my to vary during the optimization sequence
-		vary.push_back(thrustvectornames[0]);
-		vary.push_back(thrustvectornames[1]);
-		vary.push_back(thrustvectornames[2]);
+		//store my thrust vector name, allowing it to vary during the optimization sequence
+		this->setVary("ThrustVector_" + this->id + "_Direction1");
+		this->setVary("ThrustVector_" + this->id + "_Direction2");
+		this->setVary("ThrustVector_" + this->id + "_Direction3");
 		//we will need to ensure that the thrust vector remains a unit vector during optimization, therefore 
-		//we introduce a constraint. 
-		//first calculate the thrust vector magnitude, then constrain it
-		tempvector.push_back("ThrustUnitVectorMagnitude_" + this->id);
-		tempvector.push_back("ThrustUnitVectorMagnitude_" + this->id);
-		tempvector.push_back("sqrt(( " + thrustvectornames[0] + " * 2 - 1) ^ 2 + ( " + thrustvectornames[1] + " * 2 - 1) ^ 2 + ( " + thrustvectornames[2] + " * 2 - 1) ^ 2 )");
-		calculate.push_back(tempvector);
-		tempvector.pop_back();
-		tempvector.erase(tempvector.begin());
-		tempvector.push_back("<=");
-		tempvector.push_back("1");
-		constraints.push_back(tempvector);
-		tempvector.clear();
+		//we introduce a constraint. first calculate the thrust vector magnitude, then constrain it
+		this->setCalculate("ThrustUnitVectorMagnitude_" + this->id, "sqrt(( ThrustVector_" + this->id + "_Direction1" + " * 2 - 1) ^ 2 + ( ThrustVector_" + this->id + "_Direction2 * 2 - 1) ^ 2 + ( ThrustVector_" + this->id + "_Direction3 * 2 - 1) ^ 2 )");
+		this->setConstraint("ThrustUnitVectorMagnitude_" + this->id, "<=", "1.0");
 		//use the 'Equation' command (i.e. "calculate") in GMAT to assign the thrust directions
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection1");
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection1");
-		tempvector.push_back("( " + this->thrustvectornames[0] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
-		calculate.push_back(tempvector);
-		tempvector.clear();
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection2");
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection2");
-		tempvector.push_back("( " + this->thrustvectornames[1] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
-		calculate.push_back(tempvector);
-		tempvector.clear();
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection3");
-		tempvector.push_back(myspacecraft->Thruster.Name + ".ThrustDirection3");
-		tempvector.push_back("( " + this->thrustvectornames[2] + " * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
-		calculate.push_back(tempvector);
-		tempvector.clear();
+		this->setCalculate(myspacecraft->Thruster.Name + ".ThrustDirection1", "( ThrustVector_" + this->id + "_Direction1 * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
+		this->setCalculate(myspacecraft->Thruster.Name + ".ThrustDirection2", "( ThrustVector_" + this->id + "_Direction2 * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
+		this->setCalculate(myspacecraft->Thruster.Name + ".ThrustDirection3", "( ThrustVector_" + this->id + "_Direction3 * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
 		//use the 'Equation' command (i.e. "calculate") in GMAT to assign the thrust level
-		tempvector.push_back(myspacecraft->Thruster.Name + ".C1");
-		tempvector.push_back(myspacecraft->Thruster.Name + ".C1");
-		tempvector.push_back("( ThrusterMaxThrust * ThrustUnitVectorMagnitude_" + this->id + " )");
-		calculate.push_back(tempvector);
-		tempvector.clear();
+		this->setCalculate(myspacecraft->Thruster.Name + ".C1", "( ThrusterMaxThrust * ThrustUnitVectorMagnitude_" + this->id + " )");
 	}
 
 	//method
@@ -515,7 +549,6 @@ public:
 		if (gs == 0) { usePushBack = true; }
 		//if this step is the first to use insert() instead of use push_back()
 		else if (this->myphase->mysteps[gs - 1].isMatchPointStep && !this->myphase->mysteps[gs - 1].myspacecraft->isForward) {
-			flag1 = true;
 			usePushBack = false;
 			theInsertIndex = myphase->mysteps.size() - 1;
 		}
@@ -525,7 +558,6 @@ public:
 		//if the switch to using insert() has started, then continue to use insert()
 		if (gs > 1) {
 			if (!this->myphase->mysteps[gs - 2].usePushBack) {
-				flag0 = true;
 				usePushBack = false;
 				theInsertIndex = this->myphase->mysteps[gs - 2].theInsertIndex;
 			}
@@ -663,6 +695,7 @@ public:
 		double lower_bound = -1.0;
 		double upper_bound = 1.0;
 		stringstream tempstream;
+		tempstream.precision(25);
 		//store control history
 		for (int index = 0; index < 3; ++index) {
 			thrustvector.push_back((this->myphase->myjourney->mymission->emtgmission->journeys[j].phases[p].control[s][index] - lower_bound) / (upper_bound - lower_bound));
@@ -692,7 +725,6 @@ public:
 		//based on 'isCloseApproach', my 'p', and whether 'spacecraft.isForward'
 
 		propagator.ForceModel.CentralBody = this->myphase->mybodies[body_index].central_body_name;
-		myspacecraft->CoordinateSystem = this->myphase->mybodies[body_index].name + "J2000Eq";
 		if (amIaCloseApproach) {
 			propagator.ForceModel.PointMasses.push_back(propagator.ForceModel.CentralBody);
 		}
@@ -703,23 +735,7 @@ public:
 	}
 
 	//method
-	void set_zeroPropagate() {
-		//set the first and the second elements to 'true'. we will turn the second to false if a third element exists.
-		if (gs < 2) { zeroPropagate = true; }
-		else if (gs >= 2) {
-			//turn my zeroPropagate to 'true' and turn the last guy's to 'false'
-			zeroPropagate = true;
-			for (int index = 0; index < gs; ++index) {
-				if (myphase->mysteps[index].gs == gs - 1) { myphase->mysteps[index].zeroPropagate = false; }
-			}
-		}
-	}
-
-	//method
 	void reset() {
-		//DEBUGGING
-		flag0 = false;
-		flag1 = false;
 		//clear the names. if reusing the 'gmatstep' object but with a new id this is necessary
 		thrustvectornames.clear();
 		vary.clear();
@@ -736,28 +752,6 @@ public:
 		this->set_epochs();
 		this->set_r_v_wrt_to_body();
 		this->set_thrust();
-		this->set_zeroPropagate();
-	}
-
-	//method
-	//virtual void setVariable(string avariable);
-	//virtual void setVariable(string avariable, string anassignment);
-	
-	//method
-	void setVariable(string avariable) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		variables.push_back(tempvector);
-	}
-
-	//method
-	void setVariable(string avariable, string anassignment) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(avariable);
-		tempvector.push_back(" = " + anassignment);
-		variables.push_back(tempvector);
 	}
 
 	//method
@@ -765,6 +759,16 @@ public:
 		stepsize *= scalar;
 		this->set_epochs();
 		this->set_r_v_wrt_to_body();
+	}
+
+	//method
+	void printBeginBurn(std::ofstream& File) {
+		File << "   " << "Begin" << this->myspacecraft->Burn.Type << " 'Begin" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << endl;
+	}
+
+	//method
+	void printEndBurn(std::ofstream& File) {
+		File << "   " << "End" << this->myspacecraft->Burn.Type << " 'End" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << endl;
 	}
 
 };
@@ -823,24 +827,16 @@ public:
 	virtual void create_GMAT_propagator(struct gmat_propagator& propagator);
 	virtual void create_GMAT_burn(struct gmat_burn& burn);
 	virtual void create_GMAT_coordinatesystem(string bodyname);
-	virtual void create_GMAT_variables(vector <vector<string>> variablelist);
 	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft);
 
 	//GMAT Command Methods
-	virtual void aux_GMAT_beginburn(string finiteburnobject, string spacecraft_name);
-	virtual void aux_GMAT_endburn(string finiteburnobject, string spacecraft_name);
 	virtual void aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft);
 	virtual void aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft, double elapsed_secs);
-	virtual void aux_GMAT_penUp();
-	virtual void aux_GMAT_penDown();
+	virtual void PenUp();
+	virtual void PenDown();
 
 	//reports
 	virtual void write_GMAT_report(class gmatstep& agmatstep, bool isbeforemaneuver, bool writecontrolhistory);
-
-	//General Purpose Methods
-	virtual void aux_GMAT_vary(string object2vary);
-	virtual void aux_GMAT_calculate(string gmatmessagename, string object2calculate, string rhs);
-	virtual void aux_GMAT_nonlinearconstraint(string object2constrain, string relation, string rhs);
 
 	//writeout the GMAT script
 	virtual void write_GMAT_script();

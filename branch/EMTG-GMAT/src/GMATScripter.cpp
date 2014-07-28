@@ -171,6 +171,23 @@ void gmatscripter::create_GMAT_missions() {
 		//Isp
 		GMATMission.setVariable("ThrusterIsp", std::to_string(this->ptr_gmatmission->options.IspChem));
 	}
+	// ------------------------
+	//      VARY CREATION
+	// ------------------------
+	GMATMission.setVary("LaunchWindowScaling");
+
+
+
+	// ----------------------------
+	//      CALCULATE CREATION
+	// ----------------------------
+
+
+
+	// -----------------------------
+	//      CONSTRAINT CREATION
+	// -----------------------------
+
 
 	
 	//this->ptr_gmatmission->options.total_flight_time_bounds;
@@ -231,14 +248,46 @@ void gmatscripter::create_GMAT_phases() {
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].number_of_emtg_phases; ++p) {
 
-			//instantiate a new 'gmatphase'
+			// -----------------------------
+			//         INSTANTIATION
+			// -----------------------------
 			gmatphase agmatphase(&GMATMission.myjourneys[j], p);
 
-			// ---------------------------
-			//      VARIABLE CREATION
-			// ---------------------------
+			// -----------------------------
+			//       VARIABLE CREATION
+			// -----------------------------
 
-			//pushback the 'gmatphase' to the 'gmatjourney' vector
+
+
+			// -----------------------------
+			//         VARY CREATION
+			// -----------------------------
+
+
+
+			// -----------------------------
+			//      CALCULATE CREATION
+			// -----------------------------
+			if (agmatphase.p == 0) {
+				GMATMission.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat,
+										"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
+			}
+
+			// -----------------------------
+			//      CONSTRAINT CREATION
+			// -----------------------------
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " X", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".X", " =", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".X");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Y", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".Y", " =", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".Y");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Z", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".Z", " =", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".Z");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VX", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VX");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VY", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VY");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VZ", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VZ");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Mass", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass");
+
+
+			// -----------------------------
+			//          PUSH_BACK
+			// -----------------------------
 			GMATMission.myjourneys[j].myphases.push_back(agmatphase);
 
 		}//end of phases for-statement
@@ -934,31 +983,33 @@ void gmatscripter::write_GMAT_variables(){
 
 	//write out mission level variables
 	GMATfile << "% --- Mission Level: Arrays, Variables, and Strings" << endl;
-	create_GMAT_variables(GMATMission.variables);
+	GMATMission.printVariable(GMATfile);
 	GMATfile << endl;
 
 	//write out journey level variables
 	GMATfile << "% --- Journey Level: Arrays, Variables, and Strings" << endl;
-	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) { create_GMAT_variables(GMATMission.myjourneys[j].variables); }
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) { GMATMission.myjourneys[j].printVariable(GMATfile); }
 	GMATfile << endl;
 
 	//write out the phase level variables
 	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
-			create_GMAT_variables(GMATMission.myjourneys[j].myphases[p].variables);
+			GMATMission.myjourneys[j].myphases[p].printVariable(GMATfile);
 		}
 	}
+	GMATfile << endl;
 
 	//write out the step level variables
 	GMATfile << "% --- Step Level: Arrays, Variables, and Strings" << endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
-				create_GMAT_variables(GMATMission.myjourneys[j].myphases[p].mysteps[gs].variables);
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printVariable(GMATfile);
 			}	
 		}
 	}
+	GMATfile << endl;
 
 	//write out report variables
 	//create temporary strings to identify time steps during phases
@@ -972,8 +1023,6 @@ void gmatscripter::write_GMAT_variables(){
 			}
 		}
 	}
-
-	//add some vertical whitespace
 	GMATfile << endl;
 	GMATfile << endl;
 
@@ -1442,16 +1491,6 @@ void gmatscripter::write_GMAT_optimization() {
 	GMATfile << endl;
 
 	GMATfile << "Optimize 'OptimizeSequence' NLPObject {SolveMode = Solve, ExitMode = DiscardAndContinue}" << endl;
-
-	// vary launch epoch
-	// WITH 
-	// constraint on launch upper and lower bound
-	GMATfile << "	" << "%Vary Launch Epoch" << endl;
-	this->aux_GMAT_vary("LaunchWindowScaling");
-	//set launch spacecraft epoch
-	this->aux_GMAT_calculate(GMATMission.myjourneys[0].myphases[0].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[0].myphases[0].spacecraft_forward.DateFormat,
-							 GMATMission.myjourneys[0].myphases[0].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[0].myphases[0].spacecraft_forward.DateFormat,
-							"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
 	GMATfile << endl;
 
 	// vary journey waittime(s) for interphase spacecraft
@@ -1465,53 +1504,75 @@ void gmatscripter::write_GMAT_optimization() {
 	//include Constraint(TOF, MatchPoint)
 	//include Active Subscribers(Reports, Figures)
 
-	//write out the vary, calculate, and constraint commands for the optimization sequence
+	//Mission level vary and calculate commands
+	GMATMission.printVary(GMATfile);
+	GMATMission.printCalculate(GMATfile);
+	GMATfile << endl;
+
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		//Journey ID
+		GMATfile << "   " << "% Journey ID: " << GMATMission.myjourneys[j].id << endl;
+		//Jouney level vary and calculate commands
+		GMATMission.myjourneys[j].printVary(GMATfile);
+		GMATMission.myjourneys[j].printCalculate(GMATfile);
+		GMATfile << endl;
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//Phase ID
+			GMATfile << "   " << "% Phase ID: " << GMATMission.myjourneys[j].myphases[p].id << endl;
+			//Phase level vary and calculate commands
+			GMATMission.myjourneys[j].myphases[p].printVary(GMATfile);
+			GMATMission.myjourneys[j].myphases[p].printCalculate(GMATfile);
+			GMATfile << endl;
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				//Step ID
 				GMATfile << "   " << "% Step ID: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << endl;
-				//write out the 'PenUp' command
-				this->aux_GMAT_penUp();
-				//write out the vary commands
-				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].vary.size(); ++subindex) {
-					this->aux_GMAT_vary(GMATMission.myjourneys[j].myphases[p].mysteps[gs].vary[subindex]);
-				}
-				//write out the calculcation commands
-				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate.size(); ++subindex) {
-					this->aux_GMAT_calculate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][0], 
-											 GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][1], 
-											 GMATMission.myjourneys[j].myphases[p].mysteps[gs].calculate[subindex][2]);
-				}
-				//write out the constraint commands
-				for (int subindex = 0; subindex < GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints.size(); ++subindex) {
-					this->aux_GMAT_nonlinearconstraint(GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][0], 
-													   GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][1], 
-													   GMATMission.myjourneys[j].myphases[p].mysteps[gs].constraints[subindex][2]);
-				}
-				//write out the 'BeginFiniteBurn' command
-				this->aux_GMAT_beginburn(GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Burn.Name, 
-										 GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name);
-				//write out the 'Propagate' command with '0.0' secs if the zeroPropagate flag is 'true' for the 'gmatstep'
+				//'PenUp' command
+				PenUp();
+				//Step level vary commands
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printVary(GMATfile);
+				//Step level calculate commands
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printCalculate(GMATfile);
+				//Step level constraint commands
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printConstraint(GMATfile);
+				//'BeginBurn' command
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printBeginBurn(GMATfile);
+				//'Propagate' command with '0.0' secs if the zeroPropagate flag is 'true' for the 'gmatstep'
 				if (GMATMission.myjourneys[j].myphases[p].mysteps[gs].zeroPropagate) {
 					this->aux_GMAT_propagate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name, GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft);
 				}
-				//write out the 'PenDown' command
-				this->aux_GMAT_penDown();
+				//'PenDown' command
+				PenDown();
 				//write out the 'Propagate' command
 				GMATDebug << "spacecraft name: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name << " isForward: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->isForward << endl;
 				GMATDebug << "id: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << " stepsize: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].stepsize << "  zeroPropagate: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].zeroPropagate;
 				this->write_GMAT_report(GMATMission.myjourneys[j].myphases[p].mysteps[gs], true, true);
 				this->aux_GMAT_propagate(GMATMission.myjourneys[j].myphases[p].mysteps[gs].propagator.Name, GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft, GMATMission.myjourneys[j].myphases[p].mysteps[gs].stepsize);
 				this->write_GMAT_report(GMATMission.myjourneys[j].myphases[p].mysteps[gs], false, true);
-				//write out the 'EndFiniteBurn' command
-				this->aux_GMAT_endburn(GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Burn.Name,
-									   GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name);
+				//'EndBurn' command
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printEndBurn(GMATfile);
 				GMATfile << endl;
-				//write out reports
-			}
-		}
-	}
-	
+			}//end of Step level
+			//Phase level constraint commands
+			GMATMission.myjourneys[j].myphases[p].printConstraint(GMATfile);
+			GMATfile << endl;
+		}//end of Phase level
+		//Journey level constraint commands
+		GMATMission.myjourneys[j].printConstraint(GMATfile);
+		GMATfile << endl;
+	}//end of Journey level
+
+	//Mission level constraint commands
+	GMATMission.printConstraint(GMATfile);
+	GMATfile << endl;
+
+
+
+
+
+
+
+
+
 	// if launch or direct departure, can vary launch vector
 	// WITH
 	// constraint on max velocity magnitude
@@ -1590,36 +1651,6 @@ void gmatscripter::write_GMAT_report(class gmatstep& agmatstep, bool isbeforeman
 }
 
 
-// method to write a GMAT 'Vary' line
-void gmatscripter::aux_GMAT_vary(string object2vary) {
-	GMATfile << "	" << "Vary 'Vary " << object2vary << "' NLPObject(" << object2vary << " = " << object2vary << ", {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
-}
-
-
-// method to write a GMAT 'Calculate' line
-void gmatscripter::aux_GMAT_calculate(string gmatmessagename, string object2calculate, string rhs) {
-	GMATfile << "   " << "'Calculate " << gmatmessagename << "' " << object2calculate << " = " << rhs << endl;
-}
-
-
-// method to write a GMAT 'NonlinearConstraint' line
-void gmatscripter::aux_GMAT_nonlinearconstraint(string object2constrain, string relation, string rhs) {
-	GMATfile << "	NonlinearConstraint '" << object2constrain << "' NLPObject( " << object2constrain << " " << relation << " " << rhs << " )" << endl;
-}
-
-
-// method to write a GMAT BeginFiniteBurn Command
-void gmatscripter::aux_GMAT_beginburn(string finiteburnobject, string spacecraft_name){
-	GMATfile << "	BeginFiniteBurn 'BeginFiniteBurn " << finiteburnobject << "' " << finiteburnobject << "( " << spacecraft_name << " )" << endl;
-}
-
-
-// method to write a GMAT EndFiniteBurn Command
-void gmatscripter::aux_GMAT_endburn(string finiteburnobject, string spacecraft_name){
-	GMATfile << "	EndFiniteBurn 'EndFiniteBurn " << finiteburnobject << "' " << finiteburnobject << "( " << spacecraft_name << " )" << endl;
-}
-
-
 // method to write a GMAT Propagate Command
 void gmatscripter::aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft) {
 	GMATfile << "	Propagate 'Propagate " << spacecraft->Name << "' " << propagatorname << "( " << spacecraft->Name << " ) {" << spacecraft->Name << ".ElapsedSecs = " << 0.0 << "}" << endl;
@@ -1647,7 +1678,7 @@ void gmatscripter::aux_GMAT_propagate(string propagatorname, struct gmat_spacecr
 
 
 // method to write a GMAT PenUp Command
-void gmatscripter::aux_GMAT_penUp(){
+void gmatscripter::PenUp(){
 
 	GMATfile << "	PenUp 'PenUp' " << GMATMission.missionbodies[0].central_body_name << "View";
 	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
@@ -1659,7 +1690,7 @@ void gmatscripter::aux_GMAT_penUp(){
 
 
 // method to write a GMAT PenDown Command
-void gmatscripter::aux_GMAT_penDown(){
+void gmatscripter::PenDown(){
 
 	GMATfile << "	PenDown 'PenDown' " << GMATMission.missionbodies[0].central_body_name << "View";
 	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
@@ -1782,17 +1813,6 @@ void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 }
 
 
-// method to write a list of GMAT variables
-void gmatscripter::create_GMAT_variables(vector <vector<string>> variablelist) {
-	
-	for (int i = 0; i < variablelist.size(); ++i) {
-		GMATfile << "Create Variable " << variablelist[i][0] << endl;
-		if (variablelist[i].size() == 2) { GMATfile << variablelist[i][0] << variablelist[i][1] << endl; }
-	}
-
-}
-
-
 void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft) {
 	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << endl;
 	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << endl;
@@ -1802,28 +1822,6 @@ void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecr
 	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VZ = " << spacecraft.initialconditions[5] << endl;
 	GMATfile << endl;
 }
-
-
-// -------------------------------------------- //
-// ----- 'gmat' Class() universal methods ----- //
-// -------------------------------------------- //
-
-////method
-//void setVariable(string avariable) {
-//	//declarations
-//	vector <string> tempvector;
-//	tempvector.push_back(avariable);
-//	variables.push_back(tempvector);
-//}
-//
-////method
-//void setVariable(string avariable, string anassignment) {
-//	//declarations
-//	vector <string> tempvector;
-//	tempvector.push_back(avariable);
-//	tempvector.push_back(" = " + anassignment);
-//	variables.push_back(tempvector);
-//}
 
 
 // ------------------------- //
@@ -1869,8 +1867,20 @@ gmatjourney::~gmatjourney(){}
 
 //method
 void gmatphase::append_step(gmatstep agmatstep) {
+	//push_back or insert the new 'gmatstep'
 	if (agmatstep.usePushBack) { mysteps.push_back(agmatstep); }
 	else { mysteps.insert(mysteps.begin() + agmatstep.theInsertIndex, agmatstep); }
+
+	//set the zeroPropagate member of 'gmatstep' to false if it is not the first or last 'gmatstep' of this 'gmatphase'
+	if (agmatstep.gs > 1) {
+		//if I am at least the third element, then turn the last guy's 'zeroPropagate' to 'false' because
+		//he isn't the last element anymore
+		for (int index = 0; index < this->mysteps.size(); ++index) {
+			if (this->mysteps[index].gs == agmatstep.gs - 1) {
+				this->mysteps[index].zeroPropagate = false;
+			}
+		}
+	}
 }
 
 
