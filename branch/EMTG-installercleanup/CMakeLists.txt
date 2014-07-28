@@ -95,7 +95,7 @@ if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a" AND NOT EXISTS "${CM
 	endif(MSVC)
 
 	execute_process(COMMAND "${CMAKE_SOURCE_DIR}/cspice/${CSPICE_MAKEFILE}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cspice")
-
+	message(FATAL_ERROR "${CMAKE_SOURCE_DIR}/cspice/${CSPICE_MAKEFILE}")
 	if (NOT MSVC) #cspice doesn't label the file correctly when it is done; easier to just rename it
 		message(STATUS "Renaming cspice.a to libcspice.a")
 		file(RENAME "${CMAKE_SOURCE_DIR}/cspice/lib/cspice.a" "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a")
@@ -104,8 +104,8 @@ if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a" AND NOT EXISTS "${CM
 		endif()
 	else()
 		 if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/cspice.lib")
-                        message(FATAL_ERROR "CSpice not built properly for a Unix System.")
-                endif()
+             message(FATAL_ERROR "CSpice not built properly for a Windows System.")
+         endif()
 	endif(NOT MSVC)
 endif()
 
