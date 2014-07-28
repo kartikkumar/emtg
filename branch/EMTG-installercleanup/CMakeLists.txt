@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.4)
 
+#pull in the user-defined configurations
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
+include(EMTG-Config.cmake)
+
 #set(CMAKE_C_COMPILER mpicc)
 #set(CMAKE_CXX_COMPILER mpic++)
 
@@ -116,7 +120,7 @@ link_directories("${CMAKE_SOURCE_DIR}/cspice/lib")
 #----------------------------SNOPT Stuff-------------------------------------
 message(STATUS "Now checking on SNOPT...")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
+
 include(FindSNOPT)
 find_package(SNOPT REQUIRED)
 
