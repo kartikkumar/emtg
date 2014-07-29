@@ -13,21 +13,24 @@ project(EMTG)
 
 
 #-------------do we support C++11?--------------------------------
-message(STATUS "Checking C++11 support...")
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11")
-	message(STATUS "Full support of C++11 found.")
-elseif(COMPILER_SUPPORTS_CXX0X)
-	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x")
-	message(STATUS "Support for C++0x found.")
-else(COMPILER_SUPPORTS_CXX11)
-	add_definitions(-D_STONEAGECplusplus)
-	message(STATUS "Stoneage C++ mode enabled.")
-endif(COMPILER_SUPPORTS_CXX11)
-
+if(NOT (MSVC_VERSION LESS 1600)) #1600 == VS 10 == Visual Studio 2010, this logic is actually >=
+	message(STATUS "Using MSVC 2010+ compiler.  C++11 support is native.")
+else(NOT (MSVC_VERSION LESS 1600))
+	message(STATUS "Checking C++11 support...")
+	include(CheckCXXCompilerFlag)
+	CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+	CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+	if(COMPILER_SUPPORTS_CXX11)
+		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11")
+		message(STATUS "Full support of C++11 found.")
+	elseif(COMPILER_SUPPORTS_CXX0X)
+		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x")
+		message(STATUS "Support for C++0x found.")
+	else(COMPILER_SUPPORTS_CXX11)
+		add_definitions(-D_STONEAGECplusplus)
+		message(STATUS "Stoneage C++ mode enabled.")
+	endif(COMPILER_SUPPORTS_CXX11)
+endif(NOT (MSVC_VERSION LESS 1600))
 
 
 
@@ -99,7 +102,7 @@ if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a" AND NOT EXISTS "${CM
 	endif(MSVC)
 
 	execute_process(COMMAND "${CMAKE_SOURCE_DIR}/cspice/${CSPICE_MAKEFILE}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cspice")
-	message(FATAL_ERROR "${CMAKE_SOURCE_DIR}/cspice/${CSPICE_MAKEFILE}")
+	
 	if (NOT MSVC) #cspice doesn't label the file correctly when it is done; easier to just rename it
 		message(STATUS "Renaming cspice.a to libcspice.a")
 		file(RENAME "${CMAKE_SOURCE_DIR}/cspice/lib/cspice.a" "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a")
@@ -108,7 +111,7 @@ if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a" AND NOT EXISTS "${CM
 		endif()
 	else()
 		 if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/cspice.lib")
-             message(FATAL_ERROR "CSpice not built properly for a Windows System.")
+             message(FATAL_ERROR "CSpice not built properly for a Windows System.  Please run the cspice/makeall.bat from within the Visual Studio Command Line tools and then reconfigure cmake.")
          endif()
 	endif(NOT MSVC)
 endif()
