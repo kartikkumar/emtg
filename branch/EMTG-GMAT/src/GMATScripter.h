@@ -84,6 +84,23 @@ struct gmat_propagator {
 	bool isCloseApproach;
 };
 
+//a struct type for gmat calculate information
+struct gmat_calculate {
+	string message;
+	string lhs;
+	string rhs;
+	bool writeAtTheFront = true;
+};
+
+//a struct type for gmat vary information
+struct gmat_vary {
+	string object2vary;
+	double perturbation;
+	double lowerbound;
+	double upperbound;
+	double maxstep;
+};
+
 //Class() 'gmatbaseclass'
 class gmatbaseclass {
 
@@ -95,26 +112,28 @@ public:
 	~gmatbaseclass(){};
 
 	//collection members
-	vector <vector <string>> variables;		//collection of 'variables' (n x (1 or 2))
-	vector <string> vary;					//collection of vary 'variables' to be performed in the optimize sequence.           (n x 1)
-	vector <vector <string>> calculate;		//collection of calculate 'variables' to be performed in the optimize sequence.  n x (3 x 1)
-	vector <vector <string>> constraints;	//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
+	vector <vector <string>> variables;			//collection of 'variables' (n x (1 or 2))
+	vector <struct gmat_vary> vary;				//collection of vary 'variables' to be performed in the optimize sequence.           
+	vector <struct gmat_calculate> calculate;	//collection of calculate 'variables' to be performed in the optimize sequence.  
+	vector <vector <string>> constraints;		//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
 
 	//method
 	void setVariable(string avariable) {
 		//declarations
 		vector <string> tempvector;
+		//function
 		tempvector.push_back(avariable);
-		variables.push_back(tempvector);
+		this->variables.push_back(tempvector);
 	}
 	
 	//method
 	void setVariable(string avariable, string anassignment) {
 		//declarations
 		vector <string> tempvector;
+		//function
 		tempvector.push_back(avariable);
 		tempvector.push_back(" = " + anassignment);
-		variables.push_back(tempvector);
+		this->variables.push_back(tempvector);
 	}
 
 	//method 
@@ -122,58 +141,88 @@ public:
 		//declarations
 		vector <string> tempvector;
 		stringstream tempstream;
+		//function
 		tempstream.precision(25);
 		tempstream << anassignment;
 		tempvector.push_back(avariable);
 		tempvector.push_back(" = " + tempstream.str());
-		variables.push_back(tempvector);
+		this->variables.push_back(tempvector);
 	}
 
 	//method
-	void setVary(string avary) {
-		vary.push_back(avary);
+	void setVary(string object2vary, double perturbation = 0.00001, double lowerbound = 0.0, double upperbound = 1.0, double maxstep = 0.1) {
+		//declaration
+		struct gmat_vary astruct;
+		//function
+		astruct.object2vary = object2vary;
+		astruct.perturbation = perturbation;
+		astruct.lowerbound = lowerbound;
+		astruct.upperbound = upperbound;
+		astruct.maxstep = maxstep;
+		this->vary.push_back(astruct);
 	}
 
 	//method
-	void setCalculate(string lhs_string, string rhs_string) {
+	void setCalculate(string lhs, string rhs, bool writeAtTheFront = true) {
+		//declarations
+		struct gmat_calculate astruct;
+		//function
+		astruct.message = lhs;
+		astruct.lhs = lhs;
+		astruct.rhs = rhs;
+		astruct.writeAtTheFront = writeAtTheFront;
+		this->calculate.push_back(astruct);
+	}
+
+	//method
+	void setCalculate(string message, string lhs, string rhs, bool writeAtTheFront = true) {
+		//declarations
+		struct gmat_calculate astruct;
+		//function
+		astruct.message = message;
+		astruct.lhs = lhs;
+		astruct.rhs = rhs;
+		astruct.writeAtTheFront = writeAtTheFront;
+		this->calculate.push_back(astruct);
+	}
+
+	//method
+	void setConstraint(string lhs, string relation, double rhs) {
 		//declarations
 		vector <string> tempvector;
-		tempvector.push_back(lhs_string);
-		tempvector.push_back(lhs_string);
-		tempvector.push_back(rhs_string);
-		calculate.push_back(tempvector);
-	}
-
-	//method
-	void setCalculate(string message, string lhs_string, string rhs_string) {
-		//declarations
-		vector <string> tempvector;
-		tempvector.push_back(message);
-		tempvector.push_back(lhs_string);
-		tempvector.push_back(rhs_string);
-		calculate.push_back(tempvector);
+		stringstream tempstream;
+		//function
+		tempstream.precision(25);
+		tempstream << rhs;
+		tempvector.push_back(lhs);
+		tempvector.push_back(lhs);
+		tempvector.push_back(relation);
+		tempvector.push_back(tempstream.str());
+		this->constraints.push_back(tempvector);
 	}
 
 	//method
 	void setConstraint(string lhs, string relation, string rhs) {
 		//declarations
 		vector <string> tempvector;
+		//function
 		tempvector.push_back(lhs);
 		tempvector.push_back(lhs);
 		tempvector.push_back(relation);
 		tempvector.push_back(rhs);
-		constraints.push_back(tempvector);
+		this->constraints.push_back(tempvector);
 	}
 
 	//method
 	void setConstraint(string message, string lhs, string relation, string rhs) {
 		//declarations
 		vector <string> tempvector;
+		//function
 		tempvector.push_back(message);
 		tempvector.push_back(lhs);
 		tempvector.push_back(relation);
 		tempvector.push_back(rhs);
-		constraints.push_back(tempvector);
+		this->constraints.push_back(tempvector);
 	}
 
 	//method to write a GMAT 'Variable' line
@@ -187,14 +236,19 @@ public:
 	//method to write a GMAT 'Vary' line
 	void printVary(std::ofstream& File) {
 		for (int index = 0; index < this->vary.size(); ++index) {
-			File << "	" << "Vary 'Vary " << this->vary[index] << "' NLPObject(" << this->vary[index] << " = " << this->vary[index] << ", {Perturbation = 0.00001, Lower = " << 0 << ", Upper = " << 1 << ", MaxStep = 0.1})" << endl;
+			File << "	" << "Vary 'Vary " << this->vary[index].object2vary << "' NLPObject(" << this->vary[index].object2vary << " = " << this->vary[index].object2vary << 
+					", {Perturbation = " << this->vary[index].perturbation << 
+					", Lower = " << this->vary[index].lowerbound << 
+					", Upper = " << this->vary[index].upperbound << 
+					", MaxStep = " << this->vary[index].maxstep << " })" << endl;
 		}
 	}
 
-	//method to write a GMAT 'Calculate' line
-	void printCalculate(std::ofstream& File) {
+	//method to write a GMAT 'Calculate' line (int mode (1) if printing at "front" and (0) at "end") (see write_GMAT_optimization for e.g.)
+	void printCalculate(std::ofstream& File, int mode = 1) {
 		for (int index = 0; index < this->calculate.size(); ++index){
-			File << "   " << "'Calculate " << this->calculate[index][0] << "' " << this->calculate[index][1] << " = " << this->calculate[index][2] << endl;
+			if (mode && this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << endl; }
+			else if (!mode && !this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << endl; }
 		}
 	}
 
@@ -206,6 +260,7 @@ public:
 	}
 
 };
+
 
 //Class() 'gmatmission'
 class gmatmission: public EMTG::gmatbaseclass {
@@ -343,6 +398,9 @@ public:
 	vector <EMTG::Astrodynamics::body> mybodies;
 	bool isFirstPhase = false;
 	bool isLastPhase  = false;
+	double ineligabletime = 0.0;
+	double eligabletime   = 0.0;
+	double TOF = 0.0;
 	vector <gmatstep> mysteps;
 
 	//method
@@ -457,6 +515,9 @@ public:
 	}
 
 	//method
+	virtual void get_time_allocation();
+
+	//method
 	virtual void append_step(gmatstep agmatstep);
 
 };
@@ -508,6 +569,7 @@ public:
 	bool usePushBack;
 	int theInsertIndex;
 	bool zeroPropagate = true;
+	bool allowTheTimeStep2Vary = false;
 
 	//method
 	void find_my_spacecraft() {
@@ -742,6 +804,7 @@ public:
 		calculate.clear();
 		constraints.clear();
 		variables.clear();
+		allowTheTimeStep2Vary = false;
 		//update and reset
 		gs++;
 		id = myphase->id + "gs" + std::to_string(gs);
@@ -803,6 +866,10 @@ public:
 	virtual void create_GMAT_journeys();
 	virtual void create_GMAT_phases();
 	virtual void create_GMAT_steps();
+	//post creation pass for additional variable, vary, calculate, and constraint statements
+	virtual void postpass_GMAT_phases();
+	virtual void postpass_GMAT_journeys();
+	virtual void postpass_GMAT_missions();
 	//model setup
 	virtual void write_GMAT_preamble();
 	virtual void write_GMAT_spacecraft();
@@ -830,8 +897,7 @@ public:
 	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft);
 
 	//GMAT Command Methods
-	virtual void aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft);
-	virtual void aux_GMAT_propagate(string propagatorname, struct gmat_spacecraft* spacecraft, double elapsed_secs);
+	virtual void aux_GMAT_propagate(class gmatstep& agmatstep, bool useZeroPropagate);
 	virtual void PenUp();
 	virtual void PenDown();
 
