@@ -19,6 +19,9 @@ Global
 		non_NASA|Win32 = non_NASA|Win32
 		non_NASA|Win32XP = non_NASA|Win32XP
 		non_NASA|x64 = non_NASA|x64
+		Release_with_FortranSNOPT|Win32 = Release_with_FortranSNOPT|Win32
+		Release_with_FortranSNOPT|Win32XP = Release_with_FortranSNOPT|Win32XP
+		Release_with_FortranSNOPT|x64 = Release_with_FortranSNOPT|x64
 		Release|Win32 = Release|Win32
 		Release|Win32XP = Release|Win32XP
 		Release|x64 = Release|x64
@@ -51,6 +54,11 @@ Global
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.non_NASA|Win32XP.ActiveCfg = non_NASA|Win32
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.non_NASA|x64.ActiveCfg = non_NASA|x64
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.non_NASA|x64.Build.0 = non_NASA|x64
+		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release_with_FortranSNOPT|Win32.ActiveCfg = Release_with_FortranSNOPT|Win32
+		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release_with_FortranSNOPT|Win32.Build.0 = Release_with_FortranSNOPT|Win32
+		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release_with_FortranSNOPT|Win32XP.ActiveCfg = Release_with_FortranSNOPT|Win32
+		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release_with_FortranSNOPT|x64.ActiveCfg = Release_with_FortranSNOPT|x64
+		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release_with_FortranSNOPT|x64.Build.0 = Release_with_FortranSNOPT|x64
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release|Win32.ActiveCfg = Release|Win32
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release|Win32.Build.0 = Release|Win32
 		{9A26C70A-83EB-4752-BD0D-B764DCFC9CC5}.Release|Win32XP.ActiveCfg = Release|Win32

@@ -47,6 +47,9 @@
     <Compile Include="PyEMTG.py" />
     <Compile Include="PyEMTG_interface.py" />
     <Compile Include="SmallBodyList.py" />
+    <Compile Include="ThrottleTable.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Universe.py" />
     <Compile Include="UniverseNotebook.py" />
   </ItemGroup>

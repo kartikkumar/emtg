@@ -14,6 +14,7 @@ class MissionPanel(wx.Panel):
         self.mission = mission
         self.plotoptions = PlotOptions.PlotOptions()
         self.bubbleoptions = BubbleOptions.BubbleOptions()
+        self.throttletablefile = 'ThrottleTable'
 
         #Journey selection listbox
         #first we need to create an array of journey names
@@ -34,6 +35,7 @@ class MissionPanel(wx.Panel):
         self.lblJourneyList = wx.StaticText(self, -1, "Choose a journey")
         self.JourneyListBox = wx.ListBox(self, -1, choices = self.journeynamelist, size=(300, -1))
 
+        #widgets for trajectory plot
         self.TrajectoryPlotBox = wx.StaticBox(self, -1, "Trajectory plot options")
         self.chkShowBoundaryOrbits = wx.CheckBox(self, -1, "Show boundary orbits", size=(300, -1))
         self.chkShowPropagatedTrajectory = wx.CheckBox(self, -1, "Show progagated trajectory", size=(300, -1))
@@ -53,6 +55,7 @@ class MissionPanel(wx.Panel):
         LeftHandSizer = wx.BoxSizer(wx.VERTICAL)
         LeftHandSizer.AddMany([self.lblJourneyList, self.JourneyListBox, TrajectoryPlotBoxSizer, self.btnOutputSTKEphemeris])
 
+        #widgets for data plot
         self.DataPlotBox = wx.StaticBox(self, -1, "Data Plots", size = (300, 300))
         DataPlotSizer = wx.StaticBoxSizer(self.DataPlotBox, wx.VERTICAL)
 
@@ -101,6 +104,7 @@ class MissionPanel(wx.Panel):
         mainplotbox = wx.BoxSizer(wx.HORIZONTAL)
         mainplotbox.AddMany([LeftHandSizer, RightHandSizer])
 
+        #widgets for bubble search
         BubbleSearchBox = wx.StaticBox(self, -1, "Targets of Opportunity Bubble Search")
         BubbleSearchBox.SetFont(font)
         BubbleSearchBoxSizer = wx.StaticBoxSizer(BubbleSearchBox, wx.VERTICAL)
@@ -133,10 +137,30 @@ class MissionPanel(wx.Panel):
         self.btnGenerateBubbleSearch = wx.Button(self, -1, "Perform bubble search")
 
         BubbleSearchBoxSizer.AddMany([BubbleSearchFileSizer, BubbleGrid, self.btnGenerateBubbleSearch])
-        
 
+        #widgets for throttle table matching
+        ThrottleTableMatchBox = wx.StaticBox(self, -1, "Throttle table matching")
+        ThrottleTableMatchBox.SetFont(font)
+        ThrottleTableMatchBoxSizer = wx.StaticBoxSizer(ThrottleTableMatchBox, wx.VERTICAL)
+
+        self.lblThrottleTableFile = wx.StaticText(self, -1, "Throttle table file")
+        self.txtThrottleTableFile = wx.TextCtrl(self, -1, self.throttletablefile)
+        self.btnThrottleTableFile = wx.Button(self, -1, "...")
+        ThrottleTableFileSizer = wx.BoxSizer(wx.HORIZONTAL)
+        ThrottleTableFileSizer.AddMany([self.txtThrottleTableFile, self.btnThrottleTableFile])
+
+        self.btnGenerateThrottleHistogram = wx.Button(self, -1, "Generate throttle histogram")
+        self.btnGenerateThrottleReport = wx.Button(self, -1, "Generate throttle report")
+
+        ThrottleGrid = wx.GridSizer(2, 2, 10, 10)
+        ThrottleGrid.AddMany([self.lblThrottleTableFile, ThrottleTableFileSizer,
+                              self.btnGenerateThrottleReport, self.btnGenerateThrottleHistogram])
+
+        ThrottleTableMatchBoxSizer.AddMany([ThrottleGrid])
+        
+        #add everything to the main box
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        mainbox.AddMany([mainplotbox, BubbleSearchBoxSizer])
+        mainbox.AddMany([mainplotbox, BubbleSearchBoxSizer, ThrottleTableMatchBoxSizer])
 
         self.SetSizer(mainbox)
 
@@ -192,6 +216,12 @@ class MissionPanel(wx.Panel):
         self.txtRelativeVelocityFilterMagnitude.Bind(wx.EVT_KILL_FOCUS, self.changeBubbleSearchRelativeVelocityFilterMagnitude)
         self.txtMaximumMagnitude.Bind(wx.EVT_KILL_FOCUS, self.changeMaximumMagnitude)
         self.btnGenerateBubbleSearch.Bind(wx.EVT_BUTTON, self.ClickGenerateBubbleSearch)
+
+        #Throttle table matching bindings
+        self.txtThrottleTableFile.Bind(wx.EVT_KILL_FOCUS, self.ChangeThrottleTableFile)
+        self.btnThrottleTableFile.Bind(wx.EVT_BUTTON, self.ClickThrottleTableFileButton)
+        self.btnGenerateThrottleReport.Bind(wx.EVT_BUTTON, self.ClickGenerateThrottleReportButton)
+        self.btnGenerateThrottleHistogram.Bind(wx.EVT_BUTTON, self.ClickGenerateThrottleHistogramButton)
 
     def ClickJourneyListBox(self, e):
         self.mission.ActiveJourney = self.JourneyListBox.GetSelection()
@@ -276,7 +306,7 @@ class MissionPanel(wx.Panel):
     
     def ClickBubbleSearchFileButton(self, e):
         #file load dialog to get name of small bodies file for bubble search
-        dlg = wx.FileDialog(self, "Open", self.GetParent().dirname, "", '*.SmallBody', wx.OPEN)
+        dlg = wx.FileDialog(self, "Select a small bodies file", self.GetParent().dirname, "", '*.SmallBody', wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.bubbleoptions.smallbodyfile = dlg.GetPath()
             self.txtBubbleSearchFile.SetValue(self.bubbleoptions.smallbodyfile)
@@ -319,4 +349,35 @@ class MissionPanel(wx.Panel):
         else:
             return
 
+       #Throttle table matching bindings
+
+    def ChangeThrottleTableFile(self, e):
+        self.throttletablefile = self.txtThrottleTableFile.GetValue()
+
+    def ClickThrottleTableFileButton(self, e):
+        #file load dialog to get name of 
+        dlg = wx.FileDialog(self, "Select a throttle table file", self.GetParent().dirname, "", '*.ThrottleTable', wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.throttletablefile = dlg.GetPath()
+            self.txtThrottleTableFile.SetValue(self.throttletablefile)
+        dlg.Destroy()
+
+    def ClickGenerateThrottleReportButton(self, e):
+        dlg = wx.FileDialog(self, "Save", self.GetParent().dirname, self.mission.mission_name, '.ThrottleReport', wx.SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            saved = True
+            filename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+        else:
+            saved = False
         
+        dlg.Destroy()
+
+
+        if saved:
+            self.mission.GenerateThrottleReport(self.throttletablefile, os.path.join(dirname, filename))
+        else:
+            return
+
+    def ClickGenerateThrottleHistogramButton(self, e):
+        self.mission.GenerateThrottleHistogram(self.throttletablefile, self.plotoptions)
