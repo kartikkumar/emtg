@@ -63,10 +63,10 @@ struct gmat_spacecraft {
 	struct gmat_burn Burn;
 	//Auxiliary Data
 	bool isForward;
-	double flyby_distance_lowerbound;
-	double flyby_distance_upperbound;
-	double flyby_velocity_lowerbound;
-	double flyby_velocity_upperbound;
+	double flyby_distance_lowerbound = 0;
+	double flyby_distance_upperbound = 1e10;
+	double flyby_velocity_lowerbound = 0;
+	double flyby_velocity_upperbound = 1e10;
 	double initialconditions[6];
 };
 
@@ -361,6 +361,8 @@ public:
 	gmatmission* mymission;
 	int j;
 	string id;
+	bool isFirstJourney = false;
+	bool isLastJourney  = false;
 	int number_of_emtg_phases;
 	vector <gmatphase> myphases;
 
@@ -378,7 +380,7 @@ public:
 		p = phase;
 		id = myjourney->id + "p" + std::to_string(p);
 		if (p == 0) { isFirstPhase = true; }
-		if (p == (p == myjourney->number_of_emtg_phases - 1)) { isLastPhase = true; }
+		if (p == myjourney->number_of_emtg_phases - 1) { isLastPhase = true; }
 		this->set_names();
 		this->set_fuelmass_epoch();
 		this->get_my_bodies();
@@ -398,6 +400,8 @@ public:
 	vector <EMTG::Astrodynamics::body> mybodies;
 	bool isFirstPhase = false;
 	bool isLastPhase  = false;
+	bool StartsWithFlyby = false;
+	bool EndsWithFlyby   = false;
 	double ineligabletime = 0.0;
 	double eligabletime   = 0.0;
 	double TOF = 0.0;
@@ -423,6 +427,8 @@ public:
 
 	//method
 	void set_fuelmass_epoch() {
+		//declarations
+		double fuelwindow;
 		//forward spacecraft
 		spacecraft_forward.Thruster.Tank.FuelMass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_beginning_of_phase[6];
 		spacecraft_forward.Epoch = (this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000;
@@ -431,8 +437,10 @@ public:
 		spacecraft_backward.Epoch = (this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000;
 		//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
 		setVariable(spacecraft_backward.Name + "_FuelLowerBound", 0.0);
-		setVariable(spacecraft_backward.Name + "_FuelWindow", spacecraft_forward.Thruster.Tank.FuelMass);
-		setVariable(spacecraft_backward.Name + "_FuelScaling", spacecraft_backward.Thruster.Tank.FuelMass / spacecraft_forward.Thruster.Tank.FuelMass);
+		if (myjourney->mymission->emtgmission->options.enable_maximum_propellant_mass_constraint == 1) { fuelwindow = myjourney->mymission->emtgmission->options.maximum_propellant_mass; }
+		else { fuelwindow = myjourney->mymission->emtgmission->options.maximum_mass; }
+		setVariable(spacecraft_backward.Name + "_FuelWindow", fuelwindow);
+		setVariable(spacecraft_backward.Name + "_FuelScaling", spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
 		setVary(spacecraft_backward.Name + "_FuelScaling");
 		setCalculate(spacecraft_backward.Name + "." + spacecraft_backward.Thruster.Tank.Name + ".FuelMass",
 					 spacecraft_backward.Name + "_FuelScaling * " + spacecraft_backward.Name + "_FuelWindow" + " + " + spacecraft_backward.Name + "_FuelLowerBound");
@@ -450,47 +458,99 @@ public:
 
 	//method
 	void get_flyby_data() {
-		if (isFirstPhase || isLastPhase) {
-			//TODO:: hardcoded in for journey arrivals and departures :-/
-			if (mybodies[0].mass < 1.0e25) {
-				spacecraft_forward.flyby_distance_lowerbound = -10 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-				spacecraft_forward.flyby_distance_upperbound = 10 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-			}
-			else {
-				spacecraft_forward.flyby_distance_lowerbound = -300 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-				spacecraft_forward.flyby_distance_upperbound = 300 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-			}
-			if (mybodies[1].mass < 1.0e25) {
-				spacecraft_backward.flyby_distance_lowerbound = -10 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-				spacecraft_backward.flyby_distance_upperbound = 10 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-			}
-			else {
-				spacecraft_backward.flyby_distance_lowerbound = -300 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-				spacecraft_backward.flyby_distance_upperbound = 300 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-			}
-			spacecraft_forward.flyby_velocity_lowerbound = -sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + (-25) * (-25));
-			spacecraft_forward.flyby_velocity_upperbound = sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + (-25) * (-25));
-			spacecraft_backward.flyby_velocity_lowerbound = -sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + (-25) * (-25));
-			spacecraft_backward.flyby_velocity_upperbound = sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + (-25) * (-25));
+		//first reset the spacecraft flyby initial conditions
+		spacecraft_forward.flyby_distance_lowerbound = 0;
+		spacecraft_forward.flyby_distance_upperbound = 1e10;
+		spacecraft_forward.flyby_velocity_lowerbound = 0;
+		spacecraft_forward.flyby_velocity_upperbound = 1e10;
+		spacecraft_backward.flyby_distance_lowerbound = 0;
+		spacecraft_backward.flyby_distance_upperbound = 1e10;
+		spacecraft_backward.flyby_velocity_lowerbound = 0;
+		spacecraft_backward.flyby_velocity_upperbound = 1e10;
+		//a middle phase always starts with a flyby
+		if (!isFirstPhase) { StartsWithFlyby = true; }
+		//a middle phase always ends with a flyby
+		if (!isLastPhase)  { EndsWithFlyby = true; }
+		//a starting phase may start with a flyby if its journey has a flyby departure type
+		if (this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j] == 3 || this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j] == 4 || this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j] == 6) {
+			if (isFirstPhase) { StartsWithFlyby = true; }
 		}
-		else {
-			for (int iX = 0; iX < this->myjourney->mymission->emtgmission->Xdescriptions.size(); ++iX) {
-				//find index in Xdescriptions where the flyby altitude bounds for that phase are located
-				if (this->myjourney->mymission->emtgmission->Xdescriptions[iX] == id + ": flyby altitude constraint (above minimum altitude but below [100x/300x] altitude for [rocky/gas] planets") {
-					spacecraft_forward.flyby_distance_lowerbound = this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-					spacecraft_forward.flyby_distance_upperbound = -this->myjourney->mymission->emtgmission->Xupperbounds[iX] * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
-					spacecraft_backward.flyby_distance_lowerbound = this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-					spacecraft_backward.flyby_distance_upperbound = -this->myjourney->mymission->emtgmission->Xupperbounds[iX] * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
-				}
-				//find index in Xdescriptions where the flyby velocity bounds for that phase are located
-				if (this->myjourney->mymission->emtgmission->Xdescriptions[iX] == id + ": initial velocity increment x") {
-					spacecraft_forward.flyby_distance_lowerbound = -sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * this->myjourney->mymission->emtgmission->Xlowerbounds[iX]);
-					spacecraft_forward.flyby_distance_upperbound = sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xupperbounds[iX] * this->myjourney->mymission->emtgmission->Xupperbounds[iX]);
-					spacecraft_backward.flyby_distance_lowerbound = -sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * this->myjourney->mymission->emtgmission->Xlowerbounds[iX]);
-					spacecraft_backward.flyby_distance_upperbound = sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xupperbounds[iX] * this->myjourney->mymission->emtgmission->Xupperbounds[iX]);
-				}
+		//an ending phase may end with a flyby if the next journey is NOT the last journey and if it has a flyby departure type
+		if (!this->myjourney->isLastJourney) {
+			if (this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j + 1] == 3 || this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j + 1] == 4 || this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j + 1] == 6) {
+				if (isLastPhase) { EndsWithFlyby = true; }
 			}
 		}
+		//if we start with a flyby, then the forward spacecraft will need constraints applicable to a flyby at its body
+		if (StartsWithFlyby) {
+			//distance bounds
+			spacecraft_forward.flyby_distance_lowerbound = mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius;
+			if (mybodies[0].mass < 1.0e25) { spacecraft_forward.flyby_distance_upperbound = 10.0*spacecraft_forward.flyby_distance_lowerbound; }
+			else { spacecraft_forward.flyby_distance_upperbound = 300.0*spacecraft_forward.flyby_distance_lowerbound; }
+			//velocity bounds
+			spacecraft_forward.flyby_velocity_lowerbound = sqrt(2.0 * mybodies[0].mu / (spacecraft_forward.flyby_distance_upperbound));
+			spacecraft_forward.flyby_velocity_upperbound = sqrt(2.0 * mybodies[0].mu / (spacecraft_forward.flyby_distance_lowerbound) + 25.0*25.0);
+		}
+		if (EndsWithFlyby) {
+			//distance bounds
+			spacecraft_backward.flyby_distance_lowerbound = mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius;
+			if (mybodies[1].mass < 1.0e25) { spacecraft_backward.flyby_distance_upperbound = 10.0*spacecraft_backward.flyby_distance_lowerbound; }
+			else { spacecraft_backward.flyby_distance_upperbound = 300.0*spacecraft_backward.flyby_distance_lowerbound; }
+			//velocity bounds
+			spacecraft_backward.flyby_velocity_lowerbound = sqrt(2.0 * mybodies[1].mu / (spacecraft_backward.flyby_distance_upperbound));
+			spacecraft_backward.flyby_velocity_upperbound = sqrt(2.0 * mybodies[1].mu / (spacecraft_backward.flyby_distance_lowerbound) + 25.0*25.0);
+		}
+
+
+		//i believe i can use just mybodies[].minimum_safe_flyby_altitude + mybodies[].radius for lower bound of flyby and then 
+		//create upper bound by using the 10x or 300x rule on mass
+		
+		//for velocity, should be able to use sqrt(2*mu/flyby_lower_bound) for lowerbound
+		//and add some delta-v to it for the upperbound
+
+		//these comments are coded above, the previous implementation from summer 13' is commented out below.
+
+		//if (isFirstPhase || isLastPhase) {
+		//	//TODO:: hardcoded in for journey arrivals and departures :-/
+		//	if (mybodies[0].mass < 1.0e25) {
+		//		spacecraft_forward.flyby_distance_lowerbound = -10 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//		spacecraft_forward.flyby_distance_upperbound = 10 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//	}
+		//	else {
+		//		spacecraft_forward.flyby_distance_lowerbound = -300 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//		spacecraft_forward.flyby_distance_upperbound = 300 * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//	}
+		//	if (mybodies[1].mass < 1.0e25) {
+		//		spacecraft_backward.flyby_distance_lowerbound = -10 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//		spacecraft_backward.flyby_distance_upperbound = 10 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//	}
+		//	else {
+		//		spacecraft_backward.flyby_distance_lowerbound = -300 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//		spacecraft_backward.flyby_distance_upperbound = 300 * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//	}
+		//	spacecraft_forward.flyby_velocity_lowerbound = -sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + (-25) * (-25));
+		//	spacecraft_forward.flyby_velocity_upperbound = sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + (-25) * (-25));
+		//	spacecraft_backward.flyby_velocity_lowerbound = -sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + (-25) * (-25));
+		//	spacecraft_backward.flyby_velocity_upperbound = sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + (-25) * (-25));
+		//}
+		//else {
+		//	for (int iX = 0; iX < this->myjourney->mymission->emtgmission->Xdescriptions.size(); ++iX) {
+		//		//find index in Xdescriptions where the flyby altitude bounds for that phase are located
+		//		if (this->myjourney->mymission->emtgmission->Xdescriptions[iX] == id + ": flyby altitude constraint (above minimum altitude but below [10x/300x] altitude for [rocky/gas] planets") {
+		//			spacecraft_forward.flyby_distance_lowerbound = this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//			spacecraft_forward.flyby_distance_upperbound = -this->myjourney->mymission->emtgmission->Xupperbounds[iX] * (mybodies[0].minimum_safe_flyby_altitude + mybodies[0].radius);
+		//			spacecraft_backward.flyby_distance_lowerbound = this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//			spacecraft_backward.flyby_distance_upperbound = -this->myjourney->mymission->emtgmission->Xupperbounds[iX] * (mybodies[1].minimum_safe_flyby_altitude + mybodies[1].radius);
+		//		}
+		//		//find index in Xdescriptions where the flyby velocity bounds for that phase are located
+		//		if (this->myjourney->mymission->emtgmission->Xdescriptions[iX] == id + ": initial velocity increment x") {
+		//			spacecraft_forward.flyby_distance_lowerbound = -sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * this->myjourney->mymission->emtgmission->Xlowerbounds[iX]);
+		//			spacecraft_forward.flyby_distance_upperbound = sqrt(2 * mybodies[0].mu / (mybodies[0].radius + mybodies[0].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xupperbounds[iX] * this->myjourney->mymission->emtgmission->Xupperbounds[iX]);
+		//			spacecraft_backward.flyby_distance_lowerbound = -sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xlowerbounds[iX] * this->myjourney->mymission->emtgmission->Xlowerbounds[iX]);
+		//			spacecraft_backward.flyby_distance_upperbound = sqrt(2 * mybodies[1].mu / (mybodies[1].radius + mybodies[1].minimum_safe_flyby_altitude) + this->myjourney->mymission->emtgmission->Xupperbounds[iX] * this->myjourney->mymission->emtgmission->Xupperbounds[iX]);
+		//		}
+		//	}
+		//}
 	}//end of method
 
 	//method
@@ -499,14 +559,14 @@ public:
 		double epoch;
 		double body_states[6];
 
-		//get and set forward spacecraft initial conditions
+		//get and set forward spacecraft initial conditions relative to its body
 		epoch = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].phase_start_epoch;
 		this->mybodies[0].locate_body(epoch, body_states, false, &this->myjourney->mymission->emtgmission->options);
 		for (int i = 0; i < 6; ++i) { 
 			spacecraft_forward.initialconditions[i] = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].state_at_beginning_of_phase[i] - body_states[i]; 
 		}
 
-		//get and set backward spacecraft initial conditions
+		//get and set backward spacecraft initial conditions relative to its body
 		epoch = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].phase_end_epoch;
 		this->mybodies[1].locate_body(epoch, body_states, false, &this->myjourney->mymission->emtgmission->options);
 		for (int i = 0; i < 6; ++i) {
@@ -908,6 +968,7 @@ public:
 	virtual void write_GMAT_script();
 
 }; // end of class gmatscript
+
 
 }  // end of EMTG namespace
 

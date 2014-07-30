@@ -342,6 +342,9 @@ void gmatscripter::create_GMAT_steps() {
 	//declarations
 	int body_index;
 	double periapse_velocity_magnitude;
+	double initial_relative_velocity_norm;
+	double final_relative_velocity_norm;
+	double minimum_relative_velocity_norm;
 	double approximate_time_in_SOI;
 	
 	// ---------------------------
@@ -355,10 +358,10 @@ void gmatscripter::create_GMAT_steps() {
 				//instantiate a new 'gmatstep'
 				gmatstep agmatstep(&GMATMission.myjourneys[j].myphases[p], s);
 
-				//this is the step after the matchpoint; we will make this a half step
+				//Case: [ MP+ ] (i.e. the step just after the match-point); make this a half-step
 				if (!agmatstep.myspacecraft->isForward && agmatstep.isMatchPointStep) {
 					GMATDebug << "MP+     ";
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (false: is not a CloseApproach)
 					agmatstep.setFMandProp(false);
 					//scale the stepsize to be one-half
 					agmatstep.scale_stepsize(0.5);
@@ -371,10 +374,10 @@ void gmatscripter::create_GMAT_steps() {
 					agmatstep.reset();
 				}
 
-				//step is contained inside the SOI the entire time
+				//Case: [ SOI-SOI ] (i.e. the step is complete contained within the SOI of its body for the entire step time)
 				if (agmatstep.inSOIatStart && agmatstep.inSOIatEnd) {
 					GMATDebug << "SOI-SOI ";
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
 					agmatstep.setFMandProp(true);
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -384,17 +387,47 @@ void gmatscripter::create_GMAT_steps() {
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
-				//step starts in SOI, but exits it during emtg step; we should cut the step in two
+				//Case: [ SOI --> ] (i.e. the step starts within the SOI of its body, but exits it at somepoint during the step. this step may be cut in two)
 				else if (agmatstep.inSOIatStart && !agmatstep.inSOIatEnd) {
 					GMATDebug << "SOI --> ";
 					//for this case we must figure out how long we are in the SOI before exiting
-					if (agmatstep.myspacecraft->isForward) { body_index = 0; }
-					else { body_index = 1; }
-					periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(agmatstep.initial_velocity_diff, 3)*math::norm(agmatstep.initial_velocity_diff, 3));
-					approximate_time_in_SOI     = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+					//we start by calculating the norm of the initial and final relative velocity
+					initial_relative_velocity_norm = math::norm(agmatstep.initial_velocity_diff, 3);
+					final_relative_velocity_norm   = math::norm(agmatstep.final_velocity_diff,   3);
+					//then for conservative reasons, select the minimum of the two norms just calculated
+					if (initial_relative_velocity_norm <= final_relative_velocity_norm) { minimum_relative_velocity_norm = initial_relative_velocity_norm; }
+					else { minimum_relative_velocity_norm = final_relative_velocity_norm; }
+					//if the step is associated with the forward spacecraft
+					if (agmatstep.myspacecraft->isForward) {
+						body_index = 0;
+						//if the step is part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force smaller max timesteps by the GMAT propagator)
+						if (agmatstep.myphase->StartsWithFlyby) {
+							periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + minimum_relative_velocity_norm*minimum_relative_velocity_norm);
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+						}
+						//if the step is not part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force a longer 'gmatstep' timestep, such that the additional 3rd body perturbations don't get turned on to early.)
+						else {
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / minimum_relative_velocity_norm);
+						}
+					}
+					//the step is associated with the backward spacecraft (it is hard to imagine when this else block will run, but for completeness it has been added.)
+					else { 
+						body_index = 1; 
+						//if the step is part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force smaller max timesteps by the GMAT propagator)
+						if (agmatstep.myphase->EndsWithFlyby) {
+							periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + minimum_relative_velocity_norm*minimum_relative_velocity_norm);
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+						}
+						//if the step is not part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force a longer 'gmatstep' timestep, such that the additional 3rd body perturbations don't get turned on to early.)
+						else {
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / minimum_relative_velocity_norm);
+						}
+					}
+					//make sure the 'approximate_time_in_SOI' is not larger than the original 'stepsize'
+					if (approximate_time_in_SOI > agmatstep.stepsize) { approximate_time_in_SOI = agmatstep.stepsize; }
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
 					agmatstep.setFMandProp(true);
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -406,7 +439,7 @@ void gmatscripter::create_GMAT_steps() {
 
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(agmatstep.stepsize - approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (false: is not a CloseApproach)
 					agmatstep.setFMandProp(false);
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -416,18 +449,47 @@ void gmatscripter::create_GMAT_steps() {
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
-				//step starts outside SOI, but enters it during emtg step
-				//we should cut the step in two
+				//Case: [ --> SOI ] (i.e. the step starts outside of the SOI of its body, but eventually enters it. this step may be cut in two)
 				else if (!agmatstep.inSOIatStart && agmatstep.inSOIatEnd) {
 					GMATDebug << "-->SOI  ";
-					//for this case we must figure out how long we are in the SOI after entering
-					if (agmatstep.myspacecraft->isForward) { body_index = 0; }
-					else { body_index = 1; }
-					periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + math::norm(agmatstep.final_velocity_diff, 3)*math::norm(agmatstep.final_velocity_diff, 3));
-					approximate_time_in_SOI     = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+					//for this case we must figure out how long we are in the SOI before exiting
+					//we start by calculating the norm of the initial and final relative velocity
+					initial_relative_velocity_norm = math::norm(agmatstep.initial_velocity_diff, 3);
+					final_relative_velocity_norm   = math::norm(agmatstep.final_velocity_diff,   3);
+					//then for conservative reasons, select the minimum of the two norms just calculated
+					if (initial_relative_velocity_norm <= final_relative_velocity_norm) { minimum_relative_velocity_norm = initial_relative_velocity_norm; }
+					else { minimum_relative_velocity_norm = final_relative_velocity_norm; }
+					//if the step is associated with the forward spacecraft (it is hard to imagine when this if block will run, but for completeness it has been added.)
+					if (agmatstep.myspacecraft->isForward) {
+						body_index = 0;
+						//if the step is part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force smaller max timesteps by the GMAT propagator)
+						if (agmatstep.myphase->StartsWithFlyby) {
+							periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + minimum_relative_velocity_norm*minimum_relative_velocity_norm);
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+						}
+						//if the step is not part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force a longer 'gmatstep' timestep, such that the additional 3rd body perturbations don't get turned on to early.)
+						else {
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / minimum_relative_velocity_norm);
+						}
+					}
+					//the step is associated with the backward spacecraft 
+					else {
+						body_index = 1;
+						//if the step is part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force smaller max timesteps by the GMAT propagator)
+						if (agmatstep.myphase->EndsWithFlyby) {
+							periapse_velocity_magnitude = sqrt(2.0 * agmatstep.myphase->mybodies[body_index].mu / (agmatstep.myphase->mybodies[body_index].radius + this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude) + minimum_relative_velocity_norm*minimum_relative_velocity_norm);
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / periapse_velocity_magnitude);
+						}
+						//if the step is not part of a half-phase flyby. using minimum_relative_velocity_norm for conservative reasons (in this case it will force a longer 'gmatstep' timestep, such that the additional 3rd body perturbations don't get turned on to early.)
+						else {
+							approximate_time_in_SOI = (agmatstep.myphase->mybodies[body_index].r_SOI / minimum_relative_velocity_norm);
+						}
+					}
+					//make sure the 'approximate_time_in_SOI' is not larger than the original 'stepsize'
+					if (approximate_time_in_SOI > agmatstep.stepsize) { approximate_time_in_SOI = agmatstep.stepsize; }
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(agmatstep.stepsize - approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (false: is not a CloseApproach)
 					agmatstep.setFMandProp(false);
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -439,7 +501,7 @@ void gmatscripter::create_GMAT_steps() {
 
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
 					agmatstep.setFMandProp(true);
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -449,10 +511,10 @@ void gmatscripter::create_GMAT_steps() {
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
-				//step is outside SOI the entire time
+				//Case: [ -----> ] (i.e. this step is traveling in "free-space" the entire time. said another way, it is never within a bodies SOI)
 				else {
 					GMATDebug << " -----> ";
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (false: is not a CloseApproach)
 					agmatstep.setFMandProp(false);
 					//set a variable for these time steps in "free-space"
 					agmatstep.allowTheTimeStep2Vary = true;
@@ -470,10 +532,10 @@ void gmatscripter::create_GMAT_steps() {
 					agmatstep.reset();
 				}
 
-				//this is the step before the matchpoint; we will make this a half step
+				//Case: [ MP- ] (i.e. the step just before the match-point); make this a half-step
 				if (agmatstep.myspacecraft->isForward && agmatstep.isMatchPointStep) {
 					GMATDebug << "MP-     ";
-					//set the ForceModel and Propagator Parameters
+					//set the ForceModel and Propagator Parameters (false: is not a CloseApproach)
 					agmatstep.setFMandProp(false);
 					//scale the stepsize to be one-half
 					agmatstep.scale_stepsize(0.5);
@@ -513,7 +575,7 @@ void gmatscripter::postpass_GMAT_phases() {
 			//       VARIABLE CREATION
 			// -----------------------------
 			//a variable that represents the amount of time that can be scaled during each journey
-			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_EligableTime", GMATMission.myjourneys[j].myphases[p].eligabletime);
+			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_EligableTime", GMATMission.myjourneys[j].myphases[p].eligabletime / 86400.0);
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_PositionError");
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_VelocityError");
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_MassError");
@@ -532,8 +594,8 @@ void gmatscripter::postpass_GMAT_phases() {
 			// -----------------------------
 			//backward spacecraft epoch
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat,
-				GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat + " + ( " + std::to_string(GMATMission.myjourneys[j].myphases[p].ineligabletime) + " / 86400.0 )" +
-				" + ( " + GMATMission.myjourneys[j].myphases[p].myjourney->id + "_TimeScaling * " + GMATMission.myjourneys[j].myphases[p].id + "_EligableTime ) / 86400.0");
+				GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat + " + " + std::to_string(GMATMission.myjourneys[j].myphases[p].ineligabletime / 86400.0) +
+				" + ( " + GMATMission.myjourneys[j].myphases[p].myjourney->id + "_TimeScaling * " + GMATMission.myjourneys[j].myphases[p].id + "_EligableTime ) ");
 			//TOF
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].id + "_TOF",
 				GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat + " - " +
@@ -696,6 +758,11 @@ void gmatscripter::write_GMAT_preamble() {
 // method to create spacecraft information
 void gmatscripter::write_GMAT_spacecraft() {
 
+	GMATDebug << "%-------------------------------------------------------------------------" << endl;
+	GMATDebug << "%---------- Spacecraft" << endl;
+	GMATDebug << "%-------------------------------------------------------------------------" << endl;
+	GMATDebug << endl;
+
 	//spacecraft header
 	GMATfile << "%-------------------------------------------------------------------------" << endl;
 	GMATfile << "%---------- Spacecraft" << endl;
@@ -708,9 +775,15 @@ void gmatscripter::write_GMAT_spacecraft() {
 			this->create_GMAT_spacecraft(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
 			//write out the backward spacecraft
 			this->create_GMAT_spacecraft(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
+
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << endl;
+
 		}
 	}
 	GMATfile << endl;
+
+	GMATDebug << "%-------------------------------------------------------------------------" << endl;
 
 }//end of write_GMAT_spacecraft() method
 
@@ -1025,7 +1098,7 @@ void gmatscripter::write_GMAT_subscribers(){
 	//add central universe body view
 	GMATfile << "%Create subscriber for central body view" << endl;
 	GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[0].central_body_name << "View" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		false" << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << endl;
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << endl;
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << endl;
 
@@ -1106,7 +1179,7 @@ void gmatscripter::write_GMAT_subscribers(){
 		}
 		for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 			for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
-				GMATfile << "true true";
+				GMATfile << "true true ";
 			}
 		}
 		GMATfile << "]" << endl;
@@ -2163,7 +2236,9 @@ gmatjourney::gmatjourney(gmatmission* amission, int journey) {
 	mymission = amission;
 	j = journey;
 	id = "j" + std::to_string(journey);
-	number_of_emtg_phases = 1; // mymission->emtgmission->journeys[j].number_of_phases;
+	number_of_emtg_phases = mymission->emtgmission->journeys[j].number_of_phases;
+	if (j == 0) { isFirstJourney = true; }
+	if (j == mymission->emtgmission->number_of_journeys - 1) { isLastJourney = true; }
 }
 
 //destructor
