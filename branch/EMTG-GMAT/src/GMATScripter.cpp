@@ -105,7 +105,7 @@ void gmatscripter::write_GMAT_script(){
 	this->write_GMAT_beginmissionsequence();
 
 	// write out the state inital guess
-	this->write_GMAT_initialguess();
+	this->write_GMAT_initialconditions();
 
 	// write out the optimization phase of the mission sequence
 	this->write_GMAT_optimization();
@@ -279,34 +279,142 @@ void gmatscripter::create_GMAT_phases() {
 	GMATDebug << "create_GMAT_phases()" << endl;
 	GMATDebug << endl;
 
+	//declarations
+	double fuelwindow;
+
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].number_of_emtg_phases; ++p) {
+			// -----------------------------
+			//        DATA COLLECTION
+			// -----------------------------
+			if (this->ptr_gmatmission->options.enable_maximum_propellant_mass_constraint == 1) { fuelwindow = this->ptr_gmatmission->options.maximum_propellant_mass; }
+			else { fuelwindow = this->ptr_gmatmission->options.maximum_mass; }
+
 
 			// -----------------------------
 			//         INSTANTIATION
 			// -----------------------------
 			gmatphase agmatphase(&GMATMission.myjourneys[j], p);
 
+
 			// -----------------------------
 			//       VARIABLE CREATION
 			// -----------------------------
-
+			//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", 0.0);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelMass");
+			if (agmatphase.EndsWithFlyby) {
+				//X
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_XLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_XWindow", agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_XScaling", agmatphase.spacecraft_backward.initialconditions[0] / agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_X");
+				//Y
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_YLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_YWindow", agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_YScaling", agmatphase.spacecraft_backward.initialconditions[1] / agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_Y");
+				//Z
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_ZLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_ZWindow", agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_ZScaling", agmatphase.spacecraft_backward.initialconditions[2] / agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_Z");
+				//VX
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VXLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VXWindow", agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VXScaling", agmatphase.spacecraft_backward.initialconditions[3] / agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VX");
+				//VY
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VYLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VYWindow", agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VYScaling", agmatphase.spacecraft_backward.initialconditions[4] / agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VY");
+				//VZ
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VZLowerBound", 0.0);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VZWindow", agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VZScaling", agmatphase.spacecraft_backward.initialconditions[5] / agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VZ");
+				//Position and Velocity Norms
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_PositionNorm");
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_VelocityNorm");
+			}
 
 
 			// -----------------------------
 			//         VARY CREATION
 			// -----------------------------
-
+			agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_FuelScaling");
+			if (agmatphase.EndsWithFlyby) {
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_XScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_YScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_ZScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_VXScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_VYScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_VZScaling");
+			}
 
 
 			// -----------------------------
 			//      CALCULATE CREATION
 			// -----------------------------
+			//forward spacecraft epoch (first phase can vary using 'LaunchWindowScaling'). 
+			//otherwise phases use variable create from previous phase's backward spacecraft epoch [see postpass_GMAT_phases() method]
 			if (agmatphase.p == 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat,
 										"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
 			}
-
+			else {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat, GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_Epoch");
+			}
+			//forward spacecraft fuel scaling (first phase uses initial conditions)
+			if (p > 0) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_FuelMass");
+			}
+			//backward spacecraft fuel scaling and setting
+			agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_FuelMass",
+									agmatphase.spacecraft_backward.Name + "_FuelScaling * " + agmatphase.spacecraft_backward.Name + "_FuelWindow" + " + " + agmatphase.spacecraft_backward.Name + "_FuelLowerBound");
+			agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass", agmatphase.spacecraft_backward.Name + "_FuelMass");
+			//backward spacecraft X, Y, Z, VX, VY, VZ scaling and setting
+			if (agmatphase.EndsWithFlyby) {
+				//X
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_X",
+					agmatphase.spacecraft_backward.Name + "_XScaling * " + agmatphase.spacecraft_backward.Name + "_XWindow" + " + " + agmatphase.spacecraft_backward.Name + "_XLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".X", agmatphase.spacecraft_backward.Name + "_X");
+				//Y
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_Y",
+					agmatphase.spacecraft_backward.Name + "_YScaling * " + agmatphase.spacecraft_backward.Name + "_YWindow" + " + " + agmatphase.spacecraft_backward.Name + "_YLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".Y", agmatphase.spacecraft_backward.Name + "_Y");
+				//Z
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_Z",
+					agmatphase.spacecraft_backward.Name + "_ZScaling * " + agmatphase.spacecraft_backward.Name + "_ZWindow" + " + " + agmatphase.spacecraft_backward.Name + "_ZLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".Z", agmatphase.spacecraft_backward.Name + "_Z");
+				//VX
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_VX",
+					agmatphase.spacecraft_backward.Name + "_VXScaling * " + agmatphase.spacecraft_backward.Name + "_VXWindow" + " + " + agmatphase.spacecraft_backward.Name + "_VXLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VX", agmatphase.spacecraft_backward.Name + "_VX");
+				//VY
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_VY",
+					agmatphase.spacecraft_backward.Name + "_VYScaling * " + agmatphase.spacecraft_backward.Name + "_VYWindow" + " + " + agmatphase.spacecraft_backward.Name + "_VYLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VY", agmatphase.spacecraft_backward.Name + "_VY");
+				//VZ
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_VZ",
+					agmatphase.spacecraft_backward.Name + "_VZScaling * " + agmatphase.spacecraft_backward.Name + "_VZWindow" + " + " + agmatphase.spacecraft_backward.Name + "_VZLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.CoordinateSystem + ".VZ", agmatphase.spacecraft_backward.Name + "_VZ");
+				//Position and Velocity Norm
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_PositionNorm", "sqrt( " + agmatphase.spacecraft_backward.Name + "_X ^ 2 + " + agmatphase.spacecraft_backward.Name + "_Y ^ 2 + " + agmatphase.spacecraft_backward.Name + "_Z ^ 2 )");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_VelocityNorm", "sqrt( " + agmatphase.spacecraft_backward.Name + "_VX ^ 2 + " + agmatphase.spacecraft_backward.Name + "_VY ^ 2 + " + agmatphase.spacecraft_backward.Name + "_VZ ^ 2 )");
+			}
+			//forward spacecraft X, Y, Z, VX, VY, VZ (after flyby phase)
+			if (p > 0 && agmatphase.StartsWithFlyby) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".X", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_X");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".Y", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_Y");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".Z", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_Z");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VX");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VY");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VZ");
+			}
 
 
 			// -----------------------------
@@ -319,12 +427,19 @@ void gmatscripter::create_GMAT_phases() {
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VY", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.VY", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.VY");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VZ", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.VZ", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.VZ");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Mass", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass");
-
+			//backward spacecraft Position and Velocity norm constraints during flyby
+			if (agmatphase.EndsWithFlyby) {
+				agmatphase.setConstraint(agmatphase.spacecraft_backward.Name + "_PositionNorm", ">=", agmatphase.spacecraft_backward.flyby_distance_lowerbound);
+				agmatphase.setConstraint(agmatphase.spacecraft_backward.Name + "_PositionNorm", "<=", agmatphase.spacecraft_backward.flyby_distance_upperbound);
+				agmatphase.setConstraint(agmatphase.spacecraft_backward.Name + "_VelocityNorm", ">=", agmatphase.spacecraft_backward.flyby_velocity_lowerbound);
+				agmatphase.setConstraint(agmatphase.spacecraft_backward.Name + "_VelocityNorm", "<=", agmatphase.spacecraft_backward.flyby_velocity_upperbound);
+			}
 
 			// -----------------------------
 			//          PUSH_BACK
 			// -----------------------------
 			GMATMission.myjourneys[j].myphases.push_back(agmatphase);
+
 
 		}//end of phases for-statement
 	}//end of journeys for-statement
@@ -580,6 +695,7 @@ void gmatscripter::postpass_GMAT_phases() {
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_VelocityError");
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_MassError");
 			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].id + "_TOF");
+			GMATMission.myjourneys[j].myphases[p].setVariable(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + "_Epoch");
 
 
 
@@ -592,34 +708,52 @@ void gmatscripter::postpass_GMAT_phases() {
 			// -----------------------------
 			//      CALCULATE CREATION
 			// -----------------------------
-			//backward spacecraft epoch
-			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat,
-				GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat + " + " + std::to_string(GMATMission.myjourneys[j].myphases[p].ineligabletime / 86400.0) +
-				" + ( " + GMATMission.myjourneys[j].myphases[p].myjourney->id + "_TimeScaling * " + GMATMission.myjourneys[j].myphases[p].id + "_EligableTime ) ");
+			//backward spacecraft epoch (1. create variable [see above], 2. set variable, 3. assign variable to the spacecraft)
+			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + "_Epoch",
+															   GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat + " + " + std::to_string(GMATMission.myjourneys[j].myphases[p].ineligabletime / 86400.0) +
+															   " + ( " + GMATMission.myjourneys[j].myphases[p].myjourney->id + "_TimeScaling * " + GMATMission.myjourneys[j].myphases[p].id + "_EligableTime ) ");
+			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat, 
+															   GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + "_Epoch");
 			//TOF
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].id + "_TOF",
-				GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat + " - " +
-				GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat);
+																GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.DateFormat + " - " +
+																GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".Epoch." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.DateFormat);
 			//position error at matchpoint
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_PositionError",
-				"sqrt(( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.X - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.X) ^ 2 + " +
-				"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.Y - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.Y) ^ 2 + " +
-				"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.Z - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.Z) ^ 2 )", false);
+																"sqrt(( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.X - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.X) ^ 2 + " +
+																"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.Y - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.Y) ^ 2 + " +
+																"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.Z - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.Z) ^ 2 )", false);
 			//velocity error at matchpoint
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_VelocityError",
-				"sqrt(( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VX - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VX) ^ 2 + " +
-				"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VY - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VY) ^ 2 + " +
-				"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VZ - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VZ) ^ 2 )", false);
+																"sqrt(( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VX - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VX) ^ 2 + " +
+																"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VY - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VY) ^ 2 + " +
+																"( " + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + ".SunJ2000Eq.VZ - " + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + ".SunJ2000Eq.VZ) ^ 2 )", false);
 			//mass error at matchpoint
 			GMATMission.myjourneys[j].myphases[p].setCalculate(GMATMission.myjourneys[j].myphases[p].id + "_MatchPoint_MassError",
-				GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + "." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Thruster.Tank.Name + ".FuelMass - " +
-				GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + "." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Thruster.Tank.Name + ".FuelMass", false);
+																GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name + "." + GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Thruster.Tank.Name + ".FuelMass - " +
+																GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name + "." + GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Thruster.Tank.Name + ".FuelMass", false);
 
 
 
 			// -----------------------------
 			//      CONSTRAINT CREATION
 			// -----------------------------
+
+
+			/////////////// TEMPORARY ///////////////////////
+			if (p == 1) {
+				math::Matrix<double> flyby_state;
+				GMATDebug << endl;
+				GMATDebug << "///////////////////       Calculate Flyby Periapse State       ///////////////////" << endl;
+				flyby_state = this->ptr_gmatmission->journeys[j].phases[p].calculate_flyby_periapse_state(this->ptr_gmatmission->journeys[j].phases[p].V_infinity_in,
+					this->ptr_gmatmission->journeys[j].phases[p].V_infinity_out, this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude, GMATMission.myjourneys[j].myphases[p].mybodies[0]);
+				for (int i = 0; i < 6; ++i) {
+					GMATDebug << flyby_state(i, 0) << endl;
+				}
+				GMATDebug << "///////////////////////////////////////////////////////////////////////////////////";
+				GMATDebug << endl;
+			}
+			/////////////// TEMPORARY ///////////////////////
 
 		}//end of phases for-statement
 	}//end of journeys for-statement
@@ -1400,8 +1534,8 @@ void gmatscripter::write_GMAT_variables(){
 }//end of write_GMAT_variables() method
 
 
-// method to create the initial state guesses for the mission sequence
-void gmatscripter::write_GMAT_initialguess(){
+// method to create the initial conditions for the mission sequence
+void gmatscripter::write_GMAT_initialconditions(){
 
 	//declarations
 	double boundary_state[6];
