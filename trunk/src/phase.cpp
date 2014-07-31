@@ -941,7 +941,7 @@ namespace EMTG {
 			case 2: //flyby with bounded v-infinity
 				{
 					for (int k = 0; k < 3; ++k)
-						this->dVarrival[k] = boundary_state[k+3] - incoming_velocity[k];
+						this->dVarrival[k] = incoming_velocity[k] - boundary_state[k + 3];
 					this->C3_arrival = dVarrival[0]*dVarrival[0] + dVarrival[1]*dVarrival[1] + dVarrival[2]*dVarrival[2];
 					double C3_max = options->journey_final_velocity[j][1] * options->journey_final_velocity[j][1];
 					F[*Findex] = C3_arrival / C3_max - 1;
