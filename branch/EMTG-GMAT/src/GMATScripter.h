@@ -804,6 +804,7 @@ public:
 	void setFMandProp(bool amIaCloseApproach) {
 		// ***********
 		// Future Work: Include EMTG 3rd Body Perturbations in PointMasses member of Propagator
+		//				Also, should techinically check to make sure the the central body is not also duplicated as a pointmass (e.g. a trajectory from a moon to an orbit about its central body)
 		// ***********
 
 		//declarations
@@ -829,7 +830,11 @@ public:
 			if (isAFlyby) { propagator.ForceModel.Name = "FM_" + myphase->mybodies[body_index].name; }
 			else { propagator.ForceModel.Name = "FM_" + myphase->mybodies[body_index].central_body_name; }
 		}
-		else { propagator.ForceModel.Name = "FM_" + myphase->mybodies[body_index].central_body_name + "_3rdBodies_" + myphase->mybodies[0].name + "_" + myphase->mybodies[1].name; }
+		else { 
+			//use both bodies as 3rd body perturbation if they are different, otherwise we only need to name it once
+			if (myphase->mybodies[0].name.compare(myphase->mybodies[1].name) == 0) { propagator.ForceModel.Name = "FM_" + myphase->mybodies[body_index].central_body_name + "_3rdBodies_" + myphase->mybodies[0].name; }
+			else { propagator.ForceModel.Name = "FM_" + myphase->mybodies[body_index].central_body_name + "_3rdBodies_" + myphase->mybodies[0].name + "_" + myphase->mybodies[1].name; }
+		}
 		//Propagator Name
 		if (amIaCloseApproach) { propagator.Name = "Propagator_" + propagator.ForceModel.Name + "_CloseApproach"; }
 		else { propagator.Name = "Propagator_" + propagator.ForceModel.Name; }
@@ -843,8 +848,12 @@ public:
 			if (isAFlyby) { propagator.ForceModel.PointMasses.push_back(myphase->mybodies[body_index].central_body_name); }
 		}
 		else {
-			propagator.ForceModel.PointMasses.push_back(this->myphase->mybodies[0].name);
-			propagator.ForceModel.PointMasses.push_back(this->myphase->mybodies[1].name);
+			//use both bodies as 3rd body perturbation if they are different, otherwise we only need to name it once
+			if (myphase->mybodies[0].name.compare(myphase->mybodies[1].name) == 0) { propagator.ForceModel.PointMasses.push_back(this->myphase->mybodies[0].name); }
+			else {
+				propagator.ForceModel.PointMasses.push_back(this->myphase->mybodies[0].name);
+				propagator.ForceModel.PointMasses.push_back(this->myphase->mybodies[1].name);
+			}
 		}
 	}
 
