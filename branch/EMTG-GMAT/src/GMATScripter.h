@@ -7,6 +7,20 @@
 * Purpose: GMATScripter Class, which generates a GMAT script file
 *		   following an EMTG run. Methods build on work conducted by Max Schadegg (summer 2013)
 *		   and Jacob Englander
+*
+* Features that "should (i.e marginally tested)" be working as of 2014_08_01:
+* - multiphase
+* - multijourney (single-phase)
+* - objective function (maximize final mass)
+* - departures( launch direct-departure, free departure)
+* - arrivals ( low-thrust rendezvous)
+* - engine models (fixed isp / fixed thrust)
+* - launch window and journey wait times enforced
+* - bounded mission TOF enforced
+* - bound journey TOF enforced
+* - variable phase TOF
+* - variable flyby position and velocity with bounds enabled
+*
 */
 
 #ifndef GMATSCRIPTER_H_

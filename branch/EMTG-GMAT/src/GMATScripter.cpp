@@ -158,8 +158,6 @@ void gmatscripter::create_GMAT_missions() {
 	// ---------------------------
 	//      VARIABLE CREATION
 	// ---------------------------
-	//store mission level variables that will be needed during the optimization sequence in GMAT
-	GMATMission.setVariable("ObjectiveFunction");
 	//launch window open date
 	GMATMission.setVariable("LaunchWindowOpenDate", std::to_string(LaunchDate_LowerBounds));
 	//launch window
@@ -238,13 +236,13 @@ void gmatscripter::create_GMAT_journeys() {
 		// -----------------------------
 		//       VARIABLE CREATION
 		// -----------------------------
-		agmatjourney.setVariable(agmatjourney.id + "_TimeScaling", 1.0);
+	
 
 
 		// -----------------------------
 		//         VARY CREATION
 		// -----------------------------
-		agmatjourney.setVary(agmatjourney.id + "_TimeScaling", 1e-005, 0.0, 10e2, 1.0);
+		
 
 
 		// -----------------------------
@@ -305,7 +303,32 @@ void gmatscripter::create_GMAT_phases() {
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", 0.0);
-
+			//variation of launch vinf
+			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+				//RLA
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLA");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLAScaling", this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].RA_departure / (4*math::PI));
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLAWindow", 4 * math::PI);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLALowerBound", -math::TwoPI);
+				//DLA
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLA");
+				double dlawindow = this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0];
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAScaling", this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].DEC_departure / dlawindow);
+				if (agmatphase.myjourney->j == 0) {
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", dlawindow);
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", this->ptr_gmatmission->options.DLA_bounds[0]);
+				}
+				else {
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", math::PI);
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", -math::PIover2);
+				}
+				//Vinf
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_Vinf");
+				double vinfwindow = this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][1] - this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][0];
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfScaling", sqrt(this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[0].C3_departure) / vinfwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfWindow", vinfwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfLowerBound", this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][0]);
+			}
 			
 
 
@@ -313,6 +336,11 @@ void gmatscripter::create_GMAT_phases() {
 			//         VARY CREATION
 			// -----------------------------
 			agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_FuelScaling");
+			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_RLAScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_DLAScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_VinfScaling");
+			}
 
 
 
@@ -349,6 +377,15 @@ void gmatscripter::create_GMAT_phases() {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VX");
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VY");
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VZ");
+			}
+			//for propulsive departures
+			else if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_DLA", agmatphase.spacecraft_forward.Name + "_DLAScaling * " + agmatphase.spacecraft_forward.Name + "_DLAWindow + " + agmatphase.spacecraft_forward.Name + "_DLALowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_RLA", agmatphase.spacecraft_forward.Name + "_RLAScaling * " + agmatphase.spacecraft_forward.Name + "_RLAWindow + " + agmatphase.spacecraft_forward.Name + "_RLALowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_Vinf", agmatphase.spacecraft_forward.Name + "_VinfScaling * " + agmatphase.spacecraft_forward.Name + "_VinfWindow + " + agmatphase.spacecraft_forward.Name + "_VinfLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", agmatphase.spacecraft_forward.Name + "_Vinf * cos( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_DLA )");
 			}
 
 
@@ -564,8 +601,8 @@ void gmatscripter::create_GMAT_steps() {
 					agmatstep.allowTheTimeStep2Vary = true;
 					agmatstep.setVariable(agmatstep.id + "_TimeStep");
 					agmatstep.setVariable(agmatstep.id + "_InitialTimeStep", agmatstep.stepsize);
-					if (agmatstep.myspacecraft->isForward) { agmatstep.setCalculate(agmatstep.id + "_TimeStep", agmatstep.myphase->myjourney->id + "_TimeScaling * " + agmatstep.id + "_InitialTimeStep"); }
-					else { agmatstep.setCalculate(agmatstep.id + "_TimeStep", "-" + agmatstep.myphase->myjourney->id + "_TimeScaling * " + agmatstep.id + "_InitialTimeStep"); }
+					if (agmatstep.myspacecraft->isForward) { agmatstep.setCalculate(agmatstep.id + "_TimeStep", agmatstep.myphase->id + "_TimeScaling * " + agmatstep.id + "_InitialTimeStep"); }
+					else { agmatstep.setCalculate(agmatstep.id + "_TimeStep", "-" + agmatstep.myphase->id + "_TimeScaling * " + agmatstep.id + "_InitialTimeStep"); }
 					
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
@@ -865,6 +902,7 @@ void gmatscripter::postpass_GMAT_missions() {
 	// -----------------------------
 	//       VARIABLE CREATION
 	// -----------------------------
+	GMATMission.setVariable("ObjectiveFunction");
 	//if a mission is time-constrained then we need to create a mission-level TOF to later constrain
 	if (this->ptr_gmatmission->options.global_timebounded == 1) { GMATMission.setVariable("Mission_TOF"); }
 
@@ -885,6 +923,10 @@ void gmatscripter::postpass_GMAT_missions() {
 		GMATMission.setCalculate("Mission_TOF", tempstream.str(), false);
 		tempstream.str("");
 	}
+	//objective function types
+	if (this->ptr_gmatmission->options.objective_type == 2) {
+		GMATMission.setCalculate("ObjectiveFunction", "-" + GMATMission.myjourneys.back().myphases.back().spacecraft_backward.Name + "_FuelMass", false);
+	}
 
 	// -----------------------------
 	//      CONSTRAINT CREATION
@@ -894,6 +936,7 @@ void gmatscripter::postpass_GMAT_missions() {
 		GMATMission.setConstraint("Mission_TOF", ">=", this->ptr_gmatmission->options.total_flight_time_bounds[0] / 86400.0);
 		GMATMission.setConstraint("Mission_TOF", "<=", this->ptr_gmatmission->options.total_flight_time_bounds[1] / 86400.0);
 	}
+
 
 }
 
@@ -1503,6 +1546,17 @@ void gmatscripter::write_GMAT_subscribers(){
 	GMATfile << "TOFPlot.ShowPlot = true" << endl;
 	GMATfile << endl;
 
+	GMATfile << "%Create XYPlot ObjectiveFunctionPlot" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.SolverIterations = All" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.UpperLeft = [0 0]" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.Size = [0 0]" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.RelativeZOrder = 0" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.XVariable = Iterations" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.YVariables = { ObjectiveFunction }" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.ShowGrid = true" << endl;
+	GMATfile << "%ObjectiveFunctionPlot.ShowPlot = true" << endl;
+	GMATfile << endl;
+
 	//An iteration counter for the Optimization Sequence (and necessary for the XY Plots above)
 	GMATMission.setVariable("Iterations", 0);
 	GMATMission.setCalculate("Iterations", "Iterations + 1", false);
@@ -1930,17 +1984,18 @@ void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 
 	//GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << endl;
+	GMATfile << "% note: with the exception of .CoordinateSystem and .Tank, all values are 'dummy values'" << endl;
 	GMATfile << "Create Thruster " << spacecraft.Thruster.Name << endl;
 	GMATfile << spacecraft.Thruster.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection3 = 0;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".DutyCycle = 1;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection3 = 0" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".DutyCycle = 1" << endl;
 	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".C1 = .1;" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000;" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".C1 = .1" << endl;
+	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000" << endl;
 	GMATfile << endl;
 
 }
