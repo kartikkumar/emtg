@@ -287,10 +287,10 @@ void gmatscripter::create_GMAT_phases() {
 			// -----------------------------
 			//        DATA COLLECTION
 			// -----------------------------
+			//fuel window
 			if (this->ptr_gmatmission->options.enable_maximum_propellant_mass_constraint == 1) { fuelwindow = this->ptr_gmatmission->options.maximum_propellant_mass; }
 			else { fuelwindow = this->ptr_gmatmission->options.maximum_mass; }
-
-
+			
 			// -----------------------------
 			//         INSTANTIATION
 			// -----------------------------
@@ -301,10 +301,11 @@ void gmatscripter::create_GMAT_phases() {
 			//       VARIABLE CREATION
 			// -----------------------------
 			//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", 0.0);
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelMass");
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", 0.0);
+
 			
 
 
@@ -320,11 +321,16 @@ void gmatscripter::create_GMAT_phases() {
 			// -----------------------------
 			//forward spacecraft epoch (first phase can vary using 'LaunchWindowScaling'). 
 			//otherwise phases use variable create from previous phase's backward spacecraft epoch [see postpass_GMAT_phases() method]
-			if (agmatphase.p == 0) {
+			if (agmatphase.myjourney->j == 0 && agmatphase.p == 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat,
 										"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
 			}
-			else {
+			else if (agmatphase.myjourney->j != 0 && agmatphase.p == 0) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat,
+					agmatphase.myjourney->id + "_WaitTimeScaling * " + agmatphase.myjourney->id + "_WaitTimeWindow + " + GMATMission.myjourneys[j - 1].myphases.back().spacecraft_backward.Name + "_Epoch + " + 
+					agmatphase.myjourney->id + "_WaitTimeLowerBound");
+			}
+			else if (agmatphase.p > 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat, GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_Epoch");
 			}
 			//forward spacecraft fuel scaling (first phase uses initial conditions)
@@ -776,39 +782,57 @@ void gmatscripter::postpass_GMAT_journeys() {
 
 	//declarations
 	stringstream tempstream;
-	
+	gmatjourney* agmatjourney;
+	double waittimewindow;
+
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		//assignment
+		agmatjourney = &GMATMission.myjourneys[j];
+
 		// -----------------------------
 		//      POST-DATA COLLECTION
 		// -----------------------------
+		//waittimewindow
+		waittimewindow = (this->ptr_gmatmission->options.journey_wait_time_bounds[j][1] - this->ptr_gmatmission->options.journey_wait_time_bounds[j][0]) / 86400.0;
+
 
 
 		// -----------------------------
 		//       VARIABLE CREATION
 		// -----------------------------
 		//if either mission or myjourney is time-constrained then we need to produce a TOF variable
-		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[GMATMission.myjourneys[j].j] == 1) {
-			GMATMission.myjourneys[j].setVariable(GMATMission.myjourneys[j].id + "_TOF");
+		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1) {
+			agmatjourney->setVariable(agmatjourney->id + "_TOF");
 		}
-
+		if (agmatjourney->j > 0) {
+			if (waittimewindow > 1e-6) { 
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeScaling", (agmatjourney->myphases.front().iepoch - GMATMission.myjourneys[j - 1].myphases.back().fepoch - this->ptr_gmatmission->options.journey_wait_time_bounds[j][0]) / 86400.0 / waittimewindow);
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeWindow", waittimewindow);
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeLowerBound", this->ptr_gmatmission->options.journey_wait_time_bounds[j][0] / 86400.0);
+			}
+			else{ 
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeScaling", 0.0); 
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeWindow",  0.0);
+			}
+		}
 
 
 		// -----------------------------
 		//         VARY CREATION
 		// -----------------------------
-
+		if (agmatjourney->j > 0) { agmatjourney->setVary(agmatjourney->id + "_WaitTimeScaling"); }
 
 
 		// -----------------------------
 		//      CALCULATE CREATION
 		// -----------------------------
 		//if either mission or myjourney is time-constrained then we need to calculate the TOF variable based on phase TOF
-		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[GMATMission.myjourneys[j].j] == 1) {
-			tempstream << GMATMission.myjourneys[j].myphases[0].id << "_TOF";
-			for (int p = 1; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
-				tempstream << " + " << GMATMission.myjourneys[j].myphases[p].id << "_TOF";
+		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1) {
+			tempstream << agmatjourney->myphases[0].id << "_TOF";
+			for (int p = 1; p < agmatjourney->myphases.size(); ++p) {
+				tempstream << " + " << agmatjourney->myphases[p].id << "_TOF";
 			}
-			GMATMission.myjourneys[j].setCalculate(GMATMission.myjourneys[j].id + "_TOF", tempstream.str(), false);
+			agmatjourney->setCalculate(agmatjourney->id + "_TOF", tempstream.str(), false);
 			tempstream.str("");
 		}
 
@@ -817,9 +841,9 @@ void gmatscripter::postpass_GMAT_journeys() {
 		//      CONSTRAINT CREATION
 		// -----------------------------
 		//if myjourney is time-constrained then we need constrain the TOF variable
-		if (this->ptr_gmatmission->options.journey_timebounded[GMATMission.myjourneys[j].j] == 1) {
-			GMATMission.myjourneys[j].setConstraint(GMATMission.myjourneys[j].id + "_TOF", ">=", this->ptr_gmatmission->options.journey_flight_time_bounds[GMATMission.myjourneys[j].j][0] / 86400.0 );
-			GMATMission.myjourneys[j].setConstraint(GMATMission.myjourneys[j].id + "_TOF", "<=", this->ptr_gmatmission->options.journey_flight_time_bounds[GMATMission.myjourneys[j].j][1] / 86400.0);
+		if (this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1) {
+			agmatjourney->setConstraint(agmatjourney->id + "_TOF", ">=", this->ptr_gmatmission->options.journey_flight_time_bounds[agmatjourney->j][0] / 86400.0 );
+			agmatjourney->setConstraint(agmatjourney->id + "_TOF", "<=", this->ptr_gmatmission->options.journey_flight_time_bounds[agmatjourney->j][1] / 86400.0);
 		}
 
 			
@@ -1582,410 +1606,6 @@ void gmatscripter::write_GMAT_initialconditions(){
 	GMATfile << "EndScript" << endl;
 	GMATfile << endl;
 
-
-	////write out the initial guess values for the thrust vector history
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p) {
-	//		if (p == 0) {
-	//			for (int index = 0; index < gmat_steps_per_phase[p]; ++index) {
-	//				for (int subindex = 0; subindex < 3; ++subindex) { GMATfile << "	ThrustVector_j" << j << "p" << p << "(" << index + 1 << ", " << subindex << ") = " << gmat_step_thrust_vectors[index][subindex] << endl; }
-	//			}
-	//		}
-	//		else {
-	//			for (int index = gmat_steps_per_phase[p - 1] - 1; index < gmat_steps_per_phase[p]; ++index) {
-	//				for (int subindex = 0; subindex < 3; ++subindex) { GMATfile << "	ThrustVector_j" << j << "p" << p << "(" << index + 1 << ", " << subindex << ") = " << gmat_step_thrust_vectors[index][subindex] << endl; }
-	//			}
-	//		}
-	//		GMATfile << endl;
-	//	}//end of phase for-statement
-	//}//end of journey for-statement
-
-	//GMATfile << "EndScript" << endl;
-	//GMATfile << endl;
-
-	////TODO:: hook up engine inputs
-	//GMATfile << "	%Engine model parameters" << endl;
-	//if (this->ptr_gmatmission->options.mission_type < 2 || this->ptr_gmatmission->options.mission_type == 5) //impulsive-thrust phase types
-	//{
-	//	GMATfile << "	ThrusterISP = " << this->ptr_gmatmission->options.IspChem << endl;
-
-	//	GMATfile << endl;
-
-	//	//for each journey
-	//	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//	{
-	//		//for each phase
-	//		for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//		{
-	//			GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << ".K1 = ThrusterISP;" << endl;
-	//			GMATfile << endl;
-	//		}
-	//	}
-	//}
-	//else //for all low-thrust phase types
-	//{
-	//	switch (this->ptr_gmatmission->options.engine_type)
-	//	{
-	//	case 0: //fixed thrust and ISP
-	//		GMATfile << "	ThrusterISP = "       << this->ptr_gmatmission->options.IspLT             << endl;
-	//		GMATfile << "	ThrusterMaxThrust = " << this->ptr_gmatmission->options.Thrust            << endl;
-	//		GMATfile << "	ThrusterDutyCycle = " << this->ptr_gmatmission->options.engine_duty_cycle << endl;
-	//		break;
-	//	case 1: //constant ISP, efficiency, EMTG chooses power
-	//		break;
-	//	case 2: //choice of power model, constant efficiency, EMTG chooses ISP
-	//		break;
-	//	case 3: //choice of power model, constant efficiency and ISP
-	//		break;
-	//	case 4: //continuously-varying specific impulse (constant efficiency)
-	//		break;
-	//	case 5: //custom thrust and mass flow rate
-	//		break;
-	//	case 6: //NSTAR
-	//		break;
-	//	case 7: //XIPS-25
-	//		break;
-	//	case 8: //BPT-4000 high ISP
-	//		break;
-	//	case 9: //BPT-4000 high thrust
-	//		break;
-	//	case 10: //BPT-4000 ex-high ISP
-	//		break;
-	//	case 11: //NEXT high ISP
-	//		break;
-	//	case 12: //VASIMR
-	//		break;
-	//	case 13: //Hall thruster
-	//		break;
-	//	case 14: //NEXT v10 high Isp
-	//		break;
-	//	case 15: //NEXT v10 high Thrust
-	//		break;
-	//	case 16: //BPT-4000 MALTO curve
-	//		break;
-	//	}
-
-	//	GMATfile << endl;
-
-	//	//for each forward spacecraft, set the dutycycle, maxthrust and Isp
-	//	for (int index = 0; index < thruster_forward_names.size(); ++index) {
-	//		GMATfile << "	" << thruster_forward_names[index] << ".DutyCycle  = ThrusterDutyCycle;" << endl;
-	//		GMATfile << "	" << thruster_forward_names[index] << ".C1         = ThrusterMaxThrust;" << endl;
-	//		GMATfile << "	" << thruster_forward_names[index] << ".K1         = ThrusterISP;" << endl;
-	//		GMATfile << endl;
-	//	}
-	//	//for each backward spacecraft, set the dutycycle, maxthrust and Isp
-	//	for (int index = 0; index < thruster_backward_names.size(); ++index) {
-	//		GMATfile << "	" << thruster_backward_names[index] << ".DutyCycle  = ThrusterDutyCycle;" << endl;
-	//		GMATfile << "	" << thruster_backward_names[index] << ".C1         = ThrusterMaxThrust;" << endl;
-	//		GMATfile << "	" << thruster_backward_names[index] << ".K1         = ThrusterISP;" << endl;
-	//		GMATfile << endl;
-	//	}
-
-	//	//for each journey
-	//	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//	//{
-	//	//	//for each phase
-	//	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//	//	{
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.DutyCycle  = ThrusterDutyCycle;"	<< endl;
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.C1         = ThrusterMaxThrust;" << endl;
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Forward.K1         = ThrusterISP;"	    << endl;
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.DutyCycle = ThrusterDutyCycle;" << endl;
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.C1        = ThrusterMaxThrust;" << endl;
-	//	//		GMATfile << "	Thruster_Journey" << j + 1 << "Phase" << p + 1 << "Backward.K1        = ThrusterISP;"	    << endl;
-	//	//		GMATfile << endl;
-	//	//	}
-	//	//}
-
-	//} //end code for low-thrust models
-
-
-	
-
-
-	////for each journey
-	//for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j)
-	//{
-	//	//for each phase
-	//	for (int p = 0; p < this->ptr_gmatmission->journeys[j].number_of_phases; ++p)
-	//	{
-	//		//FORWARD PROPAGATED SPACECRAFT
-	//		GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Forward s/c initial conditions" << endl;
-	//		GMATDebug << " I should be printing right now." << endl;
-	//		//interpret state from beginning of each journey based on departure type (//TODO::)
-	//		if (p == 0)
-	//		{
-	//			GMATDebug << "p: " << p << endl;
-	//			//first we must figure out where the initial position at each phase is, since EMTG goes through center of the body
-	//			missionbodies[body_index].locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-	//			switch (this->ptr_gmatmission->options.journey_departure_type[j])
-	//			{
-	//			case 0: //launch or direct insertion // (EMTG default mission)
-	//				GMATDebug << "case: 0" << endl;
-	//				//calculate v_infinity vectors
-	//				for (int k = 0; k < 3; ++k)
-	//				{
-	//					Vinf_out(k) = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[k + 3] - boundary_state[k + 3];
-	//				}
-	//				//calculate inc from vinfinity, then make guess at min altitude at planet
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[0] - boundary_state[0] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[1] - boundary_state[1] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[2] - boundary_state[2] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[3] - boundary_state[3] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[4] - boundary_state[4] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[5] - boundary_state[5] << ";" << endl;
-	//				GMATDebug << "Initial States: ";
-	//				for (int counter = 0; counter < 6; counter++){
-	//					GMATDebug << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[counter] << ", ";
-	//				}
-	//				GMATDebug << endl;
-	//				break;
-	//			case 1: //depart from parking orbit
-	//				GMATDebug << "case: 1" << endl;
-	//				//TODO::
-	//				//journey_departure_elements_type == 1 means given in COE, which is only relevant if 
-	//				//departure type is 'depart from parking orbit' or 'free - direct departure' OR
-	//				//arrival type is 'insertion into parking orbit (use chemical Isp)' or ...
-
-	//				//I dont think John's code works correctly
-	//				//periapse_state_vector = journeys[j].phases[p].calculate_periapse_state_from_asymptote_and_parking_orbit(Vinf_out, options.journey_departure_elements[j][2], options.journey_departure_elements[j][0] - missionbodies[body_index].radius, journeys[j].phases[p].phase_start_epoch, &TheUniverse[options.number_of_journeys - 1], body_index + 1);
-
-	//				//can convert to inertial and then to appropriate frame
-	//				//COE2inertial(const double* E_COE, const double mu, double* state)
-	//				//reference frame transformation here if needed
-	//				if (this->ptr_gmatmission->options.journey_departure_elements_type[j] == 1)
-	//				{
-	//					for (int k = 0; k < 3; ++k)
-	//					{
-	//						periapse_position_vector(k) = periapse_state_vector(k);
-	//						periapse_velocity_vector(k) = periapse_state_vector(k + 3);
-	//					}
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X = " << periapse_position_vector(0) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y = " << periapse_position_vector(1) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z = " << periapse_position_vector(2) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << periapse_velocity_vector(0) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << periapse_velocity_vector(1) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << periapse_velocity_vector(2) << ";" << endl;
-	//				}
-	//				break;
-	//			case 2: //free direct departure
-	//				GMATDebug << "case: 2" << endl;
-	//				//TODO::
-	//				//journey_departure_elements_type == 1 means given in COE, which is only relevant if 
-	//				//departure type is 'depart from parking orbit' or 'free - direct departure' OR
-	//				//arrival type is 'insertion into parking orbit (use chemical Isp)' or ...
-
-	//				//I dont think John's code works correctly
-	//				//periapse_state_vector = journeys[j].phases[p].calculate_periapse_state_from_asymptote_and_parking_orbit(Vinf_out, options.journey_departure_elements[j][2], options.journey_departure_elements[j][0] - missionbodies[body_index].radius, journeys[j].phases[p].phase_start_epoch, &TheUniverse[options.number_of_journeys - 1], body_index + 1);
-
-	//				//can convert to inertial and then to appropriate frame
-	//				//COE2inertial(const double* E_COE, const double mu, double* state)
-	//				//reference frame transformation here if needed
-	//				if (this->ptr_gmatmission->options.journey_departure_elements_type[j] == 1)
-	//				{
-	//					for (int k = 0; k < 3; ++k)
-	//					{
-	//						periapse_position_vector(k) = periapse_state_vector(k);
-	//						periapse_velocity_vector(k) = periapse_state_vector(k + 3);
-	//					}
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X = " << periapse_position_vector(0) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y = " << periapse_position_vector(1) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z = " << periapse_position_vector(2) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << periapse_velocity_vector(0) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << periapse_velocity_vector(1) << ";" << endl;
-	//					GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << periapse_velocity_vector(2) << ";" << endl;
-	//				}
-	//				break;
-	//			case 3: //depart from flyby
-	//				GMATDebug << "case: 3" << endl;
-	//				break;
-	//			}
-	//		}//end of if(p == 0)
-
-	//		//for all other phases, interpret state from beginning of each phase and then add the minimum flyby altitude
-	//		else
-	//		{
-	//			//first we must figure out where the initial position at each phase is, since EMTG goes through center of the body
-	//			missionbodies[body_index].locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-	//			//calculate v_infinity vectors
-	//			for (int k = 0; k < 3; ++k)
-	//			{
-	//				Vinf_in(k)  = this->ptr_gmatmission->journeys[j].phases[p - 1].state_at_end_of_phase[k + 3]   - boundary_state[k + 3];
-	//				Vinf_out(k) = this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[k + 3] - boundary_state[k + 3];
-	//			}
-
-	//			periapse_state_vector = this->ptr_gmatmission->journeys[j].phases[p].calculate_flyby_periapse_state(Vinf_in, Vinf_out, this->ptr_gmatmission->journeys[j].phases[p - 1].flyby_altitude, missionbodies[body_index]);
-
-	//			//add this position vector to state's initial guess
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X = "  << periapse_state_vector(0) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y = "  << periapse_state_vector(1) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z = "  << periapse_state_vector(2) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX = " << periapse_state_vector(3) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY = " << periapse_state_vector(4) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ = " << periapse_state_vector(5) << ";" << endl;
-	//		}
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << ".CoordinateSystem = " << missionbodies[body_index].name << "J2000Eq;" << endl;
-	//		GMATfile << endl;
-
-
-	//		//BACKWARD PROPAGATED SPACECRAFT
-	//		GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Backward s/c initial conditions" << endl;
-
-	//		//interpret state from end of each journey based on arrival type (//TODO::)
-	//		if (p == this->ptr_gmatmission->journeys[j].number_of_phases - 1)
-	//		{
-	//			//first we must figure out where the initial position at each phase is, since EMTG goes through center of the body
-	//			missionbodies[body_index + 1].locate_body(this->ptr_gmatmission->journeys[j].phases[p].phase_end_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-	//			switch (this->ptr_gmatmission->options.journey_arrival_type[j])
-	//			{
-	//			case 0: //parking orbit insertion
-	//				break;
-	//			case 1: //rendezvous (chemical)
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[0] - boundary_state[0] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[1] - boundary_state[1] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[2] - boundary_state[2] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[3] - boundary_state[3] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[4] - boundary_state[4] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[5] - boundary_state[5] << ";" << endl;
-	//				break;
-	//			case 2: //flyby with bounded VHP
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[0] - boundary_state[0] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[1] - boundary_state[1] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[2] - boundary_state[2] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[3] - boundary_state[3] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[4] - boundary_state[4] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[5] - boundary_state[5] << ";" << endl;
-	//				break;
-	//			case 3: //rendezvous (LT) // (EMTG default mission)
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[0] - boundary_state[0] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[1] - boundary_state[1] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z = "  << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[2] - boundary_state[2] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[3] - boundary_state[3] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[4] - boundary_state[4] << ";" << endl;
-	//				GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[5] - boundary_state[5] << ";" << endl;
-	//				break;
-	//			case 4: //match Vinf vector (chemical)
-	//				break;
-	//			case 5: //match Vinf vector (LT)
-	//				break;
-	//			}
-	//		}
-
-	//		//for all other phases, interpret state from end of each phase and then add the minimum flyby altitude
-	//		else
-	//		{
-
-	//			//first we must figure out where the initial position at each phase is, since EMTG goes through center of the body
-	//			missionbodies[body_index + 1].locate_body(this->ptr_gmatmission->journeys[j].phases[p + 1].phase_start_epoch, boundary_state, false, &this->ptr_gmatmission->options);
-
-	//			//calculate v_infinity vectors
-	//			for (int k = 0; k < 3; ++k)
-	//			{
-	//				Vinf_in(k)  = this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[k + 3]           - boundary_state[k + 3];
-	//				Vinf_out(k) = this->ptr_gmatmission->journeys[j].phases[p + 1].state_at_beginning_of_phase[k + 3] - boundary_state[k + 3];
-	//			}
-
-	//			periapse_state_vector = this->ptr_gmatmission->journeys[j].phases[p].calculate_flyby_periapse_state(Vinf_in, Vinf_out, this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude, missionbodies[body_index + 1]);
-
-	//			//add this position vector to state's initial guess
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X = "  << periapse_state_vector(0) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y = "  << periapse_state_vector(1) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z = "  << periapse_state_vector(2) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX = " << periapse_state_vector(3) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY = " << periapse_state_vector(4) << ";" << endl;
-	//			GMATfile << "	" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ = " << periapse_state_vector(5) << ";" << endl;
-	//		}
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << ".CoordinateSystem = " << missionbodies[body_index + 1].name << "J2000Eq;" << endl;
-	//		GMATfile << endl;
-
-	//		//insert scaled launch epoch and wait times for each subsequent journey
-	//		if ((j > 0) && (p == 0))
-	//		{
-	//			GMATfile << "	%Guess for scaled journey wait times" << endl;
-	//			GMATfile << "	Journey" << j + 1 << "_WaitTime_Scaled = " << ((this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch - this->ptr_gmatmission->journeys[j - 1].phases[this->ptr_gmatmission->journeys[j - 1].number_of_phases - 1].phase_end_epoch) - this->ptr_gmatmission->options.journey_wait_time_bounds[j][0]) / (this->ptr_gmatmission->options.journey_wait_time_bounds[j][1] - this->ptr_gmatmission->options.journey_wait_time_bounds[j][0]) << ";" << endl;
-	//		}
-	//		if (j == 0)
-	//		{
-	//			if (p == 0)
-	//			{
-	//				GMATfile << "	%Guess for scaled spacecraft launch epoch" << endl;
-	//				GMATfile << "	LaunchEpoch_Scaled = " << (this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch - LaunchDate_LowerBounds) / (LaunchDate_UpperBounds - LaunchDate_LowerBounds) << ";" << endl;
-	//			}
-	//		}
-	//		GMATfile << endl;
-
-	//		//insert scaled states for forward and backward s/c (doing the math in GMAT bc of all the if statements above!)
-	//		GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Forward s/c scaled initial conditions" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_X_Scaled = ("  << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.X - "  << Forward_Flyby_Distance_LowerBound[p] << ") / (" << Forward_Flyby_Distance_UpperBound[p] << " - " << Forward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_Y_Scaled = ("  << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Y - "  << Forward_Flyby_Distance_LowerBound[p] << ") / (" << Forward_Flyby_Distance_UpperBound[p] << " - " << Forward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_Z_Scaled = ("  << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.Z - "  << Forward_Flyby_Distance_LowerBound[p] << ") / (" << Forward_Flyby_Distance_UpperBound[p] << " - " << Forward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_VX_Scaled = (" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VX - " << Forward_Flyby_Velocity_LowerBound[p] << ") / (" << Forward_Flyby_Velocity_UpperBound[p] << " - " << Forward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_VY_Scaled = (" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VY - " << Forward_Flyby_Velocity_LowerBound[p] << ") / (" << Forward_Flyby_Velocity_UpperBound[p] << " - " << Forward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_forward_names[name_index] << "_VZ_Scaled = (" << spacecraft_forward_names[name_index] << "." << missionbodies[body_index].name << "J2000Eq.VZ - " << Forward_Flyby_Velocity_LowerBound[p] << ") / (" << Forward_Flyby_Velocity_UpperBound[p] << " - " << Forward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "   " << spacecraft_forward_names[name_index] << "_FuelMass_Scaled = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6] / (this->ptr_gmatmission->options.maximum_mass) << endl;
-	//		//GMATfile << "	FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Forward_Scaled = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6] / (this->ptr_gmatmission->options.maximum_mass) << endl;
-	//		GMATfile << endl;
-
-	//		GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Backward s/c scaled initial conditions" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_X_Scaled = ("  << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.X - "  << Backward_Flyby_Distance_LowerBound[p] << ") / (" << Backward_Flyby_Distance_UpperBound[p] << " - " << Backward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_Y_Scaled = ("  << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Y - "  << Backward_Flyby_Distance_LowerBound[p] << ") / (" << Backward_Flyby_Distance_UpperBound[p] << " - " << Backward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_Z_Scaled = ("  << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.Z - "  << Backward_Flyby_Distance_LowerBound[p] << ") / (" << Backward_Flyby_Distance_UpperBound[p] << " - " << Backward_Flyby_Distance_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_VX_Scaled = (" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VX - " << Backward_Flyby_Velocity_LowerBound[p] << ") / (" << Backward_Flyby_Velocity_UpperBound[p] << " - " << Backward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_VY_Scaled = (" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VY - " << Backward_Flyby_Velocity_LowerBound[p] << ") / (" << Backward_Flyby_Velocity_UpperBound[p] << " - " << Backward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "	" << spacecraft_backward_names[name_index] << "_VZ_Scaled = (" << spacecraft_backward_names[name_index] << "." << missionbodies[body_index + 1].name << "J2000Eq.VZ - " << Backward_Flyby_Velocity_LowerBound[p] << ") / (" << Backward_Flyby_Velocity_UpperBound[p] << " - " << Backward_Flyby_Velocity_LowerBound[p] << ")" << endl;
-	//		GMATfile << "   " << spacecraft_backward_names[name_index] << "_FuelMass_Scaled = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_beginning_of_phase[6] / (this->ptr_gmatmission->options.maximum_mass) << endl;
-	//		//GMATfile << "	FuelMass_Journey" << j + 1 << "Phase" << p + 1 << "Backward_Scaled = " << this->ptr_gmatmission->journeys[j].phases[p].state_at_end_of_phase[6] / (this->ptr_gmatmission->options.maximum_mass) << endl;
-	//		GMATfile << endl;
-	//		++name_index;
-	//		++body_index;
-
-
-
-	//		////initial guess for inter-phase control
-	//		////this means thrust vectors (and sometimes Isp) for low-thrust phases
-	//		////or burn index for MGADSM and MGANDSM phases. No control for MGA phases
-	//		////initialize thrust vector directions
-	//		////define thrust unit vector bounds to scale to between 0 and 1
-	//		//double ThrustUnitVector_lowerbounds = -1;
-	//		//double ThrustUnitVector_upperbounds =  1;
-
-	//		////propagate forward s/c using finite burns (must scale unit vectors to between 0 and 1)
-	//		//GMATfile << endl;
-	//		//GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Forward s/c scaled thrust vectors" << endl;
-	//		//for (int step = 0; step < (this->ptr_gmatmission->options.num_timesteps / 2); ++step)
-	//		//{
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][0] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][1] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][2] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << endl;
-	//		//}
-	//		////propagate backward s/c using finite burns (must scale unit vectors to between 0 and 1)
-	//		//GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << " Backward s/c scaled thrust vectors" << endl;
-	//		//for (int step = this->ptr_gmatmission->options.num_timesteps - 1; (step >= this->ptr_gmatmission->options.num_timesteps / 2); --step)
-	//		//{
-	//		//	GMATfile << "	%Journey #" << j + 1 << ", Phase #" << p + 1 << ", Time Step #" << step + 1 << ", Backward Propagation" << endl;
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 1) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][0] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 2) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][1] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << "	ThrustVector_Journey" << j + 1 << "Phase" << p + 1 << "(" << step + 1 << ", 3) = " << (this->ptr_gmatmission->journeys[j].phases[p].control[step][2] - ThrustUnitVector_lowerbounds) / (ThrustUnitVector_upperbounds - ThrustUnitVector_lowerbounds) << endl;
-	//		//	GMATfile << endl;
-	//		//}
-
-
-
-	//		
-
-
-
-
-	//	}//end of phase for-statement
-	//}//end of journey for-statement
-	//GMATfile << "EndScript" << endl;
-	//GMATfile << endl;
-
 }//end of write_GMAT_initialguess() method
 
 
@@ -2348,6 +1968,7 @@ void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 }
 
 
+// method to write out a spacecraft's initial conditions
 void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft) {
 	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << endl;
 	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << endl;

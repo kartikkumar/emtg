@@ -278,6 +278,7 @@ public:
 	mission* emtgmission;
 	vector <EMTG::Astrodynamics::body> missionbodies_unique;
 	vector <EMTG::Astrodynamics::body> missionbodies;
+	vector <int> starting_body_index_of_journey;
 	bool isLT;    //bool for whether LT   or Impulsive is being used
 	bool isFBLT;  //bool for whether FBLT or Sims-Flanagan is being used
 	vector <gmatjourney> myjourneys;
@@ -287,6 +288,10 @@ public:
 
 		//declaration
 		int start_int = 0;
+		int counter   = 0;
+
+		//push_back()
+		starting_body_index_of_journey.push_back(counter);
 
 		//a loop structure over journeys and phases to collect all the bodies for the mission 
 		for (int j = 0; j < this->emtgmission->number_of_journeys; ++j) {
@@ -295,7 +300,9 @@ public:
 			for (int p = start_int; p < this->emtgmission->journeys[j].number_of_phases + 1; ++p) {
 				//push back body onto the vector
 				missionbodies.push_back(this->emtgmission->TheUniverse[j].bodies[this->emtgmission->options.sequence[j][p] - 1]);
+				counter++;
 			}//end of phase for-statement
+			starting_body_index_of_journey.push_back(counter);
 		}//end of journeys for-statement
 
 		int body_flag = 0;
@@ -387,6 +394,7 @@ public:
 		this->get_my_bodies();
 		this->get_flyby_data();
 		this->set_initialconditions();
+		this->set_epochs();
 	}
 
 	//destructor
@@ -405,7 +413,9 @@ public:
 	bool EndsWithFlyby   = false;
 	double ineligabletime = 0.0;
 	double eligabletime   = 0.0;
-	double TOF = 0.0;
+	double TOF = 0.0; 
+	double iepoch;
+	double fepoch;
 	vector <gmatstep> mysteps;
 
 	//method
@@ -438,11 +448,17 @@ public:
 
 	//method
 	void get_my_bodies() {
+		//declaration
+		int start_index;
+
+		if (myjourney->j > 0) { start_index = this->myjourney->mymission->starting_body_index_of_journey[myjourney->j] - 1; }
+		else { start_index = 0; }
+
 		//get the bodies
-		mybodies.push_back(this->myjourney->mymission->missionbodies[p]);
-		mybodies.push_back(this->myjourney->mymission->missionbodies[p + 1]);
+		mybodies.push_back(this->myjourney->mymission->missionbodies[p + start_index]);
+		mybodies.push_back(this->myjourney->mymission->missionbodies[p + 1 + start_index]);
 		//set the spacecraft coordinate systems
-		spacecraft_forward.CoordinateSystem = mybodies[0].name + "J2000Eq";
+		spacecraft_forward.CoordinateSystem  = mybodies[0].name + "J2000Eq";
 		spacecraft_backward.CoordinateSystem = mybodies[1].name + "J2000Eq";
 	}
 
@@ -544,6 +560,12 @@ public:
 				spacecraft_backward.initialconditions[i] = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].state_at_end_of_phase[i] - body_states[i];
 			}
 		}
+	}
+
+	//method
+	void set_epochs() {
+		this->iepoch = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].phase_start_epoch;
+		this->fepoch = this->myjourney->mymission->emtgmission->journeys[this->myjourney->j].phases[this->p].phase_end_epoch;
 	}
 
 	//method
@@ -690,7 +712,7 @@ public:
 	void set_epochs() {
 		//the first step
 		if (myphase->mysteps.size() == 0)  {
-			iepoch = this->myphase->myjourney->mymission->emtgmission->journeys[this->myphase->myjourney->j].phases[this->myphase->p].phase_start_epoch;
+			iepoch = this->myphase->iepoch;
 			fepoch = iepoch + stepsize;
 		}
 		else {
