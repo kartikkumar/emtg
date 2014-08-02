@@ -56,10 +56,12 @@ namespace EMTG { namespace Solvers {
 		Fmul   = new SNOPT_DOUBLE_TYPE[neF];
 		Fstate = new SNOPT_INT_TYPE[neF];
 
+#ifdef Heritage_SNOPT7
 		nxnames = 1;
 		nFnames = 1;
 		xnames = new char[nxnames*8];
 		Fnames = new char[nFnames*8];
+#endif
 
 		ObjRow = 0;
 		ObjAdd = 0;
@@ -84,52 +86,52 @@ namespace EMTG { namespace Solvers {
 			Fmul[k] = 0.0;
 		}
 
-		SNOPTproblem = new snoptProblemExtension(true);
+		this->SNOPTproblem = new snoptProblemExtension(true);
 
-		SNOPTproblem->setProblemSize( Problem->total_number_of_NLP_parameters, neF );
-		SNOPTproblem->setObjective  ( ObjRow, ObjAdd );
-		SNOPTproblem->setUserspace( (SNOPT_INT_TYPE*) &SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*) Problem, 500 );
-		SNOPTproblem->setA          ( lenA, iAfun, jAvar, A );
-		SNOPTproblem->setG          ( lenG, iGfun, jGvar );
+		this->SNOPTproblem->setProblemSize(Problem->total_number_of_NLP_parameters, neF);
+		this->SNOPTproblem->setObjective(ObjRow, ObjAdd);
+		this->SNOPTproblem->setUserspace((SNOPT_INT_TYPE*)&SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*)Problem, 500);
+		this->SNOPTproblem->setA(lenA, iAfun, jAvar, A);
+		this->SNOPTproblem->setG(lenG, iGfun, jGvar);
 #ifdef Heritage_SNOPT7
-		SNOPTproblem->setXNames     ( xnames, nxnames );
-		SNOPTproblem->setFNames     ( Fnames, nFnames );
+		this->SNOPTproblem->setXNames(xnames, nxnames);
+		this->SNOPTproblem->setFNames(Fnames, nFnames);
 #endif
-		SNOPTproblem->setProbName   ( "EMTG" );
-		SNOPTproblem->setUserFun    ( SNOPT_user_function );
-		SNOPTproblem->setIntParameter("Iterations limit", 100*Problem->options.snopt_major_iterations);
-		SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
-		SNOPTproblem->setIntParameter( "Derivative option", 0 );
-		SNOPTproblem->setIntParameter("Minor print level", 0);
-		SNOPTproblem->setRealParameter("Major feasibility tolerance", Problem->options.snopt_feasibility_tolerance);
+		this->SNOPTproblem->setProbName("EMTG");
+		this->SNOPTproblem->setUserFun(SNOPT_user_function);
+		this->SNOPTproblem->setIntParameter("Iterations limit", 100 * Problem->options.snopt_major_iterations);
+		this->SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
+		this->SNOPTproblem->setIntParameter("Derivative option", 0);
+		this->SNOPTproblem->setIntParameter("Minor print level", 0);
+		this->SNOPTproblem->setRealParameter("Major feasibility tolerance", Problem->options.snopt_feasibility_tolerance);
 		
-		SNOPTproblem->setIntParameter("Major Print Level", 1);
-		SNOPTproblem->setRealParameter("Optimality tolerance", 1.0e-6);
+		this->SNOPTproblem->setIntParameter("Major Print Level", 1);
+		this->SNOPTproblem->setRealParameter("Optimality tolerance", 1.0e-6);
 		if (Problem->options.check_derivatives)
 		{
-			SNOPTproblem->setIntParameter("Print file", 1 );
-			SNOPTproblem->setIntParameter("Summary file", 1);
-			SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
+			this->SNOPTproblem->setIntParameter("Print file", 1);
+			this->SNOPTproblem->setIntParameter("Summary file", 1);
+			this->SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
 		}
 		if (Problem->options.mission_type < 2 || Problem->options.quiet_NLP) //for MGA, MGA-DSM missions
 		{
-			SNOPTproblem->setIntParameter("Major Print Level", 0);
-			SNOPTproblem->setIntParameter( "Print No", 0 );
-			SNOPTproblem->setIntParameter( "Summary file", 0 );
-			SNOPTproblem->setParameter("Suppress parameters");
+			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
+			this->SNOPTproblem->setIntParameter("Print No", 0);
+			this->SNOPTproblem->setIntParameter("Summary file", 0);
+			this->SNOPTproblem->setParameter("Suppress parameters");
 		}
 		else
 		{
 #ifdef QUIET_SNOPT
-			SNOPTproblem->setIntParameter("Major Print Level", 0);
-			SNOPTproblem->setIntParameter("Print No", 0);
+			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
+			this->SNOPTproblem->setIntParameter("Print No", 0);
 #endif
 		}
 
 		if (Problem->options.NLP_solver_mode)
-			SNOPTproblem->setParameter("Minimize");
+			this->SNOPTproblem->setParameter("Minimize");
 		else
-			SNOPTproblem->setParameter("Feasible point");
+			this->SNOPTproblem->setParameter("Feasible point");
 
 		switch (Problem->options.objective_type)
 		{
@@ -192,8 +194,11 @@ namespace EMTG { namespace Solvers {
 		delete [] Fupp;
 		delete [] Fmul;
 		delete [] Fstate;
+
+#ifdef Heritage_SNOPT7
 		delete [] xnames;
 		delete [] Fnames;
+#endif
 	}
 
 	

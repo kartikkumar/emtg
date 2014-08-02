@@ -128,10 +128,12 @@ public:
 	SNOPT_DOUBLE_TYPE *Fmul;
 	SNOPT_INT_TYPE    *Fstate;
 
+#ifdef Heritage_SNOPT7
 	SNOPT_INT_TYPE nxnames;
 	SNOPT_INT_TYPE nFnames;
 	char *xnames;
 	char *Fnames;
+#endif
 
 	SNOPT_INT_TYPE    ObjRow;
 	SNOPT_DOUBLE_TYPE ObjAdd;
