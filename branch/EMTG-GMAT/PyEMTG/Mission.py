@@ -1,6 +1,7 @@
 import Journey
 import MissionEvent
 import SmallBodyList
+import ThrottleTable
 import os
 import math
 
@@ -8,6 +9,7 @@ import numpy as np
 from scipy.integrate import ode
 import matplotlib
 import pylab
+import astropy
 from mpl_toolkits.mplot3d import Axes3D
 
 class Mission(object):
@@ -276,3 +278,153 @@ class Mission(object):
         print "Bubble search outputted to", bubblefile.name
 
         bubblefile.close()
+
+    #method to generate a throttle table report
+    def CalculateThrottleTableHistory(self, throttletablefile):
+        #instantiate a throttle table object
+        thruster_throttle_table = ThrottleTable.ThrottleTable(throttletablefile)
+
+        #find the throttle table setting for each time step
+        requested_throttle_table = []
+        mission_throttle_table = []
+        time_step_length_array = []
+        mass_per_step_array = [] # in kg
+
+        if self.ActiveJourney <= len(self.Journeys) - 1: #if one journey is selected
+            for event in self.Journeys[self.ActiveJourney].missionevents:
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'end_spiral':
+                    NewThrottleSetting = ThrottleTable.ThrottleSetting()
+                    NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines,
+                                                                    event.AvailableThrust / event.Number_of_Active_Engines * 1000.0,
+                                                                    event.MassFlowRate * 1.0e6 / event.Number_of_Active_Engines,
+                                                                    event.Isp, event.AvailableThrust * event.Isp * 9.80665 / (2000 * event.ActivePower))
+                    requested_throttle_table.append(NewThrottleSetting)
+
+                    mission_throttle_table.append(thruster_throttle_table.find_closest_throttle_setting(requested_throttle_table[-1]))
+                    time_step_length_array.append(event.TimestepLength * 86400) # in seconds
+                    mass_per_step_array.append(event.MassFlowRate * time_step_length_array[-1])
+        else:
+            for j in range(0, len(self.Journeys)): #for all journeys
+                for event in self.Journeys[j].missionevents:
+                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'end_spiral':
+                        NewThrottleSetting = ThrottleTable.ThrottleSetting()
+                        NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines,
+                                                                                      event.AvailableThrust / event.Number_of_Active_Engines * 1000.0,
+                                                                                      event.MassFlowRate * 1.0e6 / event.Number_of_Active_Engines,
+                                                                                      event.Isp, event.AvailableThrust * event.Isp * 9.80665 / (2000 * event.ActivePower))
+                        requested_throttle_table.append(NewThrottleSetting)
+
+                        mission_throttle_table.append(thruster_throttle_table.find_closest_throttle_setting(requested_throttle_table[-1]))
+                        time_step_length_array.append(event.TimestepLength * 86400) # in seconds
+                        mass_per_step_array.append(event.MassFlowRate * time_step_length_array[-1])
+
+        #bin the throttle table
+        throttle_table_bins = [0.0] * len(thruster_throttle_table.ThrottleSettings)
+        for i in range(0, len(mission_throttle_table)):
+            throttle_table_bins[mission_throttle_table[i] - 1] += mass_per_step_array[i]
+
+        return throttle_table_bins, mission_throttle_table
+
+    def GenerateThrottleReport(self, throttletablefile, reportfilename):
+        #get the throttle table settings history and throttle table binning arrays
+        throttle_table_bin_array, throttle_table_history_array = self.CalculateThrottleTableHistory(throttletablefile)
+
+        #write out the throttle report for each time step
+        reportfile = open(reportfilename, mode = 'w')
+        reportfile.write('Throttle table report for ' + self.mission_name + '\n')
+        reportfile.write('Segment start date, Segment width (days), Throttle Setting, Throughtput (kg), Total power in (kW), Number of active thrusters, Total thrust (N), Isp, Total mass flow rate (mg/s)\n')
+        counter = 0
+        if self.ActiveJourney <= len(self.Journeys) - 1: #if one journey is selected
+            for event in self.Journeys[self.ActiveJourney].missionevents:
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust':
+                    reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength / 2.0, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
+                                     str(event.TimestepLength) + ',' +
+                                     str(throttle_table_history_array[counter]) + ',' +
+                                     str(event.MassFlowRate * event.TimestepLength * 86400.0) + ',' + 
+                                     str(event.ActivePower) + ',' +
+                                     str(event.Number_of_Active_Engines) + ',' +
+                                     str(event.AvailableThrust) + ',' +
+                                     str(event.Isp) + ',' +
+                                     str(event.MassFlowRate * 1.0e+6) + '\n')
+                    counter += 1
+                elif event.EventType == 'end_spiral':
+                    reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
+                                     str(event.TimestepLength) + ',' +
+                                     str(throttle_table_history_array[counter]) + ',' +
+                                     str(event.MassFlowRate * event.TimestepLength * 86400.0) + ',' + 
+                                     str(event.ActivePower) + ',' +
+                                     str(event.Number_of_Active_Engines) + ',' +
+                                     str(event.AvailableThrust) + ',' +
+                                     str(event.Isp) + ',' +
+                                     str(event.MassFlowRate * 1.0e+6) + '\n')
+                    counter += 1
+
+        else:
+            for j in range(0, len(self.Journeys)): #for all journeys
+                for event in self.Journeys[j].missionevents:
+                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust':
+                        reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength / 2.0, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
+                                     str(event.TimestepLength) + ',' +
+                                     str(throttle_table_history_array[counter]) + ',' +
+                                     str(event.MassFlowRate * event.TimestepLength * 86400.0) + ',' + 
+                                     str(event.ActivePower) + ',' +
+                                     str(event.Number_of_Active_Engines) + ',' +
+                                     str(event.AvailableThrust) + ',' +
+                                     str(event.Isp) + ',' +
+                                     str(event.MassFlowRate * 1.0e+6) + '\n')
+                        counter += 1
+                    elif event.EventType == 'end_spiral':
+                        reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
+                                     str(event.TimestepLength) + ',' +
+                                     str(throttle_table_history_array[counter]) + ',' +
+                                     str(event.MassFlowRate * event.TimestepLength * 86400.0) + ',' + 
+                                     str(event.ActivePower) + ',' +
+                                     str(event.Number_of_Active_Engines) + ',' +
+                                     str(event.AvailableThrust) + ',' +
+                                     str(event.Isp) + ',' +
+                                     str(event.MassFlowRate * 1.0e+6) + '\n')
+                    counter += 1
+
+        reportfile.write('\n')
+        reportfile.write('\n')
+
+        #write out a throttle binning report
+        reportfile.write('Throttle table binning report for ' + self.mission_name + '\n')
+        reportfile.write('Throttle setting, Throughput (kg)\n')
+        for i in range(0, len(throttle_table_bin_array)):
+            reportfile.write(str(i+1) + ',' + str(throttle_table_bin_array[i]) + '\n')
+
+        reportfile.close()
+
+    def GenerateThrottleHistogram(self, throttletablefile, PlotOptions):
+        #get the throttle table settings history and throttle table binning arrays
+        throttle_table_bin_array, throttle_table_history_array = self.CalculateThrottleTableHistory(throttletablefile)
+
+        #generate a histogram
+        HistogramFigure = matplotlib.pyplot.figure()
+        HistogramAxes = HistogramFigure.add_axes([0.1, 0.1, 0.8, 0.8])
+        matplotlib.rcParams.update({'font.size': PlotOptions.FontSize})
+
+        bins = range(1, len(throttle_table_bin_array)+1)
+        HistogramAxes.bar(bins, throttle_table_bin_array)
+        HistogramAxes.set_xlabel('Throttle level')
+        HistogramAxes.set_ylabel('Throughput (kg)')
+        HistogramAxes.grid(b=True)
+        HistogramAxes.set_xlim(1, len(throttle_table_bin_array) + 1)
+        HistogramAxes.set_xticks(bins)
+
+        # Hide major tick labels
+        HistogramAxes.xaxis.set_major_formatter(matplotlib.ticker.NullFormatter())
+
+        # Customize minor tick labels
+        minorlabels = []
+        minorlocators = []
+        for b in bins:
+            minorlabels.append(str(b))
+            minorlocators.append(b + 0.5)
+        HistogramAxes.xaxis.set_minor_locator(matplotlib.ticker.FixedLocator(minorlocators))
+        HistogramAxes.xaxis.set_minor_formatter(matplotlib.ticker.FixedFormatter(minorlabels))
+
+        HistogramFigure.show()
+
+    

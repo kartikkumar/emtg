@@ -8,9 +8,7 @@
 #include "boost/random/uniform_real.hpp"
 #include "boost/random/mersenne_twister.hpp"
 
-#include "snopt.hh"
 #include "snoptProblemExtension.h"
-#include "snfilewrapper.hh"
 
 
 
@@ -56,9 +54,6 @@ public:
 
 	//variable to track the amount of time for a given SNOPT run
 	time_t SNOPT_start_time;
-
-	//dummy real array
-	doublereal* DummyReal;
 
 	//archive of feasible decision vectors
 	vector<double> Xtrial_scaled;
@@ -106,39 +101,42 @@ public:
 
 	//pointer to SNOPT object
 	snoptProblemExtension* SNOPTproblem;
-	
+	SNOPT_INT_TYPE inform;
+
 	//other fields for SNOPT
-	integer neF;
+	SNOPT_INT_TYPE neF;
 
-	integer lenA;
+	SNOPT_INT_TYPE lenA;
 
-	integer *iAfun;
-	integer *jAvar;
-	doublereal *A;
+	SNOPT_INT_TYPE *iAfun;
+	SNOPT_INT_TYPE *jAvar;
+	SNOPT_DOUBLE_TYPE *A;
 
-	integer lenG;
-	integer *iGfun;
-	integer *jGvar;
+	SNOPT_INT_TYPE lenG;
+	SNOPT_INT_TYPE *iGfun;
+	SNOPT_INT_TYPE *jGvar;
 
-	doublereal *x;
-	doublereal *xlow;
-	doublereal *xupp;
-	doublereal *xmul;
-	integer    *xstate;
+	SNOPT_DOUBLE_TYPE *x;
+	SNOPT_DOUBLE_TYPE *xlow;
+	SNOPT_DOUBLE_TYPE *xupp;
+	SNOPT_DOUBLE_TYPE *xmul;
+	SNOPT_INT_TYPE    *xstate;
 
-	doublereal *F;
-	doublereal *Flow;
-	doublereal *Fupp;
-	doublereal *Fmul;
-	integer    *Fstate;
+	SNOPT_DOUBLE_TYPE *F;
+	SNOPT_DOUBLE_TYPE *Flow;
+	SNOPT_DOUBLE_TYPE *Fupp;
+	SNOPT_DOUBLE_TYPE *Fmul;
+	SNOPT_INT_TYPE    *Fstate;
 
-	integer nxnames;
-	integer nFnames;
+#ifdef Heritage_SNOPT7
+	SNOPT_INT_TYPE nxnames;
+	SNOPT_INT_TYPE nFnames;
 	char *xnames;
 	char *Fnames;
+#endif
 
-	integer    ObjRow;
-	doublereal ObjAdd;
+	SNOPT_INT_TYPE    ObjRow;
+	SNOPT_DOUBLE_TYPE ObjAdd;
 	
 	//pointer to WORHP object
 

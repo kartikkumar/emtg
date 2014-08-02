@@ -36,32 +36,32 @@ namespace EMTG { namespace Solvers {
 
 		lenA  = Problem->total_number_of_NLP_parameters*Problem->total_number_of_constraints;
 
-		iAfun = new integer[lenA];
-		jAvar = new integer[lenA];
-		A  = new doublereal[lenA];
+		iAfun = new SNOPT_INT_TYPE[lenA];
+		jAvar = new SNOPT_INT_TYPE[lenA];
+		A  = new SNOPT_DOUBLE_TYPE[lenA];
 
 		lenG   = Problem->total_number_of_NLP_parameters*Problem->total_number_of_constraints;
-		iGfun = new integer[lenG];
-		jGvar = new integer[lenG];
+		iGfun = new SNOPT_INT_TYPE[lenG];
+		jGvar = new SNOPT_INT_TYPE[lenG];
 
-		x      = new doublereal[Problem->total_number_of_NLP_parameters];
-		xlow   = new doublereal[Problem->total_number_of_NLP_parameters];
-		xupp   = new doublereal[Problem->total_number_of_NLP_parameters];
-		xmul   = new doublereal[Problem->total_number_of_NLP_parameters];
-		xstate = new    integer[Problem->total_number_of_NLP_parameters];
+		x      = new SNOPT_DOUBLE_TYPE[Problem->total_number_of_NLP_parameters];
+		xlow   = new SNOPT_DOUBLE_TYPE[Problem->total_number_of_NLP_parameters];
+		xupp   = new SNOPT_DOUBLE_TYPE[Problem->total_number_of_NLP_parameters];
+		xmul   = new SNOPT_DOUBLE_TYPE[Problem->total_number_of_NLP_parameters];
+		xstate = new    SNOPT_INT_TYPE[Problem->total_number_of_NLP_parameters];
 
-		F      = new doublereal[neF];
-		Flow   = new doublereal[neF];
-		Fupp   = new doublereal[neF];
-		Fmul   = new doublereal[neF];
-		Fstate = new integer[neF];
+		F      = new SNOPT_DOUBLE_TYPE[neF];
+		Flow   = new SNOPT_DOUBLE_TYPE[neF];
+		Fupp   = new SNOPT_DOUBLE_TYPE[neF];
+		Fmul   = new SNOPT_DOUBLE_TYPE[neF];
+		Fstate = new SNOPT_INT_TYPE[neF];
 
+#ifdef Heritage_SNOPT7
 		nxnames = 1;
 		nFnames = 1;
 		xnames = new char[nxnames*8];
 		Fnames = new char[nFnames*8];
-
-		DummyReal = new doublereal[10];
+#endif
 
 		ObjRow = 0;
 		ObjAdd = 0;
@@ -86,50 +86,52 @@ namespace EMTG { namespace Solvers {
 			Fmul[k] = 0.0;
 		}
 
-		SNOPTproblem = new snoptProblemExtension(true);
+		this->SNOPTproblem = new snoptProblemExtension(true);
 
-		SNOPTproblem->setProblemSize( Problem->total_number_of_NLP_parameters, neF );
-		SNOPTproblem->setObjective  ( ObjRow, ObjAdd );
-		SNOPTproblem->setUserMem    ( 5000, (char*) Problem, 500, (integer*) &SNOPT_start_time, 500, DummyReal);
-		SNOPTproblem->setA          ( lenA, iAfun, jAvar, A );
-		SNOPTproblem->setG          ( lenG, iGfun, jGvar );
-		SNOPTproblem->setXNames     ( xnames, nxnames );
-		SNOPTproblem->setFNames     ( Fnames, nFnames );
-		SNOPTproblem->setProbName   ( "EMTG" );
-		SNOPTproblem->setUserFun    ( SNOPT_user_function );
-		SNOPTproblem->setIntParameter("Iterations limit", 100*Problem->options.snopt_major_iterations);
-		SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
-		SNOPTproblem->setIntParameter( "Derivative option", 0 );
-		SNOPTproblem->setIntParameter("Minor print level", 0);
-		SNOPTproblem->setRealParameter("Major feasibility tolerance", Problem->options.snopt_feasibility_tolerance);
+		this->SNOPTproblem->setProblemSize(Problem->total_number_of_NLP_parameters, neF);
+		this->SNOPTproblem->setObjective(ObjRow, ObjAdd);
+		this->SNOPTproblem->setUserspace((SNOPT_INT_TYPE*)&SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*)Problem, 500);
+		this->SNOPTproblem->setA(lenA, iAfun, jAvar, A);
+		this->SNOPTproblem->setG(lenG, iGfun, jGvar);
+#ifdef Heritage_SNOPT7
+		this->SNOPTproblem->setXNames(xnames, nxnames);
+		this->SNOPTproblem->setFNames(Fnames, nFnames);
+#endif
+		this->SNOPTproblem->setProbName("EMTG");
+		this->SNOPTproblem->setUserFun(SNOPT_user_function);
+		this->SNOPTproblem->setIntParameter("Iterations limit", 100 * Problem->options.snopt_major_iterations);
+		this->SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
+		this->SNOPTproblem->setIntParameter("Derivative option", 0);
+		this->SNOPTproblem->setIntParameter("Minor print level", 0);
+		this->SNOPTproblem->setRealParameter("Major feasibility tolerance", Problem->options.snopt_feasibility_tolerance);
 		
-		SNOPTproblem->setIntParameter("Major Print Level", 1);
-		SNOPTproblem->setRealParameter("Optimality tolerance", 1.0e-6);
+		this->SNOPTproblem->setIntParameter("Major Print Level", 1);
+		this->SNOPTproblem->setRealParameter("Optimality tolerance", 1.0e-6);
 		if (Problem->options.check_derivatives)
 		{
-			SNOPTproblem->setIntParameter("Print file", 1 );
-			SNOPTproblem->setIntParameter("Summary file", 1);
-			SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
+			this->SNOPTproblem->setIntParameter("Print file", 1);
+			this->SNOPTproblem->setIntParameter("Summary file", 1);
+			this->SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
 		}
 		if (Problem->options.mission_type < 2 || Problem->options.quiet_NLP) //for MGA, MGA-DSM missions
 		{
-			SNOPTproblem->setIntParameter("Major Print Level", 0);
-			SNOPTproblem->setIntParameter( "Print No", 0 );
-			SNOPTproblem->setIntParameter( "Summary file", 0 );
-			SNOPTproblem->setParameter("Suppress parameters");
+			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
+			this->SNOPTproblem->setIntParameter("Print No", 0);
+			this->SNOPTproblem->setIntParameter("Summary file", 0);
+			this->SNOPTproblem->setParameter("Suppress parameters");
 		}
 		else
 		{
 #ifdef QUIET_SNOPT
-			SNOPTproblem->setIntParameter("Major Print Level", 0);
-			SNOPTproblem->setIntParameter("Print No", 0);
+			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
+			this->SNOPTproblem->setIntParameter("Print No", 0);
 #endif
 		}
 
 		if (Problem->options.NLP_solver_mode)
-			SNOPTproblem->setParameter("Minimize");
+			this->SNOPTproblem->setParameter("Minimize");
 		else
-			SNOPTproblem->setParameter("Feasible point");
+			this->SNOPTproblem->setParameter("Feasible point");
 
 		switch (Problem->options.objective_type)
 		{
@@ -192,10 +194,11 @@ namespace EMTG { namespace Solvers {
 		delete [] Fupp;
 		delete [] Fmul;
 		delete [] Fstate;
+
+#ifdef Heritage_SNOPT7
 		delete [] xnames;
 		delete [] Fnames;
-
-		delete [] DummyReal;
+#endif
 	}
 
 	
@@ -530,7 +533,8 @@ namespace EMTG { namespace Solvers {
 				}
 				else
 				{
-					SNOPTproblem->computeJac    ();
+					
+					inform = SNOPTproblem->computeJac    ();
 					if (!Problem->options.quiet_basinhopping)
 					{
 						write_sparsity("sparsitySNJac.txt");
@@ -538,7 +542,7 @@ namespace EMTG { namespace Solvers {
 					}
 
 					//Step 3: If the Jacobian calculation succeeded, then check if it is full rank
-					if (SNOPTproblem->getInform() == 102)
+					if (inform == 102)
 					{
 						computed_Jacobian = true;
 			
@@ -565,7 +569,7 @@ namespace EMTG { namespace Solvers {
 			if (jacfullrankflag)
 			{
 				SNOPT_start_time = time(NULL);
-				SNOPTproblem->solve( 0 );
+				inform = SNOPTproblem->solve( 0 );
 			}
 			else if (!Problem->options.quiet_basinhopping)
 			{
@@ -674,7 +678,7 @@ namespace EMTG { namespace Solvers {
 			double feasibility = this->check_feasibility();
 
 			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
-			if (Problem->options.MBH_two_step && (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
+			if (Problem->options.MBH_two_step && (inform <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
 				if (!Problem->options.quiet_basinhopping)
 				{
@@ -689,7 +693,7 @@ namespace EMTG { namespace Solvers {
 
 				feasibility = check_feasibility();
 
-				if (SNOPTproblem->getInform() <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
+				if (inform <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance)
 				{
 					if (!Problem->options.quiet_basinhopping)
 						if (!Problem->options.quiet_basinhopping)
@@ -713,7 +717,7 @@ namespace EMTG { namespace Solvers {
 			}
 
 			//note: I do not trust SNOPT's "requested accuracy could not be achieved" return state - I prefer my own feasibility check
-			if (SNOPTproblem->getInform() <= 2 || feasibility < Problem->options.snopt_feasibility_tolerance)
+			if (inform <= 2 || feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
 				//Step 3.1: if the trial point is feasible, add it to the archive
 				Problem->unscale(Xtrial_scaled.data());

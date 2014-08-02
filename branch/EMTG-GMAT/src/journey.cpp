@@ -345,6 +345,8 @@ namespace EMTG
 		phase_type_codes.push_back("MGA-LT");
 		phase_type_codes.push_back("FBLT");
 
+		outputfile.precision(20);
+
 		outputfile << endl;
 		outputfile << "Journey: " << j+1 << endl;
 		outputfile << "Journey name: " << options->journey_names[j] << endl;
@@ -536,6 +538,8 @@ namespace EMTG
 		//skip two lines
 		outputfile << endl;
 		outputfile << endl;
+
+		outputfile.precision(20);
 
 		//print the journey-end v-infinity in ICRF frame
 		outputfile << "Journey-end v-infinity in ICRF frame: " << phases[options->number_of_phases[j] - 1].dVarrival[0] << " " << phases[options->number_of_phases[j] - 1].dVarrival[1] << " " << phases[options->number_of_phases[j] - 1].dVarrival[2] << endl;

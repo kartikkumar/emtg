@@ -5,22 +5,25 @@
 
 #include "problem.h"
 
-#include "snopt.hh"
-
-
+#include "snoptProblemExtension.h"
 
 
 namespace EMTG { namespace Solvers {
 
-	int SNOPT_user_function(integer    *Status, integer *n,    doublereal x[],
-							integer    *needF,  integer *neF,  doublereal F[],
-							integer    *needG,  integer *neG,  doublereal G[],
-							char       *cu,     integer *lencu,
-							integer    iu[],    integer *leniu,
-							doublereal ru[],    integer *lenru )
+#ifdef Heritage_SNOPT7
+	int
+#else
+	void
+#endif
+		SNOPT_user_function(SNOPT_INT_TYPE    *Status, SNOPT_INT_TYPE *n, SNOPT_DOUBLE_TYPE x[],
+							SNOPT_INT_TYPE    *needF, SNOPT_INT_TYPE *neF, SNOPT_DOUBLE_TYPE F[],
+							SNOPT_INT_TYPE    *needG, SNOPT_INT_TYPE *neG, SNOPT_DOUBLE_TYPE G[],
+							char       *cu, SNOPT_INT_TYPE *lencu,
+							SNOPT_INT_TYPE    iu[], SNOPT_INT_TYPE *leniu,
+							SNOPT_DOUBLE_TYPE ru[], SNOPT_INT_TYPE *lenru)
 	{
 		//Step 1: create a pointer to the Problem object
-		EMTG::problem* Problem = (EMTG::problem*) cu;
+		EMTG::problem* Problem = (EMTG::problem*) ru;
 
 		//Step 2: unscale the decision vector
 		Problem->unscale(x);
@@ -46,6 +49,10 @@ namespace EMTG { namespace Solvers {
 			*Status = -2;
 		}
 
+#ifdef Heritage_SNOPT7
 		return 0;
+#else
+		return;
+#endif
 	}
 }} //close namespace
