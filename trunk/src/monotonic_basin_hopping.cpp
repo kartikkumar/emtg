@@ -279,12 +279,16 @@ namespace EMTG { namespace Solvers {
 		number_of_failures_since_last_improvement = 0;
 
 		//read a trial point
-		for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
-		for (int k = 0; k < seed_vector.size(); ++k)
+		if (seed_vector.size() > Xtrial_scaled.size())
+		{
+			cout << "Seed vector is longer than problem decision vector. Truncating." << endl;
+		}
+		for (size_t k = 0; k < Xtrial_scaled.size(); ++k)
 			Xtrial_scaled[k] = (seed_vector[k] - Problem->Xlowerbounds[k]) / (Problem->Xupperbounds[k] - Problem->Xlowerbounds[k]);
 		if (seed_vector.size() < Problem->total_number_of_NLP_parameters)
 		{
-			for (int k = 0; k < Problem->total_number_of_NLP_parameters - seed_vector.size(); ++k)
+			cout << "Seed vector is shorter than problem decision vector. Extending with random values." << endl;
+			for (size_t k = 0; k < Problem->total_number_of_NLP_parameters - seed_vector.size(); ++k)
 				Xtrial_scaled[k] = DoubleDistribution(RNG);
 		}
 

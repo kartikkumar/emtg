@@ -2031,6 +2031,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#20: Aerojet HiVHAC EM" << endl;
 		outputfile << "#21: 13 kW STMD Hall high-Isp (not available in open-source)" << endl;
 		outputfile << "#22: 13 kW STMD Hall high-thrust (not available in open-source)" << endl;
+		outputfile << "#23: NEXT TT11 High-Thrust" << endl;
+		outputfile << "#24: NEXT TT11 High-Isp" << endl;
+		outputfile << "#25: NEXT TT11 Expanded Throttle Table" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
 		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
@@ -2651,6 +2654,9 @@ void missionoptions::construct_thruster_launch_vehicle_name_arrays()
 	this->thruster_names.push_back("HiVHAc");
 	this->thruster_names.push_back("13kWSTMDHallHisp");
 	this->thruster_names.push_back("13kWSTMDHallHthrust");
+	this->thruster_names.push_back("NEXT_TT11_Hthrust");
+	this->thruster_names.push_back("NEXT_TT11_Hisp");
+	this->thruster_names.push_back("NEXT_TT11_expanded");
 }
 
 } /* namespace EMTG */

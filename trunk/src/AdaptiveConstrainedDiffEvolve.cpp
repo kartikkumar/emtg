@@ -85,7 +85,7 @@ namespace EMTG { namespace Solvers {
 		IntegerDistributionnX = boost::uniform_int<> (0, nX - 1);
 
 		//seed the random number generator based on the node's clock
-		RNG.seed(time(0));
+		RNG.seed(time(NULL));
 
 		//finally, generate the population
 		GenerateNewPopulation();

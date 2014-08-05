@@ -66,7 +66,7 @@ namespace EMTG {
 		case 0: //run trialX
 			{
 				//first convert the local copy of trialX from days to seconds
-				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				for (size_t entry = 0; entry < this->Xdescriptions.size(); ++entry)
 				{
 					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
 					{
@@ -110,7 +110,7 @@ namespace EMTG {
 				if (options.seed_MBH)
 				{
 					//first convert the local copy of trialX from days to seconds
-					for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+					for (size_t entry = 0; entry < this->Xdescriptions.size(); ++entry)
 					{
 						if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
 						{
@@ -183,7 +183,7 @@ namespace EMTG {
 				EMTG::Solvers::MBH solver(this);
 
 				//first convert the local copy of trialX from days to seconds
-				for (int entry = 0; entry < this->Xdescriptions.size(); ++entry)
+				for (size_t entry = 0; entry < this->Xdescriptions.size(); ++entry)
 				{
 					if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
 					{
@@ -290,7 +290,7 @@ namespace EMTG {
 		outputfile << "iGfun, jGvar, analytical value, central-difference value, abs(error), relative error, sign flip(Y/N), text description" << endl;
 
 		//evaluate all of the derivatives via finite differencing, INCLUDING those which were not specified analytically (since we can't tell anyway)
-		for (int gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
+		for (size_t gIndex = 0; gIndex < this->Gdescriptions.size(); ++gIndex)
 		{
 			//reset X_perturbed
 			X_perturbed = Xopt;

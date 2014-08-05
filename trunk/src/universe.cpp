@@ -191,7 +191,7 @@ namespace EMTG {namespace Astrodynamics {
 			//perturbation menu
 			if (options->perturb_thirdbody)
 			{
-				for (int b = 0; b < options->journey_perturbation_bodies[j].size(); ++b)
+				for (size_t b = 0; b < options->journey_perturbation_bodies[j].size(); ++b)
 				{
 					if (bodies[k].body_code == options->journey_perturbation_bodies[j][b])
 						perturbation_menu.push_back(k); //store the position in the universe list for perturbation bodies

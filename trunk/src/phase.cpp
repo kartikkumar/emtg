@@ -2745,7 +2745,7 @@ namespace EMTG {
 				if (state == 0)
 					G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
 
-				for (int Xentry = 0; Xentry < Xdescriptions->size(); ++Xentry)
+				for (size_t Xentry = 0; Xentry < Xdescriptions->size(); ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 					{
@@ -2824,7 +2824,7 @@ namespace EMTG {
 				stringstream pjprefix_stream;
 				pjprefix_stream << "j" << jj << "p";
 				string pjprefix = pjprefix_stream.str();
-				for (int Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
+				for (size_t Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find(pjprefix) < 1024)
 					{
@@ -2838,7 +2838,7 @@ namespace EMTG {
 				//1. if the first journey, the initial mass scale factor if enabled
 				if (jj == 0 && options->allow_initial_mass_to_vary)
 				{
-					for (int Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("initial mass multiplier (0-1)") < 1024)
 						{
@@ -2885,7 +2885,7 @@ namespace EMTG {
 				//3. if present, the journey initial mass increment scale factor
 				//we must first check for duplicates associated with the current constraint, because this can occur
 				
-				for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+				for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find("journey initial mass scale factor") < 1024)
 					{
@@ -2916,7 +2916,7 @@ namespace EMTG {
 				//this constraint has a derivative with respect to the Isp at the beginning of any journey that has an escape spiral
 				if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 				{
-					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("Escape spiral Isp") < 1024)
 						{
@@ -2933,7 +2933,7 @@ namespace EMTG {
 				//all spirals have a dependency on the BOL power if it is a variable
 				if (options->objective_type == 13)
 				{
-					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size(); ++Xentry)
+					for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size(); ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 						{
@@ -3027,7 +3027,7 @@ namespace EMTG {
 				//this constraint has a derivative with respect to the Isp at the beginning of any journey that has a capture spiral
 				if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 				{
-					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("Capture spiral Isp") < 1024)
 						{
@@ -3044,7 +3044,7 @@ namespace EMTG {
 				//all spirals have a dependency on the BOL power if it is a variable
 				if (options->objective_type == 13)
 				{
-					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+					for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 						{
