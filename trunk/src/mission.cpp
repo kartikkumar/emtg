@@ -996,8 +996,9 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 	if (options.minimum_dry_mass > 0 || options.enable_maximum_propellant_mass_constraint)
 	{
 		//compute the system and spacecraft masses at the end of the modeled mission
+
 		double final_system_mass = current_state[6];
-		double final_spacecraft_mass = final_system_mass - FinalJourney->phases[0].journey_initial_mass_increment_scale_factor * FinalPhase->current_mass_increment;
+		double final_spacecraft_mass = FinalPhase->current_mass_increment > 0 ? final_system_mass - FinalJourney->phases.begin()->journey_initial_mass_increment_scale_factor * FinalPhase->current_mass_increment : final_system_mass;
 
 		//apply the post-mission delta-v to determine the remaining mass of the spacecraft
 		double expfun = exp(-1000 * options.post_mission_delta_v / (options.g0 * options.post_mission_Isp));
@@ -1011,12 +1012,14 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 		else
 			initial_spacecraft_mass = FirstPhase->state_at_beginning_of_phase[6];
 		double propellant_mass_kg = initial_spacecraft_mass - spacecraft_mass_after_post_mission_delta_v;
+		if (FinalPhase->current_mass_increment < 0)
+			propellant_mass_kg += FinalJourney->phases.begin()->journey_initial_mass_increment_scale_factor * FinalPhase->current_mass_increment;
 		double propellant_margin_kg = options.propellant_margin * propellant_mass_kg;
 
 		total_propellant_mass = propellant_mass_kg + propellant_margin_kg;
 
 		dry_mass = spacecraft_mass_after_post_mission_delta_v - propellant_margin_kg;
-
+		
 
 		if (options.minimum_dry_mass > 0)
 		{
