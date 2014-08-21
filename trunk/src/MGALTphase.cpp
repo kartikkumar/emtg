@@ -163,7 +163,7 @@ namespace EMTG {
 			t_step_basic -= options->forced_post_launch_coast / options->num_timesteps;
 			dt_step_basic_dt += options->forced_post_launch_coast / (options->num_timesteps * TOF2);
 		}
-		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
+		else if ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6)
 		{
 			this->total_available_thrust_time -= options->forced_flyby_coast;
 			t_step_basic -= options->forced_flyby_coast;
@@ -216,7 +216,7 @@ namespace EMTG {
 				this->Propagation_Step_Time_Fraction_Derivative_Forward[0] = -options->forced_post_launch_coast / TOF2 + dt_step_basic_dt / 2.0;
 			}
 		}
-		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
+		else if ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6)
 		{
 			//if we are coming out of a flyby and we are doing a forced post-flyby coast
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(spacecraft_state_forward,

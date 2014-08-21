@@ -113,7 +113,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 	double total_available_thrust_time = TOF;
 	if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
 			total_available_thrust_time -= options->forced_post_launch_coast;
-	else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6)
+	else if ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6)
 		total_available_thrust_time -= options->forced_flyby_coast;
 	if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
 		total_available_thrust_time -= options->forced_flyby_coast;
@@ -149,7 +149,7 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 	spacecraft_state_forward[6] /= options->maximum_mass;
 
 	//Step 6.2.0.1 if there is an initial coast, propagate through it
-	if ( (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6) )
+	if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
 	{
 		//if this is a launch AND we are doing a forced post-launch initial coast
 		double spacecraft_state_end_coast[7];
