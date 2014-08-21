@@ -712,6 +712,11 @@ class PyEMTG_interface(wx.Frame):
 
     def Changelaunch_window_open_date(self, e):
         self.missionoptions.launch_window_open_date = eval(self.optionsnotebook.tabGlobal.txtlaunch_window_open_date.GetValue())
+
+        #convert from JD to MJD if applicable
+        if self.missionoptions.launch_window_open_date > 2400000.5:
+            self.missionoptions.launch_window_open_date -= 2400000.5
+
         self.missionoptions.update_global_options_panel(self.optionsnotebook)
 
     def ChangeLaunchDateCalendar(self, e):

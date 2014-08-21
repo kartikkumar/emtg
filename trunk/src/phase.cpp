@@ -15,6 +15,7 @@
 #include "EMTG_math.h"
 #include "mjd_to_mdyhms.h"
 #include "universe.h"
+#include "kepler_lagrange_laguerre_conway.h"
 
 #include "SpiceUsr.h"
 
@@ -66,6 +67,7 @@ namespace EMTG {
 			if (j == 0)
 			{
 				*current_epoch = X[*Xindex];
+				this->phase_wait_time = X[*Xindex] - options->launch_window_open_date;
 				++(*Xindex);
 			}
 			else
@@ -75,6 +77,7 @@ namespace EMTG {
 				if (!(options->sequence[j-1][p+1] == -1 || this->boundary1_location_code == -1))
 				{
 					*current_epoch += X[*Xindex];
+					this->phase_wait_time = X[*Xindex];
 					++(*Xindex);
 				}
 			}
@@ -1047,6 +1050,25 @@ namespace EMTG {
 															false,
 															options);
 			}
+			else if (location == -1 && j > 0)
+			{
+				//if we are starting this journey at a non-body point AND this is not the first journey then the starting location is wherever we ended the last journey
+				//here we take advantage of the fact that the "V_infinity" field is actually the 4th, 5th, and 6th entries of a 7-vector containing the spacecraft state at the end of the previous journey
+				double boundary_state_copy[6];
+				for (int k = 0; k < 6; ++k)
+					boundary_state_copy[k] = V_infinity[k - 3];
+
+				double Fdummy, Gdummy, Ftdummy, Gtdummy;
+				
+				Kepler::KeplerLagrangeLaguerreConway(boundary_state_copy,
+													boundary_state, 
+													Universe->mu,
+													this->phase_wait_time,
+													&Fdummy, 
+													&Gdummy,
+													&Ftdummy,
+													&Gtdummy);
+			}
 			else if (location == -1 && j == 0) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
@@ -1160,7 +1182,7 @@ namespace EMTG {
 					}
 				}
 
-				//finally, the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
+				//the orbit must be rotated into EMTG's internal frame, J2000 Earth Equatorial
 				Universe->LocalFrame.construct_rotation_matrices(epoch / 86400.0 + 2400000.5);
 				math::Matrix<double> rot_in_vec(3,1,this->left_boundary_local_frame_state);
 				math::Matrix<double> rot_out_vec = Universe->LocalFrame.R_from_local_to_ICRF * rot_in_vec;
@@ -1175,6 +1197,20 @@ namespace EMTG {
 					boundary_state[k+3] = rot_out_vec(k);
 				}
 
+				//finally, we have the opportunity to propagate the state forward in time if there is an associated journey wait time
+				double Fdummy, Gdummy, Ftdummy, Gtdummy;
+				double boundary_copy[6];
+				for (int k = 0; k < 6; ++k)
+					boundary_copy[k] = boundary_state[k];
+
+				Kepler::KeplerLagrangeLaguerreConway(boundary_copy,
+													boundary_state,
+													Universe->mu,
+													this->phase_wait_time,
+													&Fdummy,
+													&Gdummy,
+													&Ftdummy,
+													&Gtdummy);
 			}
 		}
 		else //this is the right boundary of the phase, so this is an arrival
@@ -1805,7 +1841,9 @@ namespace EMTG {
 				}
 			}
 
-			if  (boundary1_location_code == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
+			//if this boundary point is at a free point in space, with the various elements either fixed or free
+			//this is only relevant for the first journey - succcessive journeys will start from the right hand boundary of the previous journey
+			if  (boundary1_location_code == -1 && j == 0)
 			{
 				vector<string> CartesianElementNames;
 				CartesianElementNames.push_back("x (km)");
@@ -2416,19 +2454,25 @@ namespace EMTG {
 			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
 			Xupperbounds->push_back(T1 * 20.0);
 		}
+		else if (boundary1_location_code == -1 && boundary2_location_code == -1) //for transfers between two free or fixed orbits
+		{
+			double lowerbound_temp = min(T1,T2) * 0.1;
+			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
+			Xupperbounds->push_back(max(T1,T2) * 20.0);
+		}
 		else
 		{
 			//lower bound is the same for all non-resonant phases
 			double lowerbound_temp = 0.1 * min(T1,T2);
 
 			lowerbound_temp = lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase;
-			Xlowerbounds->push_back(lowerbound_temp > 600.0*86400.0 ? 600.0*86400.0 : lowerbound_temp);
+			Xlowerbounds->push_back(lowerbound_temp > 10.0 *  Universe->TU ? 10.0 *  Universe->TU : lowerbound_temp);
 
 			if (max(pseudoa1,pseudoa2)/Universe->LU < 2.0) //outermost body is an inner body with a < 2 LU
-				Xupperbounds->push_back(2.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 2.0 * max(T1, T2));
+				Xupperbounds->push_back(2.0 * max(T1, T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 2.0 * max(T1, T2));
 			 
 			else //outermost body is an outer body
-				Xupperbounds->push_back(1.0 * max(T1, T2) < 2500.0*86400.0 ? 2500.0*86400.0 : 1.0 * max(T1, T2));
+				Xupperbounds->push_back(1.0 * max(T1, T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 1.0 * max(T1, T2));
 		}
 
 		Xdescriptions->push_back(prefix + "phase flight time");

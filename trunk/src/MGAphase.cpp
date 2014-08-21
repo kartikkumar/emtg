@@ -987,7 +987,9 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 	//if we are the last journey, then encode any variables necessary for the right hand boundary condition
 	if (p == (options->number_of_phases[j] - 1))
 	{
-		if  (boundary2_location_code == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
+		//if this boundary point is at a free point in space, with the various elements either fixed or free
+		//this is only relevant for the first journey - succcessive journeys will start from the right hand boundary of the previous journey
+		if (boundary1_location_code == -1 && j == 0)
 		{
 			vector<string> CartesianElementNames;
 			CartesianElementNames.push_back("x (km)");

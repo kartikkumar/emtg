@@ -329,6 +329,7 @@ namespace EMTG {
 		//time
 		double phase_start_epoch;
 		double phase_end_epoch;
+		double phase_wait_time;
 		double phase_time_elapsed_forward;
 		double phase_time_elapsed_backward;
 		double TOF;

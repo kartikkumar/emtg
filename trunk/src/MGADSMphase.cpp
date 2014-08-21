@@ -118,7 +118,23 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		}
 
 		//Step 2: locate the first boundary point
-		locate_boundary_point(boundary1_location_code, options->journey_departure_type[j], true, Universe, boundary1_state, current_state+3, *current_epoch, X, Xindex, F, Findex, G, Gindex, false, j, p, options);
+		locate_boundary_point(	boundary1_location_code,
+								options->journey_departure_type[j], 
+								true,
+								Universe,
+								boundary1_state,
+								current_state+3,
+								*current_epoch,
+								X,
+								Xindex,
+								F,
+								Findex,
+								G,
+								Gindex,
+								false, 
+								j,
+								p, 
+								options);
 		
 
 		//Step 3: compute the departure asymptote
@@ -304,22 +320,22 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 		//step 3.1 compute incoming v_infinity at flyby
 		if (p == 0)
 			this->locate_boundary_point(this->boundary1_location_code,
-			options->journey_departure_type[j],
-			true,
-			Universe,
-			boundary1_state,
-			current_state + 3,
-			*current_epoch,
-			X,
-			Xindex,
-			F,
-			Findex,
-			G,
-			Gindex,
-			needG,
-			j,
-			p,
-			options);
+										options->journey_departure_type[j],
+										true,
+										Universe,
+										boundary1_state,
+										current_state + 3,
+										*current_epoch,
+										X,
+										Xindex,
+										F,
+										Findex,
+										G,
+										Gindex,
+										needG,
+										j,
+										p,
+										options);
 
 		for (int k = 0; k < 3; ++k)
 			this->V_infinity_in(k) = current_state[k + 3] - boundary1_state[k + 3];
@@ -1039,7 +1055,9 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 			}
 		}
 
-		if  (boundary1_location_code == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
+		//if this boundary point is at a free point in space, with the various elements either fixed or free
+		//this is only relevant for the first journey - succcessive journeys will start from the right hand boundary of the previous journey
+		if (boundary1_location_code == -1 && j == 0)
 		{
 			vector<string> CartesianElementNames;
 			CartesianElementNames.push_back("x (km)");
