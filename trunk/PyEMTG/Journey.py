@@ -44,8 +44,8 @@ class Journey(object):
             a = r / (2.0 - r*v*v)
             T = 2*math.pi*math.sqrt(a**3)
 
-            StateIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
-            StateIntegrateObject.set_initial_value(BoundaryStateScaled).set_f_params(1.0)
+            StateIntegrateObject = ode(EOM.EOM_inertial_2body, jac=EOM.EOM_jacobian_intertial_2body).set_integrator('dop853', atol=1.0e-8, rtol=1.0e-8)
+            StateIntegrateObject.set_initial_value(BoundaryStateScaled).set_f_params(1.0).set_jac_params(1.0)
 
             dt = T / 100
             StateHistory = []

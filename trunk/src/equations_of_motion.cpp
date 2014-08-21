@@ -87,7 +87,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 			ForceVector[k] /= ( (Universe->LU / (Universe->TU * Universe->TU)) );
 
 		//convert mdot from kg/s to SpacecraftMassUnits/TU
-		*mdot *= Universe->TU / options->maximum_mass;
+		double working_mdot = *mdot * Universe->TU / options->maximum_mass;
 
 		//EOM
 
@@ -110,7 +110,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		f[5] = -mu*x[2]/(r*r*r) + ForceVector[2] / mass;
 
 		//mass
-		f[6] = -EMTG::math::norm(u, 3) * *mdot * options->engine_duty_cycle;
+		f[6] = -EMTG::math::norm(u, 3) * working_mdot * options->engine_duty_cycle;
 	}
 
 	//equations of motion for an object moving in the heliocentric inertial frame with a thrust term using the Sundman transformation
@@ -177,7 +177,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 			ForceVector[k] /= (Universe->LU / (Universe->TU * Universe->TU));
 
 		//convert mdot from kg/s to SpacecraftMassUnits/TU
-		*mdot *= Universe->TU / options->maximum_mass;
+		double working_mdot = *mdot * Universe->TU / options->maximum_mass;
 
 		//EOM
 
@@ -200,7 +200,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		f[5] = -mu*x[2]/(r*r) + r * ForceVector[2] / mass;
 
 		//mass
-		f[6] = -r * EMTG::math::norm(u, 3) * *mdot;
+		f[6] = -r * EMTG::math::norm(u, 3) * working_mdot;
 
 		//time
 		f[7] = r;

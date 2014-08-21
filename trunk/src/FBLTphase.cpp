@@ -938,6 +938,8 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	{
 		if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
 			event_type = "launch";
+		else if (options->journey_departure_type[j] == 6)
+			event_type = "zeroflyby";
 		else
 			event_type = "departure";
 	}

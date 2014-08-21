@@ -1047,7 +1047,7 @@ namespace EMTG {
 															false,
 															options);
 			}
-			else if (location == -1) //if this boundary point is at a free point in space, with the various elements either fixed or free
+			else if (location == -1 && j == 0) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
 				//For each element, either extract from the options structure or from the decision vector, depending on whether the options
 				//structure specifies that the element should be varied
