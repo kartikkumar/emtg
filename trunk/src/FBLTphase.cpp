@@ -1074,7 +1074,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	//*****************************************************************************
 	//next, if there was an initial coast, we must print it
 	//we'll have to start by propagating to the halfway point of the initial coast step
-	if ( (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 1.0e-6) )
+	if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
 	{
 		for (int k = 0; k < 3; ++k)
 		{
