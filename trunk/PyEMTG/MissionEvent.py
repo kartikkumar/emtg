@@ -1,5 +1,7 @@
 import EOM
 
+import matplotlib
+matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -245,7 +247,7 @@ class MissionEvent(object):
             description += '\nDLA = ' + "{0:.1f}".format(self.Declination) + '$^{\circ}$'
 
         #for non-launch departures only the C3 is needed
-        if self.EventType == 'departure':
+        if self.EventType == 'departure' and self.C3 > 0.0:
             description += '\nC3 = ' + "{0:.3f}".format(self.C3) + ' $km^2/s^2$'
 
         #for spirals output only the delta-v
@@ -263,7 +265,7 @@ class MissionEvent(object):
 
 
         #for propulsive events, a deltaV is needed
-        if self.EventType == 'departure' or self.EventType == 'pwr_flyby' or self.EventType == 'insertion' or self.EventType == 'chem_burn' or self.EventType == 'rendezvous':
+        if (self.EventType == 'departure' or self.EventType == 'pwr_flyby' or self.EventType == 'insertion' or self.EventType == 'chem_burn' or self.EventType == 'rendezvous') and self.DVmagorThrottle > 0.0:
                 description += '\n$\Delta v$ = ' + "{0:.3f}".format(self.DVmagorThrottle) + ' $km/s$'
 
         #always append the spacecraft Mass
