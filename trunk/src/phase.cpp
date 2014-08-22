@@ -1589,7 +1589,7 @@ namespace EMTG {
 		}
 
 		//C3
-		if (event_type == "upwr_flyby" || event_type == "pwr_flyby" || (event_type == "launch" && options->LV_type >= 0) || event_type == "intercept" || event_type == "insertion" || event_type == "departure" || event_type == "interface")
+		if (event_type == "upwr_flyby" || event_type == "pwr_flyby" || (event_type == "launch" && options->LV_type >= 0) || event_type == "intercept" || event_type == "insertion" || event_type == "departure" || event_type == "interface" || event_type == "zeroflyby")
 		{
 			outputfile.precision(5);
 			if (boundary_name == "Hyp-arrival")
@@ -1653,7 +1653,7 @@ namespace EMTG {
 		}
 
 		//deltaV - we can't track deltaV vectors for flybys
-		if (event_type == "upwr_flyby" || event_type == "pwr_flyby" || event_type == "LT_rndzvs")
+		if (event_type == "upwr_flyby" || event_type == "pwr_flyby" || event_type == "LT_rndzvs" || event_type == "zeroflyby")
 		{
 			for (int k = 0; k < 3; ++k)
 			{
@@ -1715,7 +1715,7 @@ namespace EMTG {
 
 		//thrust, Isp, power
 		outputfile.precision(5);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf")
+		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";
@@ -1732,7 +1732,7 @@ namespace EMTG {
 		}
 
 		outputfile.precision(0);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf")
+		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";

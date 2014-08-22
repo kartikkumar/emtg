@@ -489,26 +489,18 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 	//Step 1: store data that will be used for the printing
 	double empty_vector[] = {0,0,0};
 	string event_type;
-	if (p == 0)
-	{
-		if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
-			event_type = "launch";
-		else if (options->journey_departure_type[j] == 6)
-			event_type = "zeroflyby";
-		else
-			event_type = "departure";
-	}
-	else
+
+	if (p > 0 || (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4))
 	{
 		event_type = "upwr_flyby";
 		math::Matrix<double> periapse_state = calculate_flyby_periapse_state(V_infinity_in, V_infinity_out, flyby_altitude, *Body1);
-		math::Matrix<double> periapse_R(3,1);
+		math::Matrix<double> periapse_R(3, 1);
 		periapse_R(0) = periapse_state(0);
 		periapse_R(1) = periapse_state(1);
 		periapse_R(2) = periapse_state(2);
 		Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);		
-		
+		Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+
 		//compute RA and DEC in the frame of the target body
 		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
 		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
@@ -517,6 +509,21 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 
 		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
 	}
+	else if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
+		event_type = "launch";
+	else if (options->journey_departure_type[j] == 6)
+	{
+		event_type = "zeroflyby";
+		//compute RA and DEC in the frame of the target body
+		this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+		math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+
+		this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+
+		this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
+	}
+	else
+		event_type = "departure";
 
 	string boundary1_name;
 	string boundary2_name;
