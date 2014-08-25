@@ -119,6 +119,7 @@ namespace EMTG { namespace Solvers {
 			this->SNOPTproblem->setIntParameter("Print No", 0);
 			this->SNOPTproblem->setIntParameter("Summary file", 0);
 			this->SNOPTproblem->setParameter("Suppress parameters");
+			this->Problem->options.derivative_type = 0;
 		}
 		else
 		{
