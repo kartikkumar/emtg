@@ -142,6 +142,12 @@ int mission::parse_outer_loop(int* Xouter)
 		vector<int> temp_sequence;
 		vector<int> temp_phase_type;
 
+		if (options.destination_list[j][0] > TheUniverse[j].bodies.size())
+		{
+			std::cout << "ERROR: Journey " << j << " first body index " << options.destination_list[j][0] << " exceeds size of universe body list.Aborting." << std::endl;
+			throw 888;
+		}
+
 		temp_sequence.push_back(options.destination_list[j][0]);
 
 		//options.description.push_back(planetcodes[options.destination_list[j]-1]);
@@ -171,6 +177,12 @@ int mission::parse_outer_loop(int* Xouter)
 		{
 			if (phase_encode_length == 2 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
 			{
+				if (Xouter[j * (2 * options.max_phases_per_journey + 1) + p] - 1 > TheUniverse[j].flyby_menu.size());
+				{
+					std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
+					throw 888;
+				}
+
 				//update the sequence array with a code for the next body
 				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * (2*options.max_phases_per_journey + 1) + p] - 1]].body_code);
 
@@ -185,6 +197,12 @@ int mission::parse_outer_loop(int* Xouter)
 			}
 			else if (phase_encode_length == 1 && Xouter[j * options.max_phases_per_journey + p] > 0 && Xouter[j * options.max_phases_per_journey + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
 			{
+				if (Xouter[j * options.max_phases_per_journey + p] - 1 > TheUniverse[j].flyby_menu.size())
+				{
+					std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
+					throw 888;
+				}
+
 				//update the sequence array with a code for the next body
 				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * options.max_phases_per_journey + p] - 1]].body_code);
 
@@ -200,6 +218,11 @@ int mission::parse_outer_loop(int* Xouter)
 		}
 
 		//encode the last phase of the journey
+		if (options.destination_list[j][1] > TheUniverse[j].bodies.size())
+		{
+			std::cout << "ERROR: Journey " << j << " final body index " << options.destination_list[j][1] << " exceeds size of universe body list. Aborting." << std::endl;
+			throw 888;
+		}
 		temp_sequence.push_back(options.destination_list[j][1]);
 
 		//if the outer-loop is choosing phase type, then extract the phase type for the last phase
