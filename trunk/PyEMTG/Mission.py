@@ -383,7 +383,7 @@ class Mission(object):
                                      str(event.AvailableThrust) + ',' +
                                      str(event.Isp) + ',' +
                                      str(event.MassFlowRate * 1.0e+6) + '\n')
-                    counter += 1
+                        counter += 1
 
         reportfile.write('\n')
         reportfile.write('\n')
