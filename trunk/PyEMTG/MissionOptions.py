@@ -708,6 +708,12 @@ class MissionOptions(object):
                     elif choice == "journey_capture_spiral_final_radius":
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].journey_capture_spiral_final_radius = float(linecell[j+1])
+                    elif choice =="journey_maximum_DSM_magnitude_constraint_flag":
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].journey_maximum_DSM_magnitude_constraint_flag = int(float(linecell[j+1]))
+                    elif choice == "journey_maximum_DSM_magnitude_constraint":
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].journey_maximum_DSM_magnitude_constraint = float(linecell[j+1])
                     
                         
                     #perturbation-related quantities    
@@ -1344,6 +1350,16 @@ class MissionOptions(object):
         for j in range(0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_capture_spiral_final_radius))
         outputfile.write("\n")
+        outputfile.write("#Enable journey maximum DSM magnitude constraint?\n")
+        outputfile.write("journey_maximum_DSM_magnitude_constraint_flag")
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].journey_maximum_DSM_magnitude_constraint_flag))
+        outputfile.write("\n")
+        outputfile.write("#Journey maximum DSM magnitude (km/s)\n")
+        outputfile.write("journey_maximum_DSM_magnitude_constraint")
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].journey_maximum_DSM_magnitude_constraint))
+        outputfile.write("\n")
         outputfile.write("\n")
             
         outputfile.write("##Perturbation settings\n")
@@ -1727,6 +1743,8 @@ class MissionOptions(object):
         optionsnotebook.tabJourney.txtRAAN_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[7]))
         optionsnotebook.tabJourney.txtAOP_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[9]))
         optionsnotebook.tabJourney.txtMA_arrival1.SetValue(str(self.Journeys[self.ActiveJourney].journey_arrival_elements_bounds[11]))
+        optionsnotebook.tabJourney.chkjourney_maximum_DSM_magnitude_flag.SetValue(self.Journeys[self.ActiveJourney].journey_maximum_DSM_magnitude_constraint_flag)
+        optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.SetValue(str(self.Journeys[self.ActiveJourney].journey_maximum_DSM_magnitude_constraint))
 
         #if there is only one journey in the list then disable delete, up, and down
         if self.number_of_journeys == 1:
@@ -1776,6 +1794,22 @@ class MissionOptions(object):
             optionsnotebook.tabJourney.txtjourney_arrival_date_bounds_upper.Show(True)
             optionsnotebook.tabJourney.ArrivalDateLowerCalendar.Show(True)
             optionsnotebook.tabJourney.ArrivalDateUpperCalendar.Show(True)
+
+        #hide or show DSM magnitude constraint
+        if (self.mission_type == 1): #only relevant for MGA-DSM
+            optionsnotebook.tabJourney.lbljourney_maximum_DSM_magnitude_flag.Show(True)
+            optionsnotebook.tabJourney.chkjourney_maximum_DSM_magnitude_flag.Show(True)
+            if self.Journeys[self.ActiveJourney].journey_maximum_DSM_magnitude_constraint_flag:
+                optionsnotebook.tabJourney.lbljourney_maximum_DSM_magnitude.Show(True)
+                optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.Show(True)
+            else:
+                optionsnotebook.tabJourney.lbljourney_maximum_DSM_magnitude.Show(False)
+                optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.Show(False)
+        else:
+            optionsnotebook.tabJourney.lbljourney_maximum_DSM_magnitude_flag.Show(False)
+            optionsnotebook.tabJourney.chkjourney_maximum_DSM_magnitude_flag.Show(False)
+            optionsnotebook.tabJourney.lbljourney_maximum_DSM_magnitude.Show(False)
+            optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.Show(False)
 
         #enable or disable the orbit elements selection boxes as appropriate
         if self.Journeys[self.ActiveJourney].destination_list[0] == -1:

@@ -694,6 +694,13 @@ int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, doub
 	for (int k = 0; k < 7; ++k)
 		current_state[k] = state_at_end_of_phase[k];
 
+	//Step 12: if applicable, apply the DSM magnitude constraint
+	if (options->journey_maximum_DSM_magnitude_constraint_flag[j])
+	{
+		F[*Findex] = math::norm(this->midcourse_dV, 3);
+		++(*Findex);
+	}
+
 	return 0;
 }
 
@@ -1520,6 +1527,8 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 				}
 			}
 
+
+
 		//variables and constraints necessary to process the arrival type
 		if (options->journey_arrival_type[j] == 2) //flyby with bounded v-infinity
 		{
@@ -1540,6 +1549,22 @@ int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlow
 		}
 	}
 
+	//DSM maximum magnitude constraint
+	if (options->journey_maximum_DSM_magnitude_constraint_flag[j])
+	{
+		Flowerbounds->push_back(0.0);
+		Fupperbounds->push_back(options->journey_maximum_DSM_magnitude_constraint[j]);
+		Fdescriptions->push_back(prefix + "maximum DSM magnitude constraint");
+		//this constraint has a derivative with respect to all preceding variables
+		for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
+		{
+			iGfun->push_back(Fdescriptions->size() - 1);
+			jGvar->push_back(entry);
+			stringstream EntryNameStream;
+			EntryNameStream << "Derivative of " << prefix << " maximum DSM magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+			Gdescriptions->push_back(EntryNameStream.str());
+		}
+	}
 
 	return 0;
 }

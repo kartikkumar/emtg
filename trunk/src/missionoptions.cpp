@@ -1621,6 +1621,27 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		}
 		return 0;
 	}
+	if (choice == "journey_maximum_DSM_magnitude_constraint_flag")
+	{
+		this->journey_maximum_DSM_magnitude_constraint_flag.push_back((bool)value);
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			inputfile >> value;
+			this->journey_maximum_DSM_magnitude_constraint_flag.push_back((bool)value);
+		}
+		return 0;
+	}
+	if (choice == "journey_maximum_DSM_magnitude_constraint")
+	{
+		this->journey_maximum_DSM_magnitude_constraint.push_back(value);
+
+		for (int j = 1; j < this->number_of_journeys; ++j)
+		{
+			inputfile >> value;
+			this->journey_maximum_DSM_magnitude_constraint.push_back(value);
+		}
+		return 0;
+	}
 				
 	//output format settings
 	if (choice == "output_units") {
@@ -2379,6 +2400,16 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "journey_capture_spiral_final_radius";
 		for (int j=0; j < this->number_of_journeys; ++j)
 			outputfile << " " << this->journey_capture_spiral_final_radius[j];
+		outputfile << endl;
+		outputfile << "#Enable journey maximum DSM magnitude constraint?" << endl;
+		outputfile << "journey_maximum_DSM_magnitude_constraint_flag";
+		for (int j = 0; j < this->number_of_journeys; ++j)
+			outputfile << " " << this->journey_maximum_DSM_magnitude_constraint_flag[j];
+		outputfile << endl;
+		outputfile << "#Journey maximum DSM magnitude (km/s)" << endl;
+		outputfile << "journey_maximum_DSM_magnitude_constraint";
+		for (int j = 0; j < this->number_of_journeys; ++j)
+			outputfile << " " << this->journey_maximum_DSM_magnitude_constraint[j];
 		outputfile << endl;
 		outputfile << endl;
 

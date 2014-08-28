@@ -488,6 +488,12 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbljourney_escape_spiral_starting_radius = wx.StaticText(self, -1, "Orbital radius for beginning of escape spiral (km)")
         self.txtjourney_escape_spiral_starting_radius = wx.TextCtrl(self, -1, "journey_escape_spiral_starting_radius")
 
+        self.lbljourney_maximum_DSM_magnitude_flag = wx.StaticText(self, -1, "Enable journey DSM magnitude constraint?")
+        self.chkjourney_maximum_DSM_magnitude_flag = wx.CheckBox(self, -1)
+        self.lbljourney_maximum_DSM_magnitude = wx.StaticText(self, -1, "Journey maximum DSM magnitude (km/s)")
+        self.txtjourney_maximum_DSM_magnitude = wx.TextCtrl(self, -1, "journey_maximum_DSM_magnitude")
+
+
         self.lbljourney_arrival_type = wx.StaticText(self, -1, "Journey arrival type")
         journey_arrival_type_choices = ['0: insertion into parking orbit (use chemical Isp)','1: rendezvous (use chemical Isp)','2: intercept with bounded V_infinity',
                                         '3: low-thrust rendezvous (does not work if terminal phase is not low-thrust)','4: match final v-infinity vector',
@@ -544,6 +550,8 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                         self.lbljourney_departure_type, self.cmbjourney_departure_type,
                                         self.lbljourney_escape_spiral_starting_radius, self.txtjourney_escape_spiral_starting_radius,
                                         self.lbljourney_initial_velocity, journey_initial_velocity_box,
+                                        self.lbljourney_maximum_DSM_magnitude_flag, self.chkjourney_maximum_DSM_magnitude_flag,
+                                        self.lbljourney_maximum_DSM_magnitude, self.txtjourney_maximum_DSM_magnitude,
                                         self.lbljourney_arrival_type, self.cmbjourney_arrival_type,
                                         self.lbljourney_capture_spiral_final_radius, self.txtjourney_capture_spiral_final_radius,
                                         self.lbljourney_final_velocity, journey_final_velocity_box,

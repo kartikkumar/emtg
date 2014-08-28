@@ -277,6 +277,8 @@ public:
 	vector< vector <double> > journey_arrival_declination_bounds; //in degrees
 	vector<double> journey_escape_spiral_starting_radius; //in km
 	vector<double> journey_capture_spiral_final_radius; //in km
+	vector<bool> journey_maximum_DSM_magnitude_constraint_flag;
+	vector<double> journey_maximum_DSM_magnitude_constraint; //in km/s
 
 	//output format settings
 	int output_units; //0: km and km/s, 1: LU and LU/day

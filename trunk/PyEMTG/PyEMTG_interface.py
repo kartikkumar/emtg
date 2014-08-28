@@ -564,6 +564,8 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabJourney.chkjourney_arrival_declination_constraint_flag.Bind(wx.EVT_CHECKBOX, self.Changejourney_arrival_declination_constraint_flag)
         self.optionsnotebook.tabJourney.txtjourney_arrival_declination_bounds_lower.Bind(wx.EVT_KILL_FOCUS, self.Changejourney_arrival_declination_bounds_lower)
         self.optionsnotebook.tabJourney.txtjourney_arrival_declination_bounds_upper.Bind(wx.EVT_KILL_FOCUS, self.Changejourney_arrival_declination_bounds_upper)
+        self.optionsnotebook.tabJourney.chkjourney_maximum_DSM_magnitude_flag.Bind(wx.EVT_CHECKBOX, self.ChangeJourneyDSMMagnitudeFlag)
+        self.optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.Bind(wx.EVT_KILL_FOCUS, self.ChangeJourneyMaximumDSMConstraint)
         self.optionsnotebook.tabJourney.txtsequence.Bind(wx.EVT_KILL_FOCUS,self.Changesequence)
         self.optionsnotebook.tabJourney.txtjourney_perturbation_bodies.Bind(wx.EVT_KILL_FOCUS,self.Changejourney_perturbation_bodies)
         self.optionsnotebook.tabJourney.cmbjourney_departure_elements_type.Bind(wx.EVT_COMBOBOX,self.Changejourney_departure_elements_type)
@@ -1034,6 +1036,7 @@ class PyEMTG_interface(wx.Frame):
     #event handlers for journey options
     def ChangeJourneySelectBoxChoice(self, e):
         #determine which journey is "active"
+        self.missionoptions.ActiveJourney = []
         self.missionoptions.ActiveJourney = self.optionsnotebook.tabJourney.JourneySelectBox.GetSelection()
 
         self.missionoptions.update_all_panels(self.optionsnotebook)
@@ -1208,6 +1211,13 @@ class PyEMTG_interface(wx.Frame):
         if self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_declination_constraint_flag:
             self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_arrival_declination_bounds[1] = eval(self.optionsnotebook.tabJourney.txtjourney_arrival_declination_bounds_upper.GetValue())
             self.missionoptions.update_journey_options_panel(self.optionsnotebook)
+
+    def ChangeJourneyDSMMagnitudeFlag(self, e):
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_maximum_DSM_magnitude_constraint_flag = int(self.optionsnotebook.tabJourney.chkjourney_maximum_DSM_magnitude_flag.GetValue())
+        self.missionoptions.update_journey_options_panel(self.optionsnotebook)
+
+    def ChangeJourneyMaximumDSMConstraint(self, e):
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_maximum_DSM_magnitude_constraint = eval(self.optionsnotebook.tabJourney.txtjourney_maximum_DSM_magnitude.GetValue())
 
     def Changesequence(self, e):
         self.missionoptions.Journeys[self.missionoptions.ActiveJourney].sequence = eval(self.optionsnotebook.tabJourney.txtsequence.GetValue())
