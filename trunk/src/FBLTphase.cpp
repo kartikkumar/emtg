@@ -82,6 +82,12 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 {
 	//declare some local variables
 	int errcode = 0;
+	double temp_available_thrust;
+	double temp_available_mass_flow_rate;
+	double temp_available_Isp;
+	double temp_available_power;
+	double temp_active_power;
+	int temp_number_of_active_engines;
 
 	//******************************************************************
 	//Steps 1-4: Process the left boundary condition
@@ -282,12 +288,12 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 										&resumeError,
 										1.0e-8,
 										EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										&available_thrust[step],
-										&available_mass_flow_rate[step],
-										&available_Isp[step],
-										&available_power[step],
-										&active_power[step],
-										&number_of_active_engines[step],
+										&temp_available_thrust,
+										&temp_available_mass_flow_rate,
+										&temp_available_Isp,
+										&temp_available_power,
+										&temp_active_power,
+										&temp_number_of_active_engines,
 										(void*)options,
 										(void*)Universe,
 										DummyControllerPointer                                                  );
@@ -448,12 +454,12 @@ int FBLT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double*
 										&resumeError,
 										1.0e-8,
 										EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										&available_thrust[backstep],
-										&available_mass_flow_rate[backstep],
-										&available_Isp[backstep],
-										&available_power[backstep],
-										&active_power[backstep],
-										&number_of_active_engines[backstep],
+										&temp_available_thrust,
+										&temp_available_mass_flow_rate,
+										&temp_available_Isp,
+										&temp_available_power,
+										&temp_active_power,
+										&temp_number_of_active_engines,
 										(void*)options,
 										(void*)Universe,
 										DummyControllerPointer                                                  );

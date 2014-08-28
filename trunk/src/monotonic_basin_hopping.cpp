@@ -93,6 +93,8 @@ namespace EMTG { namespace Solvers {
 		this->SNOPTproblem->setUserspace((SNOPT_INT_TYPE*)&SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*)Problem, 500);
 		this->SNOPTproblem->setA(lenA, iAfun, jAvar, A);
 		this->SNOPTproblem->setG(lenG, iGfun, jGvar);
+		this->SNOPTproblem->setIntParameter("Total real workspace   ", lenA + lenG);
+		this->SNOPTproblem->setIntParameter("Total integer workspace", lenA + lenG);
 #ifdef Heritage_SNOPT7
 		this->SNOPTproblem->setXNames(xnames, nxnames);
 		this->SNOPTproblem->setFNames(Fnames, nFnames);
@@ -113,9 +115,10 @@ namespace EMTG { namespace Solvers {
 			this->SNOPTproblem->setIntParameter("Summary file", 1);
 			this->SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
 		}
-		if (Problem->options.mission_type < 2 || Problem->options.quiet_NLP) //for MGA, MGA-DSM missions
+		if (Problem->options.quiet_NLP) //for MGA, MGA-DSM missions
 		{
 			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
+			this->SNOPTproblem->setIntParameter("Minor print level", 0);
 			this->SNOPTproblem->setIntParameter("Print No", 0);
 			this->SNOPTproblem->setIntParameter("Summary file", 0);
 			this->SNOPTproblem->setParameter("Suppress parameters");
@@ -133,18 +136,6 @@ namespace EMTG { namespace Solvers {
 			this->SNOPTproblem->setParameter("Minimize");
 		else
 			this->SNOPTproblem->setParameter("Feasible point");
-
-		switch (Problem->options.objective_type)
-		{
-		case 0: //minimum dV
-			fcrit = 100;
-		case 1: //minimum time
-			fcrit = 100;
-		case 2: //maximum final mass
-			fcrit = 0.01;
-		case 3: //GTOC1
-			fcrit = 0.0;
-		}
 
 		//set up the random number generator
 		DoubleDistribution = boost::uniform_real<>(0.0, 1.0);
@@ -822,17 +813,7 @@ namespace EMTG { namespace Solvers {
 
 			if (number_of_failures_since_last_improvement >= Problem->options.MBH_max_not_improve)
 				new_point = true;
-				
-			/*********************************************************************************************************************************************
-			The following code is written to stop MBH early when a feasible solution is not found after 10% of the allowed execution time is elapsed.
-			This feature is considered undesirable as of 6/24/2013 and has been disabled.
-			**********************************************************************************************************************************************
-			time_t deltaT = time(NULL) - tstart;
-			if (deltaT >= 0.1 * Problem->options.MBH_max_run_time && (fbest > fcrit || number_of_solutions == 0) && deltaT > 1800)
-			{
-				break;
-			}
-			*/
+
 		} while (number_of_attempts < Problem->options.MBH_max_trials && (time(NULL) - tstart) < Problem->options.MBH_max_run_time);
 
 		if (!Problem->options.quiet_basinhopping)

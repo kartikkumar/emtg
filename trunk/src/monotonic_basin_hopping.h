@@ -72,7 +72,6 @@ public:
 	vector<int> archive_reset_count;
 	double most_feasible;
 	vector<double> closest_to_feasible_solution;
-	double fcrit;
 
 	//helper arrays
 	vector<int> time_variable_indices;
