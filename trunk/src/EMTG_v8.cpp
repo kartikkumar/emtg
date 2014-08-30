@@ -315,19 +315,6 @@ int main(int argc, char* argv[])
 					if (options.run_inner_loop == 0 || options.run_inner_loop == 4)
 					{
 						TrialMission.options.current_trialX = options.trialX[trial];
-						
-						//if we are optimizing an FBLT-S mission with an MGA-LT or FBLT initial guess
-						if (options.mission_type == 4 && (TrialMission.options.current_trialX.size() == TrialMission.Xdescriptions.size() - TrialMission.options.total_number_of_phases))
-						{
-							EMTG::missionoptions temp_options = options;
-							temp_options.mission_type = 3;
-
-							EMTG::mission temp_mission(Xouterloop_trial.data(), &temp_options, TheUniverse, 0, 0);
-
-							temp_mission.evaluate(TrialMission.options.current_trialX.data(), temp_mission.F.data(), temp_mission.G.data(), 0, temp_mission.iGfun, temp_mission.jGvar);
-
-							TrialMission.options.current_trialX = temp_mission.create_initial_guess(TrialMission.options.current_trialX, TrialMission.Xdescriptions);
-						}
 
 						//if we are interpolating an initial guess to change the resolution
 						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
@@ -376,6 +363,9 @@ int main(int argc, char* argv[])
 						TrialMission.output_GMAT_preamble();
 						TrialMission.output_GMAT_mission();
 					}
+
+					if (options.generate_initial_guess_file)
+						TrialMission.create_initial_guess(options.mission_type_for_initial_guess_file, false);
 
 					//store the results in a database file
 					string outputfilestring = options.working_directory + "//" + options.mission_name + "_batch_summary.emtgbatch";

@@ -1497,9 +1497,7 @@ int mission::output_mission_tree(string filename)
 	phase_type_codes.push_back("MGA-DSM");
 	phase_type_codes.push_back("MGA-LT");
 	phase_type_codes.push_back("FBLT");
-	phase_type_codes.push_back("FBLT-S");
 	phase_type_codes.push_back("MGA-NDSM");
-    phase_type_codes.push_back("NSLT");
 	std::ofstream outputfile(filename.c_str(), ios::trunc);
 
 	if (outputfile.is_open())
@@ -1554,44 +1552,89 @@ int mission::output_mission_tree(string filename)
 	return 1;
 }
 
-//function to create an FBLT-S initial guess from an FBLT input
-vector<double> mission::create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions)
+void mission::create_initial_guess(const int& desired_mission_type, const bool& VSI)
 {
-	vector<double> guessX;
+	//first we want to calculate a new set of bounds for the new mission, mostly so that we can get the descriptions vector
+	missionoptions newoptions = this->options;
+	newoptions.mission_type = desired_mission_type;
+	for (int j = 0; j < newoptions.number_of_journeys; ++j)
+		for (int p = 0; p < newoptions.number_of_phases[j]; ++p)
+			newoptions.phase_type[j][p] = newoptions.mission_type;
 
-	vector<double> transfer_angles;
-	integration::rk8713M integrator(8);
+	mission newmission(&newoptions, this->TheUniverse);
 
-	for (int j = 0; j < options.number_of_journeys; ++j)
+	//create a vector to hold the new decision vector
+	vector<double> NewX;
+	int NewXIndex = 0;
+	double current_epoch = 0.0;
+
+	//first apply any variables which exist at the mission level
+	//(currently, as of 8-29-2014, there are no such variables)
+
+	//next loop over journeys
+	for (int j = 0; j < this->number_of_journeys; ++j)
+		this->journeys[j].create_initial_guess(	desired_mission_type,
+												VSI, 
+												current_epoch,
+												j,
+												NewX,
+												NewXIndex,
+												newmission.Xdescriptions,
+												options);
+
+	//finally, write out the upper bounds, decision vector, lower bounds, and descriptions
+	string new_mission_type_string;
+	switch (desired_mission_type)
 	{
-		for (int p = 0; p < options.number_of_phases[j]; ++p)
-		{
-			double angle = acos(math::dot(journeys[j].phases[p].state_at_beginning_of_phase, journeys[j].phases[p].spacecraft_state[0].data(), 3) / (math::norm(journeys[j].phases[p].state_at_beginning_of_phase, 3) * math::norm(journeys[j].phases[p].spacecraft_state[0].data(), 3)));
-
-			for (int step = 1; step < options.num_timesteps; ++step)
-			{
-				angle += acos(math::dot(journeys[j].phases[p].spacecraft_state[step].data(), journeys[j].phases[p].spacecraft_state[step - 1].data(), 3) / (math::norm(journeys[j].phases[p].spacecraft_state[step].data(), 3) * math::norm(journeys[j].phases[p].spacecraft_state[step - 1].data(), 3)));
-			}
-
-			angle += acos(math::dot(journeys[j].phases[p].spacecraft_state[options.num_timesteps - 1].data(), journeys[j].phases[p].state_at_end_of_phase, 3) / (math::norm(journeys[j].phases[p].spacecraft_state[options.num_timesteps - 1].data(), 3) * math::norm(journeys[j].phases[p].state_at_end_of_phase, 3)));
-
-			transfer_angles.push_back(angle);
-		}
-	}
-				
-	int skipcount = 0;
-	for (size_t entry = 0; entry < Xdescriptions.size() + skipcount; ++entry)
-	{
-		if (NewXDescriptions[entry].find("final value of Sundman variable s_f") < 1024)
-		{
-			guessX.push_back(transfer_angles[skipcount]);
-			++skipcount;
-		}
-		else
-			guessX.push_back(XFBLT[entry - skipcount]);
+	case 0:
+		new_mission_type_string = "MGA";
+		break;
+	case 1:
+		new_mission_type_string = "MGADSM";
+		break;
+	case 2:
+		new_mission_type_string = "MGALT";
+		break;
+	case 3:
+		new_mission_type_string = "FBLT";
+		break;
+	case 4:
+		new_mission_type_string = "MGANDSM";
+		break;
 	}
 
-	return guessX;
+	string initialguesssfilestring = this->options.working_directory + "//" + this->options.mission_name + "_" + new_mission_type_string + ".emtg_initialguess";
+	std::ofstream initialguessfile(initialguesssfilestring.c_str(), ios::trunc);
+
+	initialguessfile << "#EMTG initial guess file" << endl;
+	initialguessfile << "#Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
+	initialguessfile << "#for mission type:" << endl;
+	initialguessfile << new_mission_type_string << endl;
+	initialguessfile << endl;
+
+	initialguessfile.precision(20);
+
+	initialguessfile << newmission.Xupperbounds[0];
+	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+		initialguessfile << ", " << newmission.Xupperbounds[k];
+	initialguessfile << std::endl;
+
+	initialguessfile << NewX[0];
+	for (int k = 1; k < NewX.size(); ++k)
+		initialguessfile << ", " << NewX[k];
+	initialguessfile << std::endl;
+
+	initialguessfile << newmission.Xlowerbounds[0];
+	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+		initialguessfile << ", " << newmission.Xlowerbounds[k];
+	initialguessfile << std::endl;
+
+	initialguessfile << newmission.Xdescriptions[0];
+	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+		initialguessfile << ", " << newmission.Xdescriptions[k];
+	initialguessfile << std::endl;
+
+	return;
 }
 
 //function to interpolate an initial guess

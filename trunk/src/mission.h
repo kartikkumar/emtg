@@ -57,8 +57,8 @@ public:
 	virtual void output_GMAT_preamble();
 	virtual void output_GMAT_mission();
 
-	//function to create an FBLT-S initial guess from an FBLT input
-	virtual vector<double> create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions);
+	//function to create an initial guess for another mission type
+	virtual void create_initial_guess(const int& desired_mission_type, const bool& VSI);
 
 	//function to interpolate an initial guess
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess);

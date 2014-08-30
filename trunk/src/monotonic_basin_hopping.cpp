@@ -93,8 +93,9 @@ namespace EMTG { namespace Solvers {
 		this->SNOPTproblem->setUserspace((SNOPT_INT_TYPE*)&SNOPT_start_time, 500, (SNOPT_DOUBLE_TYPE*)Problem, 500);
 		this->SNOPTproblem->setA(lenA, iAfun, jAvar, A);
 		this->SNOPTproblem->setG(lenG, iGfun, jGvar);
-		this->SNOPTproblem->setIntParameter("Total real workspace   ", lenA + lenG);
-		this->SNOPTproblem->setIntParameter("Total integer workspace", lenA + lenG);
+		//this->SNOPTproblem->setIntParameter("Total real workspace", lenA + lenG);
+		//this->SNOPTproblem->setIntParameter("Total integer workspace", lenA + lenG);
+		//this->SNOPTproblem->setIntParameter("Total character workspace", lenA + lenG);
 #ifdef Heritage_SNOPT7
 		this->SNOPTproblem->setXNames(xnames, nxnames);
 		this->SNOPTproblem->setFNames(Fnames, nFnames);
@@ -115,7 +116,7 @@ namespace EMTG { namespace Solvers {
 			this->SNOPTproblem->setIntParameter("Summary file", 1);
 			this->SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
 		}
-		if (Problem->options.quiet_NLP) //for MGA, MGA-DSM missions
+		if (Problem->options.quiet_NLP)
 		{
 			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
 			this->SNOPTproblem->setIntParameter("Minor print level", 0);

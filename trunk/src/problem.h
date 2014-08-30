@@ -58,7 +58,7 @@ public:
 	//virtual function templates
 	virtual int evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar) = 0;
 	virtual int output() = 0;
-	virtual vector<double> create_initial_guess(vector<double> XFBLT, vector<string>& NewXDescriptions) = 0;
+	virtual void create_initial_guess(const int& desired_mission_type, const bool& VSI) = 0;
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess) = 0;
 	virtual void convert_cartesian_solution_to_polar(const vector<double>& initialguess) = 0;
 	virtual void convert_polar_solution_to_cartesian(const vector<double>& initialguess) = 0;

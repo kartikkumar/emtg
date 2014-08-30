@@ -687,6 +687,8 @@ class PyEMTG_interface(wx.Frame):
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
+        self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.Bind(wx.EVT_CHECKBOX, self.Changegenerate_initial_guess_file)
+        self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Bind(wx.EVT_COMBOBOX, self.Changemisson_type_for_initial_guess)
         
         
     #event handlers for global mission options    
@@ -1658,15 +1660,45 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
     def ClickTrialXButton(self, e):
-        dlg = wx.FileDialog(self, "Choose a mission file", self.dirname, "", "*.emtg", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose a mission file", self.dirname, "", "*.emtg; *.emtg_initialguess", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
 
-            #now read the file into a mission object and extract the trialX entry
-            tempmission = Mission.Mission(os.path.join(self.dirname, self.filename))
-            self.missionoptions.trialX = [copy.deepcopy(tempmission.DecisionVector)]
-            del tempmission
+            fileparts = self.filename.split(".")
+
+            if fileparts[1] == "emtg":
+                #read the file into a mission object and extract the trialX entry
+                tempmission = Mission.Mission(os.path.join(self.dirname, self.filename))
+                self.missionoptions.trialX = [copy.deepcopy(tempmission.DecisionVector)]
+                del tempmission
+            elif fileparts[1] == "emtg_initialguess":
+                guessfile = open(os.path.join(self.dirname, self.filename), "r")
+                
+                counter = 0
+
+                for line in guessfile:
+                    counter += 1
+                    if counter == 4:
+                        guess_type_string = line.strip('\n')
+                    elif counter == 7:
+                        if (guess_type_string == "MGA" and self.missionoptions.mission_type == 0) \
+                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 1) \
+                            or (guess_type_string == "MGALT" and self.missionoptions.mission_type == 2) \
+                            or (guess_type_string == "FBLT" and self.missionoptions.mission_type == 3) \
+                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 4):
+
+                            guessvector = []
+                            for entry in line.split(','):
+                                guessvector.append(float(entry))
+
+                            self.missionoptions.trialX = [copy.deepcopy(guessvector)]
+                        else:
+                            errordlg = wx.MessageDialog(self, "Initial guess file type does not match this options file's mission type.", "EMTG Error", wx.OK)
+                            errordlg.ShowModal()
+                            errordlg.Destroy()
+                guessfile.close()
+
 
         self.missionoptions.update_solver_options_panel(self.optionsnotebook)
 
@@ -1721,3 +1753,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changeoutput_units(self, e):
         self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+
+    def Changegenerate_initial_guess_file(self, e):
+        self.missionoptions.generate_initial_guess_file = int(self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.GetValue())
+        self.missionoptions.update_output_options_panel(self.optionsnotebook)
+
+    def Changemisson_type_for_initial_guess(self, e):
+        self.missionoptions.mission_type_for_initial_guess_file = int(self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.GetSelection())

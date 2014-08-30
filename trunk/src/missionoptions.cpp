@@ -78,6 +78,9 @@ missionoptions::missionoptions() {
 
 	this->LambertSolver = 0;
 
+	this->generate_initial_guess_file = false;
+	this->mission_type_for_initial_guess_file = 2;
+
 	this->file_status = parse_options_file("options.emtgopt");
 
 	this->construct_thruster_launch_vehicle_name_arrays();
@@ -137,6 +140,9 @@ missionoptions::missionoptions(string optionsfile) {
 	this->power_margin = 0.0;
 
 	this->LambertSolver = 0;
+
+	this->generate_initial_guess_file = false;
+	this->mission_type_for_initial_guess_file = 2;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -1652,6 +1658,16 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->create_GMAT_script = (int) value;
 		return 0;
 	}
+	if (choice == "generate_initial_guess_file")
+	{
+		this->generate_initial_guess_file = (bool)value;
+		return 0;
+	}
+	if (choice == "mission_type_for_initial_guess_file")
+	{
+		this->mission_type_for_initial_guess_file = (int)value;
+		return 0;
+	}
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -2560,6 +2576,18 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "output_units " << this->output_units << endl;
 		outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
 		outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
+		outputfile << "#Generate initial guess file?" << endl;
+		outputfile << "#0: no" << endl;
+		outputfile << "#1: yes" << endl;
+		outputfile << "generate_initial_guess_file " << this->generate_initial_guess_file << endl;
+		outputfile << "#Mission type for initial guess file (experimental!)" << endl;
+		outputfile << "#(this is a limited-capability feature and many options will not translate properly)" << endl;
+		outputfile << "#0: MGA" << endl;
+		outputfile << "#1: MGADSM" << endl;
+		outputfile << "#2: MGALT" << endl;
+		outputfile << "#3: FBLT" << endl;
+		outputfile << "#4: MGANDSM" << endl;
+		outputfile << "mission_type_for_initial_guess_file " << this->mission_type_for_initial_guess_file << endl;
 		outputfile << endl;
 
 		outputfile << "##debug code" << endl;

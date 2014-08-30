@@ -75,6 +75,16 @@ public:
 												missionoptions* options,
 												const int& Findex);
 
+	//function to create an initial guess of another mission type
+	void create_initial_guess(	const int& desired_mission_type,
+								const bool& VSI,
+								double& current_epoch,
+								const int& j, 
+								vector<double>& NewX,
+								int& NewXIndex,
+								const vector<string>& NewXDescriptions,
+								const missionoptions& options);
+
 	//vector of phases
 	boost::ptr_vector<phase> phases;
 

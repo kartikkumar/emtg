@@ -1018,8 +1018,17 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
 
+        self.lblgenerate_initial_guess_file = wx.StaticText(self, -1, "Generate initial guess file? (experimental!)")
+        self.chkgenerate_initial_guess_file = wx.CheckBox(self, -1)
+
+        self.lblmission_type_for_initial_guess_file = wx.StaticText(self, -1, "Mission type for initial guess file")
+        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM"]
+        self.cmbmission_type_for_initial_guess_file = wx.ComboBox(self, -1, choices=initial_guess_file_choices, style=wx.CB_READONLY)
+
         self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
-                           self.lbloutput_units, self.cmboutput_units])
+                           self.lbloutput_units, self.cmboutput_units,
+                           self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
+                           self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()

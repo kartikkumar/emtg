@@ -194,6 +194,8 @@ class MissionOptions(object):
     #output format settings
     output_units = 0 #0: km and km/s, 1: LU and LU/day
     create_GMAT_script = 0 #0: no, 1: yes
+    generate_initial_guess_file = 0
+    mission_type_for_initial_guess_file = 2
 
     #debug code
     check_derivatives = 0
@@ -739,6 +741,10 @@ class MissionOptions(object):
                         self.output_units = int(linecell[1])
                     elif choice == "create_GMAT_script":
                         self.create_GMAT_script = int(linecell[1])
+                    elif choice == "generate_initial_guess_file":
+                        self.generate_initial_guess_file = int(linecell[1])
+                    elif choice == "mission_type_for_initial_guess_file":
+                        self.mission_type_for_initial_guess_file = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1507,6 +1513,18 @@ class MissionOptions(object):
         outputfile.write("output_units " + str(self.output_units) + "\n")
         outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
         outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
+        outputfile.write("#Generate initial guess file?\n")
+        outputfile.write("generate_initial_guess_file " + str(self.generate_initial_guess_file) + "\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("#Mission type for initial guess file (experimental!)\n")
+        outputfile.write("#(this is a limited-capability feature and many options will not translate properly)\n")
+        outputfile.write("#0: MGA\n")
+        outputfile.write("#1: MGADSM\n")
+        outputfile.write("#2: MGALT\n")
+        outputfile.write("#3: FBLT\n")
+        outputfile.write("#4: MGANDSM\n")
+        outputfile.write("mission_type_for_initial_guess_file " + str(self.mission_type_for_initial_guess_file) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3262,3 +3280,12 @@ class MissionOptions(object):
     def update_output_options_panel(self, optionsnotebook):
         optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
+        optionsnotebook.tabOutput.chkgenerate_initial_guess_file.SetValue(self.generate_initial_guess_file)
+        optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.SetSelection(self.mission_type_for_initial_guess_file)
+
+        if self.generate_initial_guess_file:
+            optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(True)
+            optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Show(True)
+        else:
+            optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(False)
+            optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Show(False)

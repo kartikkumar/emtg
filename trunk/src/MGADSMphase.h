@@ -28,15 +28,62 @@ public:
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+	int evaluate(	double* X, 
+					int* Xindex,
+					double* F, 
+					int* Findex,
+					double* G, 
+					int* Gindex,
+					int needG, 
+					double* current_epoch,
+					double* current_state,
+					double* current_deltaV,
+					double* boundary1_state,
+					double* boundary2_state,
+					int j, 
+					int p,
+					EMTG::Astrodynamics::universe* Universe, 
+					missionoptions* options);
 
 	//output function
 	//return 0 if successful, 1 if failure
-	int output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount);
+	int output(	missionoptions* options,
+				const double& launchdate,
+				int j,
+				int p, 
+				EMTG::Astrodynamics::universe* Universe,
+				int* eventcount);
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+	int calcbounds(	vector<double>* Xupperbounds,
+					vector<double>* Xlowerbounds,
+					vector<double>* Fupperbounds,
+					vector<double>* Flowerbounds, 
+					vector<string>* Xdescriptions, 
+					vector<string>* Fdescriptions, 
+					vector<int>* iAfun, 
+					vector<int>* jAvar, 
+					vector<int>* iGfun, 
+					vector<int>* jGvar, 
+					vector<string>* Adescriptions,
+					vector<string>* Gdescriptions, 
+					vector<double>* synodic_periods,
+					int j,
+					int p, 
+					EMTG::Astrodynamics::universe* Universe,
+					missionoptions* options);
+
+	//function to create an initial guess for another mission type
+	virtual void create_initial_guess(	const int& desired_mission_type,
+										const bool& VSI,
+										double& current_epoch,
+										const int& j,
+										const int& p,
+										vector<double>& NewX,
+										int& NewXIndex,
+										const vector<string>& NewXDescriptions,
+										const missionoptions& options);
 
 	//GMAT output methods
 	void output_GMAT_fueltank_and_thruster(int& j, int& p, vector<EMTG::Astrodynamics::body>& missionbodies, int& index_body_visited, std::ofstream& GMATfile);
@@ -64,6 +111,13 @@ public:
 	//additional state information
 	double state_before_burn[7];
 	double state_after_burn[7];
+	double lambert_v1[3];
+	double lambert_v2[3];
+
+	//step information for outputs
+	int steps_before_burn;
+	double timestep_length_before_burn;
+	double timestep_length_after_burn;
 };
 
 } /* namespace EMTG */

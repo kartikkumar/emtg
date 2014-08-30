@@ -234,19 +234,19 @@ namespace EMTG
 		double journey_start_epoch;
 		double central_body_state[6];
 
+		//if applicable, vary the journey initial mass increment
+		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j])
+		{
+			journey_initial_mass_increment_scale_factor = X[*Xindex];
+			++(*Xindex);
+		}
+
 		if (j == 0)
 			journey_start_epoch = X[0];
 		else if (options->journey_departure_type[j] == 3)
 			journey_start_epoch =  *current_epoch;
 		else
 			journey_start_epoch =  *current_epoch + X[*Xindex];
-
-		//if applicable, vary the journey initial mass increment
-		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j])
-		{
-			journey_initial_mass_increment_scale_factor = X[*Xindex];
-			++(*Xindex);
-		}	
 
 		//process all of the phases
 		for (int p = 0; p < number_of_phases; ++p)
@@ -876,6 +876,34 @@ namespace EMTG
 				}
 			}
 		}//end loop over journeys
+	}
+
+	//function to create an initial guess of another mission type
+	void journey::create_initial_guess(	const int& desired_mission_type,
+										const bool& VSI, 
+										double& current_epoch,
+										const int& j,
+										vector<double>& NewX,
+										int& NewXIndex, 
+										const vector<string>& NewXDescriptions,
+										const missionoptions& options)
+	{
+		//first insert any variables that exist at the journey level
+		//currently (8-29-2014), there are none
+
+		//then loop over phases
+		for (int p = 0; p < this->number_of_phases; ++p)
+			this->phases[p].create_initial_guess(	desired_mission_type, 
+													VSI, 
+													current_epoch,
+													j,
+													p, 
+													NewX,
+													NewXIndex,
+													NewXDescriptions, 
+													options);
+
+		return;
 	}
 
 } /* namespace EMTG */

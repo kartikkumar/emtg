@@ -283,6 +283,8 @@ public:
 	//output format settings
 	int output_units; //0: km and km/s, 1: LU and LU/day
 	int create_GMAT_script; //0: no, 1: yes
+	bool generate_initial_guess_file;
+	int mission_type_for_initial_guess_file;
 
 	//debug code
 	int run_inner_loop;
