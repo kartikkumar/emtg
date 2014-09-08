@@ -125,13 +125,6 @@ namespace EMTG { namespace Solvers {
 			this->SNOPTproblem->setParameter("Suppress parameters");
 			this->Problem->options.derivative_type = 0;
 		}
-		else
-		{
-#ifdef QUIET_SNOPT
-			this->SNOPTproblem->setIntParameter("Major Print Level", 0);
-			this->SNOPTproblem->setIntParameter("Print No", 0);
-#endif
-		}
 
 		if (Problem->options.NLP_solver_mode)
 			this->SNOPTproblem->setParameter("Minimize");

@@ -701,18 +701,18 @@ namespace EMTG {
 			F[*Findex+k+3] = (spacecraft_state_backward[k+3] - spacecraft_state_forward[k+3]) / Universe->LU * Universe->TU;
 
 			//match point state
-			match_point_state[k] = spacecraft_state_forward[k];
-			match_point_state[k+3] = spacecraft_state_forward[k+3];
+			this->match_point_state[k] = spacecraft_state_forward[k];
+			this->match_point_state[k + 3] = spacecraft_state_forward[k + 3];
 		}
 		//mass
 		F[*Findex+6] = (spacecraft_state_backward[6] - spacecraft_state_forward[6])/(options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 		(*Findex) += 7;
 
-		match_point_state[6] = spacecraft_state_forward[6];
+		this->match_point_state[6] = spacecraft_state_forward[6];
 
 		//Step 6.5: If required, compute the match point derivatives
 		if (options->derivative_type > 1 && needG)
-			calculate_match_point_derivatives(G, Gindex, j, p, options, Universe);
+			this->calculate_match_point_derivatives(G, Gindex, j, p, options, Universe);
 
 		//******************************************************************
 		//Step 7: process the arrival, if applicable
