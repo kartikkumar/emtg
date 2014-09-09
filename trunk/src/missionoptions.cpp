@@ -2719,6 +2719,9 @@ void missionoptions::construct_thruster_launch_vehicle_name_arrays()
 	this->thruster_names.push_back("NEXT_TT11_Hthrust");
 	this->thruster_names.push_back("NEXT_TT11_Hisp");
 	this->thruster_names.push_back("NEXT_TT11_expanded");
+	this->thruster_names.push_back("13kWSTMDHall_9_8_2014_Hisp");
+	this->thruster_names.push_back("13kWSTMDHall_9_8_2014_Mthrust");
+	this->thruster_names.push_back("13kWSTMDHall_9_8_2014_Hthrust");
 }
 
 } /* namespace EMTG */
