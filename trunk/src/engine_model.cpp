@@ -316,12 +316,38 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				throw 1711;
 #endif
 			}
+			else if (options->engine_type >= 26 && options->engine_type <= 28) //13 kW STMD Hall 9-8-2014
+			{
+#ifdef _EMTG_proprietary
+				EMTG::Proprietary::STMD_13kW_Hall_9_8_2014(options->engine_type - 26,
+															&at,
+															&bt,
+															&ct,
+															&dt,
+															&et,
+															&gt,
+															&ht,
+															&af,
+															&bf,
+															&cf,
+															&df,
+															&ef,
+															&gf,
+															&hf,
+															&minP,
+															&maxP);
+#else
+				cout << "STMD 13 kW Hall thruster model not included in open-source version" << endl;
+				throw 1711;
+#endif
+			}
 			else //standard engine from list - these models are available in the public literature
 			{
 				static double min_power[] = {0.525, 0.436, 0.302, 0.302, 0.302, 1.252, 0.638, 0.638, 1.15, 16.2, 7.0, 5.0, 0.354, 0.64, 0.64, 0.64};
 				static double max_power[] = {2.6, 5.03, 4.839, 4.839, 4.839, 7.455, 7.266, 7.266, 4.91, 23.04, 12.0, 17.5, 3.821, 7.36, 7.36, 7.36};
                 int k = options->engine_type < 12 ? options->engine_type - 6 : options->engine_type - 8;
 				k = options->engine_type > 20 ? k - 2 : k;
+				k = options->engine_type > 25 ? k - 3 : k;
                 
 	
 				//1: NSTAR, 2: XIPS-25, 3: BPT-4000 High-Isp, 4: BPT-4000 High-Thrust, 5: BPT-4000 Ex-High-Isp, 6: NEXT high-Isp old, 7: NEXT high-Isp v10, 8: NEXT high-thrust v10, 9: BPT-4000 MALTO, 10: NEXIS, 11: H6MS, 12: BHT20K, 13: Aerojet HiVHAC EM

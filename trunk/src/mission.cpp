@@ -142,7 +142,7 @@ int mission::parse_outer_loop(int* Xouter)
 		vector<int> temp_sequence;
 		vector<int> temp_phase_type;
 
-		if (options.destination_list[j][0] > TheUniverse[j].bodies.size())
+		if (options.destination_list[j][0] > (int) TheUniverse[j].bodies.size())
 		{
 			std::cout << "ERROR: Journey " << j << " first body index " << options.destination_list[j][0] << " exceeds size of universe body list.Aborting." << std::endl;
 			throw 888;
@@ -218,7 +218,7 @@ int mission::parse_outer_loop(int* Xouter)
 		}
 
 		//encode the last phase of the journey
-		if (options.destination_list[j][1] > TheUniverse[j].bodies.size())
+		if (options.destination_list[j][1] > (int) TheUniverse[j].bodies.size())
 		{
 			std::cout << "ERROR: Journey " << j << " final body index " << options.destination_list[j][1] << " exceeds size of universe body list. Aborting." << std::endl;
 			throw 888;

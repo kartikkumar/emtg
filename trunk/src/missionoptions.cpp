@@ -2071,6 +2071,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#23: NEXT TT11 High-Thrust" << endl;
 		outputfile << "#24: NEXT TT11 High-Isp" << endl;
 		outputfile << "#25: NEXT TT11 Expanded Throttle Table" << endl;
+		outputfile << "#26: 13 kW STMD Hall high-Isp 9-8-2014 (not available in open-source)" << endl;
+		outputfile << "#27: 13 kW STMD Hall medium-thrust 9-8-2014 (not available in open-source)" << endl;
+		outputfile << "#28: 13 kW STMD Hall high-thrust 9-8-2014 (not available in open-source)" << endl;
 		outputfile << "engine_type " << this->engine_type << endl;
 		outputfile << "#Custom engine thrust coefficients (T = A + BP + C*P^2 + D*P^3 + E*P^4 + G*P^5 + H*P^6)" << endl;
 		outputfile << "engine_input_thrust_coefficients";
