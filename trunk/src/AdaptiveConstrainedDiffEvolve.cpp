@@ -9,6 +9,8 @@
 #include "AdaptiveConstrainedDiffEvolve.h"
 #include "EMTG_math.h"
 
+#include <iostream>
+
 
 
 namespace EMTG { namespace Solvers {
