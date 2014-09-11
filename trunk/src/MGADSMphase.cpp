@@ -103,17 +103,14 @@ namespace EMTG
 			if (j == 0)
 			{
 				*current_epoch = X[*Xindex];
+				this->phase_wait_time = X[*Xindex] - options->launch_window_open_date;
 				++(*Xindex);
 			}
 			else
 			{
-				//if we are not the first journey, are we starting from a hyperbolic arrival? or the boundary of the sphere of influence?
-				//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
-				if (!(options->sequence[j-1][p+1] == -1 || boundary1_location_code == -1))
-				{
-					*current_epoch += X[*Xindex];
-					++(*Xindex);
-				}
+				*current_epoch += X[*Xindex];
+				this->phase_wait_time = X[*Xindex];
+				++(*Xindex);
 			}
 
 			//Step 2: locate the first boundary point

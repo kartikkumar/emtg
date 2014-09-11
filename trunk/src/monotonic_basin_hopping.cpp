@@ -572,7 +572,9 @@ namespace EMTG { namespace Solvers {
 		{
 			Xtrial_scaled[k] = x[k];
 		}
+
 		Problem->unscale(x);
+
 		if (computed_Jacobian || this->Problem->options.NLP_solver_type == 1)
 		{
 			try
@@ -586,13 +588,13 @@ namespace EMTG { namespace Solvers {
 				F[0] = EMTG::math::LARGE;
 			}
 		}
-
 		else
 		{
 			if (!Problem->options.quiet_basinhopping)
-				cout << "EMTG::Invalid initial point or failure in objective function." << endl;
+				cout << "EMTG::Jacobian was not computed successfully." << endl;
 			F[0] = EMTG::math::LARGE;
 		}
+
 		for (int k = 0; k < Problem->total_number_of_constraints; ++k)
 		{
 			Problem->F[k] = F[k];

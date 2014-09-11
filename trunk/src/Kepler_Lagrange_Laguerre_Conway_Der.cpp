@@ -71,74 +71,87 @@ namespace Kepler
 		int total_iterations = 0;
 		while (fabs(X - X_new) > Xtol && N < maximum_order)
 		{
-			//Step 4.1: increment the iteration count
-			//if we have maxed out the number of iterations for this order, increase the order
-			++iteration_this_N;
-			++total_iterations;
-			if (iteration_this_N >= maximum_iterations_per_order)
+			try
 			{
-				++N; //increase the order
-				iteration_this_N = 0; //reset the number of iterations
-			}
+				//Step 4.1: increment the iteration count
+				//if we have maxed out the number of iterations for this order, increase the order
+				++iteration_this_N;
+				++total_iterations;
+				if (iteration_this_N >= maximum_iterations_per_order)
+				{
+					++N; //increase the order
+					iteration_this_N = 0; //reset the number of iterations
+				}
 
-			//Step 4.2: update X
-			X = X_new;
+				//Step 4.2: update X
+				X = X_new;
 
-			//Step 4.3: compute U0, U1, U2, U3 for the candidate X
-			if (alpha > alphatol) //ellipse
+				//Step 4.3: compute U0, U1, U2, U3 for the candidate X
+				if (alpha > alphatol) //ellipse
+				{
+					//compute U0, U1, U2, U3 via Stumpff functions
+					double y = alpha * X * X;
+					double C = (1.0 - cos(sqrt(y))) / y;
+					double S = (sqrt(y) - sin(sqrt(y))) / sqrt(y*y*y);
+					U1 = X * (1.0 - y * S);
+					U2 = X * X * C;
+					U3 = X * X * X * S;
+					U0 = 1.0 - alpha * U2;
+				}
+				else if (alpha < -alphatol) //hyperbola
+				{
+
+					sqmalphaX = sqmalpha * X;
+					if (sqmalphaX > 30.0)
+						throw 1000000;
+					else if (sqmalphaX < -30.0)
+						throw 1000000;
+					U0 = cosh(sqmalphaX);
+					U1 = sinh(sqmalphaX) / sqmalpha;
+					U2 = (1.0 - U0) / alpha;
+					U3 = 1.0 / alpha * (X - U1);
+				}
+				else //parabola
+				{
+					U0 = 1.0;
+					U1 = X;
+					U2 = U1*X / 2.0;
+					U3 = U2*X / 3.0;
+				}
+
+
+
+				//Step 4.4: compute r and sigma
+				r = r0 * U0 + sigma0 * U1 + U2;
+				sigma = sigma0 * U0 + (1 - alpha * r0) * U1;
+
+				//Step 4.5 compute F, dF, and ddF
+				double FX = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
+				double dFX = r;
+				double ddFX = sigma;
+
+				//Step 4.6 Laguerre-Conway or Newton iteration depending on the situation
+				int sgn = dFX >= 0 ? 1 : -1;
+				double denom = fabs((N - 1)*(N - 1)*dFX*dFX - N * (N - 1) * FX * ddFX);
+				if (denom > 0.0) //Laguerre-Conway iteration
+				{
+					dX = N*FX / (dFX + sgn * sqrt(denom));
+				}
+				else //Newton iteration for very sensitive cases, i.e. when on a hyperbolic/parabolic asymptote
+					dX = FX / dFX;
+
+				X_new -= dX;
+			} //end try-catch block on Kepler iteration
+			catch (int errorcode)
 			{
-				//compute U0, U1, U2, U3 via Stumpff functions
-				double y = alpha * X * X;
-				double C = (1.0 - cos(sqrt(y))) / y;
-				double S = (sqrt(y) - sin(sqrt(y))) / sqrt(y*y*y);
-				U1 = X * (1.0 - y * S);
-				U2 = X * X * C;
-				U3 = X * X * X * S;
-				U0 = 1.0 - alpha * U2;
+				if (N < maximum_order) //increase the order if we can
+				{
+					++N;
+					iteration_this_N = 0;
+				}
+				else //otherwise break out of the while loop and return the partially converged solution
+					break;
 			}
-			else if (alpha < -alphatol) //hyperbola
-			{
-				
-				sqmalphaX = sqmalpha * X;
-				if (sqmalphaX > 30.0)
-					throw 1000000;
-				else if (sqmalphaX < -30.0)
-					throw 1000000;					
-				U0 = cosh(sqmalphaX);
-				U1 = sinh(sqmalphaX) / sqmalpha;
-				U2 = (1.0 - U0) / alpha;
-				U3 = 1.0 / alpha * (X - U1);
-			}
-			else //parabola
-			{
-				U0 = 1.0;
-				U1 = X;
-				U2 = U1*X / 2.0;
-				U3 = U2*X / 3.0;
-			}
-			
-
-
-			//Step 4.4: compute r and sigma
-			r = r0 * U0 + sigma0 * U1 + U2;
-			sigma = sigma0 * U0 + (1 - alpha * r0) * U1;
-
-			//Step 4.5 compute F, dF, and ddF
-			double FX = r0 * U1 + sigma0 * U2 + U3 - sqmu * propTime;
-			double dFX = r;
-			double ddFX = sigma;
-
-			//Step 4.6 Laguerre-Conway or Newton iteration depending on the situation
-			int sgn = dFX >= 0 ? 1 : -1;
-			double denom = fabs( (N-1)*(N-1)*dFX*dFX - N * (N - 1) * FX * ddFX );
-			if (denom > 0.0) //Laguerre-Conway iteration
-			{
-				dX = N*FX / (dFX + sgn * sqrt(denom));	
-			}
-			else //Newton iteration for very sensitive cases, i.e. when on a hyperbolic/parabolic asymptote
-				dX = FX / dFX;
-
-			X_new -= dX;
 		}
 
 		//Step 5: find F, G, Ft, Gt

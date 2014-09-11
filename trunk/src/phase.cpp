@@ -72,14 +72,9 @@ namespace EMTG {
 			}
 			else
 			{
-				//if we are not the first journey, are we starting from a hyperbolic arrival? or the boundary of the sphere of influence?
-				//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
-				if (!(options->sequence[j-1][p+1] == -1 || this->boundary1_location_code == -1))
-				{
-					*current_epoch += X[*Xindex];
-					this->phase_wait_time = X[*Xindex];
-					++(*Xindex);
-				}
+				*current_epoch += X[*Xindex];
+				this->phase_wait_time = X[*Xindex];
+				++(*Xindex);
 			}
 
 			//Step 2: locate the first body
@@ -2348,7 +2343,7 @@ namespace EMTG {
 			a1 = Universe->r_SOI / 2.0;
 			e1 = 0.0;
 		}
-		else if (boundary2_location_code == -1) //end at fixed or free point in space
+		else if (boundary1_location_code == -1) //end at fixed or free point in space
 		{
 			if (options->journey_departure_elements_type[j] == 0) //orbit defined in inertial coordinates
 			{
@@ -2456,7 +2451,7 @@ namespace EMTG {
 		}
 		else if (boundary1_location_code == -1 && boundary2_location_code == -1) //for transfers between two free or fixed orbits
 		{
-			double lowerbound_temp = min(T1,T2) * 0.1;
+			double lowerbound_temp = 1.0;
 			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
 			Xupperbounds->push_back(max(T1,T2) * 20.0);
 		}
