@@ -80,6 +80,8 @@ missionoptions::missionoptions() {
 
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
+	this->override_working_directory = false;
+	this->forced_working_directory = "..//EMTGv8_Results";
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -143,6 +145,8 @@ missionoptions::missionoptions(string optionsfile) {
 
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
+	this->override_working_directory = false;
+	this->forced_working_directory = "..//EMTGv8_Results";
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -277,6 +281,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "outerloop_warm_population")
 	{
 		inputfile >> this->outerloop_warm_population;
+		return 0;
+	}
+
+	if (choice == "forced_working_directory")
+	{
+		inputfile >> this->forced_working_directory;
 		return 0;
 	}
 
@@ -1668,6 +1678,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->mission_type_for_initial_guess_file = (int)value;
 		return 0;
 	}
+	if (choice == "override_working_directory")
+	{
+		this->override_working_directory = (bool)value;
+		return 0;
+	}
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -2591,6 +2606,12 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#3: FBLT" << endl;
 		outputfile << "#4: MGANDSM" << endl;
 		outputfile << "mission_type_for_initial_guess_file " << this->mission_type_for_initial_guess_file << endl;
+		outputfile << "#Override working directory?" << endl;
+		outputfile << "#0: no" << endl;
+		outputfile << "#1: yes" << endl;
+		outputfile << "override_working_directory " << this->override_working_directory << endl;
+		outputfile << "#Custom working directory" << endl;
+		outputfile << "forced_working_directory " << this->forced_working_directory << endl;
 		outputfile << endl;
 
 		outputfile << "##debug code" << endl;

@@ -196,6 +196,8 @@ class MissionOptions(object):
     create_GMAT_script = 0 #0: no, 1: yes
     generate_initial_guess_file = 0
     mission_type_for_initial_guess_file = 2
+    override_working_directory = 1;
+    forced_working_directory = "..//EMTG_v8_Results"
 
     #debug code
     check_derivatives = 0
@@ -745,6 +747,10 @@ class MissionOptions(object):
                         self.generate_initial_guess_file = int(linecell[1])
                     elif choice == "mission_type_for_initial_guess_file":
                         self.mission_type_for_initial_guess_file = int(linecell[1])
+                    elif choice == "override_working_directory":
+                        self.override_working_directory = int(linecell[1])
+                    elif choice == "forced_working_directory":
+                        self.forced_working_directory = linecell[1]
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1528,6 +1534,12 @@ class MissionOptions(object):
         outputfile.write("#3: FBLT\n")
         outputfile.write("#4: MGANDSM\n")
         outputfile.write("mission_type_for_initial_guess_file " + str(self.mission_type_for_initial_guess_file) + "\n")
+        outputfile.write("#Override working directory?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("override_working_directory " + str(self.override_working_directory) + "\n")
+        outputfile.write("#Custom working directory\n")
+        outputfile.write("forced_working_directory " + self.forced_working_directory + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3285,6 +3297,8 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
         optionsnotebook.tabOutput.chkgenerate_initial_guess_file.SetValue(self.generate_initial_guess_file)
         optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.SetSelection(self.mission_type_for_initial_guess_file)
+        optionsnotebook.tabOutput.chkoverride_working_directory.SetValue(self.override_working_directory)
+        optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.forced_working_directory)
 
         if self.generate_initial_guess_file:
             optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(True)
@@ -3292,3 +3306,12 @@ class MissionOptions(object):
         else:
             optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(False)
             optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Show(False)
+
+        if self.override_working_directory:
+            optionsnotebook.tabOutput.lblforced_working_directory.Show(True)
+            optionsnotebook.tabOutput.txtforced_working_directory.Show(True)
+            optionsnotebook.tabOutput.btnforced_working_directory.Show(True)
+        else:
+            optionsnotebook.tabOutput.lblforced_working_directory.Show(False)
+            optionsnotebook.tabOutput.txtforced_working_directory.Show(False)
+            optionsnotebook.tabOutput.btnforced_working_directory.Show(False)

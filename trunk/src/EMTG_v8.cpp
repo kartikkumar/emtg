@@ -102,13 +102,21 @@ int main(int argc, char* argv[])
 	if (MPIWorld.rank() == 0)
 #endif
 	{
-		ptime now = second_clock::local_time();
-		std::stringstream timestream;
-		timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
+		if (options.override_working_directory)
+		{
+			options.working_directory = options.forced_working_directory;
+		}
+		else
+		{
+			ptime now = second_clock::local_time();
+			std::stringstream timestream;
+			timestream << static_cast<int>(now.date().month()) << now.date().day() << now.date().year() << "_" << now.time_of_day().hours() << now.time_of_day().minutes() << now.time_of_day().seconds();
 
 
-		//define a new working directory
-		options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+			//define a new working directory
+			options.working_directory = "..//EMTG_v8_results//" + options.mission_name + "_" + timestream.str();
+
+		} //end if not override working directory
 
 		if (!(options.run_outerloop == 2))
 		{
@@ -116,15 +124,12 @@ int main(int argc, char* argv[])
 			try
 			{
 				path p(options.working_directory);
-				//path puniverse(options.working_directory + "/Universe");
 				boost::filesystem::create_directories(p);
-				//boost::filesystem::create_directories(puniverse);
 			}
 			catch (std::exception &e)
 			{
 				std::cerr << "Error " << e.what() << ": Directory creation failed" << std::endl;
 			}
-
 
 			//print the options file to the new directory
 			options.print_options_file(options.working_directory + "//" + options.mission_name + ".emtgopt");

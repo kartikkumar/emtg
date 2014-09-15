@@ -689,6 +689,9 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
         self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.Bind(wx.EVT_CHECKBOX, self.Changegenerate_initial_guess_file)
         self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Bind(wx.EVT_COMBOBOX, self.Changemisson_type_for_initial_guess)
+        self.optionsnotebook.tabOutput.chkoverride_working_directory.Bind(wx.EVT_CHECKBOX, self.Changeoverride_working_directory)
+        self.optionsnotebook.tabOutput.txtforced_working_directory.Bind(wx.EVT_KILL_FOCUS, self.Changeforced_working_directory)
+        self.optionsnotebook.tabOutput.btnforced_working_directory.Bind(wx.EVT_BUTTON, self.Clickforced_working_directory_button)
         
         
     #event handlers for global mission options    
@@ -1760,3 +1763,18 @@ class PyEMTG_interface(wx.Frame):
 
     def Changemisson_type_for_initial_guess(self, e):
         self.missionoptions.mission_type_for_initial_guess_file = int(self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.GetSelection())
+
+    def Changeoverride_working_directory(self, e):
+        self.missionoptions.override_working_directory = int(self.optionsnotebook.tabOutput.chkoverride_working_directory.GetValue())
+        self.missionoptions.update_output_options_panel(self.optionsnotebook)
+
+    def Changeforced_working_directory(self, e):
+        self.missionoptions.forced_working_directory = self.optionsnotebook.tabOutput.txtforced_working_directory.GetValue()
+
+    def Clickforced_working_directory_button(self, e):
+        #file load dialog to get name of working directory
+        dlg = wx.DirDialog(self, "Choose a working directory", self.dirname)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.missionoptions.forced_working_directory = dlg.GetPath()
+            self.optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.missionoptions.forced_working_directory)
+        dlg.Destroy()

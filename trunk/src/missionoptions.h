@@ -285,6 +285,8 @@ public:
 	int create_GMAT_script; //0: no, 1: yes
 	bool generate_initial_guess_file;
 	int mission_type_for_initial_guess_file;
+	bool override_working_directory;
+	string forced_working_directory;
 
 	//debug code
 	int run_inner_loop;
