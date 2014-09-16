@@ -472,7 +472,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <TreatWarningAsError>false</TreatWarningAsError>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary;Heritage_SNOPT7</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_EMTG_proprietary;Heritage_SNOPT7;BACKGROUND_MODE</PreprocessorDefinitions>
       <DebugInformationFormat>None</DebugInformationFormat>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <WholeProgramOptimization>false</WholeProgramOptimization>

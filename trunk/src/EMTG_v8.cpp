@@ -414,8 +414,9 @@ int main(int argc, char* argv[])
 		unload_c((options.universe_folder + "ephemeris_files/" + options.SPICE_reference_frame_kernel).c_str());
 	}
 
+	std::cout << "EMTG run complete." << std::endl;
 #ifndef BACKGROUND_MODE
-	std::cout << "EMTG run complete. Press enter to close window." << endl;
+	std::cout << "Press enter to close window." << std::endl;
 	std::cin.ignore();
 #endif
 

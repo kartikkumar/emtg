@@ -1031,7 +1031,7 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.chkoverride_working_directory = wx.CheckBox(self, -1)
 
         self.lblforced_working_directory = wx.StaticText(self, -1, "Working directory")
-        self.txtforced_working_directory = wx.TextCtrl(self, -1, "forced_working_directory")
+        self.txtforced_working_directory = wx.TextCtrl(self, -1, "forced_working_directory", size=(400,-1))
         self.btnforced_working_directory = wx.Button(self, -1, "...")
         working_directory_sizer = wx.BoxSizer(wx.HORIZONTAL)
         working_directory_sizer.AddMany([self.txtforced_working_directory, self.btnforced_working_directory])

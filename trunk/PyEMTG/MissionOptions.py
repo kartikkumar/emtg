@@ -196,7 +196,7 @@ class MissionOptions(object):
     create_GMAT_script = 0 #0: no, 1: yes
     generate_initial_guess_file = 0
     mission_type_for_initial_guess_file = 2
-    override_working_directory = 1;
+    override_working_directory = 0;
     forced_working_directory = "..//EMTG_v8_Results"
 
     #debug code
