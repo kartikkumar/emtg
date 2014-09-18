@@ -102,7 +102,8 @@ class NSGAII_outerloop_solution(object):
                     self.objective_values.append(int(input_cell[column_index]))
                 elif column_headers[column_index] == 'Delivered mass to final target (kg)':
                     self.objective_values.append(-float(input_cell[column_index]))
-
+                elif column_headers[column_index] == 'Point-group value':
+                    self.objective_values.append(-int(input_cell[column_index]))
                 elif column_headers[column_index].find('Gene ') > 0:
                     self.Xouter.append(int(input_cell[column_index]))
 
@@ -186,7 +187,9 @@ class NSGAII_outerloop_population(object):
                     or header == 'Final journey mass increment (for maximizing sample return)' \
                     or header == 'First journey departure C3 (km^2/s^2)' \
                     or header == 'Final journey arrival C3 (km^2/s^2)' \
-                    or header == 'Total delta-v (km/s)':
+                    or header == 'Total delta-v (km/s)' \
+                    or header == 'Inner-loop objective function' \
+                    or header == 'Point-group value':
                     self.objective_column_headers.append(header)
 
             #the fifth line of the population file contains the gene names
@@ -381,7 +384,6 @@ class NSGAII_outerloop_population(object):
                     print 'Flight time (years)', ': ', ThisSolution.objective_values[objIndex] / 365.25
                 elif self.objective_column_headers[objIndex] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
                     dt = datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(ThisSolution.objective_values[objIndex] + 2400000.5).GetTicks())
-                    #dt = datetime.datetime.fromordinal(int(ThisSolution.objective_values[objIndex]))
                     print 'Launch Epoch (TDB Gregorian):', dt.strftime('%m/%d/%Y')
                 elif self.objective_column_headers[objIndex] == 'Thruster preference':
                     print 'Thruster type: ', ThisSolution.thruster

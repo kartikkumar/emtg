@@ -435,7 +435,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		return 0;
 	}
 	if (choice == "MBH_hop_distribution") {
-		this->MBH_hop_distribution = value;
+		this->MBH_hop_distribution = (int)value;
 		return 0;
 	}
 	if (choice == "MBH_Pareto_alpha") {
@@ -1050,6 +1050,52 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 			this->outerloop_journey_maximum_number_of_flybys.push_back((int) value);
 		}
 
+		return 0;
+	}
+
+	//outer-loop point groups settings
+	if (choice == "outerloop_point_groups_values")
+	{
+		string peek;
+		inputfile.peek();
+
+		this->outerloop_point_groups_values.push_back((int)value);
+		while (!(peek == "\n" || peek == "#" || peek == "\r"))
+		{
+			inputfile >> value;
+			this->outerloop_point_groups_values.push_back((int)value);
+
+			peek = inputfile.peek();
+		}
+
+		//now read the bodies in each point group
+		vector<int> temp;
+		peek = inputfile.peek();
+		for (size_t g = 0; g < this->outerloop_point_groups_values.size(); ++g)
+		{
+			temp.clear();
+			while (!(peek == "\n" || peek == "#" || peek == "\r"))
+			{
+				inputfile >> value;
+				temp.push_back((int)value);
+
+				peek = inputfile.peek();
+			}
+			this->outerloop_point_groups_members.push_back(temp);
+		}
+
+		return 0;
+	}
+
+	if (choice == "outerloop_point_groups_number_to_score")
+	{
+		this->outerloop_point_groups_number_to_score.push_back(int(value));
+
+		for (size_t g = 1; g < this->outerloop_point_groups_values.size(); ++g)
+		{
+			inputfile >> value;
+			this->outerloop_point_groups_number_to_score.push_back(int(value));
+		}
 		return 0;
 	}
 
@@ -2508,42 +2554,42 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << endl;
 		outputfile << "#Outer-loop power at 1 AU choices (in kW)" << endl;
 		outputfile << "outerloop_power_choices";
-		for (int entry = 0; entry < this->outerloop_power_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_power_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_power_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop launch window open epoch choices (in MJD)" << endl;
 		outputfile << "outerloop_launch_epoch_choices";
-		for (int entry = 0; entry < this->outerloop_launch_epoch_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_launch_epoch_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_launch_epoch_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop flight time upper bound choices (in days)" << endl;
 		outputfile << "outerloop_flight_time_upper_bound_choices";
-		for (int entry = 0; entry < this->outerloop_flight_time_upper_bound_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_flight_time_upper_bound_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_flight_time_upper_bound_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop thruster type choices (in order of most to least preferable)" << endl;
 		outputfile << "outerloop_thruster_type_choices";
-		for (int entry = 0; entry < this->outerloop_thruster_type_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_thruster_type_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_thruster_type_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop number of thruster choices" << endl;
 		outputfile << "outerloop_number_of_thrusters_choices";
-		for (int entry = 0; entry < this->outerloop_number_of_thrusters_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_number_of_thrusters_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_number_of_thrusters_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop launch vehicle choices (in order of most to least preferable)" << endl;
 		outputfile << "outerloop_launch_vehicle_choices";
-		for (int entry = 0; entry < this->outerloop_launch_vehicle_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_launch_vehicle_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_launch_vehicle_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop first journey departure C3 choices" << endl;
 		outputfile << "outerloop_departure_C3_choices";
-		for (int entry = 0; entry < this->outerloop_departure_C3_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_departure_C3_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_departure_C3_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop last arrival departure C3 choices" << endl;
 		outputfile << "outerloop_arrival_C3_choices";
-		for (int entry = 0; entry < this->outerloop_arrival_C3_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_arrival_C3_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_arrival_C3_choices[entry];
 		outputfile << endl;
 		outputfile << "#Outer-loop maximum number of flybys (one value for each journey)" << endl;
@@ -2555,7 +2601,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_journey_destination_choices" << endl;
 		for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-			for (int entry = 0; entry < this->outerloop_journey_destination_choices[j].size(); ++entry)
+			for (size_t entry = 0; entry < this->outerloop_journey_destination_choices[j].size(); ++entry)
 				outputfile << " " << this->outerloop_journey_destination_choices[j][entry];
 			outputfile << endl;
 		}
@@ -2563,10 +2609,29 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "outerloop_journey_flyby_sequence_choices" << endl;
 		for (int j = 0; j < this->number_of_journeys; ++j)
 		{
-			for (int entry = 0; entry < this->outerloop_journey_flyby_sequence_choices[j].size(); ++entry)
+			for (size_t entry = 0; entry < this->outerloop_journey_flyby_sequence_choices[j].size(); ++entry)
 				outputfile << " " << this->outerloop_journey_flyby_sequence_choices[j][entry];
 			outputfile << endl;
 		}
+		outputfile << endl;
+
+		outputfile << "##Outer-loop point group settings" << endl;
+		outputfile << "#Point group values and members" << endl;
+		outputfile << "outerloop_point_groups_values";
+		for (size_t g = 0; g < this->outerloop_point_groups_values.size(); ++g)
+			outputfile << " " << this->outerloop_point_groups_values[g];
+		outputfile << endl;
+		for (size_t g = 0; g < this->outerloop_point_groups_values.size(); ++g)
+		{
+			for (size_t m = 0; m < this->outerloop_point_groups_members[g].size(); ++m)
+				outputfile << " " << this->outerloop_point_groups_members[g][m];
+			outputfile << endl;
+		}
+		outputfile << "#How many  members to score from each point group (additional members add no more points)" << endl;
+		outputfile << "outerloop_point_groups_number_to_score";
+		for (size_t g = 0; g < this->outerloop_point_groups_values.size(); ++g)
+			outputfile << " " << this->outerloop_point_groups_number_to_score[g];
+		outputfile << endl;
 		outputfile << endl;
 
 		outputfile << "##Outer-loop objective function settings" << endl;
@@ -2583,8 +2648,9 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#9: Final journey arrival C3 (km^2/s^2)" << endl;
 		outputfile << "#10: Total delta-v (km/s)" << endl;
 		outputfile << "#11: Inner-loop objective (whatever it was)" << endl;
+		outputfile << "#12: Point-group value" << endl;
 		outputfile << "outerloop_objective_function_choices";
-		for (int entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
+		for (size_t entry = 0; entry < this->outerloop_objective_function_choices.size(); ++entry)
 			outputfile << " " << this->outerloop_objective_function_choices[entry];
 		outputfile << endl;
 		outputfile << endl;

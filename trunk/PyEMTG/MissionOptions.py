@@ -50,6 +50,11 @@ class MissionOptions(object):
     outerloop_arrival_C3_choices = [25.0]
     outerloop_restrict_flight_time_lower_bound = 0
     quiet_outerloop = 1#if true, suppress all text outputs except error catches
+
+    #outer-loop point group settings
+    outerloop_point_groups_number_to_score = [1]
+    outerloop_point_groups_values = [1]
+    outerloop_point_groups_members = [[1, 2, 3]]
     
     #outerloop objective settings
     outerloop_objective_function_choices = [2, 6]
@@ -226,6 +231,7 @@ class MissionOptions(object):
             return
 
         perturb_line_flag = 0
+        point_group_members_flag = 0
         sequence_line_flag = 0
         trialX_line_flag = 0
         flyby_choice_line_flag = 0
@@ -251,6 +257,13 @@ class MissionOptions(object):
                         self.Journeys[j].journey_perturbation_bodies = []
                         for x in linecell:
                             self.Journeys[j].journey_perturbation_bodies.append(int(x))
+
+                    elif point_group_members_flag > 0:
+                        point_group_members_flag += 1
+                        temp_point_group = []
+                        for entry in linecell:
+                            temp_point_group.append(int(entry))
+                        self.outerloop_point_groups_members.append(temp_point_group)
 
                     elif trialX_line_flag > 0:
                         temp_trialX = []
@@ -392,6 +405,21 @@ class MissionOptions(object):
                     elif choice == "outerloop_journey_maximum_number_of_flybys":
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].outerloop_journey_maximum_number_of_flybys = linecell[j+1]
+
+                    #outer-loop point groups settings
+                    elif choice == "outerloop_point_groups_values":
+                        self.outerloop_point_groups_values = []
+                        for x in linecell[1:]:
+                            self.outerloop_point_groups_values.append(int(x))
+
+                        #start reading point group members
+                        self.outerloop_point_groups_members
+                        point_group_members_flag = 1
+
+                    elif choice == "outerloop_point_groups_number_to_score":
+                        self.outerloop_point_groups_number_to_score = []
+                        for x in linecell[1:]:
+                            self.outerloop_point_groups_number_to_score.append(int(x))
 
                     #outerloop objective settings
                     elif choice == "outerloop_objective_function_choices":
@@ -778,12 +806,14 @@ class MissionOptions(object):
                         return
                 else:
                     perturb_line_flag = 0
+                    point_group_members_flag = 0
                     sequence_line_flag = 0
                     trialX_line_flag = 0
                     flyby_choice_line_flag = 0
                     destination_choice_line_flag = 0
             else:
                 perturb_line_flag = 0
+                point_group_members_flag = 0
                 sequence_line_flag = 0
                 trialX_line_flag = 0
                 flyby_choice_line_flag = 0
@@ -1509,11 +1539,27 @@ class MissionOptions(object):
         outputfile.write("#9: Final journey arrival C3 (km^2/s^2)\n")
         outputfile.write("#10: Total delta-v (km/s)\n")
         outputfile.write("#11: Inner-loop objective (whatever it was)\n")
-        outputfile.write("#12: Sum of SMA spread\n")
-        outputfile.write("#13: Sum of mean longitude spread\n")
+        outputfile.write("#12: Point-group value\n")
         outputfile.write("outerloop_objective_function_choices")
         for entry in self.outerloop_objective_function_choices:
             outputfile.write(" " + str(entry))
+        outputfile.write("\n")
+        outputfile.write("\n")
+
+        outputfile.write("##Outer-loop point group settings\n")
+        outputfile.write("#Point group values and members\n")
+        outputfile.write("outerloop_point_groups_values")
+        for g in range(0, len(self.outerloop_point_groups_values)):
+            outputfile.write(" " + str(self.outerloop_point_groups_values[g]))
+        outputfile.write("\n")
+        for g in range(0, len(self.outerloop_point_groups_values)):
+            for m in range(0, len(self.outerloop_point_groups_members[g])):
+                outputfile.write(" " + str(self.outerloop_point_groups_members[g][m]))
+            outputfile.write("\n")
+        outputfile.write("#How many members to score from each point group (additional members add no more points)\n")
+        outputfile.write("outerloop_point_groups_number_to_score")
+        for g in range(0, len(self.outerloop_point_groups_values)):
+            outputfile.write(" " + str(self.outerloop_point_groups_number_to_score[g]))
         outputfile.write("\n")
         outputfile.write("\n")
             

@@ -244,7 +244,7 @@ namespace EMTG { namespace Solvers {
 		{
 			for (int k = 0; k < Problem->total_number_of_NLP_parameters; ++k)
 				this->Xtrial_scaled[k] = 0.5;
-			for (int sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
+			for (size_t sigk = 0; sigk < this->significant_variable_indices.size(); ++sigk)
 				this->Xtrial_scaled[this->significant_variable_indices[sigk]] = DoubleDistribution(RNG);
 		}
 		else

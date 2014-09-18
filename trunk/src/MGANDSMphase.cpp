@@ -594,7 +594,7 @@ int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlo
 
 			string constraintname = prefix + constraint_type[c];
 
-			for (int entry = 0; entry < Gdescriptions->size(); ++entry)
+			for (size_t entry = 0; entry < Gdescriptions->size(); ++entry)
 			{
 				if ( (*Gdescriptions)[entry].find(constraintname) < 1024)
 				{

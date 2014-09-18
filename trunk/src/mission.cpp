@@ -177,7 +177,7 @@ int mission::parse_outer_loop(int* Xouter)
 		{
 			if (phase_encode_length == 2 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
 			{
-				if (Xouter[j * (2 * options.max_phases_per_journey + 1) + p] - 1 > TheUniverse[j].flyby_menu.size());
+				if (Xouter[j * (2 * options.max_phases_per_journey + 1) + p] - 1 > TheUniverse[j].flyby_menu.size())
 				{
 					std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
 					throw 888;
@@ -377,7 +377,7 @@ int mission::calcbounds()
 	else if (options.objective_type == 1) //minimum flight time
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
+		for (size_t entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
 			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
@@ -506,7 +506,7 @@ int mission::calcbounds()
     else if (options.objective_type == 8) //arrive as early as possible
 	{
         double TU = TheUniverse[options.number_of_journeys - 1].TU;
-		for (int entry = 0; entry < Xdescriptions.size(); ++entry)
+		for (size_t entry = 0; entry < Xdescriptions.size(); ++entry)
 		{
 			if (Xdescriptions[entry].find("flight time") < 1024 || Xdescriptions[entry].find("launch epoch") < 1024 || Xdescriptions[entry].find("stay time") < 1024)
 			{
@@ -806,7 +806,7 @@ int mission::calcbounds()
 		//derivative with respect to v-infinity
 		if (!(options.LV_type == 0))
 		{
-			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			for (size_t entry = 0; entry < Xdescriptions.size() - 1; ++entry)
 			{
 				if (Xdescriptions[entry].find("magnitude of outgoing velocity asymptote") < 1024)
 				{
@@ -826,7 +826,7 @@ int mission::calcbounds()
 		//derivative with respect to initial mass multiplier
 		if (options.allow_initial_mass_to_vary)
 		{
-			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			for (size_t entry = 0; entry < Xdescriptions.size() - 1; ++entry)
 			{
 				if (Xdescriptions[entry].find("initial mass multiplier") < 1024)
 				{
@@ -895,7 +895,7 @@ int mission::calcbounds()
 		//derivative with respect to v-infinity
 		if (!(options.LV_type == 0))
 		{
-			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			for (size_t entry = 0; entry < Xdescriptions.size() - 1; ++entry)
 			{
 				if (Xdescriptions[entry].find("magnitude of outgoing velocity asymptote") < 1024)
 				{
@@ -915,7 +915,7 @@ int mission::calcbounds()
 		//derivative with respect to initial mass multiplier
 		if (options.allow_initial_mass_to_vary)
 		{
-			for (int entry = 0; entry < Xdescriptions.size() - 1; ++entry)
+			for (size_t entry = 0; entry < Xdescriptions.size() - 1; ++entry)
 			{
 				if (Xdescriptions[entry].find("initial mass multiplier") < 1024)
 				{
@@ -1110,7 +1110,7 @@ int mission::evaluate(double* X, double* F, double* G, int needG, const vector<i
 
 			if (this->options.derivative_type > 0)
 			{
-				for (int whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size(); ++ whichderiv)
+				for (size_t whichderiv = 0; whichderiv < this->objectivefunction_G_indices.size(); ++ whichderiv)
 				{
 					G[this->objectivefunction_G_indices[whichderiv]] = objectivefunction_X_scale_ranges[whichderiv] / TU;
 				}
@@ -1615,22 +1615,22 @@ void mission::create_initial_guess(const int& desired_mission_type, const bool& 
 	initialguessfile.precision(20);
 
 	initialguessfile << newmission.Xupperbounds[0];
-	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
 		initialguessfile << ", " << newmission.Xupperbounds[k];
 	initialguessfile << std::endl;
 
 	initialguessfile << NewX[0];
-	for (int k = 1; k < NewX.size(); ++k)
+	for (size_t k = 1; k < NewX.size(); ++k)
 		initialguessfile << ", " << NewX[k];
 	initialguessfile << std::endl;
 
 	initialguessfile << newmission.Xlowerbounds[0];
-	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
 		initialguessfile << ", " << newmission.Xlowerbounds[k];
 	initialguessfile << std::endl;
 
 	initialguessfile << newmission.Xdescriptions[0];
-	for (int k = 1; k < newmission.Xdescriptions.size(); ++k)
+	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
 		initialguessfile << ", " << newmission.Xdescriptions[k];
 	initialguessfile << std::endl;
 
@@ -1893,7 +1893,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				stringstream pjprefix_stream;
 				pjprefix_stream << "j" << jj << "p";
 				string pjprefix = pjprefix_stream.str();
-				for (int Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
+				for (size_t Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find(pjprefix) < 1024)
 					{
@@ -1907,7 +1907,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//1. if the first journey, the initial mass scale factor if enabled
 				if (jj == 0 && options->allow_initial_mass_to_vary)
 				{
-					for (int Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = 0; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("initial mass multiplier (0-1)") < 1024)
 						{
@@ -1969,7 +1969,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//3. if present, the journey initial mass increment scale factor
 				//we must first check for duplicates associated with the current constraint, because this can occur
 				
-				for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+				for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find("journey initial mass scale factor") < 1024)
 					{
@@ -2000,7 +2000,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//this constraint has a derivative with respect to the Isp at the beginning of any journey that has an escape spiral
 				if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 				{
-					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("Escape spiral Isp") < 1024)
 						{
@@ -2032,7 +2032,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//all spirals have a dependency on the BOL power if it is a variable
 				if (options->objective_type == 13)
 				{
-					for (int Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = first_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 						{
@@ -2131,7 +2131,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//this constraint has a derivative with respect to the Isp at the beginning of any journey that has a capture spiral
 				if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 				{
-					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+					for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("Capture spiral Isp") < 1024)
 						{
@@ -2163,7 +2163,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				//all spirals have a dependency on the BOL power if it is a variable
 				if (options->objective_type == 13)
 				{
-					for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+					for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
 					{
 						if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 						{
@@ -2262,7 +2262,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			//this constraint has a derivative with respect to the Isp at the beginning of any journey that has a capture spiral
 			if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 			{
-				for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
+				for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; ++Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find("Capture spiral Isp") < 1024)
 					{
@@ -2294,7 +2294,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			//all spirals have a dependency on the BOL power if it is a variable
 			if (options->objective_type == 13)
 			{
-				for (int Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
+				for (size_t Xentry = last_entry_in_jj; Xentry < Xdescriptions->size() - 1; --Xentry)
 				{
 					if ( (*Xdescriptions)[Xentry].find("engine input power (kW)") < 1024 )
 					{
@@ -2365,6 +2365,26 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				break;
 			case 11: //inner-loop objective function
 				objective_functions[objective] = this->F[0];
+				break;
+			case 12: //point-group value
+				int point_group_score = 0;
+				//iterate through each point group
+				for (size_t g = 0; g < this->options.outerloop_point_groups_values.size(); ++g)
+				{
+					int number_of_scoring_members_in_this_group = 0;
+
+					for (int j = 0; j < this->options.number_of_journeys; ++j)
+					{
+						for (size_t m = 0; m < this->options.outerloop_point_groups_members[g].size(); ++m)
+						{
+							if (this->options.destination_list[j][1] == this->options.outerloop_point_groups_members[g][m])
+								++number_of_scoring_members_in_this_group;
+						}
+					}
+
+					point_group_score += (number_of_scoring_members_in_this_group <= this->options.outerloop_point_groups_number_to_score[g] ? number_of_scoring_members_in_this_group : this->options.outerloop_point_groups_number_to_score[g]) * this->options.outerloop_point_groups_values[g];
+				}
+				objective_functions[objective] = point_group_score;
 				break;
 			}
 		}

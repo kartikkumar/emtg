@@ -79,7 +79,7 @@ public:
 	bool outerloop_reevaluate_full_population;//if true, re-evaluate the entire population each generation, otherwise read from the archive
 	bool quiet_outerloop; //if true, suppress all text outputs except error catches
 
-	//outer loop selectable options settings
+	//outer-loop selectable options settings
 	bool outerloop_vary_power;
 	bool outerloop_vary_launch_epoch;
 	bool outerloop_vary_flight_time_upper_bound;
@@ -103,10 +103,15 @@ public:
 	vector< vector<int> > outerloop_journey_flyby_sequence_choices;
 	vector<int> outerloop_journey_maximum_number_of_flybys;
 
-	//outerloop objective settings
+	//outer-loop point group settings
+	vector<int> outerloop_point_groups_number_to_score;
+	vector<int> outerloop_point_groups_values;
+	vector< vector<int> > outerloop_point_groups_members;
+
+	//outer-loop objective settings
 	vector<int> outerloop_objective_function_choices;
 
-	//inner loop solver settings
+	//inner-loop solver settings
 	int NLP_solver_type;
 	bool NLP_solver_mode; //false: feasible point only, true: optimize
 	bool quiet_NLP;

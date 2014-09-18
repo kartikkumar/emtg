@@ -2389,7 +2389,7 @@ namespace EMTG {
 																		dPdu);
 			} //end loop over later steps
 
-			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
+			for (size_t timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
 			{
 				if (! ( (p == 0 && j == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{
@@ -2681,7 +2681,7 @@ namespace EMTG {
 																		dPdu);
 			} //end loop over later steps
 
-			for (int timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
+			for (size_t timevar = 0; timevar < G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size(); ++timevar)
 			{
 				if (! ( (p == 0 && j == 0 && timevar == 1) || (p > 0 && timevar == 0) ) )
 				{

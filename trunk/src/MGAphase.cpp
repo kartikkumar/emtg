@@ -1166,7 +1166,7 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 
 			//Jacobian entry for a bounded v-infinity intercept
 			//this is a nonlinear constraint dependent on all previous variables
-			for (int entry = 0; entry < Xdescriptions->size(); ++entry)
+			for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
 			{
 				iGfun->push_back(Fdescriptions->size() - 1);
 				jGvar->push_back(entry);
