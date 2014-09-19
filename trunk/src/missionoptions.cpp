@@ -1057,7 +1057,7 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 	if (choice == "outerloop_point_groups_values")
 	{
 		string peek;
-		inputfile.peek();
+		peek = inputfile.peek();
 
 		this->outerloop_point_groups_values.push_back((int)value);
 		while (!(peek == "\n" || peek == "#" || peek == "\r"))
@@ -1073,7 +1073,12 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		peek = inputfile.peek();
 		for (size_t g = 0; g < this->outerloop_point_groups_values.size(); ++g)
 		{
+			++linenumber;
 			temp.clear();
+			inputfile >> value;
+			temp.push_back((int)value);
+
+			peek = inputfile.peek();
 			while (!(peek == "\n" || peek == "#" || peek == "\r"))
 			{
 				inputfile >> value;

@@ -235,10 +235,11 @@ namespace EMTG {
 			}//end code for journeys that start with an impulse
 			else if (options->journey_departure_type[j] == 2)//free direct departure
 			{
-				//journeys which start from a spiral have no initial impulse
+				//no initial impulse
 				this->C3_departure = 0;
 				this->RA_departure = 0;
 				this->DEC_departure = 0;
+				this->dV_departure_magnitude = 0.0;
 
 				//Step 3.2 compute the outgoing velocity vector
 				this->V_infinity_out.assign_zeros();

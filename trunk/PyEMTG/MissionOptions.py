@@ -261,7 +261,7 @@ class MissionOptions(object):
                     elif point_group_members_flag > 0:
                         point_group_members_flag += 1
                         temp_point_group = []
-                        for entry in linecell:
+                        for entry in linecell[1:]:
                             temp_point_group.append(int(entry))
                         self.outerloop_point_groups_members.append(temp_point_group)
 

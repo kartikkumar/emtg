@@ -940,6 +940,10 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	double empty_vector[] = {0,0,0};
 	double phase_time_elapsed = 0.0;
 	string event_type;
+	double temp_power, temp_thrust, temp_mdot, temp_Isp,
+		temp_active_power, temp_dTdP, temp_dmdotdP,
+		temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
+	int temp_active_thrusters;
 
 	if (p > 0 || (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4))
 	{
@@ -1060,6 +1064,24 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 	for (int k = 0; k < 3; ++k)
 		dVdeparture[k] = V_infinity_out(k);
 
+	//we have to calculate the available power at departure
+	Astrodynamics::find_engine_parameters(	options,
+											math::norm(this->state_at_beginning_of_phase, 3) / Universe->LU,
+											(this->phase_start_epoch),
+											&temp_thrust,
+											&temp_mdot,
+											&temp_Isp,
+											&temp_power,
+											&temp_active_power,
+											&temp_active_thrusters,
+											false,
+											&temp_dTdP,
+											&temp_dmdotdP,
+											&temp_dTdIsp,
+											&temp_dmdotdIsp,
+											&temp_dPdr,
+											&temp_dPdt);
+
 	write_summary_line(options,
 						Universe,
 						eventcount,
@@ -1079,7 +1101,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 						(p == 0 ? (options->journey_departure_type[j] == 5 ? 0.0 : this->dV_departure_magnitude) : this->flyby_outgoing_v_infinity),
 						-1,
 						initial_Isp,
-						-1,
+						temp_power,
 						0,
 						0,
 						0);
@@ -1095,6 +1117,24 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 			state_at_initial_coast_midpoint[k+3] *= Universe->LU / Universe->TU;
 		}
 		state_at_initial_coast_midpoint[6] *= options->maximum_mass;
+
+		//we have to calculate the available power at the midpoint of the forced coast
+		Astrodynamics::find_engine_parameters(	options,
+												math::norm(state_at_initial_coast_midpoint, 3) / Universe->LU,
+												phase_start_epoch + initial_coast_duration / 2.0,
+												&temp_thrust,
+												&temp_mdot,
+												&temp_Isp,
+												&temp_power,
+												&temp_active_power,
+												&temp_active_thrusters,
+												false,
+												&temp_dTdP,
+												&temp_dmdotdP,
+												&temp_dTdIsp,
+												&temp_dmdotdIsp,
+												&temp_dPdr,
+												&temp_dPdt);
 
 		write_summary_line(	options,
 							Universe,
@@ -1115,7 +1155,7 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 							0.0,
 							0.0,
 							0.0,
-							0.0,
+							temp_power,
 							0.0,
 							0,
 							0.0);
@@ -1258,6 +1298,25 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		}
 		state_at_terminal_coast_midpoint[6] *= options->maximum_mass;
 
+		//we have to calculate the available power at the midpoint of the forced coast
+		Astrodynamics::find_engine_parameters(	options,
+												math::norm(state_at_terminal_coast_midpoint, 3) / Universe->LU,
+												this->phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration,
+												&temp_thrust,
+												&temp_mdot,
+												&temp_Isp,
+												&temp_power,
+												&temp_active_power,
+												&temp_active_thrusters,
+												false,
+												&temp_dTdP,
+												&temp_dmdotdP,
+												&temp_dTdIsp,
+												&temp_dmdotdIsp,
+												&temp_dPdr,
+												&temp_dPdt);
+
+
 		write_summary_line(	options,
 							Universe,
 							eventcount,
@@ -1337,6 +1396,25 @@ int FBLT_phase::output(missionoptions* options, const double& launchdate, int j,
 		{
 			dV_arrival_mag = dV_arrival_magnitude;
 		}
+
+		//we have to calculate the available power at boundary
+		Astrodynamics::find_engine_parameters(	options,
+												math::norm(this->state_at_end_of_phase, 3) / Universe->LU,
+												(this->phase_start_epoch + this->TOF),
+												&temp_thrust,
+												&temp_mdot,
+												&temp_Isp,
+												&temp_power,
+												&temp_active_power,
+												&temp_active_thrusters,
+												false,
+												&temp_dTdP,
+												&temp_dmdotdP,
+												&temp_dTdIsp,
+												&temp_dmdotdIsp,
+												&temp_dPdr,
+												&temp_dPdt);
+
 
 		write_summary_line(options,
 						Universe,
