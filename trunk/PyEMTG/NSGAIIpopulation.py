@@ -73,7 +73,7 @@ class NSGAII_outerloop_solution(object):
                     descriptioncell = self.description.split('_')
 
                     for descriptionitem in descriptioncell:
-                        if descriptionitem.find('kW') > 0: #this entry encodes power system size
+                        if descriptionitem.rfind('kW') == len(descriptionitem) - 2: #this entry encodes power system size
                             self.power_system_size = float(descriptionitem.strip('kW'))
 
                         if descriptionitem.find('nTh') > 0:
@@ -90,7 +90,6 @@ class NSGAII_outerloop_solution(object):
                 elif column_headers[column_index] == 'BOL power at 1 AU (kW)' \
                     or column_headers[column_index] == 'Launch epoch (MJD)' \
                     or column_headers[column_index] == 'Flight time (days)' \
-		            or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)' \
                     or column_headers[column_index] == 'First journey departure C3 (km^2/s^2)' \
                     or column_headers[column_index] == 'Final journey arrival C3 (km^2/s^2)' \
                     or column_headers[column_index] == 'Total delta-v (km/s)':
@@ -100,7 +99,8 @@ class NSGAII_outerloop_solution(object):
                     or column_headers[column_index] == 'Number of thrusters' \
 		            or column_headers[column_index] == 'Launch vehicle preference':
                     self.objective_values.append(int(input_cell[column_index]))
-                elif column_headers[column_index] == 'Delivered mass to final target (kg)':
+                elif column_headers[column_index] == 'Delivered mass to final target (kg)' \
+                    or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)':
                     self.objective_values.append(-float(input_cell[column_index]))
                 elif column_headers[column_index] == 'Point-group value':
                     self.objective_values.append(-int(input_cell[column_index]))
