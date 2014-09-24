@@ -2,14 +2,13 @@
 #This file contains some pre-defined addresses that you may need to customize for your own system.  Setting the 
 #below correctly can assist with building EMTG quickly and easily.
 
-
 #---------SNOPT hints------------
 #Change this next line to point towards your snopt7 root directory.  This is not your cppsrc or your lib directory, but up one level from that.
 #If SNOPT has been installed on the system path, this hint is probably unnecessary. 
 #You can alternatively add and set the SNOPT_INCLUDEDIR and SNOPT_LIBDIR as direct paths to your cppsrc and appropriate lib directory.
 
 #uncomment this line and change it to be your appropriate path (works for Windows or Unix-based systems)
-	#set(SNOPT_ROOT_DIR /home/user/snopt)
+	#set(SNOPT_ROOT_DIR /home/user/snopt7)
 	#set(SNOPT_INCLUDEDIR /home/user/snopt/cppsrc)
 	#set(SNOPT_LIBDIR /home/user/snopt/lib)
 
@@ -23,6 +22,7 @@
 	
 	#This option will tell boost NOT to look at the system path.  If you want to force boost to use some local version, this is how
 	#set(Boost_NO_SYSTEM_PATHS ON)
+	set (Boost_NO_BOOST_CMAKE ON)
 	
 	
 #----------MPI SNOPT------------------

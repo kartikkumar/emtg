@@ -23,12 +23,12 @@ else(MSVC AND NOT (MSVC_VERSION LESS 1600))
 	if(COMPILER_SUPPORTS_CXX11)
 		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11")
 		message(STATUS "Full support of C++11 found.")
-	elseif(COMPILER_SUPPORTS_CXX0X)
-		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x")
-		message(STATUS "Support for C++0x found.")
 	else(COMPILER_SUPPORTS_CXX11)
 		add_definitions(-D_STONEAGECplusplus)
-		message(STATUS "Stoneage C++ mode enabled.")
+		if(COMPILER_SUPPORTS_CXX0X)
+			set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x")
+			message(STATUS "Support for C++0x found.")
+		endif(COMPILER_SUPPORTS_CXX0X)
 	endif(COMPILER_SUPPORTS_CXX11)
 endif(MSVC AND NOT (MSVC_VERSION LESS 1600))
 
@@ -37,7 +37,7 @@ endif(MSVC AND NOT (MSVC_VERSION LESS 1600))
 #compiler-time Define-level options  for EMTG
 #option(EMTG_MPI "Enable the parallel functions of EMTG" OFF) // this one pretty much has to be at cmake run-time due to the compiler differences
 option(QUIET_SNOPT "If you have a special build of SNOPT, this will silence it completely." OFF)
-option(BACKGROUND_MODE "This suppresses 'press any key to continue' at the end of an EMTG run" OFF)
+option(BACKGROUND_MODE "This suppresses 'press any key to continue' at the end of an EMTG run" ON)
 option(EMTG_proprietary_access "This turns on Goddard-internal proprietary hooks for code not distributed with standard EMTG" OFF)
 
 mark_as_advanced(QUIET_SNOPT EMTG_proprietary_access) #these two are only useful if you are fully aware of what they do, hence hide them from cmake-gui/ccmake
@@ -133,7 +133,7 @@ set(EMTG_LIBRARIES ${EMTG_LIBRARIES} ${SNOPT_LIBRARIES})
 #-------------------------Boost related work------------------------------
 message(STATUS "Now looking for BOOST..")
 include(FindBoost)
-find_package(Boost 1.44 COMPONENTS filesystem system serialization REQUIRED)
+find_package(Boost 1.41 COMPONENTS filesystem system serialization REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 
