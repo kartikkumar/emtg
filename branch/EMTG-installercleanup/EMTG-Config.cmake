@@ -9,8 +9,9 @@
 #You can alternatively add and set the SNOPT_INCLUDEDIR and SNOPT_LIBDIR as direct paths to your cppsrc and appropriate lib directory.
 
 #uncomment this line and change it to be your appropriate path (works for Windows or Unix-based systems)
-	#set(SNOPT_ROOT_DIR /home/user/snopt7)
-
+	#set(SNOPT_ROOT_DIR /home/user/snopt)
+	#set(SNOPT_INCLUDEDIR /home/user/snopt/cppsrc)
+	#set(SNOPT_LIBDIR /home/user/snopt/lib)
 
 #-------BOOST HINTS------------------
 #cmake usually has an easy time finding a properly installed boost.  If it cannot find your copy of boost, uncomment the next two lines and 
@@ -19,6 +20,9 @@
 	#set(BOOST_ROOT ../../boost) #set a hint to find boost, but it'll search in the obvious spots too
 	#set(BOOST_INCLUDEDIR ${BOOST_ROOT}/boost) #frequently this is where the headers are
 	#set(BOOST_LIBRARYDIR ${BOOST_ROOT}/lib)   # this is sometimes {BOOST_ROOT}/stage/lib	
+	
+	#This option will tell boost NOT to look at the system path.  If you want to force boost to use some local version, this is how
+	#set(Boost_NO_SYSTEM_PATHS ON)
 	
 	
 #----------MPI SNOPT------------------

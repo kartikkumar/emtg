@@ -13,13 +13,13 @@ project(EMTG)
 
 
 #-------------do we support C++11?--------------------------------
-if(NOT (MSVC_VERSION LESS 1600)) #1600 == VS 10 == Visual Studio 2010, this logic is actually >=
+if (MSVC AND NOT (MSVC_VERSION LESS 1600)) #1600 == VS 10 == Visual Studio 2010, this logic is actually >=
 	message(STATUS "Using MSVC 2010+ compiler.  C++11 support is native.")
-else(NOT (MSVC_VERSION LESS 1600))
-	message(STATUS "Checking C++11 support...")
-	include(CheckCXXCompilerFlag)
-	CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-	CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+else(MSVC AND NOT (MSVC_VERSION LESS 1600))
+		message(STATUS "Checking C++11 support...")
+		include(CheckCXXCompilerFlag)
+		CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+		CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 	if(COMPILER_SUPPORTS_CXX11)
 		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11")
 		message(STATUS "Full support of C++11 found.")
@@ -30,7 +30,7 @@ else(NOT (MSVC_VERSION LESS 1600))
 		add_definitions(-D_STONEAGECplusplus)
 		message(STATUS "Stoneage C++ mode enabled.")
 	endif(COMPILER_SUPPORTS_CXX11)
-endif(NOT (MSVC_VERSION LESS 1600))
+endif(MSVC AND NOT (MSVC_VERSION LESS 1600))
 
 
 
@@ -122,7 +122,6 @@ link_directories("${CMAKE_SOURCE_DIR}/cspice/lib")
 
 #----------------------------SNOPT Stuff-------------------------------------
 message(STATUS "Now checking on SNOPT...")
-
 
 include(FindSNOPT)
 find_package(SNOPT REQUIRED)

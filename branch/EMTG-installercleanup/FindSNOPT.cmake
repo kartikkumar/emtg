@@ -13,33 +13,31 @@ set(SNOPT_DEFINITIONS ${SNOPT_CFLAGS_OTHER})
 #this will find the directory with the snoptProblem.h.  It should also be the same directory we need for the rest of the headers.  Whether old SNOPT or new SNOPT, all headers are roughly the same and in the same directory
 find_path(SNOPT_INCLUDE_DIR cppsrc/snoptProblem.hh cppsrc/snoptProblem.hpp snoptProblem.hh snoptProblem.hpp
     HINTS ${SNOPT_INCLUDEDIR} ${SNOPT_INCLUDE_DIRS}
-    PATHS "${CMAKE_INSTALL_PREFIX}/include" "${PROJECT_SOURCE_DIR}/SNOPT/cppsrc" "${CMAKE_SOURCE_DIR}/SNOPT/interfaces/cppsrc")
+    PATHS "${CMAKE_INSTALL_PREFIX}/include" "${PROJECT_SOURCE_DIR}/SNOPT/cppsrc" "${CMAKE_SOURCE_DIR}/SNOPT/interfaces" "${SNOPT_INCLUDEDIR}" "${SNOPT_ROOT_DIR}/cppsrc" "${SNOPT_ROOT_DIR}/interfaces")
 
 
 #now we need to look for the snopt libs and the lib directory. Depending on if we are heritage or not, we need to find and collect different sets of libraries.  We'll use the abse snopt library as the indicator
 
 find_library(SNOPT_PRIMARY_LIBRARY NAMES snopt_c
              HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS}
-	     PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib")
+	     PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib" "${SNOPT_LIBDIR}" "${SNOPT_ROOT_DIR}/lib")
 
 if(SNOPT_PRIMARY_LIBRARY-NOTFOUND) #must be the new library
 
 	find_library(SNOPT_PRIMARY_LIBRARY NAMES snopt7
              HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS}
-	     PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib/.libs")
+	     PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib/.libs" "${SNOPT_LIB}" "${SNOPT_ROOT_DIR}/lib/.libs" "${SNOPT_ROOT_DIR}/lib")
 
 	find_library(SNOPT_INTERFACE NAMES snopt7_cpp  HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS}
-             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib/.libs")
+             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib/.libs" "${SNOPT_LIB}" "${SNOPT_ROOT_DIR}/lib/.libs" "${SNOPT_ROOT_DIR}/lib")
 
 else(SNOPT_PRIMARY_LIBRARY-NOTFOUND) #must still be the old interface
 
  find_library(SNOPT_INTERFACE NAMES snopt_cpp  HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS}
-             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib")
-
-# find_library(SNOPT_PRINT NAMES snprint_c  HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS} PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib")
+             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib"  "${SNOPT_LIBDIR}" "${SNOPT_ROOT_DIR}/lib")
 
  find_library(SNOPT_F2C NAMES f2c  HINTS ${SNOPT_LIBDIR} ${SNOPT_LIBRARY_DIRS}
-             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib" NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+             PATHS "${PROJECT_SOURCE_DIR}/SNOPT/lib" "${SNOPT_LIBDIR}" "${SNOPT_ROOT_DIR}/lib" NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 
 	add_definitions(-DHeritage_SNOPT7)
 endif(SNOPT_PRIMARY_LIBRARY-NOTFOUND)
