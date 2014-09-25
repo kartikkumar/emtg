@@ -4,9 +4,6 @@ cmake_minimum_required(VERSION 2.4)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 include(EMTG-Config.cmake)
 
-#set(CMAKE_C_COMPILER mpicc)
-#set(CMAKE_CXX_COMPILER mpic++)
-
 #identify the compiler
 project(EMTG)
 
@@ -79,6 +76,14 @@ else()
 	message(FATAL_ERROR "CSPICE is not unzipped into the emtg/cspice folder correctly.")
 endif()
 
+#first time through, we need to delete out the old cspice lib since we don't trust it
+if (NOT CSPICE_CLEANUP_COMPLETE)
+	file(REMOVE "${CMAKE_SOURCE_DIR}/cspice/lib/*cspice*")
+	file(REMOVE "${CMAKE_SOURCE_DIR}/cspice/lib/*support*")
+	set(CSPICE_CLEANUP_COMPLETE TRUE CACHE BOOL "Set that we cleaned up Cspice on our first pass through the cmake")
+endif()
+
+
 if (NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/libcspice.a" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/cspice/lib/cspice.lib") # we need to build cspice
 
 	message(STATUS "CSpice needs to be built.... adding -DMIX_C_AND_FORTRAN flag and attempting build.")	
@@ -133,7 +138,11 @@ set(EMTG_LIBRARIES ${EMTG_LIBRARIES} ${SNOPT_LIBRARIES})
 #-------------------------Boost related work------------------------------
 message(STATUS "Now looking for BOOST..")
 include(FindBoost)
-find_package(Boost 1.41 COMPONENTS filesystem system serialization REQUIRED)
+if (EMTG_MPI)
+	find_package(Boost 1.41 COMPONENTS filesystem system serialization mpi REQUIRED)
+elseif(EMTG_MPI)
+	find_package(Boost 1.41 COMPONENTS filesystem system REQUIRED)
+endif(EMTG_MPI)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 
