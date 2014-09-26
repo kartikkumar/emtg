@@ -22,7 +22,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblmaximum_number_of_lambert_revolutions = wx.StaticText(self, -1, "Maximum number of revolutions for solving Lambert's problem")
         self.txtmaximum_number_of_lambert_revolutions = wx.TextCtrl(self, -1, "maximum_number_of_lambert_revolutions")
 
-        self.lblobjective_type = wx.StaticText(self, -1, "Include initial impulse in cost")
+        self.lblobjective_type = wx.StaticText(self, -1, "Objective function")
         objectivetypes = ['0: minimum deltaV','1: minimum time','2: maximum final mass','3: GTOC 1 asteroid deflection function',
                           '4: launch as late as possible in the window','5: launch as early as possible in the window',
                           '6: maximize orbit energy','7: minimize launch mass','8: arrive as early as possible',
@@ -763,7 +763,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblsnopt_max_run_time = wx.StaticText(self, -1, "SNOPT maximum run time")
         self.txtsnopt_max_run_time = wx.TextCtrl(self, -1, "snopt_max_run_time")
         
-        self.lblderivative_type = wx.StaticText(self, -1, "Maximum number of innerloop trials")
+        self.lblderivative_type = wx.StaticText(self, -1, "Derivative calculation method")
         derivativechoices = ["Finite Differencing","Analytical flybys and objective function","Analytical all but time","All but current phase flight time derivatives","Fully analytical (experimental)"]
         self.cmbderivative_type = wx.ComboBox(self, -1, choices = derivativechoices, style = wx.CB_READONLY)
         
