@@ -13,10 +13,10 @@ class ThrottleSetting(object):
         self.parse_throttle_line(throttlestring)
 
     #constructor when the propulsion information is known
-    def initialize_from_input_data(self, PPUin, Thrust, Mdot, Isp, efficiency):
+    def initialize_from_input_data(self, Powerin, Thrust, Mdot, Isp, efficiency):
         self.clear()
         self.TL = -1
-        self.PPUin = PPUin
+        self.Powerin = Powerin
         self.Thrust = Thrust
         self.Mdot = Mdot
         self.Isp = Isp
@@ -24,7 +24,7 @@ class ThrottleSetting(object):
 
     def clear(self):
         self.TL = [] 
-        self.PPUin = [] #kW 
+        self.Powerin = [] #kW 
         self.Thrust = [] #mN      
         self.Mdot = [] #mg/s
         self.Isp = []#s
@@ -34,7 +34,7 @@ class ThrottleSetting(object):
     def parse_throttle_line(self, throttlestring):
         throttlecell = throttlestring.split(',')
         self.TL = int(throttlecell[0].lstrip('TL'))
-        self.PPUin = float(throttlecell[1])
+        self.Powerin = float(throttlecell[1])
         self.Thrust = float(throttlecell[2])
         self.Mdot = float(throttlecell[3])
         self.Isp = float(throttlecell[4])
@@ -42,13 +42,13 @@ class ThrottleSetting(object):
 
     #function to compare this throttle setting to another
     def compare(self, otherThrottleSetting):
-        diff_PPUin = self.PPUin - otherThrottleSetting.PPUin
+        diff_Powerin = self.Powerin - otherThrottleSetting.Powerin
         diff_Thrust = self.Thrust - otherThrottleSetting.Thrust
         diff_Mdot = self.Mdot - otherThrottleSetting.Mdot
         diff_Isp = self.Isp - otherThrottleSetting.Isp
         diff_efficiency = self.efficiency - otherThrottleSetting.Isp
 
-        return diff_PPUin, diff_Thrust, diff_Mdot, diff_Isp, diff_efficiency
+        return diff_Powerin, diff_Thrust, diff_Mdot, diff_Isp, diff_efficiency
 
 
 class ThrottleTable(object):
@@ -58,6 +58,7 @@ class ThrottleTable(object):
 
     def clear(self):
         self.ThrottleSettings = []
+        self.PPUefficiency = 1.0
 
     #function to parse a throttle file
     def parse_throttle_file(self, filename):
@@ -71,6 +72,10 @@ class ThrottleTable(object):
             return
 
         for line in inputfile:
+            if line[0:3] == 'PPU':
+                linecell = line.split(',')
+                self.PPUefficiency = float(linecell[1])
+
             if line[0:2] == 'TL':
                 NewThrottleSetting = ThrottleSetting()
                 NewThrottleSetting.initialize_from_string(line)
@@ -89,7 +94,7 @@ class ThrottleTable(object):
 
         for setting in self.ThrottleSettings:
             difference_vector = setting.compare(ReferenceThrottleSetting)
-            normalized_difference_vectors.append([difference_vector[0] / ReferenceThrottleSetting.PPUin,
+            normalized_difference_vectors.append([difference_vector[0] / ReferenceThrottleSetting.Powerin,
                                                   difference_vector[1] / ReferenceThrottleSetting.Thrust,
                                                   difference_vector[2] / ReferenceThrottleSetting.Mdot,
                                                   difference_vector[3] / ReferenceThrottleSetting.Isp])

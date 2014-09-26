@@ -294,7 +294,7 @@ class Mission(object):
             for event in self.Journeys[self.ActiveJourney].missionevents:
                 if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'end_spiral':
                     NewThrottleSetting = ThrottleTable.ThrottleSetting()
-                    NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines,
+                    NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines * thruster_throttle_table.PPUefficiency,
                                                                     event.AvailableThrust / event.Number_of_Active_Engines * 1000.0,
                                                                     event.MassFlowRate * 1.0e6 / event.Number_of_Active_Engines,
                                                                     event.Isp, event.AvailableThrust * event.Isp * 9.80665 / (2000 * event.ActivePower))
