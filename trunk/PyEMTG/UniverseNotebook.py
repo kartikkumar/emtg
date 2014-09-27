@@ -340,6 +340,8 @@ class BodyPanel(wx.Panel):
 
     def Changename(self, e):
         self.universe.bodies[self.ActiveBody].name = self.txtname.GetValue()
+        self.UpdateBodyList()
+        self.UpdateFields()
 
     def Changeshortname(self, e):
         self.universe.bodies[self.ActiveBody].shortname = self.txtshortname.GetValue()
