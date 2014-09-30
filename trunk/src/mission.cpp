@@ -2389,5 +2389,15 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			}
 		}
 	}
+
+    //method to output an STK-compatible forward ephemeris
+    void mission::write_ephemeris_file()
+    {
+        for (size_t j = 0; j < this->number_of_journeys; ++j)
+            this->journeys[j].write_ephemeris_file(this->options,
+                                                   this->TheUniverse[j],
+                                                   this->options.launch_window_open_date + this->journeys[0].phases[0].phase_wait_time,
+                                                   j);
+    }
 	
 } /* namespace EMTG */

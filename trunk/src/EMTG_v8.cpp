@@ -361,6 +361,10 @@ int main(int argc, char* argv[])
 					//output the mission
 					TrialMission.output();
 
+                    //output forward-integrated ephemeris if appropriate
+                    if (options.generate_forward_integrated_ephemeris && options.mission_type == 3)
+                        TrialMission.write_ephemeris_file();
+
 					//output GMAT files
 					//temporarily we can't output MGA or MGA-DSM missions
 					if (options.mission_type > 1 && options.create_GMAT_script)

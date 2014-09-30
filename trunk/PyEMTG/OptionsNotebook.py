@@ -1031,17 +1031,21 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.chkoverride_working_directory = wx.CheckBox(self, -1)
 
         self.lblforced_working_directory = wx.StaticText(self, -1, "Working directory")
-        self.txtforced_working_directory = wx.TextCtrl(self, -1, "forced_working_directory", size=(400,-1))
+        self.txtforced_working_directory = wx.TextCtrl(self, -1, "forced_working_directory", size=(600,-1))
         self.btnforced_working_directory = wx.Button(self, -1, "...")
         working_directory_sizer = wx.BoxSizer(wx.HORIZONTAL)
         working_directory_sizer.AddMany([self.txtforced_working_directory, self.btnforced_working_directory])
+
+        self.lblgenerate_forward_integrated_ephemeris = wx.StaticText(self, -1, "Generate forward-integrated STK-compatible ephemeris")
+        self.chkgenerate_forward_integrated_ephemeris = wx.CheckBox(self, -1)
 
         self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
                            self.lbloutput_units, self.cmboutput_units,
                            self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
                            self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
                            self.lbloverride_working_directory, self.chkoverride_working_directory,
-                           self.lblforced_working_directory, working_directory_sizer])
+                           self.lblforced_working_directory, working_directory_sizer,
+                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()

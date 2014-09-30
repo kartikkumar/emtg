@@ -30,15 +30,72 @@ public:
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+	int evaluate(double* X,
+                int* Xindex,
+                double* F,
+                int* Findex, 
+                double* G, 
+                int* Gindex,
+                int needG, 
+                double* current_epoch, 
+                double* current_state,
+                double* current_deltaV,
+                double* boundary1_state,
+                double* boundary2_state, 
+                int j, 
+                int p, 
+                EMTG::Astrodynamics::universe* Universe, 
+                missionoptions* options);
 
 	//output function
 	//return 0 if successful, 1 if failure
-	int output(missionoptions* options, const double& launchdate, int j, int p,  EMTG::Astrodynamics::universe* Universe, int* eventcount);
+	int output(missionoptions* options,
+                const double& launchdate,
+                int j,
+                int p,
+                EMTG::Astrodynamics::universe* Universe,
+                int* eventcount);
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+	int calcbounds(vector<double>* Xupperbounds,
+                    vector<double>* Xlowerbounds, 
+                    vector<double>* Fupperbounds, 
+                    vector<double>* Flowerbounds, 
+                    vector<string>* Xdescriptions, 
+                    vector<string>* Fdescriptions, 
+                    vector<int>* iAfun, 
+                    vector<int>* jAvar, 
+                    vector<int>* iGfun, 
+                    vector<int>* jGvar, 
+                    vector<string>* Adescriptions, 
+                    vector<string>* Gdescriptions, 
+                    vector<double>* synodic_periods,
+                    int j,
+                    int p,
+                    EMTG::Astrodynamics::universe* Universe,
+                    missionoptions* options);
+
+    //methods to output a .e ephemeris file
+    void write_ephemeris_file(const missionoptions& options,
+                                const EMTG::Astrodynamics::universe& Universe,
+                                const double& launch_epoch,
+                                const double& journey_starting_epoch,
+                                vector< vector<string> >& output_line_array,
+                                const int& j,
+                                const int& p);
+
+    void propagate_forward_ephemeris(const missionoptions& options,
+                                    const EMTG::Astrodynamics::universe& Universe,
+                                    const double& launch_epoch,
+                                    double& current_epoch,
+                                    double* current_state,
+                                    const int& control_step,
+                                    vector< vector<string> >& output_line_array,
+                                    const int& j,
+                                    const int& p,
+                                    const double& propagation_time,
+                                    const double& journey_starting_epoch);
 
 	//time information
 	vector <double> event_epochs;

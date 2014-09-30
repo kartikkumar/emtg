@@ -203,6 +203,7 @@ class MissionOptions(object):
     mission_type_for_initial_guess_file = 2
     override_working_directory = 0;
     forced_working_directory = "..//EMTG_v8_Results"
+    generate_forward_integrated_ephemeris = 0#0 :no, 1: yes
 
     #debug code
     check_derivatives = 0
@@ -779,6 +780,8 @@ class MissionOptions(object):
                         self.override_working_directory = int(linecell[1])
                     elif choice == "forced_working_directory":
                         self.forced_working_directory = linecell[1]
+                    elif choice == "generate_forward_integrated_ephemeris":
+                        self.generate_forward_integrated_ephemeris = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1586,6 +1589,10 @@ class MissionOptions(object):
         outputfile.write("override_working_directory " + str(self.override_working_directory) + "\n")
         outputfile.write("#Custom working directory\n")
         outputfile.write("forced_working_directory " + self.forced_working_directory + "\n")
+        outputfile.write("#Generate forward integrated ephemeris (STK compatible)?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("generate_forward_integrated_ephemeris " + str(self.generate_forward_integrated_ephemeris) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3345,6 +3352,7 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.SetSelection(self.mission_type_for_initial_guess_file)
         optionsnotebook.tabOutput.chkoverride_working_directory.SetValue(self.override_working_directory)
         optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.forced_working_directory)
+        optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.SetValue(self.generate_forward_integrated_ephemeris)
 
         if self.generate_initial_guess_file:
             optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(True)

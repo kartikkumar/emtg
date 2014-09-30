@@ -729,15 +729,6 @@ namespace EMTG {
 		phase_start_epoch = *current_epoch;
 		phase_end_epoch = *current_epoch + TOF;
 
-		//Step 5.2.1 modify the portion of the TOF that is available for thrusting
-		//modifications due to forced initial coast
-		if (j == 0 && p == 0 && options->forced_post_launch_coast > 0.0)
-			TOF -= options->forced_post_launch_coast;
-		else if ( (p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ) && options->forced_flyby_coast > 0.0)
-			TOF -= options->forced_flyby_coast;
-
-		//modifications due to forced terminal coast
-
 		//Step 5.3: locate the second body
 		locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
 	

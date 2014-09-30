@@ -353,6 +353,15 @@ namespace EMTG {
 											int& NewXIndex,
 											const vector<string>& NewXDescriptions, 
 											const missionoptions& options)		{};
+
+        //method to output a .e ephemeris file
+        virtual void write_ephemeris_file(const missionoptions& options,
+                                        const EMTG::Astrodynamics::universe& Universe,
+                                        const double& launch_epoch,
+                                        const double& journey_starting_epoch,
+                                        vector< vector<string> >& output_line_array,
+                                        const int& j,
+                                        const int& p)	{};
 	
 		//b-plane object
 		Astrodynamics::bplane Bplane;

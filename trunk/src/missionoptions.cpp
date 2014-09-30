@@ -80,8 +80,9 @@ missionoptions::missionoptions() {
 
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
-	this->override_working_directory = false;
+	this->override_working_directory = false;    
 	this->forced_working_directory = "..//EMTGv8_Results";
+    this->generate_forward_integrated_ephemeris = false;
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -147,6 +148,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->mission_type_for_initial_guess_file = 2;
 	this->override_working_directory = false;
 	this->forced_working_directory = "..//EMTGv8_Results";
+    this->generate_forward_integrated_ephemeris = false;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -1734,6 +1736,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->override_working_directory = (bool)value;
 		return 0;
 	}
+    if (choice == "generate_forward_integrated_ephemeris")
+    {
+        this->generate_forward_integrated_ephemeris = (bool)value;
+        return 0;
+    }
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -2683,6 +2690,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "override_working_directory " << this->override_working_directory << endl;
 		outputfile << "#Custom working directory" << endl;
 		outputfile << "forced_working_directory " << this->forced_working_directory << endl;
+        outputfile << "#Generate forward integrated ephemeris (STK compatible)?" << endl;
+        outputfile << "#0: no" << endl;
+        outputfile << "#1: yes" << endl;
+        outputfile << "generate_forward_integrated_ephemeris " << this->generate_forward_integrated_ephemeris << endl;
 		outputfile << endl;
 
 		outputfile << "##debug code" << endl;

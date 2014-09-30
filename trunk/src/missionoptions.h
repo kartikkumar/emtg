@@ -292,6 +292,7 @@ public:
 	int mission_type_for_initial_guess_file;
 	bool override_working_directory;
 	string forced_working_directory;
+    bool generate_forward_integrated_ephemeris;
 
 	//debug code
 	int run_inner_loop;

@@ -38,6 +38,9 @@ public:
 	//return 0 if successful, 1 if failure
 	virtual int output();
 
+    //method to output a forward-integrated ephemeris
+    virtual void write_ephemeris_file();
+
 	//performance characteristics function
 	//used to extract various pieces of mission data for a multi-objective GA
 	void extract_objective_function_values(std::vector<double>& objective_functions);

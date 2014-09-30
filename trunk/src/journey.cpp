@@ -19,6 +19,7 @@
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_math.h"
+#include "EMTG_time_utilities.h"
 
 namespace EMTG
 {
@@ -905,5 +906,61 @@ namespace EMTG
 
 		return;
 	}
+
+
+
+    //method to write an STK-compatible .e ephemeris file
+    void journey::write_ephemeris_file( const missionoptions& options,
+                                        const EMTG::Astrodynamics::universe& Universe,
+                                        const double& launch_epoch,
+                                        int j)
+    {
+        //each journey gets its own ephemeris file, so we need to write the header
+        //first we need a file name
+        stringstream ephemeris_file_stream;
+        ephemeris_file_stream << options.working_directory << "//" << options.mission_name << "_J" << j << ".e";
+
+        //next write the header
+        //(code adapted from PyEMTG)
+        ofstream ephemeris_file(ephemeris_file_stream.str());
+
+        ephemeris_file << "stk.v.9.0" << endl;
+        ephemeris_file << "#Ephemeris file written by PyEMTG" << endl;
+        ephemeris_file << "BEGIN Ephemeris" << endl;
+        ephemeris_file << "ScenarioEpoch " << time_utilities::convert_ET_to_UTC_string(this->phases[0].phase_start_epoch - (51544.5 * 86400.0)) << endl;
+        ephemeris_file << "CentralBody " << this->central_body_name << endl;
+        ephemeris_file << "CoordinateSystem J2000" << endl;
+        ephemeris_file << "InterpolationMethod Lagrange" << endl;
+        ephemeris_file << "InterpolationSamplesM1 5" << endl;
+
+        //now propagate and get the state history
+        //note this state history will be raw data, i.e. in central body J2000 earth-equatorial frame
+        vector< vector<string> > output_line_array;
+
+        for (size_t p = 0; p < this->number_of_phases; ++p)
+            this->phases[p].write_ephemeris_file(   options,
+                                                    Universe,
+                                                    launch_epoch,
+                                                    this->phases[0].phase_start_epoch,
+                                                    output_line_array,
+                                                    j,
+                                                    p);
+
+        ephemeris_file << "NumberOfEphemerisPoints " << output_line_array.size() << endl;
+        ephemeris_file << endl;
+        ephemeris_file << "EphemerisTimePosVel" << endl;
+
+        for (size_t line = 0; line < output_line_array.size(); ++line)
+        {
+            ephemeris_file << output_line_array[line][0];
+            for (size_t entry = 1; entry < 7; ++entry)
+                ephemeris_file << " " << output_line_array[line][entry];
+            ephemeris_file << endl;
+        }
+
+        ephemeris_file << "END Ephemeris" << endl;
+
+        ephemeris_file.close();
+    }
 
 } /* namespace EMTG */

@@ -692,6 +692,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabOutput.chkoverride_working_directory.Bind(wx.EVT_CHECKBOX, self.Changeoverride_working_directory)
         self.optionsnotebook.tabOutput.txtforced_working_directory.Bind(wx.EVT_KILL_FOCUS, self.Changeforced_working_directory)
         self.optionsnotebook.tabOutput.btnforced_working_directory.Bind(wx.EVT_BUTTON, self.Clickforced_working_directory_button)
+        self.optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.Bind(wx.EVT_CHECKBOX, self.Changegenerate_forward_integrated_ephemeris)
         
         
     #event handlers for global mission options    
@@ -1778,3 +1779,6 @@ class PyEMTG_interface(wx.Frame):
             self.missionoptions.forced_working_directory = dlg.GetPath()
             self.optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.missionoptions.forced_working_directory)
         dlg.Destroy()
+
+    def Changegenerate_forward_integrated_ephemeris(self, e):
+        self.missionoptions.generate_forward_integrated_ephemeris = int(self.optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.GetValue())
