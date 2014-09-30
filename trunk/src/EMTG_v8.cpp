@@ -143,16 +143,19 @@ int main(int argc, char* argv[])
 	
 	
 	//load all ephemeris data if using SPICE
-	vector<fs::path> SPICE_files;
+	vector<fs::path> SPICE_files_initial;
+    vector<fs::path> SPICE_files_not_required;
+    vector<fs::path> SPICE_files_required;
+    vector<int> SPICE_bodies_required;
 	string filestring;
 	if (options.ephemeris_source == 1)
 	{	
-		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files);
-		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".cmt", SPICE_files);
+        //load all BSP files
+		EMTG::filesystem::get_all_files_with_extension(fs::path(options.universe_folder + "/ephemeris_files/"), ".bsp", SPICE_files_initial);
 
-		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		for (size_t k = 0; k < SPICE_files_initial.size(); ++k)
 		{
-			filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files[k].string();
+			filestring = options.universe_folder + "/ephemeris_files/" + SPICE_files_initial[k].string();
 			furnsh_c(filestring.c_str());
 		}
 
@@ -184,6 +187,96 @@ int main(int argc, char* argv[])
 		if (TheUniverse[j].TU > options.TU)
 			options.TU = TheUniverse[j].TU;
 	}
+
+    //now unload ephemeris files that we don't need
+    if (options.ephemeris_source == 1)
+    {
+        //make a list of all of the bodies that we actually need by SPICE ID, make sure all planet barycenters are included
+        //always include the sun and all barycenters
+        for (size_t b = 0; b < 11; ++b)
+            SPICE_bodies_required.push_back(b);
+
+        //everything else is organized by journey
+        for (size_t j = 0; j < options.number_of_journeys; ++j)
+        {
+            //include the journey's central body
+            SPICE_bodies_required.push_back(TheUniverse[j].central_body_SPICE_ID);
+            //include destination bodies
+            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][0]].spice_ID);
+            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][1]].spice_ID);
+            //include flyby sequence bodies
+            for (size_t s = 0; s < options.sequence_input.size(); ++s)
+            {
+                for (size_t b = 0; b < options.sequence_input[s][j].size(); ++b)
+                    SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.sequence_input[s][j][b]].spice_ID);
+            }
+            //include perturbation bodies
+            if (options.perturb_thirdbody)
+            {
+                for (size_t b = 0; b < options.journey_perturbation_bodies[j].size(); ++b)
+                    SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.journey_perturbation_bodies[j][b]].spice_ID);
+            }
+
+            if (options.run_outerloop > 0)
+            {
+                //include CANDIDATE destination bodies
+                if (options.outerloop_vary_journey_destination[j])
+                {
+                    for (size_t b = 0; b < options.outerloop_journey_destination_choices[j].size(); ++b)
+                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_destination_choices[j][b]].spice_ID);
+                }
+                //include CANDIDATE flyby sequence bodies
+                if (options.outerloop_vary_journey_flyby_sequence[j])
+                {
+                    for (size_t b = 0; b < options.outerloop_journey_flyby_sequence_choices[j].size(); ++b)
+                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_flyby_sequence_choices[j][b]].spice_ID);
+                }
+            }
+        }
+
+        //sort and remove duplicates
+        std::sort(SPICE_bodies_required.begin(), SPICE_bodies_required.end());
+        SPICE_bodies_required.erase(std::unique(SPICE_bodies_required.begin(), SPICE_bodies_required.end()), SPICE_bodies_required.end());
+
+        //make a list of kernels that we do need and a list of kernels that we do need
+        //do this by looping over every kernel and determining if we are going to use it or not
+        for (size_t kernel = 0; kernel < SPICE_files_initial.size(); ++kernel)
+        {
+            //stupid SPICE preprocessor macros when you should be using a class
+            //from http://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/spkobj_c.html
+            SPICEINT_CELL(bodies_in_this_kernel, 1000);
+
+            spkobj_c(SPICE_files_initial[kernel].string().data(), &bodies_in_this_kernel);
+
+            //now check "bodies_in_this_kernel" to see if it contains useful bodies
+            //if it does, add it to "SPICE_files_required"
+            //otherwise unload it
+            bool useful_kernel = false;
+            for (size_t kernelbody = 0; kernelbody < card_c(&bodies_in_this_kernel); ++kernelbody)
+            {
+                for (size_t requiredbody = 0; requiredbody < SPICE_bodies_required.size(); ++requiredbody)
+                {
+                    int thisbody;
+                    SPICE_CELL_GET_I(&bodies_in_this_kernel, kernelbody, &thisbody);
+                    if (SPICE_bodies_required[requiredbody] == thisbody)
+                    {
+                        useful_kernel = true;
+                        break;
+                    }
+                }
+                if (useful_kernel)
+                    break;
+            }
+            if (useful_kernel)
+                SPICE_files_required.push_back(SPICE_files_initial[kernel]);
+            else
+            {
+                filestring = options.universe_folder + "ephemeris_files/" + SPICE_files_initial[kernel].string();
+                unload_c(filestring.c_str());
+            }
+        }
+    }
+    
 
 	//*****************************************************************
 
@@ -408,9 +501,9 @@ int main(int argc, char* argv[])
 
 	if (options.ephemeris_source == 1)
 	{
-		for (size_t k = 0; k < SPICE_files.size(); ++k)
+		for (size_t k = 0; k < SPICE_files_required.size(); ++k)
 		{
-			filestring = options.universe_folder + "ephemeris_files/" + SPICE_files[k].string();
+			filestring = options.universe_folder + "ephemeris_files/" + SPICE_files_required[k].string();
 			unload_c(filestring.c_str());
 		}
 
