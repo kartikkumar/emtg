@@ -180,10 +180,6 @@ int main(int argc, char* argv[])
 
 		universenamestream << options.journey_central_body[j] + "_Journey_" << j << ".universe_output";
 
-		//TheUniverse[j].print_universe(options.working_directory + "//" +"universe//" + universenamestream.str(), &options);
-
-		//cout << options.working_directory + "//" +"universe//" + universenamestream.str() << " written" << endl;
-
 		if (TheUniverse[j].TU > options.TU)
 			options.TU = TheUniverse[j].TU;
 	}
@@ -202,19 +198,20 @@ int main(int argc, char* argv[])
             //include the journey's central body
             SPICE_bodies_required.push_back(TheUniverse[j].central_body_SPICE_ID);
             //include destination bodies
-            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][0]].spice_ID);
-            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][1]].spice_ID);
+            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][0] - 1].spice_ID);
+            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.destination_list[j][1] - 1].spice_ID);
             //include flyby sequence bodies
             for (size_t s = 0; s < options.sequence_input.size(); ++s)
             {
                 for (size_t b = 0; b < options.sequence_input[s][j].size(); ++b)
-                    SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.sequence_input[s][j][b]].spice_ID);
+                    if (options.sequence_input[s][j][b] > 0)
+                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.sequence_input[s][j][b] - 1].spice_ID);
             }
             //include perturbation bodies
             if (options.perturb_thirdbody)
             {
                 for (size_t b = 0; b < options.journey_perturbation_bodies[j].size(); ++b)
-                    SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.journey_perturbation_bodies[j][b]].spice_ID);
+                    SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.journey_perturbation_bodies[j][b] - 1].spice_ID);
             }
 
             if (options.run_outerloop > 0)
@@ -223,13 +220,14 @@ int main(int argc, char* argv[])
                 if (options.outerloop_vary_journey_destination[j])
                 {
                     for (size_t b = 0; b < options.outerloop_journey_destination_choices[j].size(); ++b)
-                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_destination_choices[j][b]].spice_ID);
+                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_destination_choices[j][b] - 1].spice_ID);
                 }
                 //include CANDIDATE flyby sequence bodies
                 if (options.outerloop_vary_journey_flyby_sequence[j])
                 {
                     for (size_t b = 0; b < options.outerloop_journey_flyby_sequence_choices[j].size(); ++b)
-                        SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_flyby_sequence_choices[j][b]].spice_ID);
+                        if (options.outerloop_journey_flyby_sequence_choices[j][b] > 0)
+                            SPICE_bodies_required.push_back(TheUniverse[j].bodies[options.outerloop_journey_flyby_sequence_choices[j][b] - 1].spice_ID);
                 }
             }
         }
@@ -238,8 +236,11 @@ int main(int argc, char* argv[])
         std::sort(SPICE_bodies_required.begin(), SPICE_bodies_required.end());
         SPICE_bodies_required.erase(std::unique(SPICE_bodies_required.begin(), SPICE_bodies_required.end()), SPICE_bodies_required.end());
 
+        //for now do not unload anything
+        SPICE_files_required = SPICE_files_initial;
         //make a list of kernels that we do need and a list of kernels that we do need
         //do this by looping over every kernel and determining if we are going to use it or not
+        /*
         for (size_t kernel = 0; kernel < SPICE_files_initial.size(); ++kernel)
         {
             //stupid SPICE preprocessor macros when you should be using a class
@@ -275,6 +276,7 @@ int main(int argc, char* argv[])
                 unload_c(filestring.c_str());
             }
         }
+        */
     }
     
 
