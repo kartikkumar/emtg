@@ -622,7 +622,7 @@ FBLT_phase::FBLT_phase() {
 
     //bounds calculation function
     //return 0 if successful, 1 if failure
-    int FBLT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void FBLT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
     {
 	    //this function calculates the upper and lower bounds for the decision and constraint vectors for FBLT
 	    //create a prefix string with journey and phase information
@@ -930,8 +930,6 @@ FBLT_phase::FBLT_phase() {
 			    }
 		    }	
 	    }
-		
-	    return 0;
     }
 
     //output function

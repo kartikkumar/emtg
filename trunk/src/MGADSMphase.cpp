@@ -455,15 +455,7 @@ namespace EMTG
 													this->state_before_burn, 
 													Universe->mu, 
 													Universe->LU,
-													this->time_before_burn,
-													this->Kepler_F_Current,
-													this->Kepler_Fdot_Current,
-													this->Kepler_G_Current, 
-													this->Kepler_Gdot_Current, 
-													this->Kepler_Fdotdot_Current, 
-													this->Kepler_Gdotdot_Current,
-													this->Current_STM,
-													false);
+													this->time_before_burn);
 
 		this->state_before_burn[6] = this->state_at_beginning_of_phase[6];
 
@@ -838,15 +830,7 @@ namespace EMTG
 														output_state,
 														Universe->mu,
 														Universe->LU,
-														(epoch - this->phase_start_epoch), 
-														this->Kepler_F_Current,
-														this->Kepler_Fdot_Current, 
-														this->Kepler_G_Current,
-														this->Kepler_Gdot_Current,
-														this->Kepler_Fdotdot_Current,
-														this->Kepler_Gdotdot_Current, 
-														this->Current_STM,
-														false);
+														(epoch - this->phase_start_epoch));
 
 			//write the summary line
 			write_summary_line(options,
@@ -912,15 +896,7 @@ namespace EMTG
 														output_state,
 														Universe->mu,
 														Universe->LU,
-														this->timestep_length_after_burn * (step + 0.5),
-														this->Kepler_F_Current,
-														this->Kepler_Fdot_Current, 
-														this->Kepler_G_Current, 
-														this->Kepler_Gdot_Current,
-														this->Kepler_Fdotdot_Current,
-														this->Kepler_Gdotdot_Current, 
-														this->Current_STM,
-														false);
+														this->timestep_length_after_burn * (step + 0.5));
 
 			//write the summary line
 			write_summary_line(options,
@@ -1035,7 +1011,7 @@ namespace EMTG
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+	void MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{
 		//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-DSM
 
@@ -1564,8 +1540,6 @@ namespace EMTG
 				Gdescriptions->push_back(EntryNameStream.str());
 			}
 		}
-
-		return 0;
 	}
 
 	//function to create an initial guess for another mission type

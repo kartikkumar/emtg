@@ -268,7 +268,7 @@ int mission::parse_outer_loop(int* Xouter)
 
 //bounds calculation function
 //return 0 for success, 1 for failure
-int mission::calcbounds()
+void mission::calcbounds()
 {
 	//bounds on the objective function
 	Flowerbounds.push_back(-math::LARGE);
@@ -964,7 +964,6 @@ int mission::calcbounds()
 	X.resize(total_number_of_NLP_parameters);
 	X0.resize(total_number_of_NLP_parameters);
 	F.resize(total_number_of_constraints);
-	return 0;
 }
 
 

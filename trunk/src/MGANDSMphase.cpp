@@ -136,7 +136,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 													this->Kepler_Gdot_Forward[0],
 													this->Kepler_Fdotdot_Forward[0],
 													this->Kepler_Gdotdot_Forward[0],
-													this->Forward_STM[0], 
+													&(this->Forward_STM[0]), 
 													true);
 	else
 		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_beginning_of_phase,
@@ -150,7 +150,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 													this->Kepler_Gdot_Forward[0],
 													this->Kepler_Fdotdot_Forward[0],
 													this->Kepler_Gdotdot_Forward[0],
-													this->Forward_STM[0], 
+													&(this->Forward_STM[0]), 
 													false);
 
 	//Step 6.3: propagate backward
@@ -169,7 +169,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 													this->Kepler_Gdot_Backward[0],
 													this->Kepler_Fdotdot_Backward[0],
 													this->Kepler_Gdotdot_Backward[0],
-													this->Backward_STM[0], 
+													&(this->Backward_STM[0]), 
 													true);
 	else
 		Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->state_at_end_of_phase,
@@ -183,7 +183,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 													this->Kepler_Gdot_Backward[0],
 													this->Kepler_Fdotdot_Backward[0],
 													this->Kepler_Gdotdot_Backward[0],
-													this->Backward_STM[0], 
+													&(this->Backward_STM[0]), 
 													false);
 
 	//Step 6.4: enforce match point constraint
@@ -332,7 +332,7 @@ int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, dou
 
 //bounds calculation function
 //return 0 if successful, 1 if failure
-int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+void MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 {
 	//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-NDSM
 	//create a prefix string with journey and phase information
@@ -344,10 +344,6 @@ int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlo
 	//**************************************************************************
 	//calculate bounds on variables and constraints governing the left boundary
 	calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
-
-	//**************************************************************************
-	//if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-	calcbounds_phase_thruster_parameters(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 	//**************************************************************************
 	//next, we need to encode the phase flight time
@@ -718,8 +714,6 @@ int MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlo
 			}
 		}
 	}
-		
-	return 0;
 }
 
 //output function
@@ -867,7 +861,7 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 													this->Kepler_Gdot_Current, 
 													this->Kepler_Fdotdot_Current,
 													this->Kepler_Gdotdot_Current,
-													this->Current_STM,
+													&(this->Current_STM),
 													false);
 
 		//write the summary line
@@ -947,7 +941,7 @@ int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, in
 													this->Kepler_Gdot_Current, 
 													this->Kepler_Fdotdot_Current,
 													this->Kepler_Gdotdot_Current, 
-													this->Current_STM,
+													&(this->Current_STM),
 													false);
 
 		//write the summary line

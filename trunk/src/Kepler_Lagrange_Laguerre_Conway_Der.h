@@ -22,7 +22,13 @@ namespace Kepler
 											 double& Gt,
 											 double& Ftt,
 											 double& Gtt,
-											 STM& stm,
+											 STM* stm,
 											 const bool& compute_STM_flag);
+
+    void Kepler_Lagrange_Laguerre_Conway_Der(const double* state0_kms,
+                                            double* state_kms,
+                                            const double& mu,
+                                            const double& LU,
+                                            const double& propTime);
 }
 #endif

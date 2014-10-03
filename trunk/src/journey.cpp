@@ -100,7 +100,7 @@ namespace EMTG
 		// destructor doesn't need to do anything
 	}
 
-	int journey::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<double>* A, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, EMTG::Astrodynamics::universe& Universe, missionoptions* options)
+	void journey::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<double>* A, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, EMTG::Astrodynamics::universe& Universe, missionoptions* options)
 	{
 		stringstream prefixstream;
 		prefixstream << "j" << j << ": ";
@@ -219,8 +219,6 @@ namespace EMTG
 			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
 			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
 		}
-
-		return 0;
 	}
 
 	//evaluate function
@@ -925,7 +923,7 @@ namespace EMTG
         ofstream ephemeris_file(ephemeris_file_stream.str());
 
         ephemeris_file << "stk.v.9.0" << endl;
-        ephemeris_file << "#Ephemeris file written by PyEMTG" << endl;
+        ephemeris_file << "#Ephemeris file written by EMTG_v8 core program compiled " << __DATE__ << " " << __TIME__ << endl;
         ephemeris_file << "BEGIN Ephemeris" << endl;
         ephemeris_file << "ScenarioEpoch " << time_utilities::convert_ET_to_UTC_string(this->phases[0].phase_start_epoch - (51544.5 * 86400.0)) << endl;
         ephemeris_file << "CentralBody " << this->central_body_name << endl;

@@ -32,7 +32,7 @@ public:
 
 	//bounds calculation function
 	//return 0 for success, 1 for failure
-	virtual int calcbounds() = 0;
+	virtual void calcbounds() = 0;
 
 	//functions to scale and unscale decision vectors
 	int unscale(double* Xscaled);

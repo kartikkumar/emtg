@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "phase.h"
+#include "TwoPointShootingPhase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
@@ -19,7 +19,7 @@
 
 namespace EMTG {
 
-class MGA_NDSM_phase: public EMTG::phase {
+    class MGA_NDSM_phase : public EMTG::TwoPointShootingPhase {
 public:
 	//constructor
 	MGA_NDSM_phase();
@@ -38,7 +38,7 @@ public:
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+	void calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
 
 	//function to calculate the match point derivatives
 	int calculate_match_point_derivatives(double* G, int* Gindex, int j, int p, missionoptions* options, EMTG::Astrodynamics::universe* Universe, double* match_point_state_forward, double* match_point_state_backward);

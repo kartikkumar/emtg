@@ -56,7 +56,7 @@ public:
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int calcbounds(	vector<double>* Xupperbounds,
+	void calcbounds(	vector<double>* Xupperbounds,
 					vector<double>* Xlowerbounds,
 					vector<double>* Fupperbounds,
 					vector<double>* Flowerbounds, 

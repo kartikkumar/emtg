@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "phase.h"
+#include "TwoPointShootingPhase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
@@ -18,7 +18,7 @@
 
 namespace EMTG {
 
-	class MGA_LT_phase: public EMTG::phase {
+    class MGA_LT_phase : public EMTG::TwoPointShootingPhase {
 	public:
 		//constructor
 		MGA_LT_phase();
@@ -37,10 +37,10 @@ namespace EMTG {
 
 		//bounds calculation function
 		//return 0 if successful, 1 if failure
-		int calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
+		void calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
 
 		//top-level function to calculate the match point derivatives
-		int calculate_match_point_derivatives(	double* G,
+		void calculate_match_point_derivatives(	double* G,
 												int* Gindex,
 												const int& j, 
 												const int& p,
@@ -48,7 +48,7 @@ namespace EMTG {
 												EMTG::Astrodynamics::universe* Universe);
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the forward propagation
-		int calculate_match_point_forward_propagation_derivatives(	double* G,
+		void calculate_match_point_forward_propagation_derivatives(	double* G,
 																	int* Gindex,
 																	const int& j, 
 																	const int& p,
@@ -68,7 +68,7 @@ namespace EMTG {
 																	double& dPdu);
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
-		int calculate_match_point_backward_propagation_derivatives(	double* G,
+		void calculate_match_point_backward_propagation_derivatives(double* G,
 																	int* Gindex,
 																	const int& j, 
 																	const int& p,
@@ -96,9 +96,6 @@ namespace EMTG {
 		vector<double> dVmax;
 		vector< vector<double> > dV;
 		vector< vector<double> > ForceVector;
-
-		//Propagator
-		//Astrodynamics::UniversalKeplerPropagator Propagator;
 	};
 
 } /* namespace EMTG */

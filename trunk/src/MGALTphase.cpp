@@ -205,7 +205,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Forward[0],
 														this->Kepler_Fdotdot_Forward[0],
 														this->Kepler_Gdotdot_Forward[0], 
-														this->Forward_STM[0],
+														&(this->Forward_STM[0]),
 														(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0 + options->forced_post_launch_coast;
@@ -230,7 +230,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Forward[0],
 														this->Kepler_Fdotdot_Forward[0],
 														this->Kepler_Gdotdot_Forward[0], 
-														this->Forward_STM[0],
+														&(this->Forward_STM[0]),
 														(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0 + options->forced_flyby_coast;
@@ -255,7 +255,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Forward[0],
 														this->Kepler_Fdotdot_Forward[0],
 														this->Kepler_Gdotdot_Forward[0], 
-														this->Forward_STM[0], 
+														&(this->Forward_STM[0]), 
 														(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_forward += this->time_step_sizes[0]/2.0;
@@ -387,7 +387,7 @@ namespace EMTG {
 															this->Kepler_Gdot_Forward[step+1],
 															this->Kepler_Fdotdot_Forward[step+1],
 															this->Kepler_Gdotdot_Forward[step+1], 
-															this->Forward_STM[step+1],
+															&(this->Forward_STM[step+1]),
 															(options->derivative_type > 1 && needG ? true : false));
 
 				
@@ -413,7 +413,7 @@ namespace EMTG {
 															this->Kepler_Gdot_Forward[step+1],
 															this->Kepler_Fdotdot_Forward[step+1],
 															this->Kepler_Gdotdot_Forward[step+1], 
-															this->Forward_STM[step+1],
+															&(this->Forward_STM[step+1]),
 															(options->derivative_type > 1 && needG ? true : false));
 
 				if (options->derivative_type > 2 && needG)
@@ -455,7 +455,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Backward[0],
 														this->Kepler_Fdotdot_Backward[0],
 														this->Kepler_Gdotdot_Backward[0], 
-														this->Backward_STM[0], 
+														&(this->Backward_STM[0]), 
 														(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_backward += this->time_step_sizes.back()/2.0 + options->forced_flyby_coast;
@@ -480,7 +480,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Backward[0],
 														this->Kepler_Fdotdot_Backward[0],
 														this->Kepler_Gdotdot_Backward[0], 
-														this->Backward_STM[0], 
+														&(this->Backward_STM[0]), 
 														(options->derivative_type > 1 && needG ? true : false));
 
 			this->phase_time_elapsed_backward += this->time_step_sizes.back()/2.0;
@@ -638,7 +638,7 @@ namespace EMTG {
 														this->Kepler_Gdot_Backward[step+1],
 														this->Kepler_Fdotdot_Backward[step+1],
 														this->Kepler_Gdotdot_Backward[step+1], 
-														this->Backward_STM[step+1],
+														&(this->Backward_STM[step+1]),
 														(options->derivative_type > 1 && needG ? true : false));
 
 				if (options->derivative_type > 2 && needG)
@@ -663,7 +663,7 @@ namespace EMTG {
 															this->Kepler_Gdot_Backward[step+1],
 															this->Kepler_Fdotdot_Backward[step+1],
 															this->Kepler_Gdotdot_Backward[step+1], 
-															this->Backward_STM[step+1],
+															&(this->Backward_STM[step+1]),
 															(options->derivative_type > 1 && needG ? true : false));
 
 				if (options->derivative_type > 2 && needG)
@@ -823,7 +823,7 @@ namespace EMTG {
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	int MGA_LT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+	void MGA_LT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{
 		//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-LT
 		//create a prefix string with journey and phase information
@@ -1165,8 +1165,6 @@ namespace EMTG {
 
 		
 		}
-		
-		return 0;
 	}
 
 	//output function
@@ -1377,7 +1375,7 @@ namespace EMTG {
 														Gt,
 														Ftt,
 														Gtt,
-														stm,
+														&stm,
 														false);
 
 			//we have to calculate the available power at the midpoint of the forced coast
@@ -1549,7 +1547,7 @@ namespace EMTG {
 														Gt,
 														Ftt,
 														Gtt,
-														stm,
+														&stm,
 														false);
 
 			//we have to calculate the available power at the midpoint of the forced coast
@@ -1726,7 +1724,7 @@ namespace EMTG {
 	}
 
 	//function to calculate the patch point derivatives
-	int MGA_LT_phase::calculate_match_point_derivatives(	double* G,
+	void MGA_LT_phase::calculate_match_point_derivatives(	double* G,
 															int* Gindex,
 															const int& j, 
 															const int& p,
@@ -2889,11 +2887,10 @@ namespace EMTG {
 			}//end loop over controls
 		}
 
-		return 0;
 	}
 
 	//function to calculate the derivative of a match point constraint with respect to a decision variable in the forward propagation
-	int MGA_LT_phase::calculate_match_point_forward_propagation_derivatives(double* G,
+	void MGA_LT_phase::calculate_match_point_forward_propagation_derivatives(double* G,
 																			int* Gindex,
 																			const int& j, 
 																			const int& p,
@@ -3021,12 +3018,10 @@ namespace EMTG {
 		dydotdu = dydotdu_next;
 		dzdotdu = dzdotdu_next;
 		dmdu = dmdu_next;
-
-		return 0;
 	}
 
 	//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
-	int MGA_LT_phase::calculate_match_point_backward_propagation_derivatives(	double* G,
+	void MGA_LT_phase::calculate_match_point_backward_propagation_derivatives(	double* G,
 																				int* Gindex,
 																				const int& j, 
 																				const int& p,
@@ -3159,8 +3154,6 @@ namespace EMTG {
 		dydotdu = dydotdu_next;
 		dzdotdu = dzdotdu_next;
 		dmdu = dmdu_next;
-
-		return 0;
 	}
 
 } /* namespace EMTG */

@@ -153,7 +153,7 @@ ephemeris_source 1
 #Universe folder
 universe_folder C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\Universe\
 #SPICE leap seconds kernel - required for SPICE to work
-SPICE_leap_seconds_kernel naif0009.tls
+SPICE_leap_seconds_kernel naif0010.tls
 #SPICE_reference_frame_kernel
 SPICE_reference_frame_kernel pck00010.tpc
 

@@ -190,44 +190,6 @@ namespace EMTG {
 										 EMTG::Astrodynamics::universe* Universe,
 										 missionoptions* options);
 
-		void calcbounds_phase_thruster_parameters(const string& prefix,
-													 int first_X_entry_in_phase,
-													 vector<double>* Xupperbounds,
-													 vector<double>* Xlowerbounds,
-													 vector<double>* Fupperbounds,
-													 vector<double>* Flowerbounds,
-													 vector<string>* Xdescriptions,
-													 vector<string>* Fdescriptions,
-													 vector<int>* iAfun,
-													 vector<int>* jAvar,
-													 vector<int>* iGfun,
-													 vector<int>* jGvar,
-													 vector<string>* Adescriptions,
-													 vector<string>* Gdescriptions,
-													 int j,
-													 int p,
-													 EMTG::Astrodynamics::universe* Universe,
-													 missionoptions* options);
-
-		void calcbounds_LT_match_points(const string& prefix,
-										int first_X_entry_in_phase,
-										vector<double>* Xupperbounds,
-										vector<double>* Xlowerbounds,
-										vector<double>* Fupperbounds,
-										vector<double>* Flowerbounds,
-										vector<string>* Xdescriptions,
-										vector<string>* Fdescriptions,
-										vector<int>* iAfun,
-										vector<int>* jAvar,
-										vector<int>* iGfun,
-										vector<int>* jGvar,
-										vector<string>* Adescriptions,
-										vector<string>* Gdescriptions,
-										int j,
-										int p,
-										EMTG::Astrodynamics::universe* Universe,
-										missionoptions* options);
-
 		void find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
 													vector<double>* Xlowerbounds,
 													vector<double>* Fupperbounds,
@@ -327,7 +289,7 @@ namespace EMTG {
 							EMTG::Astrodynamics::universe* Universe, 
 							int* eventcount) = 0;
 
-		virtual int calcbounds(	vector<double>* Xupperbounds,
+		virtual void calcbounds(	vector<double>* Xupperbounds,
 								vector<double>* Xlowerbounds,
 								vector<double>* Fupperbounds,
 								vector<double>* Flowerbounds,
@@ -440,6 +402,7 @@ namespace EMTG {
 		vector<double> available_Isp;
 		vector<double> active_power;
 		vector<int> number_of_active_engines;
+        double power_range;
 
 		//spiral things
 		double spiral_escape_state_before_spiral[7];
@@ -485,26 +448,7 @@ namespace EMTG {
 		vector<int> flyby_altitude_constraint_G_indices;
 
 		//control vector constraints
-		vector< vector<int> > control_vector_G_indices;
-
-		//match point constraints
-		vector< vector< vector <int> > > match_point_constraint_G_indices;
-		vector<double> match_point_constraint_X_scale_ranges;
-		vector< Kepler::STM > Forward_STM; //vector of state transition matrices
-		vector< Kepler::STM > Backward_STM; //vector of state transition matrices
-		Kepler::STM Current_STM;
-		vector<double> Kepler_F_Forward, Kepler_Fdot_Forward, Kepler_G_Forward, Kepler_Gdot_Forward, Kepler_Fdotdot_Forward, Kepler_Gdotdot_Forward;
-		vector<double> Kepler_F_Backward, Kepler_Fdot_Backward, Kepler_G_Backward, Kepler_Gdot_Backward, Kepler_Fdotdot_Backward, Kepler_Gdotdot_Backward;
-		double Kepler_F_Current, Kepler_Fdot_Current, Kepler_G_Current, Kepler_Gdot_Current, Kepler_Fdotdot_Current, Kepler_Gdotdot_Current;
-		vector<double> Propagation_Step_Time_Fraction_Forward, Propagation_Step_Time_Fraction_Backward;
-		vector<double> Propagation_Step_Time_Fraction_Derivative_Forward, Propagation_Step_Time_Fraction_Derivative_Backward;
-		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass;
-		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass;
-		vector< vector<int> > G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables;
-		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier;
-		vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
-		vector<int> G_index_of_derivative_of_match_point_with_respect_to_BOL_power;
-		double power_range;
+		vector< vector<int> > control_vector_G_indices;		
 
 		//derivatives of force model
 		vector<double> dTdP;

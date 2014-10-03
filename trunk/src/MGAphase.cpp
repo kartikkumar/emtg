@@ -612,15 +612,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 													output_state,
 													Universe->mu,
 													Universe->LU,
-													(epoch - phase_start_epoch),
-													this->Kepler_F_Current,
-													this->Kepler_Fdot_Current,
-													this->Kepler_G_Current,
-													this->Kepler_Gdot_Current,
-													this->Kepler_Fdotdot_Current,
-													this->Kepler_Gdotdot_Current,
-													this->Current_STM,
-													false);
+													(epoch - phase_start_epoch));
 
 		//write the summary line
 		write_summary_line(options,
@@ -728,7 +720,7 @@ int MGA_phase::output(missionoptions* options, const double& launchdate, int j, 
 
 //bounds calculation function
 //return 0 if successful, 1 if failure
-int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+void MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 {
 	//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA
 
@@ -1176,8 +1168,6 @@ int MGA_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbo
 			}
 		}
 	}
-
-	return 0;
 }
 
 } /* namespace EMTG */

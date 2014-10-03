@@ -117,6 +117,7 @@
     <ClInclude Include="src\solverfunctions.h" />
     <ClInclude Include="src\STM.h" />
     <ClInclude Include="src\EMTG_time_utilities.h" />
+    <ClInclude Include="src\TwoPointShootingPhase.h" />
     <ClInclude Include="src\universe.h" />
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +171,7 @@
     <ClCompile Include="src\SNOPT_user_function.cpp" />
     <ClCompile Include="src\STM.cpp" />
     <ClCompile Include="src\EMTG_time_utilities.cpp" />
+    <ClCompile Include="src\TwoPointShootingPhase.cpp" />
     <ClCompile Include="src\universe.cpp" />
     <ClCompile Include="src\unpowered_flyby.cpp" />
   </ItemGroup>

@@ -50,7 +50,7 @@ public:
 
 	//bounds calculation function
 	//return 0 for success, 1 for failure
-	virtual int calcbounds();
+	virtual void calcbounds();
 
 	//outer-loop parse function
 	//return 0 for success, 1 for failure

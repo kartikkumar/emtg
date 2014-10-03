@@ -23,7 +23,7 @@ namespace Kepler
 											 double& Gt,
 											 double& Ftt,
 											 double& Gtt,
-											 STM& stm,
+											 STM* stm,
 											 const bool& compute_STM_flag)
 	{
 		//Step 0: declare necessary variables
@@ -201,58 +201,58 @@ namespace Kepler
 			//Step 5.3 compute R, V, R~ and V~, Battin equations 9.84 - 9.87
 			
 			//R~
-			stm(0,0) = r/mu*(state[3] - state0[3])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[0]*state0[0]) + C*(state0[0]*state[3]))/(r0*r0*r0) + F;
-			stm(0,1) = r/mu*(state[3] - state0[3])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[0]*state0[1]) + C*(state0[1]*state[3]))/(r0*r0*r0);
-			stm(0,2) = r/mu*(state[3] - state0[3])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[0]*state0[2]) + C*(state0[2]*state[3]))/(r0*r0*r0);
-			stm(1,0) = r/mu*(state[4] - state0[4])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[1]*state0[0]) + C*(state0[0]*state[4]))/(r0*r0*r0);
-			stm(1,1) = r/mu*(state[4] - state0[4])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[1]*state0[1]) + C*(state0[1]*state[4]))/(r0*r0*r0) + F;
-			stm(1,2) = r/mu*(state[4] - state0[4])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[1]*state0[2]) + C*(state0[2]*state[4]))/(r0*r0*r0);
-			stm(2,0) = r/mu*(state[5] - state0[5])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[2]*state0[0]) + C*(state0[0]*state[5]))/(r0*r0*r0);
-			stm(2,1) = r/mu*(state[5] - state0[5])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[2]*state0[1]) + C*(state0[1]*state[5]))/(r0*r0*r0);
-			stm(2,2) = r/mu*(state[5] - state0[5])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[2]*state0[2]) + C*(state0[2]*state[5]))/(r0*r0*r0) + F;
+			stm->operator()(0,0) = r/mu*(state[3] - state0[3])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[0]*state0[0]) + C*(state0[0]*state[3]))/(r0*r0*r0) + F;
+			stm->operator()(0,1) = r/mu*(state[3] - state0[3])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[0]*state0[1]) + C*(state0[1]*state[3]))/(r0*r0*r0);
+			stm->operator()(0,2) = r/mu*(state[3] - state0[3])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[0]*state0[2]) + C*(state0[2]*state[3]))/(r0*r0*r0);
+			stm->operator()(1,0) = r/mu*(state[4] - state0[4])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[1]*state0[0]) + C*(state0[0]*state[4]))/(r0*r0*r0);
+			stm->operator()(1,1) = r/mu*(state[4] - state0[4])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[1]*state0[1]) + C*(state0[1]*state[4]))/(r0*r0*r0) + F;
+			stm->operator()(1,2) = r/mu*(state[4] - state0[4])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[1]*state0[2]) + C*(state0[2]*state[4]))/(r0*r0*r0);
+			stm->operator()(2,0) = r/mu*(state[5] - state0[5])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[2]*state0[0]) + C*(state0[0]*state[5]))/(r0*r0*r0);
+			stm->operator()(2,1) = r/mu*(state[5] - state0[5])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[2]*state0[1]) + C*(state0[1]*state[5]))/(r0*r0*r0);
+			stm->operator()(2,2) = r/mu*(state[5] - state0[5])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[2]*state0[2]) + C*(state0[2]*state[5]))/(r0*r0*r0) + F;
 
 			//R
-			stm(0,3) = r0/mu*(1.0-F)*(state0[3]*(state[0] - state0[0]) - state0[0]*(state[3] - state0[3])) + C/mu*(state[3]*state0[3]) + G;
-			stm(0,4) = r0/mu*(1.0-F)*(state0[4]*(state[0] - state0[0]) - state0[1]*(state[3] - state0[3])) + C/mu*(state[3]*state0[4]);
-			stm(0,5) = r0/mu*(1.0-F)*(state0[5]*(state[0] - state0[0]) - state0[2]*(state[3] - state0[3])) + C/mu*(state[3]*state0[5]);
-			stm(1,3) = r0/mu*(1.0-F)*(state0[3]*(state[1] - state0[1]) - state0[0]*(state[4] - state0[4])) + C/mu*(state[4]*state0[3]);
-			stm(1,4) = r0/mu*(1.0-F)*(state0[4]*(state[1] - state0[1]) - state0[1]*(state[4] - state0[4])) + C/mu*(state[4]*state0[4]) + G;
-			stm(1,5) = r0/mu*(1.0-F)*(state0[5]*(state[1] - state0[1]) - state0[2]*(state[4] - state0[4])) + C/mu*(state[4]*state0[5]);
-			stm(2,3) = r0/mu*(1.0-F)*(state0[3]*(state[2] - state0[2]) - state0[0]*(state[5] - state0[5])) + C/mu*(state[5]*state0[3]);
-			stm(2,4) = r0/mu*(1.0-F)*(state0[4]*(state[2] - state0[2]) - state0[1]*(state[5] - state0[5])) + C/mu*(state[5]*state0[4]);
-			stm(2,5) = r0/mu*(1.0-F)*(state0[5]*(state[2] - state0[2]) - state0[2]*(state[5] - state0[5])) + C/mu*(state[5]*state0[5]) + G;
+			stm->operator()(0,3) = r0/mu*(1.0-F)*(state0[3]*(state[0] - state0[0]) - state0[0]*(state[3] - state0[3])) + C/mu*(state[3]*state0[3]) + G;
+			stm->operator()(0,4) = r0/mu*(1.0-F)*(state0[4]*(state[0] - state0[0]) - state0[1]*(state[3] - state0[3])) + C/mu*(state[3]*state0[4]);
+			stm->operator()(0,5) = r0/mu*(1.0-F)*(state0[5]*(state[0] - state0[0]) - state0[2]*(state[3] - state0[3])) + C/mu*(state[3]*state0[5]);
+			stm->operator()(1,3) = r0/mu*(1.0-F)*(state0[3]*(state[1] - state0[1]) - state0[0]*(state[4] - state0[4])) + C/mu*(state[4]*state0[3]);
+			stm->operator()(1,4) = r0/mu*(1.0-F)*(state0[4]*(state[1] - state0[1]) - state0[1]*(state[4] - state0[4])) + C/mu*(state[4]*state0[4]) + G;
+			stm->operator()(1,5) = r0/mu*(1.0-F)*(state0[5]*(state[1] - state0[1]) - state0[2]*(state[4] - state0[4])) + C/mu*(state[4]*state0[5]);
+			stm->operator()(2,3) = r0/mu*(1.0-F)*(state0[3]*(state[2] - state0[2]) - state0[0]*(state[5] - state0[5])) + C/mu*(state[5]*state0[3]);
+			stm->operator()(2,4) = r0/mu*(1.0-F)*(state0[4]*(state[2] - state0[2]) - state0[1]*(state[5] - state0[5])) + C/mu*(state[5]*state0[4]);
+			stm->operator()(2,5) = r0/mu*(1.0-F)*(state0[5]*(state[2] - state0[2]) - state0[2]*(state[5] - state0[5])) + C/mu*(state[5]*state0[5]) + G;
 
 			//V~
-			stm(3,0) = -(state0[0]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[3] - state0[3]))/(r*r) + Ft*(1.0 - (state[0]*state[0])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[0]);
-			stm(3,1) = -(state0[1]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[4] - state0[4]))/(r*r) + Ft*(	   - (state[0]*state[1])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[1]);
-			stm(3,2) = -(state0[2]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[5] - state0[5]))/(r*r) + Ft*(    - (state[0]*state[2])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[2]);
-			stm(4,0) = -(state0[0]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[3] - state0[3]))/(r*r) + Ft*(    - (state[1]*state[0])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[0]);
-			stm(4,1) = -(state0[1]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[4] - state0[4]))/(r*r) + Ft*(1.0 - (state[1]*state[1])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[1]);
-			stm(4,2) = -(state0[2]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[5] - state0[5]))/(r*r) + Ft*(    - (state[1]*state[2])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[2]);
-			stm(5,0) = -(state0[0]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[3] - state0[3]))/(r*r) + Ft*(    - (state[2]*state[0])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[0]);
-			stm(5,1) = -(state0[1]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[4] - state0[4]))/(r*r) + Ft*(    - (state[2]*state[1])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[1]);
-			stm(5,2) = -(state0[2]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[5] - state0[5]))/(r*r) + Ft*(1.0 - (state[2]*state[2])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[2]);
+			stm->operator()(3,0) = -(state0[0]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[3] - state0[3]))/(r*r) + Ft*(1.0 - (state[0]*state[0])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[0]);
+			stm->operator()(3,1) = -(state0[1]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[4] - state0[4]))/(r*r) + Ft*(	   - (state[0]*state[1])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[1]);
+			stm->operator()(3,2) = -(state0[2]*(state[3] - state0[3]))/(r0*r0) - (state[0]*(state[5] - state0[5]))/(r*r) + Ft*(    - (state[0]*state[2])/(r*r) + ((state[1]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[0]*state[5] - state[3]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[0]*state0[2]);
+			stm->operator()(4,0) = -(state0[0]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[3] - state0[3]))/(r*r) + Ft*(    - (state[1]*state[0])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[0]);
+			stm->operator()(4,1) = -(state0[1]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[4] - state0[4]))/(r*r) + Ft*(1.0 - (state[1]*state[1])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[1]);
+			stm->operator()(4,2) = -(state0[2]*(state[4] - state0[4]))/(r0*r0) - (state[1]*(state[5] - state0[5]))/(r*r) + Ft*(    - (state[1]*state[2])/(r*r) + (-(state[0]*(state[0]*state[4] - state[3]*state[1]) + state[2]*(state[1]*state[5] - state[4]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[1]*state0[2]);
+			stm->operator()(5,0) = -(state0[0]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[3] - state0[3]))/(r*r) + Ft*(    - (state[2]*state[0])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[3] - state0[3]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[0]);
+			stm->operator()(5,1) = -(state0[1]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[4] - state0[4]))/(r*r) + Ft*(    - (state[2]*state[1])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[4] - state0[4]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[1]);
+			stm->operator()(5,2) = -(state0[2]*(state[5] - state0[5]))/(r0*r0) - (state[2]*(state[5] - state0[5]))/(r*r) + Ft*(1.0 - (state[2]*state[2])/(r*r) + (-(state[0]*(state[0]*state[5] - state[3]*state[2]) - state[1]*(state[1]*state[5] - state[4]*state[2]))*(state[5] - state0[5]))/(mu*r)) - mu*C/(r*r*r*r0*r0*r0)*(state[2]*state0[2]);
 
 			//V
-			stm(3,3) = r0/mu*(state[3] - state0[3])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[0]*state0[0]) - C*(state[0]*state0[3]))/(r*r*r) + Gt;
-			stm(3,4) = r0/mu*(state[3] - state0[3])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[0]*state0[1]) - C*(state[0]*state0[4]))/(r*r*r);
-			stm(3,5) = r0/mu*(state[3] - state0[3])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[0]*state0[2]) - C*(state[0]*state0[5]))/(r*r*r);
-			stm(4,3) = r0/mu*(state[4] - state0[4])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[1]*state0[0]) - C*(state[1]*state0[3]))/(r*r*r);
-			stm(4,4) = r0/mu*(state[4] - state0[4])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[1]*state0[1]) - C*(state[1]*state0[4]))/(r*r*r) + Gt;
-			stm(4,5) = r0/mu*(state[4] - state0[4])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[1]*state0[2]) - C*(state[1]*state0[5]))/(r*r*r);
-			stm(5,3) = r0/mu*(state[5] - state0[5])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[2]*state0[0]) - C*(state[2]*state0[3]))/(r*r*r);
-			stm(5,4) = r0/mu*(state[5] - state0[5])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[2]*state0[1]) - C*(state[2]*state0[4]))/(r*r*r);
-			stm(5,5) = r0/mu*(state[5] - state0[5])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[2]*state0[2]) - C*(state[2]*state0[5]))/(r*r*r) + Gt;
+			stm->operator()(3,3) = r0/mu*(state[3] - state0[3])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[0]*state0[0]) - C*(state[0]*state0[3]))/(r*r*r) + Gt;
+			stm->operator()(3,4) = r0/mu*(state[3] - state0[3])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[0]*state0[1]) - C*(state[0]*state0[4]))/(r*r*r);
+			stm->operator()(3,5) = r0/mu*(state[3] - state0[3])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[0]*state0[2]) - C*(state[0]*state0[5]))/(r*r*r);
+			stm->operator()(4,3) = r0/mu*(state[4] - state0[4])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[1]*state0[0]) - C*(state[1]*state0[3]))/(r*r*r);
+			stm->operator()(4,4) = r0/mu*(state[4] - state0[4])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[1]*state0[1]) - C*(state[1]*state0[4]))/(r*r*r) + Gt;
+			stm->operator()(4,5) = r0/mu*(state[4] - state0[4])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[1]*state0[2]) - C*(state[1]*state0[5]))/(r*r*r);
+			stm->operator()(5,3) = r0/mu*(state[5] - state0[5])*(state[3] - state0[3]) + (r0*(1.0 - F)*(state[2]*state0[0]) - C*(state[2]*state0[3]))/(r*r*r);
+			stm->operator()(5,4) = r0/mu*(state[5] - state0[5])*(state[4] - state0[4]) + (r0*(1.0 - F)*(state[2]*state0[1]) - C*(state[2]*state0[4]))/(r*r*r);
+			stm->operator()(5,5) = r0/mu*(state[5] - state0[5])*(state[5] - state0[5]) + (r0*(1.0 - F)*(state[2]*state0[2]) - C*(state[2]*state0[5]))/(r*r*r) + Gt;
 
-			//scale the STM
+			//scale the stm->operator()
 			//lower left
 			for (int i = 3; i < 6; ++i)
 				for (int j = 0; j < 3; ++j)
-					stm(i,j) /= TU;
+					stm->operator()(i,j) /= TU;
 			//upper right
 			for (int i = 0; i < 3; ++i)
 				for (int j = 3; j < 6; ++j)
-					stm(i,j) *= TU;
+					stm->operator()(i,j) *= TU;
 
 			//Step 5.4 compute Ftt and Gtt
 			double rdot = r0 * U0dot + sigma0 * U1dot + U2dot;
@@ -274,4 +274,30 @@ namespace Kepler
 			Gtt /= TU;
 		}
 	}
+
+
+    //this is for when you want to call Kepler_Lagrange_Laguerre_Conway_Der without derivative information
+    void Kepler_Lagrange_Laguerre_Conway_Der(const double* state0_kms,
+                                            double* state_kms,
+                                            const double& mu,
+                                            const double& LU,
+                                            const double& propTime)
+    {
+        double F, G, Ft, Gt, Ftt, Gtt;
+        Kepler::STM* STM_dummy;
+
+        Kepler_Lagrange_Laguerre_Conway_Der(state0_kms,
+                                            state_kms,
+                                            mu,
+                                            LU,
+                                            propTime,
+                                            F,
+                                            G,
+                                            Ft,
+                                            Gt,
+                                            Ftt,
+                                            Gtt,
+                                            STM_dummy,
+                                            false);
+    }
 }
