@@ -259,7 +259,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                        '12: VASIMR (argon, using analytical model, not available in open-source)','13: Hall Thruster (Xenon, using analytical model, not available in open-source)','14: NEXT high-ISP v10',
                        '15: NEXT high-thrust v10','16: BPT-4000 MALTO','17: NEXIS Cardiff 8-15-201','18: H6MS Cardiff 8-15-2013','19: BHT20K Cardiff 8-16-2013','20: HiVHAC EM','21: 13 kW STMD Hall high-Isp (not available in open-source)','22: 13 kW STMD Hall high-thrust (not available in open-source)',
                        '23: NEXT TT11 High-Thrust','24: NEXT TT11 High-Isp','25: NEXT TT11 Expanded Throttle Table',
-                       '26: 13 kW STMD Hall high-Isp 9-8-2014 (not available in open-source)','27: 13 kW STMD Hall medium-thrust 9-8-2014 (not available in open-source)','28: 13 kW STMD Hall high-thrust 9-8-2014 (not available in open-source)']
+                       '26: 13 kW STMD Hall high-Isp 10-1-2014 (not available in open-source)','27: 13 kW STMD Hall medium-thrust 10-1-2014 (not available in open-source)','28: 13 kW STMD Hall high-thrust 10-1-2014 (not available in open-source)']
 
         self.cmbengine_type = wx.ComboBox(self, -1, choices = enginetypes, style=wx.CB_READONLY)
 
