@@ -319,7 +319,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			else if (options->engine_type >= 26 && options->engine_type <= 28) //13 kW STMD Hall 9-8-2014
 			{
 #ifdef _EMTG_proprietary
-				EMTG::Proprietary::STMD_13kW_Hall_9_8_2014(options->engine_type - 26,
+				EMTG::Proprietary::STMD_13kW_Hall_10_1_2014(options->engine_type - 26,
 															&at,
 															&bt,
 															&ct,
