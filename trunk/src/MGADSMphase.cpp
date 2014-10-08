@@ -1022,7 +1022,7 @@ namespace EMTG
 		int first_X_entry_in_phase = Xupperbounds->size();
 
 		//first, we need to know if we are the first phase in the journey
-		if (p == 0)
+        if (p == 0 && !(options->journey_departure_type[j] == 3))
 		{
 			//if we are the first phase, we also need to know if we are the first journey
 			if (j == 0)
@@ -1034,14 +1034,10 @@ namespace EMTG
 			}
 			else
 			{
-				//if we are not the first journey, are we starting from the boundary of a sphere of influence?
-				//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
-				if (!(options->sequence[j-1][p+1] == -1 || boundary1_location_code == -1))
-				{
-					Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
-					Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
-					Xdescriptions->push_back(prefix + "stay time (days)");
-				}
+				//If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
+				Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
+				Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
+				Xdescriptions->push_back(prefix + "stay time (days)");
 			}
 
 			//if this boundary point is at a free point in space, with the various elements either fixed or free
@@ -1208,44 +1204,10 @@ namespace EMTG
 					}
 				}
 			}
-			//if we are starting at periapse of an arrival hyperbola, we must choose the orbit elements of the initial capture orbit
-			//this will be done as [rp, ra, inc, raan, aop, 0]
-			//note the true anomaly is always zero because we always capture into the periapse of our desired orbit
-			else if (boundary1_location_code == -2)
-			{
-				Xlowerbounds->push_back(Universe->minimum_safe_distance);
-				Xupperbounds->push_back(10 * Universe->minimum_safe_distance);
-				Xdescriptions->push_back(prefix + "left boundary periapse distance");
-
-				Xlowerbounds->push_back(Universe->minimum_safe_distance);
-				Xupperbounds->push_back(Universe->r_SOI);
-				Xdescriptions->push_back(prefix + "left boundary apoapse distance");
-
-				Xlowerbounds->push_back(-2 * EMTG::math::PI);
-				Xupperbounds->push_back(2 * EMTG::math::PI);
-				Xdescriptions->push_back(prefix + "left boundary inclination");
-
-				Xlowerbounds->push_back(-2 * EMTG::math::PI);
-				Xupperbounds->push_back(2 * EMTG::math::PI);
-				Xdescriptions->push_back(prefix + "left boundary RAAN");
-
-				Xlowerbounds->push_back(-2 * EMTG::math::PI);
-				Xupperbounds->push_back(2 * EMTG::math::PI);
-				Xdescriptions->push_back(prefix + "left boundary AOP");
-
-				Flowerbounds->push_back(-EMTG::math::LARGE);
-				Fupperbounds->push_back(0.0);
-				Fdescriptions->push_back(prefix + "left boundary rp < ra");
-
-				Flowerbounds->push_back(-EMTG::math::LARGE);
-				Fupperbounds->push_back(0.0);
-				Fdescriptions->push_back(prefix + "incoming orbit must be a hyperbola, i.e. v_periapse > v_escape");
-			}
 
 			//then we have three variables to parameterize the departure velocity, only for phases where there is a departure velocity
-			//we do NOT encode a departure velocity for successive phases which start at the boundary of an SOI (that would be too many degrees of freedom)
-			//we do NOT encode a departure velocity for phases which start from an inbound hyperbola because we are encoding the capture state instead
-			if ((j == 0 || !(options->journey_departure_type[j] == 3)) && !(boundary1_location_code == -2))
+			//we do NOT encode a departure velocity for successive phases which start a flyby
+			if (j == 0 || !(options->journey_departure_type[j] == 3))
 			{
 				//First, we have outgoing velocity
 				Xlowerbounds->push_back(options->journey_initial_impulse_bounds[j][0]);

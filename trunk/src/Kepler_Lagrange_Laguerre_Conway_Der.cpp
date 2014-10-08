@@ -284,7 +284,6 @@ namespace Kepler
                                             const double& propTime)
     {
         double F, G, Ft, Gt, Ftt, Gtt;
-        Kepler::STM* STM_dummy;
 
         Kepler_Lagrange_Laguerre_Conway_Der(state0_kms,
                                             state_kms,
@@ -297,7 +296,7 @@ namespace Kepler
                                             Gt,
                                             Ftt,
                                             Gtt,
-                                            STM_dummy,
+                                            (Kepler::STM*) NULL,
                                             false);
     }
 }

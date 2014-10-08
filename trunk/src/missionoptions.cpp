@@ -83,6 +83,7 @@ missionoptions::missionoptions() {
 	this->override_working_directory = false;    
 	this->forced_working_directory = "..//EMTGv8_Results";
     this->generate_forward_integrated_ephemeris = false;
+    this->background_mode = true;
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -149,6 +150,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->override_working_directory = false;
 	this->forced_working_directory = "..//EMTGv8_Results";
     this->generate_forward_integrated_ephemeris = false;
+    this->background_mode = true;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -1741,6 +1743,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
         this->generate_forward_integrated_ephemeris = (bool)value;
         return 0;
     }
+    if (choice == "background_mode")
+    {
+        this->background_mode = (bool)value;
+        return 0;
+    }
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -2694,6 +2701,10 @@ int missionoptions::print_options_file(string filename) {
         outputfile << "#0: no" << endl;
         outputfile << "#1: yes" << endl;
         outputfile << "generate_forward_integrated_ephemeris " << this->generate_forward_integrated_ephemeris << endl;
+        outputfile << "#Enable background mode (do not ask for key press on exit)" << endl;
+        outputfile << "#0: no" << endl;
+        outputfile << "#1: yes" << endl;
+        outputfile << "background_mode " << this->background_mode << endl;
 		outputfile << endl;
 
 		outputfile << "##debug code" << endl;

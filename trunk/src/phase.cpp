@@ -1818,14 +1818,11 @@ namespace EMTG {
 			}
 			else
 			{
-				//if we are not the first journey, are we starting from the periapse of an inbound hyperbola?
-				//if so, then there is no wait time. If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
-				if (!(options->sequence[j-1][p+1] == -2 || boundary1_location_code == -2))
-				{
-					Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
-					Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
-					Xdescriptions->push_back(prefix + "stay time (days)");
-				}
+				//If not, then the first decision variable is the stay time at the first body in the journey (i.e. at the asteroid for sample return)
+				Xlowerbounds->push_back(options->journey_wait_time_bounds[j][0]);
+				Xupperbounds->push_back(options->journey_wait_time_bounds[j][1]);
+				Xdescriptions->push_back(prefix + "stay time (days)");
+
 			}
 
 			//if this boundary point is at a free point in space, with the various elements either fixed or free
@@ -1991,13 +1988,7 @@ namespace EMTG {
 						}
 					}
 				}
-			}
-			else if (boundary1_location_code == -2) //start at periapse of an inbound hyperbola
-			{
-				cout << "Low-thrust phases cannot currently start on an inbound hyperbola!" << endl;
-
-				throw 1711;
-			}
+			}\
 
 			//then we have up to four variables to parameterize the departure
 			if ((j == 0 || !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)))

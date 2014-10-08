@@ -1514,12 +1514,7 @@ int mission::output_mission_tree(string filename)
 
 				switch (options.sequence[j][p])
 				{
-					case -2: //begin at fixed point
-						{
-							boundary1_name = "Periapse of inbound hyperbola";
-							break;
-						}
-					case -1: //begin at SOI
+					case -1: //free or fixed point
 						{
 							boundary1_name = "Free or fixed boundary orbit";
 							break;
@@ -1530,7 +1525,7 @@ int mission::output_mission_tree(string filename)
 
 				switch (options.sequence[j][p+1])
 				{
-					case -1: //begin at SOI
+					case -1: //free or fixed point
 						{
 							boundary2_name = "Free or fixed boundary orbit";
 							break;

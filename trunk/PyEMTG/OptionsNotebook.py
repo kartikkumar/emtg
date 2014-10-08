@@ -1039,13 +1039,17 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblgenerate_forward_integrated_ephemeris = wx.StaticText(self, -1, "Generate forward-integrated STK-compatible ephemeris")
         self.chkgenerate_forward_integrated_ephemeris = wx.CheckBox(self, -1)
 
+        self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
+        self.chkbackground_mode = wx.CheckBox(self, -1)
+
         self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
                            self.lbloutput_units, self.cmboutput_units,
                            self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
                            self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
                            self.lbloverride_working_directory, self.chkoverride_working_directory,
                            self.lblforced_working_directory, working_directory_sizer,
-                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris])
+                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
+                           self.lblbackground_mode, self.chkbackground_mode])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()
