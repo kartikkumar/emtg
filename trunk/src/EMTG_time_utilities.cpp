@@ -9,7 +9,7 @@ namespace EMTG
     {
         //convert from ET to TDB
         //adapted from http://sourcecodebrowser.com/astronomical-almanac/5.6/tdb_8c.html
-        double time_utilities::convert_ET_to_TDB(const double& ETepoch)
+        double convert_ET_to_TDB(const double& ETepoch)
         {
             double M, T;
 
