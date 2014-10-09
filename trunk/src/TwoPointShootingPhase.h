@@ -172,4 +172,4 @@ namespace EMTG {
     };
 }
 
-#endif TWOPOINTSHOOTINGPHASE
+#endif //TWOPOINTSHOOTINGPHASE

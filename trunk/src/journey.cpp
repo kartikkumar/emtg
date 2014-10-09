@@ -920,7 +920,7 @@ namespace EMTG
 
         //next write the header
         //(code adapted from PyEMTG)
-        ofstream ephemeris_file(ephemeris_file_stream.str());
+        ofstream ephemeris_file(ephemeris_file_stream.str().c_str());
 
         ephemeris_file << "stk.v.9.0" << endl;
         ephemeris_file << "#Ephemeris file written by EMTG_v8 core program compiled " << __DATE__ << " " << __TIME__ << endl;
