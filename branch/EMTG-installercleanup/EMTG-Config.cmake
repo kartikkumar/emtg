@@ -23,10 +23,16 @@
 	#This option will tell boost NOT to look at the system path.  If you want to force boost to use some local version, this is how
 	#set(Boost_NO_SYSTEM_PATHS ON)
 	set (Boost_NO_BOOST_CMAKE ON)
+	#set (Boost_USE_MULTITHREADED OFF)
+
+	#If you are using Scientific Linux, your boost_mpi is located in your open_mpi or mpich2 libary directory, NOT in your Boost directory
+	#Therefore find_boost will NOT find it. Instead, uncomment the following line to force CMake to include the boost_mpi library
+	#this works because the open_mpi/mpich2 library directory is conviently already on your include path
+	#set (EMTG_LIBRARIES ${EMTG_LIBRARIES} boost_mpi)
 	
 	
-#----------MPI SNOPT------------------
-#If you are going to build SNOPT to operate on a system using MPI, this must be set in this config file before
+#----------MPI EMTG-------------------
+#If you are going to build EMTG to operate on a system using MPI, this must be set in this config file before
 #anything else gets run.  Uncomment the next three lines, and change the last two appropriately.
 
 	#set(EMTG_MPI ON)
