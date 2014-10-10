@@ -454,7 +454,56 @@ namespace EMTG
                             EMTG::Astrodynamics::universe* Universe,
                             missionoptions* options)
     {
-        return 0;
+        //declare some local variables
+        int errcode = 0;
+        double temp_available_thrust;
+        double temp_available_mass_flow_rate;
+        double temp_available_Isp;
+        double temp_available_power;
+        double temp_active_power;
+        int temp_number_of_active_engines;
+
+        //******************************************************************
+        //Steps 1-4: Process the left boundary condition
+        process_left_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+
+        //******************************************************************
+        //Step 5: Process the right boundary condition
+        process_right_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+
+        //******************************************************************
+        //Step 6: propagate and thrust, filling in defect constraints as we go
+
+        //Step 6.1: determine the length of a timestep
+        double step_size_normalization_coefficient = 0.0;
+        if (options->step_size_distribution == 3 || options->step_size_distribution == 4)
+        {
+            time_step_distribution_scale_or_stdv = X[*Xindex];
+            ++(*Xindex);
+        }
+        else
+            time_step_distribution_scale_or_stdv = options->step_size_stdv_or_scale;
+
+        for (int step = 0; step < options->num_timesteps; ++step)
+        {
+            time_step_sizes[step] = compute_timestep_width_from_distribution(step + 0.5, options, time_step_distribution_scale_or_stdv);
+            step_size_normalization_coefficient += time_step_sizes[step];
+        }
+
+        double total_available_thrust_time = TOF;
+        if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
+            total_available_thrust_time -= options->forced_post_launch_coast;
+        else if ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6)
+            total_available_thrust_time -= options->forced_flyby_coast;
+        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5)) && options->forced_flyby_coast > 1.0e-6)
+            total_available_thrust_time -= options->forced_flyby_coast;
+
+        for (int step = 0; step < options->num_timesteps; ++step)
+        {
+            time_step_sizes[step] *= total_available_thrust_time / step_size_normalization_coefficient;
+        }
+
+        return errcode;
     }
 
     //output function
