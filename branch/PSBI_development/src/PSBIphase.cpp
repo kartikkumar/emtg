@@ -425,6 +425,7 @@ namespace EMTG
         //**************************************************************************
         //right hand side defect constraint - the last segment only must connect to the right-hand boundary condition for the phase
         //has derivatives with respect to:
+        //  rightmost step state and control variables
         //  flight time (all previous, first entry is CURRENT phase flight time)
         //  arrival mass
         //  final v-infinity vector

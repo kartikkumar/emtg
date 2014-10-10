@@ -120,6 +120,9 @@ namespace EMTG
             vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control;
 
         //derivatives of the right-handed defect constraint
+            vector< vector< vector<int> > > G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control;
+            vector< vector< vector<double> > > X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control;
+
             vector< vector<int> > G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
             vector< vector<double> > X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
 
