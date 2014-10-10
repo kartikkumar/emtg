@@ -222,6 +222,25 @@ namespace EMTG {
 													int p,
 													missionoptions* options);
 
+        void calcbounds_phase_thruster_parameters(const string& prefix,
+                                                int first_X_entry_in_phase,
+                                                vector<double>* Xupperbounds,
+                                                vector<double>* Xlowerbounds,
+                                                vector<double>* Fupperbounds,
+                                                vector<double>* Flowerbounds,
+                                                vector<string>* Xdescriptions,
+                                                vector<string>* Fdescriptions,
+                                                vector<int>* iAfun,
+                                                vector<int>* jAvar,
+                                                vector<int>* iGfun,
+                                                vector<int>* jGvar,
+                                                vector<string>* Adescriptions,
+                                                vector<string>* Gdescriptions,
+                                                int j,
+                                                int p,
+                                                EMTG::Astrodynamics::universe* Universe,
+                                                missionoptions* options);
+
 		//GMAT output methods
 		void output_GMAT_spacecraft(int& j, 
 									int& p,
@@ -358,7 +377,7 @@ namespace EMTG {
 		vector<double> time_step_sizes;
 
 		//calculation objects
-		double pseudoa1, pseudoa2; //used for calculating bounds on phase flight time and, where applicable, the Sundman variable
+        double a1, a2, e1, e2, T1, T2, pseudoa1, pseudoa2; //used for calculating bounds on phase flight time and, where applicable, the Sundman variable
 
 		//flyby parameters
 		double flyby_turn_angle;

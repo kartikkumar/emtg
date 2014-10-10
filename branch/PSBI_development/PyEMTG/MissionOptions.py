@@ -204,6 +204,7 @@ class MissionOptions(object):
     override_working_directory = 0;
     forced_working_directory = "..//EMTG_v8_Results"
     generate_forward_integrated_ephemeris = 0#0 :no, 1: yes
+    background_mode = 1 #0: no, 1: yes
 
     #debug code
     check_derivatives = 0
@@ -782,6 +783,8 @@ class MissionOptions(object):
                         self.forced_working_directory = linecell[1]
                     elif choice == "generate_forward_integrated_ephemeris":
                         self.generate_forward_integrated_ephemeris = int(linecell[1])
+                    elif choice == "background_mode":
+                        self.background_mode = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1174,7 +1177,7 @@ class MissionOptions(object):
         outputfile.write("#2: MGA-LT\n")
         outputfile.write("#3: FBLT\n")
         outputfile.write("#4: MGA-NDSM\n")
-        outputfile.write("#5: DTLT\n")
+        outputfile.write("#5: PSBI\n")
         outputfile.write("#6: solver chooses (MGA, MGA-DSM)\n")
         outputfile.write("#7: solver chooses (MGA, MGA-LT)\n")
         outputfile.write("#8: solver chooses (MGA-DSM, MGA-LT)\n")
@@ -1593,6 +1596,10 @@ class MissionOptions(object):
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("generate_forward_integrated_ephemeris " + str(self.generate_forward_integrated_ephemeris) + "\n")
+        outputfile.write("#Enable background mode (do not ask for key press on exit)\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("background_mode " + str(self.background_mode) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3353,6 +3360,7 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.chkoverride_working_directory.SetValue(self.override_working_directory)
         optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.forced_working_directory)
         optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.SetValue(self.generate_forward_integrated_ephemeris)
+        optionsnotebook.tabOutput.chkbackground_mode.SetValue(self.background_mode)
 
         if self.generate_initial_guess_file:
             optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(True)

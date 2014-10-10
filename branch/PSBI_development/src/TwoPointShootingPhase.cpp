@@ -174,29 +174,4 @@ namespace EMTG {
             this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state variables
     }
-
-    void TwoPointShootingPhase::calcbounds_phase_thruster_parameters(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
-    {
-        if (options->engine_type == 1 && (j == 0 && p == 0))
-        {
-            //constant Isp, efficiency, EMTG computes input power
-            Xlowerbounds->push_back(options->engine_input_power_bounds[0]);
-            Xupperbounds->push_back(options->engine_input_power_bounds[1]);
-            Xdescriptions->push_back(prefix + "engine input power (kW)");
-        }
-        else if (options->engine_type == 2 && (j == 0 && p == 0))
-        {
-            //constant power, EMTG chooses Isp
-            Xlowerbounds->push_back(options->IspLT_minimum);
-            Xupperbounds->push_back(options->IspLT);
-            Xdescriptions->push_back(prefix + "engine Isp (s)");
-        }
-        else if (options->objective_type == 13 && j == 0 && p == 0)
-        {
-            //EMTG varies input power for whatever engine/power model you have
-            Xlowerbounds->push_back(math::SMALL);
-            Xupperbounds->push_back(options->power_at_1_AU);
-            Xdescriptions->push_back(prefix + "engine input power (kW)");
-        }
-    }
 }//close namespace EMTG

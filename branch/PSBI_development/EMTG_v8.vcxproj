@@ -67,18 +67,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\EMTGv8_proprietary\Lambert.h" />
-    <ClInclude Include="..\..\EMTGv8_proprietary\proprietary_functions.h" />
-    <ClInclude Include="..\..\snopt7.2-12.2_FIXED\snopt7\lib\f2c.h" />
-    <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snfilewrapper.hh">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snopt.hh">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\EMTG_libraries\SNOPToldclean\snoptProblem.hh">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\..\..\EMTGv8_proprietary\Lambert.h" />
+    <ClInclude Include="..\..\..\EMTGv8_proprietary\proprietary_functions.h" />
+    <ClInclude Include="..\..\EMTG_libraries\SNOPToldclean\f2c.h" />
+    <ClInclude Include="..\..\EMTG_libraries\SNOPToldclean\snfilewrapper.hh" />
+    <ClInclude Include="..\..\EMTG_libraries\SNOPToldclean\snoptProblem.hh" />
     <ClInclude Include="src\AdaptiveConstrainedDiffEvolve.h" />
     <ClInclude Include="src\AmsterdamRootFinder.h" />
     <ClInclude Include="src\Astrodynamics.h" />
@@ -89,6 +82,7 @@
     <ClInclude Include="src\EMTG_Matrix.h" />
     <ClInclude Include="src\EMTG_outerloop_solution.h" />
     <ClInclude Include="src\EMTG_string_utilities.h" />
+    <ClInclude Include="src\EMTG_time_utilities.h" />
     <ClInclude Include="src\EMTG_WORHP_interface.h" />
     <ClInclude Include="src\equations_of_motion.h" />
     <ClInclude Include="src\FBLTphase.h" />
@@ -111,24 +105,20 @@
     <ClInclude Include="src\outerloop_SGA.h" />
     <ClInclude Include="src\phase.h" />
     <ClInclude Include="src\problem.h" />
+    <ClInclude Include="src\PSBIphase.h" />
     <ClInclude Include="src\rk8713M.h" />
     <ClInclude Include="src\snoptProblemExtension.h" />
     <ClInclude Include="src\SNOPT_user_function.h" />
     <ClInclude Include="src\solverfunctions.h" />
     <ClInclude Include="src\STM.h" />
-    <ClInclude Include="src\EMTG_time_utilities.h" />
     <ClInclude Include="src\TwoPointShootingPhase.h" />
     <ClInclude Include="src\universe.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\EMTGv8_proprietary\Lambert.cpp" />
-    <ClCompile Include="..\..\EMTGv8_proprietary\proprietary_functions.cpp" />
-    <ClCompile Include="..\EMTG_libraries\SNOPToldclean\snfilewrapper.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\EMTG_libraries\SNOPToldclean\snoptProblem.cc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\..\EMTGv8_proprietary\Lambert.cpp" />
+    <ClCompile Include="..\..\..\EMTGv8_proprietary\proprietary_functions.cpp" />
+    <ClCompile Include="..\..\EMTG_libraries\SNOPToldclean\snfilewrapper.c" />
+    <ClCompile Include="..\..\EMTG_libraries\SNOPToldclean\snoptProblem.cc" />
     <ClCompile Include="src\AdaptiveConstrainedDiffEvolve.cpp" />
     <ClCompile Include="src\AmsterdamRootFinder.cpp" />
     <ClCompile Include="src\body.cpp" />
@@ -136,6 +126,7 @@
     <ClCompile Include="src\EMTG_debug.cpp" />
     <ClCompile Include="src\EMTG_outerloop_solution.cpp" />
     <ClCompile Include="src\EMTG_string_utilities.cpp" />
+    <ClCompile Include="src\EMTG_time_utilities.cpp" />
     <ClCompile Include="src\EMTG_v8.cpp" />
     <ClCompile Include="src\EMTG_WORHP_interface.cpp" />
     <ClCompile Include="src\engine_model.cpp" />
@@ -167,10 +158,10 @@
     <ClCompile Include="src\phase.cpp" />
     <ClCompile Include="src\powered_flyby.cpp" />
     <ClCompile Include="src\problem.cpp" />
+    <ClCompile Include="src\PSBIphase.cpp" />
     <ClCompile Include="src\rk8713M.cpp" />
     <ClCompile Include="src\SNOPT_user_function.cpp" />
     <ClCompile Include="src\STM.cpp" />
-    <ClCompile Include="src\EMTG_time_utilities.cpp" />
     <ClCompile Include="src\TwoPointShootingPhase.cpp" />
     <ClCompile Include="src\universe.cpp" />
     <ClCompile Include="src\unpowered_flyby.cpp" />
@@ -491,6 +482,8 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <Profile>false</Profile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <OptimizeReferences>false</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_with_FortranSNOPT|Win32'">

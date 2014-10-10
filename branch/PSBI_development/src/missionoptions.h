@@ -293,6 +293,7 @@ public:
 	bool override_working_directory;
 	string forced_working_directory;
     bool generate_forward_integrated_ephemeris;
+    bool background_mode; //0: no, 1: yes
 
 	//debug code
 	int run_inner_loop;

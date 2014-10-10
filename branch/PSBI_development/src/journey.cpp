@@ -15,6 +15,7 @@
 #include "MGALTphase.h"
 #include "FBLTphase.h"
 #include "MGANDSMphase.h"
+#include "PSBIphase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
@@ -78,9 +79,8 @@ namespace EMTG
 				break;
 				case 5:
 					{
-						//this phase is a DTLT phase
-						cout << "DTLT not yet implemented" << endl;
-						throw 1711;
+						//this phase is a PSBI phase
+                        phases.push_back(new PSBIphase(j, p, options));
 					}
 				break;
 			}
@@ -920,7 +920,7 @@ namespace EMTG
 
         //next write the header
         //(code adapted from PyEMTG)
-        ofstream ephemeris_file(ephemeris_file_stream.str());
+        ofstream ephemeris_file(ephemeris_file_stream.str().c_str());
 
         ephemeris_file << "stk.v.9.0" << endl;
         ephemeris_file << "#Ephemeris file written by EMTG_v8 core program compiled " << __DATE__ << " " << __TIME__ << endl;
