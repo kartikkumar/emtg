@@ -60,21 +60,42 @@ namespace EMTG
         this->boundary2_location_code = options->sequence[j][p + 1];
 
         //size the vectors of state transition matrices
-        this->STM.resize(options->num_timesteps + 1);
-        this->Kepler_F.resize(options->num_timesteps + 1);
-        this->Kepler_Fdot.resize(options->num_timesteps + 1);
-        this->Kepler_G.resize(options->num_timesteps + 1);
-        this->Kepler_Gdot.resize(options->num_timesteps + 1);
-        this->Kepler_Fdotdot.resize(options->num_timesteps + 1);
-        this->Kepler_Gdotdot.resize(options->num_timesteps + 1);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps + 1);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps + 1);
+        this->STM.resize(options->num_timesteps * 2);
+        this->Kepler_F.resize(options->num_timesteps * 2);
+        this->Kepler_Fdot.resize(options->num_timesteps * 2);
+        this->Kepler_G.resize(options->num_timesteps * 2);
+        this->Kepler_Gdot.resize(options->num_timesteps * 2);
+        this->Kepler_Fdotdot.resize(options->num_timesteps * 2);
+        this->Kepler_Gdotdot.resize(options->num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
+
+        //if there are initial and/or terminal coasts, instantiate the relevant STMs
+        this->initial_coast = false;
+        this->terminal_coast = true;
+        if (j == 0 && p == 0 && options->forced_post_launch_coast > math::SMALL)
+        {
+            this->initial_coast_STM = new Kepler::STM;
+            this->initial_coast = true;
+        }
+        else if ((p > 0 || options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)
+            && options->forced_flyby_coast > math::SMALL)
+        {
+            this->initial_coast_STM = new Kepler::STM;
+            this->initial_coast = true;
+        }
+        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5))
+            && options->forced_flyby_coast > math::SMALL)
+        {
+            this->terminal_coast_STM = new Kepler::STM;
+            this->terminal_coast = true;
+        }
 
         this->current_mass_increment = 0.0;
         this->journey_initial_mass_increment_scale_factor = 1.0;
 
         //size the time step vector
-        time_step_sizes.resize(options->num_timesteps + 1);
+        time_step_sizes.resize(options->num_timesteps * 2);
 
         this->dTdP.resize(options->num_timesteps);
         this->dmdotdP.resize(options->num_timesteps);
@@ -91,7 +112,11 @@ namespace EMTG
     //destructor
     PSBIphase::~PSBIphase()
     {
-        //destructor does not have to do anything
+        //if there are initial and/or terminal coasts, delete the relevant STMs
+        if (this->initial_coast)
+            delete this->initial_coast_STM;
+        if (this->terminal_coast)
+            delete this->terminal_coast_STM;
     }
 
     //bounds calculation method

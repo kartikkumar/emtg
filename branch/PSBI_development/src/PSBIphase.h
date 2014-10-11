@@ -88,6 +88,12 @@ namespace EMTG
         //Kepler derivative information
             vector< Kepler::STM > STM; //vector of state transition matrices
             vector<double> Kepler_F, Kepler_Fdot, Kepler_G, Kepler_Gdot, Kepler_Fdotdot, Kepler_Gdotdot;
+            Kepler::STM* initial_coast_STM;
+            double initial_coast_Kepler_F, initial_coast_Kepler_Fdot, initial_coast_Kepler_G, initial_coast_Kepler_Gdot, initial_coast_Kepler_Fdotdot, initial_coast_Kepler_Gdotdot;
+            Kepler::STM* terminal_coast_STM;
+            double terminal_coast_Kepler_F, terminal_coast_Kepler_Fdot, terminal_coast_Kepler_G, terminal_coast_Kepler_Gdot, terminal_coast_Kepler_Fdotdot, terminal_coast_Kepler_Gdotdot;
+            bool initial_coast;
+            bool terminal_coast;
             vector<double> Propagation_Step_Time_Fraction;
             vector<double> Propagation_Step_Time_Fraction_Derivative;
 
