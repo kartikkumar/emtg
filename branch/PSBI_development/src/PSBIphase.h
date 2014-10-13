@@ -121,6 +121,9 @@ namespace EMTG
             vector<int> G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_previous_phase_arrival_mass;
             double X_scale_range_previous_phase_arrival_mass;
 
+            vector < vector<int> > G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
+            vector < vector<double> > X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
+
         //derivatives for SUCCESSIVE left-handed defect constraints only
             vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control;
             vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control;

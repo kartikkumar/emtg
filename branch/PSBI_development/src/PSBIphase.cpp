@@ -379,19 +379,202 @@ namespace EMTG
                 this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
                 this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
 
-                //for the first defect only
-                //  if applicable, variable mission initial mass
-                //  if applicable, variable initial mass increment scale factor
-                //  if applicable, variable left hand boundary condition
-                //  if applicable, phase v-infinity (which for the first phase is in polar, successive phases in cartesian)
-                //  previous phase arrival mass, if this is NOT the first phase in the mission
-                // 
+                //for the first defect in the phase only
+                
+                vector<int> state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition;
+                vector<double> state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition;
+                vector<int> state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity;
+                vector<double> state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity;
+                vector<int> state_G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
+                vector<double> state_X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
+                
                 if (step == 0)
                 {
-                    if (p == 0)
+                    //if applicable, variable left hand boundary condition
+                    if (p == 0 && (options->journey_departure_elements_vary_flag[j][0]
+                                    || options->journey_departure_elements_vary_flag[j][1]
+                                    || options->journey_departure_elements_vary_flag[j][2]
+                                    || options->journey_departure_elements_vary_flag[j][3]
+                                    || options->journey_departure_elements_vary_flag[j][4]
+                                    || options->journey_departure_elements_vary_flag[j][5]))
                     {
+                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("left boundary point") < 1024)
+                            {
+                                iGfun->push_back(Fdescriptions->size() - 1);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition.push_back(iGfun->size() - 1);
+                                state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                            }
+                        }
+                        this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition.push_back(state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition);
+                        this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition.push_back(state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition);
+                    }//end  block for variable left-hand boundary
 
-                    }
+                    //if applicable, previous journey variable right-hand boundary condition
+                    //this occurs for first phase of successive journeys where previous journey ended in a variable boundary condition
+                    if (p == 0 && j > 0)
+                    {
+                        if (options->destination_list[j][0] == -1 && options->destination_list[j - 1][1] == -1
+                            && (options->journey_arrival_elements_vary_flag[j - 1][0]
+                                || options->journey_arrival_elements_vary_flag[j - 1][1]
+                                || options->journey_arrival_elements_vary_flag[j - 1][2]
+                                || options->journey_arrival_elements_vary_flag[j - 1][3]
+                                || options->journey_arrival_elements_vary_flag[j - 1][4]
+                                || options->journey_arrival_elements_vary_flag[j - 1][5]))
+                        {
+                            for (int entry = first_X_entry_in_phase; entry >=0; --entry)
+                            {
+                                stringstream previous_journey_prefix_stream;
+                                previous_journey_prefix_stream << "j" << j - 1 << "p" << options->number_of_phases[j - 1] - 1 << ": ";
+                                if ((*Xdescriptions)[entry].find(previous_journey_prefix_stream.str()) < 1024 && (*Xdescriptions)[entry].find("right boundary point") < 1024)
+                                {
+                                    iGfun->push_back(Fdescriptions->size() - 1);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    state_G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition.push_back(iGfun->size() - 1);
+                                    state_X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                                }
+                            }
+                            this->G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition.push_back(state_G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition);
+                            this->X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition.push_back(state_X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition);
+                        }
+                    }//end block for previous journey variable right-hand boundary condition
+
+                    //if applicable, current phase initial v-infinity (which for the first phase is in polar, successive phases in cartesian)
+                    //note this is applicable whenever we are not in the first phase of a journey beginning with a free direct departure or departure spiral
+                    if (!(p == 0 && (options->journey_departure_type[j] == 2 || options->journey_departure_type[j] == 5)))
+                    {
+                        //the first phase of the journey has velocity given in polar coordinates
+                        if (p == 0)
+                        {
+                            for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                            {
+                                if ((*Xdescriptions)[entry].find("magnitude of outgoing velocity asymptote") < 1024)
+                                {
+                                    iGfun->push_back(Fdescriptions->size() - 1);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(iGfun->size() - 1);
+                                    state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                                }
+                                else if ((*Xdescriptions)[entry].find("RA of departure asymptote") < 1024)
+                                {
+                                    iGfun->push_back(Fdescriptions->size() - 1);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(iGfun->size() - 1);
+                                    state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                                }
+                                else if ((*Xdescriptions)[entry].find("DEC of departure asymptote") < 1024)
+                                {
+                                    iGfun->push_back(Fdescriptions->size() - 1);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(iGfun->size() - 1);
+                                    state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                                }
+                            }
+                        }
+                        //successive phases have velocity given in cartesian coordinates
+                        else
+                        {
+                            for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                            {
+                                if ((*Xdescriptions)[entry].find("initial velocity increment") < 1024)
+                                {
+                                    iGfun->push_back(Fdescriptions->size() - 1);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(iGfun->size() - 1);
+                                    state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                                }
+                            }
+                        }
+                        this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity);
+                        this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity);
+                    }//end block for current phase initial v-infinity
+
+                    //previous phase arrival mass, if this is NOT the first phase in the mission
+                    if (j > 0 || p > 0)
+                    {
+                        for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("arrival_mass") < 1024)
+                            {
+                                iGfun->push_back(Fdescriptions->size() - 1);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_previous_phase_arrival_mass.push_back(iGfun->size() - 1);
+                                this->X_scale_range_previous_phase_arrival_mass = (*Xupperbounds)[entry] - (*Xlowerbounds)[entry];
+                                break;
+                            }
+                        }
+                    }//end block for previous phase arrival mass
+
+                    //if applicable, variable mission initial mass
+                    //note that this can only happen in the first journey and phase because phases are separable
+                    if (p == 0 && j == 0 && options->allow_initial_mass_to_vary)
+                    {
+                        //step forward through the decision vector until you hit the initial mass multiplier
+                        for (size_t entry = 0; entry < Xdescriptions->size() - 1; ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("initial mass multiplier") < 1024)
+                            {
+                                iGfun->push_back(Fdescriptions->size() - 1);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier.push_back(iGfun->size() - 1);
+                                break;
+                            }
+                        }
+                    }//close if block for variable initial mass
+
+                    //if applicable, variable journey initial mass increment scale factor
+                    if (options->journey_variable_mass_increment[j])
+                    {
+                        //note that the current phases's initial mass scales linearly with ALL previous journey initial mass multipliers
+                        for (int pj = 0; pj <= j; ++pj)
+                        {
+                            for (int pp = 0; pp < (pj == j ? p : options->number_of_phases[pj]); ++pp)
+                            {
+                                stringstream pprefix_stream;
+                                pprefix_stream << "j" << pj << "p" << pp;
+                                string pprefix = pprefix_stream.str();
+
+                                for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+                                {
+                                    if ((*Xdescriptions)[entry].find(pprefix) < 1024 && (*Xdescriptions)[entry].find("journey initial mass scale factor") < 1024)
+                                    {
+                                        iGfun->push_back(Fdescriptions->size() - 1);
+                                        jGvar->push_back(entry);
+                                        stringstream EntryNameStream;
+                                        EntryNameStream << "Derivative of leftmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                        Gdescriptions->push_back(EntryNameStream.str());
+                                        this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_journey_initial_mass_increment_multiplier.push_back(iGfun->size() - 1);
+                                    }
+                                }
+                            }
+                        }
+                    }//end leftmost defect constraint dependence on journey initial mass multiplier
                 }
                 //for successive defects only
                 //  the previous control point's state and control
