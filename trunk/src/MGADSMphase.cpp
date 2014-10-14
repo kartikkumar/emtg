@@ -500,14 +500,14 @@ namespace EMTG
 	#ifdef _EMTG_proprietary
 		if (options->LambertSolver == 1) //Izzo Lambert solver
 		{
-			EMTG::Astrodynamics::Lambert(this->state_before_burn,
-				boundary2_state,
-				time_after_burn,
-				Universe->mu,
-				1,
-				Nrev,
-				lambert_v1,
-				lambert_v2);
+			EMTG::Astrodynamics::Lambert::Lambert_Izzo(this->state_before_burn,
+				                                    boundary2_state,
+				                                    time_after_burn,
+				                                    Universe->mu,
+				                                    1,
+				                                    Nrev,
+				                                    lambert_v1,
+				                                    lambert_v2);
 
 			//check the angular momentum vector
 			//we do not want to go retrograde because of a burn. It's OK to go retrograde because of a flyby, but we don't want to do it propulsively
@@ -518,14 +518,14 @@ namespace EMTG
 		
 			if (!( math::sgn(hz1) == math::sgn(hz2) ))
 			{
-				EMTG::Astrodynamics::Lambert(state_before_burn,
-					boundary2_state,
-					time_after_burn,
-					Universe->mu,
-					0,
-					Nrev,
-					lambert_v1,
-					lambert_v2);
+				EMTG::Astrodynamics::Lambert::Lambert_Izzo(state_before_burn,
+					                                        boundary2_state,
+					                                        time_after_burn,
+					                                        Universe->mu,
+					                                        0,
+					                                        Nrev,
+					                                        lambert_v1,
+					                                        lambert_v2);
 			}
 		}
 		else
@@ -536,36 +536,36 @@ namespace EMTG
 			//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
 			try
 			{
-				EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
-					boundary2_state,
-					time_after_burn,
-					Universe->mu,
-					Nrev,
-					1,
-					ShortPeriod,
-					1e-13,
-					30,
-					lambert_v1,
-					lambert_v2,
-					Lam_error,
-					Lam_iterations);
+				EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(this->state_before_burn,
+					                                                boundary2_state,
+					                                                time_after_burn,
+					                                                Universe->mu,
+					                                                Nrev,
+					                                                1,
+					                                                ShortPeriod,
+					                                                1e-13,
+					                                                30,
+					                                                lambert_v1,
+					                                                lambert_v2,
+					                                                Lam_error,
+					                                                Lam_iterations);
 			}
 			catch (int& errorcode)
 			{
 				if (errorcode == 200000) //multi-rev error
-					EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
-						boundary2_state,
-						time_after_burn,
-						Universe->mu,
-						0,
-						1,
-						ShortPeriod,
-						1e-13,
-						30,
-						lambert_v1,
-						lambert_v2,
-						Lam_error,
-						Lam_iterations);
+					EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(this->state_before_burn,
+						                                                boundary2_state,
+						                                                time_after_burn,
+						                                                Universe->mu,
+						                                                0,
+						                                                1,
+						                                                ShortPeriod,
+						                                                1e-13,
+						                                                30,
+						                                                lambert_v1,
+						                                                lambert_v2,
+						                                                Lam_error,
+						                                                Lam_iterations);
 			}
 
 
@@ -580,36 +580,36 @@ namespace EMTG
 			{
 				try
 				{
-					EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
-						boundary2_state,
-						time_after_burn,
-						Universe->mu,
-						Nrev,
-						0,
-						ShortPeriod,
-						1e-13,
-						30,
-						lambert_v1,
-						lambert_v2,
-						Lam_error,
-						Lam_iterations);
+					EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(this->state_before_burn,
+						                                                boundary2_state,
+						                                                time_after_burn,
+						                                                Universe->mu,
+						                                                Nrev,
+						                                                0,
+						                                                ShortPeriod,
+						                                                1e-13,
+						                                                30,
+						                                                lambert_v1,
+						                                                lambert_v2,
+						                                                Lam_error,
+						                                                Lam_iterations);
 				}
 				catch (int& errorcode)
 				{
 					if (errorcode == 200000)
-						EMTG::Astrodynamics::Lambert_AroraRussell(this->state_before_burn,
-						boundary2_state,
-						time_after_burn,
-						Universe->mu,
-						0,
-						0,
-						ShortPeriod,
-						1e-13,
-						30,
-						lambert_v1,
-						lambert_v2,
-						Lam_error,
-						Lam_iterations);
+						EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(this->state_before_burn,
+						                                                    boundary2_state,
+						                                                    time_after_burn,
+						                                                    Universe->mu,
+						                                                    0,
+						                                                    0,
+						                                                    ShortPeriod,
+						                                                    1e-13,
+						                                                    30,
+						                                                    lambert_v1,
+						                                                    lambert_v2,
+						                                                    Lam_error,
+						                                                    Lam_iterations);
 				}
 			}
 

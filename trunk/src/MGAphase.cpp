@@ -167,28 +167,28 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 #ifdef _EMTG_proprietary
 	if (options->LambertSolver == 1) //Izzo Lambert solver
 	{
-		EMTG::Astrodynamics::Lambert(boundary1_state,
-			boundary2_state,
-			this->TOF,
-			Universe->mu,
-			1,
-			Nrev,
-			lambert_v1,
-			lambert_v2);
+		EMTG::Astrodynamics::Lambert::Lambert_Izzo(boundary1_state,
+			                                        boundary2_state,
+			                                        this->TOF,
+			                                        Universe->mu,
+			                                        1,
+			                                        Nrev,
+			                                        lambert_v1,
+			                                        lambert_v2);
 
 		//check the angular momentum vector to avoid going retrograde
 		hz = boundary1_state[0] * lambert_v1[1] - boundary1_state[1] * lambert_v1[0];
 
 		if (hz < 0)
 		{
-			EMTG::Astrodynamics::Lambert(boundary1_state,
-				boundary2_state,
-				this->TOF,
-				Universe->mu,
-				0,
-				Nrev,
-				lambert_v1,
-				lambert_v2);
+			EMTG::Astrodynamics::Lambert::Lambert_Izzo(boundary1_state,
+				                                        boundary2_state,
+				                                        this->TOF,
+				                                        Universe->mu,
+				                                        0,
+				                                        Nrev,
+				                                        lambert_v1,
+				                                        lambert_v2);
 		}
 	}
 	else
@@ -198,36 +198,36 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 		//therefore wrap the solver in a try-catch block and if it fails, try the zero-rev case
 		try
 		{
-			EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
-				boundary2_state,
-				TOF,
-				Universe->mu,
-				Nrev,
-				1,
-				ShortPeriod,
-				1e-13,
-				30,
-				lambert_v1,
-				lambert_v2,
-				Lam_error,
-				Lam_iterations);
+			EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(boundary1_state,
+				                                                boundary2_state,
+				                                                TOF,
+				                                                Universe->mu,
+				                                                Nrev,
+				                                                1,
+				                                                ShortPeriod,
+				                                                1e-13,
+				                                                30,
+				                                                lambert_v1,
+				                                                lambert_v2,
+				                                                Lam_error,
+				                                                Lam_iterations);
 		}
 		catch (int& errorcode)
 		{
 			if (errorcode == 200000) //multi-rev error
-				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
-				boundary2_state,
-				TOF,
-				Universe->mu,
-				0,
-				1,
-				ShortPeriod,
-				1e-13,
-				30,
-				lambert_v1,
-				lambert_v2,
-				Lam_error,
-				Lam_iterations);
+				EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(boundary1_state,
+				                                                    boundary2_state,
+				                                                    TOF,
+				                                                    Universe->mu,
+				                                                    0,
+				                                                    1,
+				                                                    ShortPeriod,
+				                                                    1e-13,
+				                                                    30,
+				                                                    lambert_v1,
+				                                                    lambert_v2,
+				                                                    Lam_error,
+				                                                    Lam_iterations);
 		}
 
 
@@ -238,36 +238,36 @@ int MGA_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* 
 		{
 			try
 			{
-				EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
-					boundary2_state,
-					TOF,
-					Universe->mu,
-					Nrev,
-					1,
-					ShortPeriod,
-					1e-13,
-					30,
-					lambert_v1,
-					lambert_v2,
-					Lam_error,
-					Lam_iterations);
+				EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(boundary1_state,
+					                                                boundary2_state,
+					                                                TOF,
+					                                                Universe->mu,
+					                                                Nrev,
+					                                                1,
+					                                                ShortPeriod,
+					                                                1e-13,
+					                                                30,
+					                                                lambert_v1,
+					                                                lambert_v2,
+					                                                Lam_error,
+					                                                Lam_iterations);
 			}
 			catch (int& errorcode)
 			{
 				if (errorcode == 200000)
-					EMTG::Astrodynamics::Lambert_AroraRussell(boundary1_state,
-					boundary2_state,
-					TOF,
-					Universe->mu,
-					0,
-					1,
-					ShortPeriod,
-					1e-13,
-					30,
-					lambert_v1,
-					lambert_v2,
-					Lam_error,
-					Lam_iterations);
+					EMTG::Astrodynamics::Lambert::Lambert_AroraRussell(boundary1_state,
+					                                                    boundary2_state,
+					                                                    TOF,
+					                                                    Universe->mu,
+					                                                    0,
+					                                                    1,
+					                                                    ShortPeriod,
+					                                                    1e-13,
+					                                                    30,
+					                                                    lambert_v1,
+					                                                    lambert_v2,
+					                                                    Lam_error,
+					                                                    Lam_iterations);
 			}
 		}
 #ifdef _EMTG_proprietary
