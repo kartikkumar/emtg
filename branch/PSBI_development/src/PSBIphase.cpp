@@ -145,6 +145,16 @@ namespace EMTG
         string prefix = prefixstream.str();
         int first_X_entry_in_phase = Xupperbounds->size();
 
+        //initialize an array of strings describing the defect constraints
+        vector<string> statename;
+        statename.push_back("x");
+        statename.push_back("y");
+        statename.push_back("z");
+        statename.push_back("xdot");
+        statename.push_back("ydot");
+        statename.push_back("zdot");
+        statename.push_back("m");
+
         //**************************************************************************
         //calculate bounds on variables and constraints governing the left boundary
         this->calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
@@ -296,17 +306,10 @@ namespace EMTG
 
 
             //left-hand defect constraints: all steps have this!
-            vector<string> statename;
-            statename.push_back("x");
-            statename.push_back("y");
-            statename.push_back("z");
-            statename.push_back("xdot");
-            statename.push_back("ydot");
-            statename.push_back("zdot");
-            statename.push_back("m");
-
             //temporary arrays for G index tracking
             
+            vector < vector<int> > step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
+            vector < vector<double> > step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
             vector< vector<int> > step_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
             vector< vector<double> > step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
             vector<int> step_G_index_of_derivative_of_defect_with_respect_to_BOL_power(7);
@@ -321,6 +324,22 @@ namespace EMTG
 
                 //the defect constraint is ALWAYS dependent on:
                 //for all defects
+                //  CURRENT left-hand state variables
+                vector<int> state_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
+                vector<double> state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
+                for (size_t entry = Xdescriptions->size() - 1 - state_and_control_elements_this_step; entry < Xdescriptions->size() - 1 - state_and_control_elements_this_step + 3; ++entry)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of " << prefix + "step " << step << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    state_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(Gdescriptions->size() - 1);
+                    state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+                step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(state_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state);
+                step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state);
+
                 //  ALL previous time variables including the current phase flight time
                 //  note that the FIRST entry in the list of time derivatives is with respect to the CURRENT phase flight time
                 vector<int> state_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
@@ -332,7 +351,7 @@ namespace EMTG
                         iGfun->push_back(Fdescriptions->size() - 1);
                         jGvar->push_back(entry);
                         stringstream EntryNameStream;
-                        EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        EntryNameStream << "Derivative of " << prefix << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
                         state_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables.push_back(Gdescriptions->size() - 1);
                         state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
@@ -366,7 +385,7 @@ namespace EMTG
                                 iGfun->push_back(Fdescriptions->size() - 1);
                                 jGvar->push_back(Xentry);
                                 stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+                                EntryNameStream << "Derivative of " << prefix << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
                                 Gdescriptions->push_back(EntryNameStream.str());
                                 step_G_index_of_derivative_of_defect_with_respect_to_BOL_power[state] = Gdescriptions->size() - 1;
                                 this->power_range = (*Xupperbounds)[Xentry] - math::SMALL;
@@ -600,6 +619,8 @@ namespace EMTG
             }
 
             //now append the sparsity entries for this step's defect constraints to the phase's archive of sparsity entries
+            this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state);
+            this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state);
             this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables.push_back(step_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables);
             this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables.push_back(step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables);
             this->G_index_of_derivative_of_defect_with_respect_to_BOL_power.push_back(step_G_index_of_derivative_of_defect_with_respect_to_BOL_power);
@@ -632,16 +653,123 @@ namespace EMTG
 
         //**************************************************************************
         //right hand side defect constraint - the last segment only must connect to the right-hand boundary condition for the phase
-        //has derivatives with respect to:
-        //  rightmost step state and control variables
-        //  flight time (all previous, first entry is CURRENT phase flight time)
-        //  arrival mass
-        //  final v-infinity vector
-        //  variable right hand boundary condition
-        //  if applicable, spiral things affect every defect constraint
-        this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
-        this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+        for (size_t state = 0; state < 7; ++state)
+        {
+            //rightmost step state and control variables
+            //this will just be the last N decision vectors
+            vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control;
+            vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control;
+            int state_and_control_elements = options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13 ? 11 : 10;
+            for (size_t entry = Xdescriptions->size() - 1 - 2 * state_and_control_elements; entry < Xdescriptions->size() - 1 - state_and_control_elements; ++entry)
+            {
+                iGfun->push_back(Fdescriptions->size() - 1);
+                jGvar->push_back(entry);
+                stringstream EntryNameStream;
+                EntryNameStream << "Derivative of " << prefix + "rightmost " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                Gdescriptions->push_back(EntryNameStream.str());
+                state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control.push_back(Gdescriptions->size() - 1);
+                state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+            }
+            this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control.push_back(state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control);
+            this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control.push_back(state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control);
 
+            //  flight time (all previous, first entry is CURRENT phase flight time)
+            vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
+            vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
+            for (size_t entry = Xdescriptions->size() - 1; entry >= 0; --entry)
+            {
+                if ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of " << prefix << " rightmost " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables.push_back(Gdescriptions->size() - 1);
+                    state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+            }
+            this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables.push_back(state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables);
+            this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables.push_back(state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables);
+
+            //CURRENT phase arrival mass
+            for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+            {
+                if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of " << prefix << " rightmost " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_current_phase_arrival_mass.push_back(entry);
+                    this->X_scale_range_current_phase_arrival_mass = (*Xupperbounds)[entry] - (*Xlowerbounds)[entry];
+                    break;
+                }
+            }
+
+            //final v-infinity vector
+            //there is always a final v-infinity vector in the decision vector unless:
+            //a) this phase ends in a low-thrust rendezvous (option 3)
+            //b) this phase ends in a low-thrust fixed v-infinity intercept (option 5)
+            //c) this phase ends in a capture spiral (option 7)
+            if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3
+                                                            || options->journey_arrival_type[j] == 5
+                                                            || options->journey_arrival_type[j] == 7)))
+            {
+                vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
+                vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity increment") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " rightmost " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity.push_back(entry);
+                        state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+                this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity.push_back(state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity);
+                this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity.push_back(state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity);
+            }
+
+            //if applicable, variable right hand boundary condition
+            if (p == 0 && (options->journey_arrival_elements_vary_flag[j][0]
+                            || options->journey_arrival_elements_vary_flag[j][1]
+                            || options->journey_arrival_elements_vary_flag[j][2]
+                            || options->journey_arrival_elements_vary_flag[j][3]
+                            || options->journey_arrival_elements_vary_flag[j][4]
+                            || options->journey_arrival_elements_vary_flag[j][5]))
+            {
+                vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition;
+                vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition;
+
+                for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("right boundary point") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of rightmost defect constraint on state " << statename[state] << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition.push_back(iGfun->size() - 1);
+                        state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+                this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition.push_back(state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition);
+                this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition.push_back(state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition);
+            }//end  block for variable right-hand boundary
+
+            //if applicable, spiral things affect the right-hand defect constraint (time is mass and mass is time)
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+        }//end loop over state for right-hand defect constraint
+
+        
     }
 
     //evaluate function
