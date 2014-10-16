@@ -1349,8 +1349,6 @@ namespace EMTG {
 		{
 			double state_at_initial_coast_midpoint[7];
 			double initial_coast_duration;
-			double F, G, Ft, Gt, Ftt, Gtt;
-			Kepler::STM stm;
 			state_at_initial_coast_midpoint[6] = state_at_beginning_of_phase[6];
 
 			if (j == 0 && p == 0 && options->forced_post_launch_coast > 0.0)
@@ -1368,15 +1366,7 @@ namespace EMTG {
 														state_at_initial_coast_midpoint,
 														Universe->mu,
 														Universe->LU,
-														initial_coast_duration / 2.0,
-														F,
-														G,
-														Ft,
-														Gt,
-														Ftt,
-														Gtt,
-														&stm,
-														false);
+														initial_coast_duration / 2.0);
 
 			//we have to calculate the available power at the midpoint of the forced coast
 			Astrodynamics::find_engine_parameters(	options,
@@ -1532,23 +1522,13 @@ namespace EMTG {
 		{
 			double state_at_terminal_coast_midpoint[7];
 			double terminal_coast_duration = options->forced_flyby_coast;
-			double F, G, Ft, Gt, Ftt, Gtt;
-			Kepler::STM stm;
 			state_at_terminal_coast_midpoint[6] = state_at_end_of_phase[6];
 
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_end_of_phase,
 														state_at_terminal_coast_midpoint,
 														Universe->mu,
 														Universe->LU,
-														-terminal_coast_duration / 2.0,
-														F,
-														G,
-														Ft,
-														Gt,
-														Ftt,
-														Gtt,
-														&stm,
-														false);
+														-terminal_coast_duration / 2.0);
 
 			//we have to calculate the available power at the midpoint of the forced coast
 			Astrodynamics::find_engine_parameters(	options,

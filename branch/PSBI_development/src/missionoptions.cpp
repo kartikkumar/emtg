@@ -204,7 +204,7 @@ int missionoptions::parse_options_file(string optionsfile) {
 	this->error_message = "Options file '" + optionsfile + "' read successfully";
 
 	//make sure we aren't choosing any engine parameters for impulsive mission types!
-	if (this->mission_type == 0 || this->mission_type == 1 || this->mission_type == 5) //impulsive mission types
+	if (this->mission_type == 0 || this->mission_type == 1) //impulsive mission types
 		this->engine_type = 0;
 
 	return 0;

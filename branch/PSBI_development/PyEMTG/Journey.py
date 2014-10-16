@@ -162,7 +162,7 @@ class Journey(object):
         if PlotOptions.PlotEfficiency:
             Efficiencyvector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     Efficiencyvector.append(event.AvailableThrust * event.Isp * 9.80665 / (2000 * event.ActivePower))
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Efficiencyvector.append(0.0)
@@ -175,7 +175,7 @@ class Journey(object):
         if PlotOptions.PlotThrottle:
             Throttlevector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     Throttlevector.append(math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2) / (event.AvailableThrust * self.thruster_duty_cycle))
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Throttlevector.append(0.0)
@@ -201,7 +201,7 @@ class Journey(object):
         if PlotOptions.PlotGamma:
             gammavector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     gammavector.append(math.atan2(event.Thrust[1], event.Thrust[0]))
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     gammavector.append(0.0)
@@ -214,7 +214,7 @@ class Journey(object):
         if PlotOptions.PlotDelta:
             deltavector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     AppliedThrust = math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2)
                     deltavector.append(math.asin(event.Thrust[2] / AppliedThrust))
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
@@ -229,7 +229,7 @@ class Journey(object):
         if PlotOptions.PlotCB_thrust_angle:
             CBthrustvector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     r = math.sqrt(event.SpacecraftState[0]**2 + event.SpacecraftState[1]**2 + event.SpacecraftState[2]**2)
                     AppliedThrust = math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2)
                     rdotT = event.SpacecraftState[0]*event.Thrust[0] + event.SpacecraftState[1]*event.Thrust[1] + event.SpacecraftState[2]*event.Thrust[2]
@@ -256,7 +256,7 @@ class Journey(object):
         if PlotOptions.PlotNumberOfEngines:
             numberofengines = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     numberofengines.append(event.Number_of_Active_Engines)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     numberofengines.append(0)
@@ -269,7 +269,7 @@ class Journey(object):
         if PlotOptions.PlotActivePower:
             activepowervector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     activepowervector.append(event.ActivePower)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     activepowervector.append(0)
@@ -282,7 +282,7 @@ class Journey(object):
         if PlotOptions.PlotWasteHeat:
             WasteHeatvector = []
             for event in self.missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'FBLTSthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     WasteHeatvector.append( (1 - event.AvailableThrust * event.Isp * 9.80665 / (2000 * event.ActivePower)) * event.ActivePower )
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     WasteHeatvector.append(0.0)

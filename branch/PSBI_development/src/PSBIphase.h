@@ -72,10 +72,21 @@ namespace EMTG
                         EMTG::Astrodynamics::universe* Universe,
                         missionoptions* options);
 
+        //method to calculate the derivatives of defect constraints
+    protected:
+        void calculate_defect_derivatives(double* G,
+                                        const int& j,
+                                        const int& p,
+                                        missionoptions* options,
+                                        EMTG::Astrodynamics::universe* Universe);
+
         //time information
         vector <double> event_epochs;
 
         //state information and constraint information
+        double minimum_radial_distance;
+        vector< vector<double> > left_hand_state;
+        vector< vector<double> > right_hand_state;
         vector< vector<double> > defect_constraint;
         vector<double> throttle;
         vector<double> dVmax;
@@ -137,8 +148,8 @@ namespace EMTG
             vector< vector<int> > G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
             vector< vector<double> > X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables;
 
-            vector<int> G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_current_phase_arrival_mass;
-            double X_scale_range_current_phase_arrival_mass;
+            int G_index_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass;
+            double X_scale_range_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass;
 
             vector< vector<int> > G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
             vector< vector<double> > X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;

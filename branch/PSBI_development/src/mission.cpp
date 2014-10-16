@@ -1497,6 +1497,7 @@ int mission::output_mission_tree(string filename)
 	phase_type_codes.push_back("MGA-LT");
 	phase_type_codes.push_back("FBLT");
 	phase_type_codes.push_back("MGA-NDSM");
+    phase_type_codes.push_back("PSBI");
 	std::ofstream outputfile(filename.c_str(), ios::trunc);
 
 	if (outputfile.is_open())

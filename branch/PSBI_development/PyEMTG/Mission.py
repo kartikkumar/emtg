@@ -292,7 +292,7 @@ class Mission(object):
 
         if self.ActiveJourney <= len(self.Journeys) - 1: #if one journey is selected
             for event in self.Journeys[self.ActiveJourney].missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'end_spiral':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust" or event.EventType == 'end_spiral':
                     NewThrottleSetting = ThrottleTable.ThrottleSetting()
                     NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines * thruster_throttle_table.PPUefficiency,
                                                                     event.AvailableThrust / event.Number_of_Active_Engines * 1000.0,
@@ -306,7 +306,7 @@ class Mission(object):
         else:
             for j in range(0, len(self.Journeys)): #for all journeys
                 for event in self.Journeys[j].missionevents:
-                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == 'end_spiral':
+                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust" or event.EventType == 'end_spiral':
                         NewThrottleSetting = ThrottleTable.ThrottleSetting()
                         NewThrottleSetting.initialize_from_input_data(event.ActivePower / event.Number_of_Active_Engines,
                                                                                       event.AvailableThrust / event.Number_of_Active_Engines * 1000.0,
@@ -336,7 +336,7 @@ class Mission(object):
         counter = 0
         if self.ActiveJourney <= len(self.Journeys) - 1: #if one journey is selected
             for event in self.Journeys[self.ActiveJourney].missionevents:
-                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust':
+                if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength / 2.0, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
                                      str(event.TimestepLength) + ',' +
                                      str(throttle_table_history_array[counter]) + ',' +
@@ -362,7 +362,7 @@ class Mission(object):
         else:
             for j in range(0, len(self.Journeys)): #for all journeys
                 for event in self.Journeys[j].missionevents:
-                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust':
+                    if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                         reportfile.write(astropy.time.Time(event.JulianDate - event.TimestepLength / 2.0, format='jd', scale='tdb', out_subfmt='date').utc.iso + ',' + 
                                      str(event.TimestepLength) + ',' +
                                      str(throttle_table_history_array[counter]) + ',' +

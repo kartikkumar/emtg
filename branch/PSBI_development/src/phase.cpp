@@ -1674,7 +1674,7 @@ namespace EMTG {
 
 		//Thrust
 		outputfile.precision(12);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust")
 		{
 			for (size_t k = 0; k < 3; ++k)
 				rot_in_vec(k) = ThrustVector[k];
@@ -1753,7 +1753,7 @@ namespace EMTG {
 			outputfile.width(3); outputfile << " | ";
 		}
 
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 		{
 			outputfile.precision(8);
 			outputfile.width(19); outputfile << scientific << mdot << fixed;
@@ -1772,14 +1772,14 @@ namespace EMTG {
 		
 		//number of active engines
 		outputfile.width(14);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 			outputfile << number_of_active_engines;
 		else
 			outputfile << "-";
 		
 		outputfile.width(3); outputfile << " | ";
 		outputfile.precision(5);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 		{
 			outputfile.width(14); outputfile << active_power;
 			outputfile.width(3); outputfile << " | ";
