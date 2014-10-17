@@ -97,7 +97,7 @@ namespace EMTG
         this->journey_initial_mass_increment_scale_factor = 1.0;
 
         //size the time step vector
-        time_step_sizes.resize(options->num_timesteps * 2);
+        time_step_sizes.resize(options->num_timesteps);
 
         this->dTdP.resize(options->num_timesteps);
         this->dmdotdP.resize(options->num_timesteps);
@@ -848,17 +848,17 @@ namespace EMTG
             step_size_normalization_coefficient += time_step_sizes[step];
         }
 
-        double total_available_thrust_time = TOF;
+        this->total_available_thrust_time = TOF;
         if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
-            total_available_thrust_time -= options->forced_post_launch_coast;
+            this->total_available_thrust_time -= options->forced_post_launch_coast;
         else if ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6)
-            total_available_thrust_time -= options->forced_flyby_coast;
+            this->total_available_thrust_time -= options->forced_flyby_coast;
         if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5)) && options->forced_flyby_coast > 1.0e-6)
-            total_available_thrust_time -= options->forced_flyby_coast;
+            this->total_available_thrust_time -= options->forced_flyby_coast;
 
         for (int step = 0; step < options->num_timesteps; ++step)
         {
-            time_step_sizes[step] *= total_available_thrust_time / step_size_normalization_coefficient;
+            time_step_sizes[step] *= this->total_available_thrust_time / step_size_normalization_coefficient;
         }
 
         //Step 6.2: Propagate across an initial coast if applicable
@@ -1109,13 +1109,13 @@ namespace EMTG
             for (size_t k = 0; k<3; ++k)
             {
                 //position
-                F[*Findex + k] = (this->right_hand_state[options->num_timesteps - 1][k] - state_before_terminal_coast[k]) / Universe->LU;
+                F[*Findex + k] = (state_before_terminal_coast[k] - this->right_hand_state[options->num_timesteps - 1][k]) / Universe->LU;
 
                 //velocity
-                F[*Findex + k + 3] = (this->right_hand_state[options->num_timesteps - 1][k + 3] - state_before_terminal_coast[k + 3]) / Universe->LU * Universe->TU;
+                F[*Findex + k + 3] = (state_before_terminal_coast[k + 3] - this->right_hand_state[options->num_timesteps - 1][k + 3]) / Universe->LU * Universe->TU;
             }
             //mass
-            F[*Findex + 6] = (this->right_hand_state[options->num_timesteps - 1][6] - state_before_terminal_coast[6]) / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            F[*Findex + 6] = (state_before_terminal_coast[6] - this->right_hand_state[options->num_timesteps - 1][6]) / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
             (*Findex) += 7;
         }
         //otherwise it is applied to the state at the end of the phase
@@ -1124,13 +1124,13 @@ namespace EMTG
             for (size_t k = 0; k<3; ++k)
             {
                 //position
-                F[*Findex + k] = (this->right_hand_state[options->num_timesteps - 1][k] - this->state_at_end_of_phase[k]) / Universe->LU;
+                F[*Findex + k] = (this->state_at_end_of_phase[k] - this->right_hand_state[options->num_timesteps - 1][k]) / Universe->LU;
 
                 //velocity
-                F[*Findex + k + 3] = (this->right_hand_state[options->num_timesteps - 1][k + 3] - this->state_at_end_of_phase[k + 3]) / Universe->LU * Universe->TU;
+                F[*Findex + k + 3] = (this->state_at_end_of_phase[k + 3] - this->right_hand_state[options->num_timesteps - 1][k + 3]) / Universe->LU * Universe->TU;
             }
             //mass
-            F[*Findex + 6] = (this->right_hand_state[options->num_timesteps - 1][6] - this->state_at_end_of_phase[6]) / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            F[*Findex + 6] = (this->state_at_end_of_phase[6] - this->right_hand_state[options->num_timesteps - 1][6]) / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
             (*Findex) += 7;
         }
 
@@ -1769,6 +1769,7 @@ namespace EMTG
         //declare variables which will be generally useful
         double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, dtdu;
         double dxdu_midpoint, dydu_midpoint, dzdu_midpoint, dxdotdu_midpoint, dydotdu_midpoint, dzdotdu_midpoint, dmdu_midpoint, dtdu_midpoint;
+        double dtotal_available_thrust_timedu, dPdu;
 
         //derivatives for the left-hand defect constraints
         //each constraint has a left side and a right side, and derivatives are posed as:
@@ -1944,80 +1945,47 @@ namespace EMTG
             }
             else //for successive steps
             {
-                //TODO derivative with respect to previous step state variables
+                //derivative with respect to previous step state variables
                 for (size_t state = 0; state < 7; ++state)
                 {
                     if (state < 6)
                     {
-                        dxdu_midpoint = this->STM[2 * step - 2](0, state);
-                        dydu_midpoint = this->STM[2 * step - 2](1, state);
-                        dzdu_midpoint = this->STM[2 * step - 2](2, state);
-                        dxdotdu_midpoint = this->STM[2 * step - 2](3, state);
-                        dydotdu_midpoint = this->STM[2 * step - 2](4, state);
-                        dzdotdu_midpoint = this->STM[2 * step - 2](5, state);
+                        dxdu = this->STM[2 * step - 2](0, state);
+                        dydu = this->STM[2 * step - 2](1, state);
+                        dzdu = this->STM[2 * step - 2](2, state);
+                        dxdotdu = this->STM[2 * step - 2](3, state);
+                        dydotdu = this->STM[2 * step - 2](4, state);
+                        dzdotdu = this->STM[2 * step - 2](5, state);
                         dmdu = 0.0;
                     }
                     else
                     {
-                        dxdu_midpoint = 0.0;
-                        dydu_midpoint = 0.0;
-                        dzdu_midpoint = 0.0;
-                        dxdotdu_midpoint = 0.0;
-                        dydotdu_midpoint = 0.0;
-                        dzdotdu_midpoint = 0.0;
+                        dxdu = 0.0;
+                        dydu = 0.0;
+                        dzdu = 0.0;
+                        dxdotdu = 0.0;
+                        dydotdu = 0.0;
+                        dzdotdu = 0.0;
                         dmdu = 1.0;
                     }
-
-                    double x = spacecraft_state[step - 1][0];
-                    double y = spacecraft_state[step - 1][1];
-                    double z = spacecraft_state[step - 1][2];
-                    double vx = spacecraft_state[step - 1][3];
-                    double vy = spacecraft_state[step - 1][4];
-                    double vz = spacecraft_state[step - 1][5];
-                    double r = sqrt(x*x + y*y + z*z);
-                    double r3 = r*r*r;
-                    double cmag = (math::norm(control[step - 1].data(), 3) + 1.0e-10);
-
-                    double dTdP = this->dTdP[step - 1];
-                    double dPdr = this->dPdr[step - 1] / Universe->LU;
-                    double dPdt = this->dPdt[step - 1];
-                    double Thrust = this->available_thrust[step - 1];
-                    double mdot = this->available_mass_flow_rate[step - 1];
-                    double deltat = this->time_step_sizes[step - 1];
-                    double dmdotdP = this->dmdotdP[step - 1];
-                    double D = options->engine_duty_cycle;
-                    double m = spacecraft_state[step - 1][6];
-
-                    double drdu = (x*dxdu_midpoint + y*dydu_midpoint + z*dzdu_midpoint) / r;
-                    double drdt = (x*vx + y*vy + z*vz) / r;
-
-                    double dTdu = dTdP * (dPdr * drdu);
-
-                    double ddVmaxdu = D / (m * m) * ((dTdu * deltat) * m - dmdu * Thrust * deltat);
-
-                    double dVxplusdu = (dxdotdu_midpoint
-                        + ddVmaxdu * control[step - 1][0]
-                        + this->dagravdRvec[step - 1][0] * dxdu_midpoint);
-                    double dVyplusdu = (dydotdu_midpoint
-                        + ddVmaxdu * control[step - 1][1]
-                        + this->dagravdRvec[step - 1][1] * dydu_midpoint);
-                    double dVzplusdu = (dzdotdu_midpoint
-                        + ddVmaxdu * control[step - 1][2]
-                        + this->dagravdRvec[step - 1][2] * dzdu_midpoint);
-
-                    dxdu = this->STM[2 * step - 1](0, 0) * dxdu_midpoint + this->STM[2 * step - 1](0, 1) * dydu_midpoint + this->STM[2 * step - 1](0, 2) * dzdu_midpoint
-                        + this->STM[2 * step - 1](0, 3) * dVxplusdu + this->STM[2 * step - 1](0, 4) * dVyplusdu + this->STM[2 * step - 1](0, 5) * dVzplusdu;
-                    dydu = this->STM[2 * step - 1](1, 0) * dxdu_midpoint + this->STM[2 * step - 1](1, 1) * dydu_midpoint + this->STM[2 * step - 1](1, 2) * dzdu_midpoint +
-                        +this->STM[2 * step - 1](1, 3) * dVxplusdu + this->STM[2 * step - 1](1, 4) * dVyplusdu + this->STM[2 * step - 1](1, 5) * dVzplusdu;
-                    dzdu = this->STM[2 * step - 1](2, 0) * dxdu_midpoint + this->STM[2 * step - 1](2, 1) * dydu_midpoint + this->STM[2 * step - 1](2, 2) * dzdu_midpoint +
-                        +this->STM[2 * step - 1](2, 3) * dVxplusdu + this->STM[2 * step - 1](2, 4) * dVyplusdu + this->STM[2 * step - 1](2, 5) * dVzplusdu;
-                    dxdotdu = this->STM[2 * step - 1](3, 0) * dxdu_midpoint + this->STM[2 * step - 1](3, 1) * dydu_midpoint + this->STM[2 * step - 1](3, 2) * dzdu_midpoint +
-                        +this->STM[2 * step - 1](3, 3) * dVxplusdu + this->STM[2 * step - 1](3, 4) * dVyplusdu + this->STM[2 * step - 1](3, 5) * dVzplusdu;
-                    dydotdu = this->STM[2 * step - 1](4, 0) * dxdu_midpoint + this->STM[2 * step - 1](4, 1) * dydu_midpoint + this->STM[2 * step - 1](4, 2) * dzdu_midpoint +
-                        +this->STM[2 * step - 1](4, 3) * dVxplusdu + this->STM[2 * step - 1](4, 4) * dVyplusdu + this->STM[2 * step - 1](4, 5) * dVzplusdu;
-                    dzdotdu = this->STM[2 * step - 1](5, 0) * dxdu_midpoint + this->STM[2 * step - 1](5, 1) * dydu_midpoint + this->STM[2 * step - 1](5, 2) * dzdu_midpoint +
-                        +this->STM[2 * step - 1](5, 3) * dVxplusdu + this->STM[2 * step - 1](5, 4) * dVyplusdu + this->STM[2 * step - 1](5, 5) * dVzplusdu;
-
+                    
+                    dtdu = 0.0;
+                    dtotal_available_thrust_timedu = 0.0;
+                    dPdu = 0.0;
+                    this->calculate_derivative_of_right_hand_state(options,
+                                                                    Universe,
+                                                                    step - 1,
+                                                                    dxdu,
+                                                                    dydu,
+                                                                    dzdu,
+                                                                    dxdotdu,
+                                                                    dydotdu,
+                                                                    dzdotdu,
+                                                                    dmdu,
+                                                                    dtdu,
+                                                                    dtotal_available_thrust_timedu,
+                                                                    dPdu);
+                    
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state] * dxdu / Universe->LU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state] * dydu / Universe->LU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state] * dzdu / Universe->LU;
@@ -2054,6 +2022,203 @@ namespace EMTG
         }
 
         //derivatives for the right-hand defect constraint
+        //derivative with respect to previous step state variables
+        for (size_t state = 0; state < 7; ++state)
+        {
+            if (state < 6)
+            {
+                dxdu = this->STM[2 * options->num_timesteps - 2](0, state);
+                dydu = this->STM[2 * options->num_timesteps - 2](1, state);
+                dzdu = this->STM[2 * options->num_timesteps - 2](2, state);
+                dxdotdu = this->STM[2 * options->num_timesteps - 2](3, state);
+                dydotdu = this->STM[2 * options->num_timesteps - 2](4, state);
+                dzdotdu = this->STM[2 * options->num_timesteps - 2](5, state);
+                dmdu = 0.0;
+            }
+            else
+            {
+                dxdu = 0.0;
+                dydu = 0.0;
+                dzdu = 0.0;
+                dxdotdu = 0.0;
+                dydotdu = 0.0;
+                dzdotdu = 0.0;
+                dmdu = 1.0;
+            }
+
+            dtdu = 0.0;
+            dtotal_available_thrust_timedu = 0.0;
+            dPdu = 0.0;
+            this->calculate_derivative_of_right_hand_state(options,
+                                                            Universe,
+                                                            options->num_timesteps - 1,
+                                                            dxdu,
+                                                            dydu,
+                                                            dzdu,
+                                                            dxdotdu,
+                                                            dydotdu,
+                                                            dzdotdu,
+                                                            dmdu,
+                                                            dtdu,
+                                                            dtotal_available_thrust_timedu,
+                                                            dPdu);
+
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[0][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[0][state] * dxdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[1][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[1][state] * dydu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[2][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[2][state] * dzdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][state] * dxdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][state] * dydotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][state] * dzdotdu / Universe->LU * Universe->TU;
+        }
+
+        //derivative with respect to previous step control variables
+        double umag = math::norm(control[options->num_timesteps - 1].data(), 3);
+        double deltat = time_step_sizes[options->num_timesteps - 1];
+
+        for (size_t c = 0; c < 3; ++c)
+        {
+            //first we need the derivative of the right hand side of the previous step with respect to the control in that step
+            dxdu = this->STM[2 * options->num_timesteps - 1](0, c + 3) * dVmax[options->num_timesteps - 1];
+            dydu = this->STM[2 * options->num_timesteps - 1](1, c + 3) * dVmax[options->num_timesteps - 1];
+            dzdu = this->STM[2 * options->num_timesteps - 1](2, c + 3) * dVmax[options->num_timesteps - 1];
+            dxdotdu = this->STM[2 * options->num_timesteps - 1](3, c + 3) * dVmax[options->num_timesteps - 1];
+            dydotdu = this->STM[2 * options->num_timesteps - 1](4, c + 3) * dVmax[options->num_timesteps - 1];
+            dzdotdu = this->STM[2 * options->num_timesteps - 1](5, c + 3) * dVmax[options->num_timesteps - 1];
+            dmdu = -(available_mass_flow_rate[options->num_timesteps - 1] * deltat * options->engine_duty_cycle) * ((control[options->num_timesteps - 1][c] / (umag + 1.0e-10)));
+
+            //now we can fill that into the constraint equation
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[0][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[0][7 + c] * dxdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[1][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[1][7 + c] * dydu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[2][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[2][7 + c] * dzdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][7 + c] * dxdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][7 + c] * dydotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][7 + c] * dzdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][7 + c] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+        }
     }
 
+    void PSBIphase::calculate_derivative_of_right_hand_state(missionoptions* options,
+                                                            EMTG::Astrodynamics::universe* Universe,
+                                                            const int& step,
+                                                            double& dxdu,
+                                                            double& dydu,
+                                                            double& dzdu,
+                                                            double& dxdotdu,
+                                                            double& dydotdu,
+                                                            double& dzdotdu,
+                                                            double& dmdu,
+                                                            double& dtdu,
+                                                            double& dtotal_available_thrust_time_du,
+                                                            double& dPdu)
+    {
+        double dxdu_right, dydu_right, dzdu_right, dxdotdu_right, dydotdu_right, dzdotdu_right, dmdu_right;
+        double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt;
+
+        double x = spacecraft_state[step][0];
+        double y = spacecraft_state[step][1];
+        double z = spacecraft_state[step][2];
+        double vx = spacecraft_state[step][3];
+        double vy = spacecraft_state[step][4];
+        double vz = spacecraft_state[step][5];
+        double r = sqrt(x*x + y*y + z*z);
+        double r3 = r*r*r;
+        double cmag = (math::norm(control[step].data(), 3) + 1.0e-10);
+
+
+        //values to be used in the derivative evaluation
+        double dTdP = this->dTdP[step];
+        double dPdr = this->dPdr[step] / Universe->LU;
+        double dPdt = this->dPdt[step];
+        double Thrust = this->available_thrust[step];
+        double mdot = this->available_mass_flow_rate[step];
+        double deltat = this->total_available_thrust_time / options->num_timesteps;
+        double dmdotdP = this->dmdotdP[step];
+        double D = options->engine_duty_cycle;
+        double m = spacecraft_state[step][6];
+
+        double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
+        double drdt = (x*vx + y*vy + z*vz) / r;
+
+        //evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
+        if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
+        {
+            //double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            //double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            //double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            //double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            //double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            //double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+            dxdt = this->Kepler_Fdot[2 * step - 1] * x// + this->Kepler_F_Forward[stepnext] * dx_ddeltatprop
+                + this->Kepler_Gdot[2 * step - 1] * vx;// + this->Kepler_G_Forward[stepnext] * dvx_ddeltatprop;
+            dydt = this->Kepler_Fdot[2 * step - 1] * y// + this->Kepler_F_Forward[stepnext] * dy_ddeltatprop
+                + this->Kepler_Gdot[2 * step - 1] * vy;// + this->Kepler_G_Forward[stepnext] * dvy_ddeltatprop;
+            dzdt = this->Kepler_Fdot[2 * step - 1] * z// + this->Kepler_F_Forward[stepnext] * dz_ddeltatprop
+                + this->Kepler_Gdot[2 * step - 1] * vz;// + this->Kepler_G_Forward[stepnext] * dvz_ddeltatprop;
+            dxdotdt = this->Kepler_Fdotdot[2 * step - 1] * x// + this->Kepler_Fdot_Forward[stepnext] * dx_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step - 1] * vx;// + this->Kepler_Gdot_Forward[stepnext] * dvx_ddeltatprop;
+            dydotdt = this->Kepler_Fdotdot[2 * step - 1] * y// + this->Kepler_Fdot_Forward[stepnext] * dy_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step - 1] * vy;// + this->Kepler_Gdot_Forward[stepnext] * dvy_ddeltatprop;
+            dzdotdt = this->Kepler_Fdotdot[2 * step - 1] * z// + this->Kepler_Fdot_Forward[stepnext] * dz_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step - 1] * vz;// + this->Kepler_Gdot_Forward[stepnext] * dvz_ddeltatprop;
+        }
+        else
+        {
+            dxdt = 0.0;
+            dydt = 0.0;
+            dzdt = 0.0;
+            dxdotdt = 0.0;
+            dydotdt = 0.0;
+            dzdotdt = 0.0;
+        }
+
+        double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+        double ddeltatdu = 1.0 / options->num_timesteps * dtotal_available_thrust_time_du;
+
+        double ddVmaxdu = D / (m * m) * ((dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
+
+        double dVxplusdu = (dxdotdu
+            + ddVmaxdu * control[step][0]
+            + this->dagravdRvec[step][0] * dxdu
+            + this->dagravdtvec[step][0] * dtdu);
+        double dVyplusdu = (dydotdu
+            + ddVmaxdu * control[step][1]
+            + this->dagravdRvec[step][1] * dydu
+            + this->dagravdtvec[step][1] * dtdu);
+        double dVzplusdu = (dzdotdu
+            + ddVmaxdu * control[step][2]
+            + this->dagravdRvec[step][2] * dzdu
+            + this->dagravdtvec[step][2] * dtdu);
+
+        Kepler::STM& STM = this->STM[2 * step + 1];
+
+        dxdu_right = STM(0, 0) * dxdu + STM(0, 1) * dydu + STM(0, 2) * dzdu
+            + STM(0, 3) * dVxplusdu + STM(0, 4) * dVyplusdu + STM(0, 5) * dVzplusdu
+            + dxdt * deltat / this->total_available_thrust_time * dtdu;
+        dydu_right = STM(1, 0) * dxdu + STM(1, 1) * dydu + STM(1, 2) * dzdu +
+            +STM(1, 3) * dVxplusdu + STM(1, 4) * dVyplusdu + STM(1, 5) * dVzplusdu
+            + dydt * deltat / this->total_available_thrust_time * dtdu;
+        dzdu_right = STM(2, 0) * dxdu + STM(2, 1) * dydu + STM(2, 2) * dzdu +
+            +STM(2, 3) * dVxplusdu + STM(2, 4) * dVyplusdu + STM(2, 5) * dVzplusdu
+            + dzdt * deltat / this->total_available_thrust_time * dtdu;
+        dxdotdu_right = STM(3, 0) * dxdu + STM(3, 1) * dydu + STM(3, 2) * dzdu +
+            +STM(3, 3) * dVxplusdu + STM(3, 4) * dVyplusdu + STM(3, 5) * dVzplusdu
+            + dxdotdt * deltat / this->total_available_thrust_time * dtdu;
+        dydotdu_right = STM(4, 0) * dxdu + STM(4, 1) * dydu + STM(4, 2) * dzdu +
+            +STM(4, 3) * dVxplusdu + STM(4, 4) * dVyplusdu + STM(4, 5) * dVzplusdu
+            + dydotdt * deltat / this->total_available_thrust_time * dtdu;
+        dzdotdu_right = STM(5, 0) * dxdu + STM(5, 1) * dydu + STM(5, 2) * dzdu +
+            +STM(5, 3) * dVxplusdu + STM(5, 4) * dVyplusdu + STM(5, 5) * dVzplusdu
+            + dzdotdt * deltat / this->total_available_thrust_time * dtdu;
+
+        double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+        dmdu_right = dmdu - D * cmag * (ddeltatdu * mdot + dmdotdu * deltat);
+
+        dxdu = dxdu_right;
+        dydu = dydu_right;
+        dzdu = dzdu_right;
+        dxdotdu = dxdotdu_right;
+        dydotdu = dydotdu_right;
+        dzdotdu = dzdotdu_right;
+        dmdu = dmdu_right;
+    }
 }//close namespace EMTG

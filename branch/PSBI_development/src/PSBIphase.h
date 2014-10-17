@@ -80,6 +80,21 @@ namespace EMTG
                                         missionoptions* options,
                                         EMTG::Astrodynamics::universe* Universe);
 
+        //function to calculate the derivative of a match point constraint with respect to a decision variable in the forward propagation
+        void calculate_derivative_of_right_hand_state(missionoptions* options,
+                                                    EMTG::Astrodynamics::universe* Universe,
+                                                    const int& step,
+                                                    double& dxdu,
+                                                    double& dydu,
+                                                    double& dzdu,
+                                                    double& dxdotdu,
+                                                    double& dydotdu,
+                                                    double& dzdotdu,
+                                                    double& dmdu,
+                                                    double& dtdu,
+                                                    double& dtotal_available_thrust_time_du,
+                                                    double& dPdu);
+
         //time information
         vector <double> event_epochs;
 
