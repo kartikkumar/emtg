@@ -37,7 +37,7 @@ namespace EMTG
 		central_body_name = options->journey_central_body[j];
 
 		//initialize the boundary states array
-		vector<double> state_dummy(9);
+		vector<double> state_dummy(12);
 		boundary_states.push_back(state_dummy);
 
 		//create the phases

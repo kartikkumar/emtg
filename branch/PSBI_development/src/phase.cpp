@@ -520,12 +520,12 @@ namespace EMTG {
 			//store the left boundary state derivative if we are using time derivatives
 			if (options->derivative_type > 2 && needG)
 			{
-				left_boundary_state_derivative[0] = boundary1_state[3];
-				left_boundary_state_derivative[1] = boundary1_state[4];
-				left_boundary_state_derivative[2] = boundary1_state[5];
-				left_boundary_state_derivative[3] = boundary1_state[6];
-				left_boundary_state_derivative[4] = boundary1_state[7];
-				left_boundary_state_derivative[5] = boundary1_state[8];
+				left_boundary_state_derivative[0] = boundary1_state[6];
+				left_boundary_state_derivative[1] = boundary1_state[7];
+				left_boundary_state_derivative[2] = boundary1_state[8];
+				left_boundary_state_derivative[3] = boundary1_state[9];
+				left_boundary_state_derivative[4] = boundary1_state[10];
+				left_boundary_state_derivative[5] = boundary1_state[11];
 			}
 
 			vinf_in = this->V_infinity_in.norm();
@@ -1024,12 +1024,12 @@ namespace EMTG {
 															true,
 															options);
 
-					left_boundary_state_derivative[0] = boundary_state[3];
-					left_boundary_state_derivative[1] = boundary_state[4];
-					left_boundary_state_derivative[2] = boundary_state[5];
-					left_boundary_state_derivative[3] = boundary_state[6];
-					left_boundary_state_derivative[4] = boundary_state[7];
-					left_boundary_state_derivative[5] = boundary_state[8];
+					left_boundary_state_derivative[0] = boundary_state[6];
+					left_boundary_state_derivative[1] = boundary_state[7];
+					left_boundary_state_derivative[2] = boundary_state[8];
+					left_boundary_state_derivative[3] = boundary_state[9];
+					left_boundary_state_derivative[4] = boundary_state[10];
+					left_boundary_state_derivative[5] = boundary_state[11];
 				}
 				else
 					Universe->bodies[location-1].locate_body(epoch,
@@ -1208,12 +1208,12 @@ namespace EMTG {
 				if (needG && options->derivative_type > 2)
 				{
 					Universe->bodies[location-1].locate_body(epoch, boundary_state, true, options);
-					right_boundary_state_derivative[0] = boundary_state[3];
-					right_boundary_state_derivative[1] = boundary_state[4];
-					right_boundary_state_derivative[2] = boundary_state[5];
-					right_boundary_state_derivative[3] = boundary_state[6];
-					right_boundary_state_derivative[4] = boundary_state[7];
-					right_boundary_state_derivative[5] = boundary_state[8];
+					right_boundary_state_derivative[0] = boundary_state[6];
+					right_boundary_state_derivative[1] = boundary_state[7];
+					right_boundary_state_derivative[2] = boundary_state[8];
+					right_boundary_state_derivative[3] = boundary_state[9];
+					right_boundary_state_derivative[4] = boundary_state[10];
+					right_boundary_state_derivative[5] = boundary_state[11];
 				}
 				else
 					Universe->bodies[location-1].locate_body(epoch, boundary_state, false, options);
