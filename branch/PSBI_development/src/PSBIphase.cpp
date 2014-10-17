@@ -720,7 +720,7 @@ namespace EMTG
                         stringstream EntryNameStream;
                         EntryNameStream << "Derivative of " << prefix << " rightmost " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
-                        this->G_index_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass == Gdescriptions->size() - 1;
+                        this->G_index_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass = Gdescriptions->size() - 1;
                         this->X_scale_range_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass = (*Xupperbounds)[entry] - (*Xlowerbounds)[entry];
                         break;
                     }
@@ -1778,6 +1778,102 @@ namespace EMTG
         //therefore it is practical to start with the RHS derivatives
         for (size_t step = 0; step < options->num_timesteps; ++step)
         {
+            //compute the left-hand side of the constraint derivative
+            //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
+            dtdu = 1.0;
+            dtotal_available_thrust_timedu = 0.0;
+            dPdu = 0.0;
+            if (step > 0)
+            {
+                dxdu = 0.0;
+                dydu = 0.0;
+                dzdu = 0.0;
+                dxdotdu = 0.0;
+                dzdotdu = 0.0;
+                dydotdu = 0.0;
+                dmdu = 0.0;
+
+                this->calculate_derivative_of_right_hand_state(options,
+                                                                Universe,
+                                                                step - 1,
+                                                                dxdu,
+                                                                dydu,
+                                                                dzdu,
+                                                                dxdotdu,
+                                                                dydotdu,
+                                                                dzdotdu,
+                                                                dmdu,
+                                                                dtdu,
+                                                                dtotal_available_thrust_timedu,
+                                                                dPdu);
+            }
+            else
+            {
+                if (initial_coast)
+                {
+                    dxdu = (*this->initial_coast_STM)(0, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(0, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(0, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(0, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(0, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(0, 5) * this->left_boundary_state_derivative[5];
+                    dydu = (*this->initial_coast_STM)(1, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(1, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(1, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(1, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(1, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(1, 5) * this->left_boundary_state_derivative[5];
+                    dzdu = (*this->initial_coast_STM)(2, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(2, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(2, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(2, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(2, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(2, 5) * this->left_boundary_state_derivative[5];
+                    dxdotdu = (*this->initial_coast_STM)(3, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(3, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(3, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(3, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(3, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(3, 5) * this->left_boundary_state_derivative[5];
+                    dydotdu = (*this->initial_coast_STM)(4, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(4, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(4, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(4, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(4, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(4, 5) * this->left_boundary_state_derivative[5];
+                    dzdotdu = (*this->initial_coast_STM)(5, 0) * this->left_boundary_state_derivative[0]
+                        + (*this->initial_coast_STM)(5, 1) * this->left_boundary_state_derivative[1]
+                        + (*this->initial_coast_STM)(5, 2) * this->left_boundary_state_derivative[2]
+                        + (*this->initial_coast_STM)(5, 3) * this->left_boundary_state_derivative[3]
+                        + (*this->initial_coast_STM)(5, 4) * this->left_boundary_state_derivative[4]
+                        + (*this->initial_coast_STM)(5, 5) * this->left_boundary_state_derivative[5];
+                }
+                else //if no initial coast
+                {
+                    dxdu = this->left_boundary_state_derivative[0];
+                    dydu = this->left_boundary_state_derivative[1];
+                    dzdu = this->left_boundary_state_derivative[2];
+                    dxdotdu = this->left_boundary_state_derivative[3];
+                    dydotdu = this->left_boundary_state_derivative[4];
+                    dzdotdu = this->left_boundary_state_derivative[5];
+                }
+                dmdu = 0.0;
+            }
+            //apply the left-hand the constraint
+            for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0].size(); ++timevar)
+            {
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar] * dxdu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar] * dydu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar] * dzdu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar] * dydotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+                if (step > 0)
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            }
+
+
+
             //derivative with respect to current state variable
             //RHS is defined, LHS is zero
             G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][0]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][0] / Universe->LU;
@@ -1992,6 +2088,7 @@ namespace EMTG
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][state] * dxdotdu / Universe->LU * Universe->TU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][state] * dydotdu / Universe->LU * Universe->TU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][state] * dzdotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][6][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][6][state] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
                 }
                 
                 //derivative with respect to previous step control variables
@@ -2069,6 +2166,7 @@ namespace EMTG
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[3][state] * dxdotdu / Universe->LU * Universe->TU;
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[4][state] * dydotdu / Universe->LU * Universe->TU;
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][state] * dzdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][state]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][state] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
         }
 
         //derivative with respect to previous step control variables
@@ -2095,6 +2193,139 @@ namespace EMTG
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[5][7 + c] * dzdotdu / Universe->LU * Universe->TU;
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][7 + c]] = -this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control[6][7 + c] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
         }
+
+        //derivative of rightmost mass defect constraint with respect to arrival mass
+        G[this->G_index_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass] = this->X_scale_range_of_derivative_of_rightmost_mass_defect_constraint_with_respect_to_current_phase_arrival_mass / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+
+        //derivative of rightmost defect constraint with respect to previous flight time variables
+        dtdu = 1.0;
+        dtotal_available_thrust_timedu = 0.0;
+        dPdu = 0.0;
+
+        //first get the right hand side of the constraint
+        if (this->terminal_coast)
+        {
+            dxdu = (*this->terminal_coast_STM)(0, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(0, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(0, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(0, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(0, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(0, 5) * this->right_boundary_state_derivative[5];
+            dydu = (*this->terminal_coast_STM)(1, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(1, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(1, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(1, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(1, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(1, 5) * this->right_boundary_state_derivative[5];
+            dzdu = (*this->terminal_coast_STM)(2, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(2, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(2, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(2, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(2, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(2, 5) * this->right_boundary_state_derivative[5];
+            dxdotdu = (*this->terminal_coast_STM)(3, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(3, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(3, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(3, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(3, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(3, 5) * this->right_boundary_state_derivative[5];
+            dydotdu = (*this->terminal_coast_STM)(4, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(4, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(4, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(4, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(4, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(4, 5) * this->right_boundary_state_derivative[5];
+            dzdotdu = (*this->terminal_coast_STM)(5, 0) * this->right_boundary_state_derivative[0]
+                + (*this->terminal_coast_STM)(5, 1) * this->right_boundary_state_derivative[1]
+                + (*this->terminal_coast_STM)(5, 2) * this->right_boundary_state_derivative[2]
+                + (*this->terminal_coast_STM)(5, 3) * this->right_boundary_state_derivative[3]
+                + (*this->terminal_coast_STM)(5, 4) * this->right_boundary_state_derivative[4]
+                + (*this->terminal_coast_STM)(5, 5) * this->right_boundary_state_derivative[5];
+            dmdu = 0.0;
+        }
+        else //no terminal coast, RHS is state at end of phase
+        {
+            dxdu = this->right_boundary_state_derivative[0];
+            dydu = this->right_boundary_state_derivative[1];
+            dzdu = this->right_boundary_state_derivative[2];
+            dxdotdu = this->right_boundary_state_derivative[3];
+            dydotdu = this->right_boundary_state_derivative[4];
+            dzdotdu = this->right_boundary_state_derivative[5];
+            dmdu = 0.0;
+        }
+
+        //apply the right-hand side of the constraint
+        for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
+        {
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+        }
+
+
+        //compute the left-hand side of the constraint
+        //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
+        dxdu = 0.0;
+        dydu = 0.0;
+        dzdu = 0.0;
+        dxdotdu = 0.0;
+        dzdotdu = 0.0;
+        dydotdu = 0.0;
+        dmdu = 0.0;
+
+        this->calculate_derivative_of_right_hand_state(options,
+                                                        Universe,
+                                                        options->num_timesteps - 1,
+                                                        dxdu,
+                                                        dydu,
+                                                        dzdu,
+                                                        dxdotdu,
+                                                        dydotdu,
+                                                        dzdotdu,
+                                                        dmdu,
+                                                        dtdu,
+                                                        dtotal_available_thrust_timedu,
+                                                        dPdu);
+        //apply the left-hand side of the constraint
+        for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
+        {
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+        }
+        /*
+        //add the additional term for the derivative of rightmost defect constraint with respect to current phase flight time
+        dtdu = 0.0;
+        dtotal_available_thrust_timedu = 1.0;
+        this->calculate_derivative_of_right_hand_state(options,
+                                                        Universe,
+                                                        options->num_timesteps - 1,
+                                                        dxdu,
+                                                        dydu,
+                                                        dzdu,
+                                                        dxdotdu,
+                                                        dydotdu,
+                                                        dzdotdu,
+                                                        dmdu,
+                                                        dtdu,
+                                                        dtotal_available_thrust_timedu,
+                                                        dPdu);
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0] * dxdu / Universe->LU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0] * dydu / Universe->LU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0] * dzdu / Universe->LU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0] * dxdotdu / Universe->LU * Universe->TU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0] * dydotdu / Universe->LU * Universe->TU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0] * dzdotdu / Universe->LU * Universe->TU;
+        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+        */
     }
 
     void PSBIphase::calculate_derivative_of_right_hand_state(missionoptions* options,
