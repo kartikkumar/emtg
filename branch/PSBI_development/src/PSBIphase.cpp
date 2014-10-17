@@ -1768,6 +1768,7 @@ namespace EMTG
     {
         //declare variables which will be generally useful
         double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, dtdu;
+        double dxdu_midpoint, dydu_midpoint, dzdu_midpoint, dxdotdu_midpoint, dydotdu_midpoint, dzdotdu_midpoint, dmdu_midpoint, dtdu_midpoint;
 
         //derivatives for the left-hand defect constraints
         //each constraint has a left side and a right side, and derivatives are posed as:
@@ -1879,13 +1880,152 @@ namespace EMTG
                 //and the calculation is much simpler
                 else if (p > 0 || (p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6)))
                 {
+                    if (initial_coast)
+                    {
+                        //derivatives with respect to v_x
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU * Universe->TU;
+                        //derivatives with respect to v_y
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU * Universe->TU;
+                        //derivatives with respect to v_z
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]
+                            * ((*this->initial_coast_STM)(state, 3)
+                            + (*this->initial_coast_STM)(state, 4)
+                            + (*this->initial_coast_STM)(state, 5)) / Universe->LU * Universe->TU;
+                    }
+                    else //if no initial coast
+                    {
+                        //no dependence of position on initial velocity increment
+                        //derivatives with respect to v_x
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0] / Universe->LU * Universe->TU;
 
+                        //derivatives with respect to v_y
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1] / Universe->LU * Universe->TU;
+                        //derivatives with respect to v_z
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2] / Universe->LU * Universe->TU;
+
+                    }
                 }
             }
             else //for successive steps
             {
                 //TODO derivative with respect to previous step state variables
-               
+                for (size_t state = 0; state < 7; ++state)
+                {
+                    if (state < 6)
+                    {
+                        dxdu_midpoint = this->STM[2 * step - 2](0, state);
+                        dydu_midpoint = this->STM[2 * step - 2](1, state);
+                        dzdu_midpoint = this->STM[2 * step - 2](2, state);
+                        dxdotdu_midpoint = this->STM[2 * step - 2](3, state);
+                        dydotdu_midpoint = this->STM[2 * step - 2](4, state);
+                        dzdotdu_midpoint = this->STM[2 * step - 2](5, state);
+                        dmdu = 0.0;
+                    }
+                    else
+                    {
+                        dxdu_midpoint = 0.0;
+                        dydu_midpoint = 0.0;
+                        dzdu_midpoint = 0.0;
+                        dxdotdu_midpoint = 0.0;
+                        dydotdu_midpoint = 0.0;
+                        dzdotdu_midpoint = 0.0;
+                        dmdu = 1.0;
+                    }
+
+                    double x = spacecraft_state[step - 1][0];
+                    double y = spacecraft_state[step - 1][1];
+                    double z = spacecraft_state[step - 1][2];
+                    double vx = spacecraft_state[step - 1][3];
+                    double vy = spacecraft_state[step - 1][4];
+                    double vz = spacecraft_state[step - 1][5];
+                    double r = sqrt(x*x + y*y + z*z);
+                    double r3 = r*r*r;
+                    double cmag = (math::norm(control[step - 1].data(), 3) + 1.0e-10);
+
+                    double dTdP = this->dTdP[step - 1];
+                    double dPdr = this->dPdr[step - 1] / Universe->LU;
+                    double dPdt = this->dPdt[step - 1];
+                    double Thrust = this->available_thrust[step - 1];
+                    double mdot = this->available_mass_flow_rate[step - 1];
+                    double deltat = this->time_step_sizes[step - 1];
+                    double dmdotdP = this->dmdotdP[step - 1];
+                    double D = options->engine_duty_cycle;
+                    double m = spacecraft_state[step - 1][6];
+
+                    double drdu = (x*dxdu_midpoint + y*dydu_midpoint + z*dzdu_midpoint) / r;
+                    double drdt = (x*vx + y*vy + z*vz) / r;
+
+                    double dTdu = dTdP * (dPdr * drdu);
+
+                    double ddVmaxdu = D / (m * m) * ((dTdu * deltat) * m - dmdu * Thrust * deltat);
+
+                    double dVxplusdu = (dxdotdu_midpoint
+                        + ddVmaxdu * control[step - 1][0]
+                        + this->dagravdRvec[step - 1][0] * dxdu_midpoint);
+                    double dVyplusdu = (dydotdu_midpoint
+                        + ddVmaxdu * control[step - 1][1]
+                        + this->dagravdRvec[step - 1][1] * dydu_midpoint);
+                    double dVzplusdu = (dzdotdu_midpoint
+                        + ddVmaxdu * control[step - 1][2]
+                        + this->dagravdRvec[step - 1][2] * dzdu_midpoint);
+
+                    dxdu = this->STM[2 * step - 1](0, 0) * dxdu_midpoint + this->STM[2 * step - 1](0, 1) * dydu_midpoint + this->STM[2 * step - 1](0, 2) * dzdu_midpoint
+                        + this->STM[2 * step - 1](0, 3) * dVxplusdu + this->STM[2 * step - 1](0, 4) * dVyplusdu + this->STM[2 * step - 1](0, 5) * dVzplusdu;
+                    dydu = this->STM[2 * step - 1](1, 0) * dxdu_midpoint + this->STM[2 * step - 1](1, 1) * dydu_midpoint + this->STM[2 * step - 1](1, 2) * dzdu_midpoint +
+                        +this->STM[2 * step - 1](1, 3) * dVxplusdu + this->STM[2 * step - 1](1, 4) * dVyplusdu + this->STM[2 * step - 1](1, 5) * dVzplusdu;
+                    dzdu = this->STM[2 * step - 1](2, 0) * dxdu_midpoint + this->STM[2 * step - 1](2, 1) * dydu_midpoint + this->STM[2 * step - 1](2, 2) * dzdu_midpoint +
+                        +this->STM[2 * step - 1](2, 3) * dVxplusdu + this->STM[2 * step - 1](2, 4) * dVyplusdu + this->STM[2 * step - 1](2, 5) * dVzplusdu;
+                    dxdotdu = this->STM[2 * step - 1](3, 0) * dxdu_midpoint + this->STM[2 * step - 1](3, 1) * dydu_midpoint + this->STM[2 * step - 1](3, 2) * dzdu_midpoint +
+                        +this->STM[2 * step - 1](3, 3) * dVxplusdu + this->STM[2 * step - 1](3, 4) * dVyplusdu + this->STM[2 * step - 1](3, 5) * dVzplusdu;
+                    dydotdu = this->STM[2 * step - 1](4, 0) * dxdu_midpoint + this->STM[2 * step - 1](4, 1) * dydu_midpoint + this->STM[2 * step - 1](4, 2) * dzdu_midpoint +
+                        +this->STM[2 * step - 1](4, 3) * dVxplusdu + this->STM[2 * step - 1](4, 4) * dVyplusdu + this->STM[2 * step - 1](4, 5) * dVzplusdu;
+                    dzdotdu = this->STM[2 * step - 1](5, 0) * dxdu_midpoint + this->STM[2 * step - 1](5, 1) * dydu_midpoint + this->STM[2 * step - 1](5, 2) * dzdu_midpoint +
+                        +this->STM[2 * step - 1](5, 3) * dVxplusdu + this->STM[2 * step - 1](5, 4) * dVyplusdu + this->STM[2 * step - 1](5, 5) * dVzplusdu;
+
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state] * dxdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state] * dydu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state] * dzdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][state] * dxdotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][state] * dydotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][state] * dzdotdu / Universe->LU * Universe->TU;
+                }
+                
                 //derivative with respect to previous step control variables
                 double umag = math::norm(control[step - 1].data(), 3);
                 double deltat = time_step_sizes[step];
