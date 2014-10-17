@@ -353,6 +353,7 @@ namespace EMTG
                 //  note that the FIRST entry in the list of time derivatives is with respect to the CURRENT phase flight time
                 vector<int> state_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
                 vector<double> state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
+                bool firstpass = true;
                 for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
                 {
                     if (((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024) && (step > 0 || state < 6))
@@ -1778,22 +1779,23 @@ namespace EMTG
         //therefore it is practical to start with the RHS derivatives
         for (size_t step = 0; step < options->num_timesteps; ++step)
         {
-            //compute the left-hand side of the constraint derivative
-            //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
-            dtdu = 1.0;
-            dtotal_available_thrust_timedu = 0.0;
-            dPdu = 0.0;
-            if (step > 0)
+            //compute the left-hand side of the constraint derivative with respect to current phase flight time (LHS defined, RHS zero)
+            if (options->derivative_type > 3)
             {
-                dxdu = 0.0;
-                dydu = 0.0;
-                dzdu = 0.0;
-                dxdotdu = 0.0;
-                dzdotdu = 0.0;
-                dydotdu = 0.0;
-                dmdu = 0.0;
+                dtdu = 1.0;
+                dtotal_available_thrust_timedu = 1.0;
+                dPdu = 0.0;
+                if (step > 0)
+                {
+                    dxdu = (this->Kepler_Fdot[2 * step - 2] * this->left_hand_state[step - 1][0] + this->Kepler_Gdot[2 * step - 2] * this->left_hand_state[step - 1][3]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dydu = (this->Kepler_Fdot[2 * step - 2] * this->left_hand_state[step - 1][1] + this->Kepler_Gdot[2 * step - 2] * this->left_hand_state[step - 1][4]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dzdu = (this->Kepler_Fdot[2 * step - 2] * this->left_hand_state[step - 1][2] + this->Kepler_Gdot[2 * step - 2] * this->left_hand_state[step - 1][5]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dxdotdu = (this->Kepler_Fdotdot[2 * step - 2] * this->left_hand_state[step - 1][0] + this->Kepler_Gdotdot[2 * step - 2] * this->left_hand_state[step - 1][3]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dydotdu = (this->Kepler_Fdotdot[2 * step - 2] * this->left_hand_state[step - 1][1] + this->Kepler_Gdotdot[2 * step - 2] * this->left_hand_state[step - 1][4]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dzdotdu = (this->Kepler_Fdotdot[2 * step - 2] * this->left_hand_state[step - 1][2] + this->Kepler_Gdotdot[2 * step - 2] * this->left_hand_state[step - 1][5]) * this->Propagation_Step_Time_Fraction[step - 1];
+                    dmdu = 0.0;
 
-                this->calculate_derivative_of_right_hand_state(options,
+                    this->calculate_derivative_of_right_hand_state(options,
                                                                 Universe,
                                                                 step - 1,
                                                                 dxdu,
@@ -1806,72 +1808,139 @@ namespace EMTG
                                                                 dtdu,
                                                                 dtotal_available_thrust_timedu,
                                                                 dPdu);
-            }
-            else
-            {
-                if (initial_coast)
-                {
-                    dxdu = (*this->initial_coast_STM)(0, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(0, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(0, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(0, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(0, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(0, 5) * this->left_boundary_state_derivative[5];
-                    dydu = (*this->initial_coast_STM)(1, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(1, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(1, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(1, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(1, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(1, 5) * this->left_boundary_state_derivative[5];
-                    dzdu = (*this->initial_coast_STM)(2, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(2, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(2, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(2, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(2, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(2, 5) * this->left_boundary_state_derivative[5];
-                    dxdotdu = (*this->initial_coast_STM)(3, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(3, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(3, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(3, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(3, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(3, 5) * this->left_boundary_state_derivative[5];
-                    dydotdu = (*this->initial_coast_STM)(4, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(4, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(4, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(4, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(4, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(4, 5) * this->left_boundary_state_derivative[5];
-                    dzdotdu = (*this->initial_coast_STM)(5, 0) * this->left_boundary_state_derivative[0]
-                        + (*this->initial_coast_STM)(5, 1) * this->left_boundary_state_derivative[1]
-                        + (*this->initial_coast_STM)(5, 2) * this->left_boundary_state_derivative[2]
-                        + (*this->initial_coast_STM)(5, 3) * this->left_boundary_state_derivative[3]
-                        + (*this->initial_coast_STM)(5, 4) * this->left_boundary_state_derivative[4]
-                        + (*this->initial_coast_STM)(5, 5) * this->left_boundary_state_derivative[5];
                 }
-                else //if no initial coast
+                else //for the first step
                 {
-                    dxdu = this->left_boundary_state_derivative[0];
-                    dydu = this->left_boundary_state_derivative[1];
-                    dzdu = this->left_boundary_state_derivative[2];
-                    dxdotdu = this->left_boundary_state_derivative[3];
-                    dydotdu = this->left_boundary_state_derivative[4];
-                    dzdotdu = this->left_boundary_state_derivative[5];
+                    if (initial_coast)
+                    {
+                        dxdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dydu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dzdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dxdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dydotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dzdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dmdu = 0.0;
+                    }
+                    else //if no initial coast
+                    {
+                        dxdu = 0.0;
+                        dydu = 0.0;
+                        dzdu = 0.0;
+                        dxdotdu = 0.0;
+                        dydotdu = 0.0;
+                        dzdotdu = 0.0;
+                        dmdu = 0.0;
+                    }
                 }
-                dmdu = 0.0;
-            }
-            //apply the left-hand the constraint
-            for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0].size(); ++timevar)
-            {
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar] * dxdu / Universe->LU;
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar] * dydu / Universe->LU;
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar] * dzdu / Universe->LU;
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar] * dxdotdu / Universe->LU * Universe->TU;
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar] * dydotdu / Universe->LU * Universe->TU;
-                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar] * dzdotdu / Universe->LU * Universe->TU;
-                if (step > 0)
-                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
-            }
 
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][0] * dxdu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][0] * dydu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][0] * dzdu / Universe->LU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][0] * dxdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][0] * dydotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][0] * dzdotdu / Universe->LU * Universe->TU;
+                if (step > 0)
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][0]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][0] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+
+
+            }
+            
+            //compute the left-hand side of the constraint derivative with respect to launch epoch or previous phase flight time (LHS defined, RHS zero)
+            //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
+            if (options->derivative_type > 2)
+            {
+                dtdu = 1.0;
+                dtotal_available_thrust_timedu = 0.0;
+                dPdu = 0.0;
+                if (step > 0)
+                {
+                    dxdu = 0.0;
+                    dydu = 0.0;
+                    dzdu = 0.0;
+                    dxdotdu = 0.0;
+                    dzdotdu = 0.0;
+                    dydotdu = 0.0;
+                    dmdu = 0.0;
+
+                    this->calculate_derivative_of_right_hand_state(options,
+                        Universe,
+                        step - 1,
+                        dxdu,
+                        dydu,
+                        dzdu,
+                        dxdotdu,
+                        dydotdu,
+                        dzdotdu,
+                        dmdu,
+                        dtdu,
+                        dtotal_available_thrust_timedu,
+                        dPdu);
+                }
+                else
+                {
+                    if (initial_coast)
+                    {
+                        dxdu = (*this->initial_coast_STM)(0, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(0, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(0, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(0, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(0, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(0, 5) * this->left_boundary_state_derivative[5];
+                        dydu = (*this->initial_coast_STM)(1, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(1, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(1, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(1, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(1, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(1, 5) * this->left_boundary_state_derivative[5];
+                        dzdu = (*this->initial_coast_STM)(2, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(2, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(2, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(2, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(2, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(2, 5) * this->left_boundary_state_derivative[5];
+                        dxdotdu = (*this->initial_coast_STM)(3, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(3, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(3, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(3, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(3, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(3, 5) * this->left_boundary_state_derivative[5];
+                        dydotdu = (*this->initial_coast_STM)(4, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(4, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(4, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(4, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(4, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(4, 5) * this->left_boundary_state_derivative[5];
+                        dzdotdu = (*this->initial_coast_STM)(5, 0) * this->left_boundary_state_derivative[0]
+                            + (*this->initial_coast_STM)(5, 1) * this->left_boundary_state_derivative[1]
+                            + (*this->initial_coast_STM)(5, 2) * this->left_boundary_state_derivative[2]
+                            + (*this->initial_coast_STM)(5, 3) * this->left_boundary_state_derivative[3]
+                            + (*this->initial_coast_STM)(5, 4) * this->left_boundary_state_derivative[4]
+                            + (*this->initial_coast_STM)(5, 5) * this->left_boundary_state_derivative[5];
+                    }
+                    else //if no initial coast
+                    {
+                        dxdu = this->left_boundary_state_derivative[0];
+                        dydu = this->left_boundary_state_derivative[1];
+                        dzdu = this->left_boundary_state_derivative[2];
+                        dxdotdu = this->left_boundary_state_derivative[3];
+                        dydotdu = this->left_boundary_state_derivative[4];
+                        dzdotdu = this->left_boundary_state_derivative[5];
+                    }
+                    dmdu = 0.0;
+                }
+                //apply the left-hand the constraint
+                for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0].size(); ++timevar)
+                {
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][0][timevar] * dxdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][1][timevar] * dydu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][2][timevar] * dzdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][4][timevar] * dydotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+                    if (step > 0)
+                        G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables[step][6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+                }
+            }
 
 
             //derivative with respect to current state variable
@@ -2081,7 +2150,7 @@ namespace EMTG
                                                                     dtdu,
                                                                     dtotal_available_thrust_timedu,
                                                                     dPdu);
-                    
+
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][state] * dxdu / Universe->LU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][state] * dydu / Universe->LU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][state] * dzdu / Universe->LU;
@@ -2373,24 +2442,24 @@ namespace EMTG
         //evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
         if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
         {
-            //double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            //double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            //double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            //double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            //double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            //double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-            dxdt = this->Kepler_Fdot[2 * step - 1] * x// + this->Kepler_F_Forward[stepnext] * dx_ddeltatprop
-                + this->Kepler_Gdot[2 * step - 1] * vx;// + this->Kepler_G_Forward[stepnext] * dvx_ddeltatprop;
-            dydt = this->Kepler_Fdot[2 * step - 1] * y// + this->Kepler_F_Forward[stepnext] * dy_ddeltatprop
-                + this->Kepler_Gdot[2 * step - 1] * vy;// + this->Kepler_G_Forward[stepnext] * dvy_ddeltatprop;
-            dzdt = this->Kepler_Fdot[2 * step - 1] * z// + this->Kepler_F_Forward[stepnext] * dz_ddeltatprop
-                + this->Kepler_Gdot[2 * step - 1] * vz;// + this->Kepler_G_Forward[stepnext] * dvz_ddeltatprop;
-            dxdotdt = this->Kepler_Fdotdot[2 * step - 1] * x// + this->Kepler_Fdot_Forward[stepnext] * dx_ddeltatprop
-                + this->Kepler_Gdotdot[2 * step - 1] * vx;// + this->Kepler_Gdot_Forward[stepnext] * dvx_ddeltatprop;
-            dydotdt = this->Kepler_Fdotdot[2 * step - 1] * y// + this->Kepler_Fdot_Forward[stepnext] * dy_ddeltatprop
-                + this->Kepler_Gdotdot[2 * step - 1] * vy;// + this->Kepler_Gdot_Forward[stepnext] * dvy_ddeltatprop;
-            dzdotdt = this->Kepler_Fdotdot[2 * step - 1] * z// + this->Kepler_Fdot_Forward[stepnext] * dz_ddeltatprop
-                + this->Kepler_Gdotdot[2 * step - 1] * vz;// + this->Kepler_Gdot_Forward[stepnext] * dvz_ddeltatprop;
+            double dx_ddeltatprop = dxdu / options->num_timesteps;
+            double dy_ddeltatprop = dydu / options->num_timesteps;
+            double dz_ddeltatprop = dzdu / options->num_timesteps;
+            double dvx_ddeltatprop = dxdotdu / options->num_timesteps;
+            double dvy_ddeltatprop = dydotdu / options->num_timesteps;
+            double dvz_ddeltatprop = dzdotdu / options->num_timesteps;
+            dxdt = this->Kepler_Fdot[2 * step + 1] * x + this->Kepler_F[2 * step + 1] * dx_ddeltatprop
+                + this->Kepler_Gdot[2 * step + 1] * vx + this->Kepler_G[2 * step + 1] * dvx_ddeltatprop;
+            dydt = this->Kepler_Fdot[2 * step + 1] * y + this->Kepler_F[2 * step + 1] * dy_ddeltatprop
+                + this->Kepler_Gdot[2 * step + 1] * vy + this->Kepler_G[2 * step + 1] * dvy_ddeltatprop;
+            dzdt = this->Kepler_Fdot[2 * step + 1] * z + this->Kepler_F[2 * step + 1] * dz_ddeltatprop
+                + this->Kepler_Gdot[2 * step + 1] * vz + this->Kepler_G[2 * step + 1] * dvz_ddeltatprop;
+            dxdotdt = this->Kepler_Fdotdot[2 * step + 1] * x + this->Kepler_Fdot[2 * step + 1] * dx_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step + 1] * vx + this->Kepler_Gdot[2 * step + 1] * dvx_ddeltatprop;
+            dydotdt = this->Kepler_Fdotdot[2 * step + 1] * y + this->Kepler_Fdot[2 * step + 1] * dy_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step + 1] * vy + this->Kepler_Gdot[2 * step + 1] * dvy_ddeltatprop;
+            dzdotdt = this->Kepler_Fdotdot[2 * step + 1] * z + this->Kepler_Fdot[2 * step + 1] * dz_ddeltatprop
+                + this->Kepler_Gdotdot[2 * step + 1] * vz + this->Kepler_Gdot[2 * step + 1] * dvz_ddeltatprop;
         }
         else
         {
