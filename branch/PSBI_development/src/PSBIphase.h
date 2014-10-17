@@ -109,12 +109,12 @@ namespace EMTG
             vector<double> Propagation_Step_Time_Fraction_Derivative;
 
         //derivatives for the radial distance constraint
-            vector< vector<int> > radus_constraint_G_indicies;
+            vector< vector<int> > radius_constraint_G_indices;
             vector< vector <double> > radius_constraint_X_scale_ranges;
 
         //derivatives for all left-handed defect constraints
-            vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
-            vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
+            vector< vector<int> > G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
+            vector< vector<double> > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
             vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
             vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
 

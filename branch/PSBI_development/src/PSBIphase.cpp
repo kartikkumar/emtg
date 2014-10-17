@@ -309,15 +309,15 @@ namespace EMTG
                     step_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                 }
             }
-            this->radus_constraint_G_indicies.push_back(step_radius_constraint_G_indices);
+            this->radius_constraint_G_indices.push_back(step_radius_constraint_G_indices);
             this->radius_constraint_X_scale_ranges.push_back(step_radius_constraint_X_scale_ranges);
 
 
             //left-hand defect constraints: all steps have this!
             //temporary arrays for G index tracking
             
-            vector < vector<int> > step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
-            vector < vector<double> > step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
+            vector<int> step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;
+            vector<double> step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state;
             vector< vector<int> > step_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
             vector< vector<double> > step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
             vector<int> step_G_index_of_derivative_of_defect_with_respect_to_BOL_power(7);
@@ -344,20 +344,18 @@ namespace EMTG
                         stringstream EntryNameStream;
                         EntryNameStream << "Derivative of " << prefix << "step " << step << " " << statename[state] << " defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
-                        state_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(Gdescriptions->size() - 1);
-                        state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                        step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(Gdescriptions->size() - 1);
+                        step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                     }
                 }
-                step_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(state_G_index_of_derivative_of_defect_constraints_with_respect_to_current_state);
-                step_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state.push_back(state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state);
-
+                
                 //  ALL previous time variables including the current phase flight time
                 //  note that the FIRST entry in the list of time derivatives is with respect to the CURRENT phase flight time
                 vector<int> state_G_index_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
                 vector<double> state_X_scale_range_of_derivative_of_defect_constraints_with_respect_to_flight_time_variables;
                 for (int entry = Xdescriptions->size() - 1; entry >= 0; --entry)
                 {
-                    if ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024)
+                    if (((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024) && (step > 0 || state < 6))
                     {
                         iGfun->push_back(Fdescriptions->size() - 1);
                         jGvar->push_back(entry);
@@ -421,7 +419,8 @@ namespace EMTG
                 if (step == 0)
                 {
                     //if applicable, variable left hand boundary condition
-                    if (p == 0 && (options->journey_departure_elements_vary_flag[j][0]
+                    if (p == 0 && state < 6 &&
+                                    (options->journey_departure_elements_vary_flag[j][0]
                                     || options->journey_departure_elements_vary_flag[j][1]
                                     || options->journey_departure_elements_vary_flag[j][2]
                                     || options->journey_departure_elements_vary_flag[j][3]
@@ -449,7 +448,7 @@ namespace EMTG
                     //this occurs for first phase of successive journeys where previous journey ended in a variable boundary condition
                     if (p == 0 && j > 0)
                     {
-                        if (options->destination_list[j][0] == -1 && options->destination_list[j - 1][1] == -1
+                        if (options->destination_list[j][0] == -1 && options->destination_list[j - 1][1] == -1 && state < 6
                             && (options->journey_arrival_elements_vary_flag[j - 1][0]
                                 || options->journey_arrival_elements_vary_flag[j - 1][1]
                                 || options->journey_arrival_elements_vary_flag[j - 1][2]
@@ -496,7 +495,7 @@ namespace EMTG
                                     state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
                                     state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                                 }
-                                else if ((*Xdescriptions)[entry].find("RA of departure asymptote") < 1024)
+                                else if ((*Xdescriptions)[entry].find("RA of departure asymptote") < 1024 && state < 6)
                                 {
                                     iGfun->push_back(Fdescriptions->size() - 1);
                                     jGvar->push_back(entry);
@@ -506,7 +505,7 @@ namespace EMTG
                                     state_G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
                                     state_X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                                 }
-                                else if ((*Xdescriptions)[entry].find("DEC of departure asymptote") < 1024)
+                                else if ((*Xdescriptions)[entry].find("DEC of departure asymptote") < 1024 && state < 6)
                                 {
                                     iGfun->push_back(Fdescriptions->size() - 1);
                                     jGvar->push_back(entry);
@@ -523,7 +522,7 @@ namespace EMTG
                         {
                             for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
                             {
-                                if ((*Xdescriptions)[entry].find("initial velocity increment") < 1024)
+                                if ((*Xdescriptions)[entry].find("initial velocity increment") < 1024 && state < 6)
                                 {
                                     iGfun->push_back(Fdescriptions->size() - 1);
                                     jGvar->push_back(entry);
@@ -544,7 +543,7 @@ namespace EMTG
                     {
                         for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
                         {
-                            if ((*Xdescriptions)[entry].find("arrival_mass") < 1024)
+                            if ((*Xdescriptions)[entry].find("arrival_mass") < 1024 && state == 6)
                             {
                                 iGfun->push_back(Fdescriptions->size() - 1);
                                 jGvar->push_back(entry);
@@ -560,7 +559,7 @@ namespace EMTG
 
                     //if applicable, variable mission initial mass
                     //note that this can only happen in the first journey and phase because phases are separable
-                    if (p == 0 && j == 0 && options->allow_initial_mass_to_vary)
+                    if (p == 0 && j == 0 && options->allow_initial_mass_to_vary && state == 6)
                     {
                         //step forward through the decision vector until you hit the initial mass multiplier
                         for (size_t entry = 0; entry < Xdescriptions->size() - 1; ++entry)
@@ -579,7 +578,7 @@ namespace EMTG
                     }//close if block for variable initial mass
 
                     //if applicable, variable journey initial mass increment scale factor
-                    if (options->journey_variable_mass_increment[j])
+                    if (options->journey_variable_mass_increment[j] && state == 6)
                     {
                         //note that the current phases's initial mass scales linearly with ALL previous journey initial mass multipliers
                         for (int pj = 0; pj <= j; ++pj)
@@ -728,14 +727,14 @@ namespace EMTG
                 }
             }
 
-            //final v-infinity vector
+            //final v-infinity vector (no dependency exists for the mass defect
             //there is always a final v-infinity vector in the decision vector unless:
             //a) this phase ends in a low-thrust rendezvous (option 3)
             //b) this phase ends in a low-thrust fixed v-infinity intercept (option 5)
             //c) this phase ends in a capture spiral (option 7)
-            if (!(p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 3
-                                                            || options->journey_arrival_type[j] == 5
-                                                            || options->journey_arrival_type[j] == 7)))
+            if (!(p == options->number_of_phases[j] - 1 && state < 6 && (options->journey_arrival_type[j] == 3
+                                                                        || options->journey_arrival_type[j] == 5
+                                                                        || options->journey_arrival_type[j] == 7)))
             {
                 vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
                 vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
@@ -757,12 +756,13 @@ namespace EMTG
             }
 
             //if applicable, variable right hand boundary condition
-            if (p == 0 && (options->journey_arrival_elements_vary_flag[j][0]
-                            || options->journey_arrival_elements_vary_flag[j][1]
-                            || options->journey_arrival_elements_vary_flag[j][2]
-                            || options->journey_arrival_elements_vary_flag[j][3]
-                            || options->journey_arrival_elements_vary_flag[j][4]
-                            || options->journey_arrival_elements_vary_flag[j][5]))
+            //(no dependency exists for the mass defect)
+            if (p == options->number_of_phases[j] - 1 && state < 6 && (options->journey_arrival_elements_vary_flag[j][0]
+                                                                        || options->journey_arrival_elements_vary_flag[j][1]
+                                                                        || options->journey_arrival_elements_vary_flag[j][2]
+                                                                        || options->journey_arrival_elements_vary_flag[j][3]
+                                                                        || options->journey_arrival_elements_vary_flag[j][4]
+                                                                        || options->journey_arrival_elements_vary_flag[j][5]))
             {
                 vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition;
                 vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_variable_right_boundary_condition;
@@ -923,9 +923,9 @@ namespace EMTG
 
             if (needG && options->derivative_type > 0)
             {
-                G[this->radus_constraint_G_indicies[step][0]] = (-this->left_hand_state[step][0] / r) / this->minimum_radial_distance;
-                G[this->radus_constraint_G_indicies[step][1]] = (-this->left_hand_state[step][1] / r) / this->minimum_radial_distance;
-                G[this->radus_constraint_G_indicies[step][2]] = (-this->left_hand_state[step][2] / r) / this->minimum_radial_distance;
+                G[this->radius_constraint_G_indices[step][0]] = this->radius_constraint_X_scale_ranges[step][0] * (-this->left_hand_state[step][0] / r) / this->minimum_radial_distance;
+                G[this->radius_constraint_G_indices[step][1]] = this->radius_constraint_X_scale_ranges[step][1] * (-this->left_hand_state[step][1] / r) / this->minimum_radial_distance;
+                G[this->radius_constraint_G_indices[step][2]] = this->radius_constraint_X_scale_ranges[step][2] * (-this->left_hand_state[step][2] / r) / this->minimum_radial_distance;
             }
 
             //Step 6.3.3 apply the left-hand defect constraint and its derivatives
@@ -1766,7 +1766,154 @@ namespace EMTG
                                                 missionoptions* options,
                                                 EMTG::Astrodynamics::universe* Universe)
     {
+        //declare variables which will be generally useful
+        double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, dtdu;
 
+        //derivatives for the left-hand defect constraints
+        //each constraint has a left side and a right side, and derivatives are posed as:
+        //dC/du = dRHS/du - dLHS/du
+        //RHS is ALWAYS a decision variable and if dRHS/du is nonzero then dLHS/du is zero and vice versa
+        //therefore it is practical to start with the RHS derivatives
+        for (size_t step = 0; step < options->num_timesteps; ++step)
+        {
+            //derivative with respect to current state variable
+            //RHS is defined, LHS is zero
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][0]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][0] / Universe->LU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][1]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][1] / Universe->LU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][2]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][2] / Universe->LU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][3]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][3] / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][4]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][4] / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][5]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][5] / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_current_state[step][6]] = this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_current_state[step][6] / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+
+            //all of the other derivatives are of the LHS, which requires propagating an STM
+            //there are different cases:
+            //1. first step, initial coast present
+            //2. first step, no initial coast
+            //3. successive step (have to propagate STMs from left hand side of previous step to right hand side of current step)
+            if (step == 0)
+            {
+                //if this journey starts with a launch then the initial v-infinity is given in polar coordinates
+                if (p == 0 && options->journey_departure_type[j] == 0)
+                {
+                    double vinf = sqrt(this->C3_departure);
+                    double cosRA = cos(this->RA_departure);
+                    double sinRA = sin(this->RA_departure);
+                    double cosDEC = cos(this->DEC_departure);
+                    double sinDEC = sin(this->DEC_departure);
+                    double dVxdVinf = cosRA * cosDEC;
+                    double dVydVinf = sinRA * cosDEC;
+                    double dVzdVinf = sinDEC;
+                    double dVxdRA = vinf * (-sinRA * cosDEC);
+                    double dVydRA = vinf * (cosRA * cosDEC);
+                    double dVzdRA = 0.0;
+                    double dVxdDEC = vinf * (-cosRA * sinDEC);
+                    double dVydDEC = vinf * (-sinRA * sinDEC);
+                    double dVzdDEC = vinf * cosDEC;
+
+                    if (initial_coast)
+                    {
+                        //derivatives with respect to vinf
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdVinf
+                            + (*this->initial_coast_STM)(state, 4) * dVydVinf
+                            + (*this->initial_coast_STM)(state, 5) * dVzdVinf) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdVinf
+                            + (*this->initial_coast_STM)(state, 4) * dVydVinf
+                            + (*this->initial_coast_STM)(state, 5) * dVzdVinf) / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[6][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[6][0] * this->dmdvinf / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+                        //derivatives with respect to RA
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdRA
+                            + (*this->initial_coast_STM)(state, 4) * dVydRA
+                            + (*this->initial_coast_STM)(state, 5) * dVzdRA) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdRA
+                            + (*this->initial_coast_STM)(state, 4) * dVydRA
+                            + (*this->initial_coast_STM)(state, 5) * dVzdRA) / Universe->LU * Universe->TU;
+                        //derivatives with respect to DEC
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdDEC
+                            + (*this->initial_coast_STM)(state, 4) * dVydDEC
+                            + (*this->initial_coast_STM)(state, 5) * dVzdDEC) / Universe->LU;
+                        for (size_t state = 3; state < 6; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]
+                            * ((*this->initial_coast_STM)(state, 3) * dVxdDEC
+                            + (*this->initial_coast_STM)(state, 4) * dVydDEC
+                            + (*this->initial_coast_STM)(state, 5) * dVzdDEC) / Universe->LU * Universe->TU;
+                    }
+                    else //if no initial coast
+                    {
+                        //no dependence of position on initial velocity increment
+                        //derivatives with respect to vinf
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0] * dVxdVinf / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0] * dVydVinf / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0] * dVzdVinf / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[6][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[6][0] * this->dmdvinf / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+                        //derivatives with respect to RA
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1] * dVxdRA / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1] * dVydRA / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1] * dVzdRA / Universe->LU * Universe->TU;
+                        //derivatives with respect to DEC
+                        for (size_t state = 0; state < 3; ++state)
+                            G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2] * dVxdDEC / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2] * dVydDEC / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2] * dVzdDEC / Universe->LU * Universe->TU;
+
+                    }
+                    
+                }
+                //otherwise if this phase does not start with a launch then the initial v-infinity is given in cartesian coordinates
+                //(i.e. flyby v-infinity out)
+                //and the calculation is much simpler
+                else if (p > 0 || (p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6)))
+                {
+
+                }
+            }
+            else //for successive steps
+            {
+                //TODO derivative with respect to previous step state variables
+               
+                //derivative with respect to previous step control variables
+                double umag = math::norm(control[step - 1].data(), 3);
+                double deltat = time_step_sizes[step];
+
+                for (size_t c = 0; c < 3; ++c)
+                {
+                    //first we need the derivative of the right hand side of the previous step with respect to the control in that step
+                    dxdu = this->STM[2 * step - 1](0, c + 3) * dVmax[step - 1];
+                    dydu = this->STM[2 * step - 1](1, c + 3) * dVmax[step - 1];
+                    dzdu = this->STM[2 * step - 1](2, c + 3) * dVmax[step - 1];
+                    dxdotdu = this->STM[2 * step - 1](3, c + 3) * dVmax[step - 1];
+                    dydotdu = this->STM[2 * step - 1](4, c + 3) * dVmax[step - 1];
+                    dzdotdu = this->STM[2 * step - 1](5, c + 3) * dVmax[step - 1];
+                    dmdu = -(available_mass_flow_rate[step - 1] * deltat * options->engine_duty_cycle) * ((control[step - 1][c] / (umag + 1.0e-10)));
+
+                    //now we can fill that into the constraint equation
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][0][7 + c] * dxdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][1][7 + c] * dydu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][2][7 + c] * dzdu / Universe->LU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][3][7 + c] * dxdotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][4][7 + c] * dydotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][5][7 + c] * dzdotdu / Universe->LU * Universe->TU;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][6][7 + c]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control[step][6][7 + c] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+                }
+            }
+        }
+
+        //derivatives for the right-hand defect constraint
     }
 
 }//close namespace EMTG
