@@ -544,14 +544,14 @@ namespace EMTG
                     {
                         for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
                         {
-                            if ((*Xdescriptions)[entry].find("arrival_mass") < 1024 && state == 6)
+                            if ((*Xdescriptions)[entry].find("arrival mass") < 1024 && state == 6)
                             {
                                 iGfun->push_back(Fdescriptions->size() - 1);
                                 jGvar->push_back(entry);
                                 stringstream EntryNameStream;
                                 EntryNameStream << "Derivative of " << prefix << statename[state] << " leftmost defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                                 Gdescriptions->push_back(EntryNameStream.str());
-                                this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_previous_phase_arrival_mass.push_back(Gdescriptions->size() - 1);
+                                this->G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_phase_arrival_mass = Gdescriptions->size() - 1;
                                 this->X_scale_range_previous_phase_arrival_mass = (*Xupperbounds)[entry] - (*Xlowerbounds)[entry];
                                 break;
                             }
@@ -2089,23 +2089,29 @@ namespace EMTG
                         for (size_t state = 0; state < 3; ++state)
                             G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][0]] = 0.0;
                         G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][0] / Universe->LU * Universe->TU;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0] / Universe->LU * Universe->TU;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][0]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][0]] = 0.0;
 
                         //derivatives with respect to v_y
                         for (size_t state = 0; state < 3; ++state)
                             G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][1]] = 0.0;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][1]] = 0.0;
                         G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][1] / Universe->LU * Universe->TU;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][1]] = 0.0;
                         //derivatives with respect to v_z
                         for (size_t state = 0; state < 3; ++state)
                             G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[state][2]] = 0.0;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2] / Universe->LU * Universe->TU;
-                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2] / Universe->LU * Universe->TU;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[3][2]] = 0.0;
+                        G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[4][2]] = 0.0;
                         G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2]] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity[5][2] / Universe->LU * Universe->TU;
 
                     }
+                }
+
+                //derivative with respect to previous phase arrival mass
+                if (j > 0 || p > 0)
+                {
+                    G[this->G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_phase_arrival_mass] = -this->X_scale_range_previous_phase_arrival_mass / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
                 }
             }
             else //for successive steps

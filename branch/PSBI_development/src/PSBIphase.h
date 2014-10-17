@@ -157,7 +157,7 @@ namespace EMTG
             vector< vector<int> > G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity;
             vector< vector<double> > X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_phase_initial_velocity;
 
-            vector<int> G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_previous_phase_arrival_mass;
+            int G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_phase_arrival_mass;
             double X_scale_range_previous_phase_arrival_mass;
 
             vector < vector<int> > G_index_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
