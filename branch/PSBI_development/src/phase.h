@@ -333,7 +333,8 @@ namespace EMTG {
 											vector<double>& NewX, 
 											int& NewXIndex,
 											const vector<string>& NewXDescriptions, 
-											const missionoptions& options)		{};
+											const missionoptions& options,
+                                            const Astrodynamics::universe& Universe)		{};
 
         //method to output a .e ephemeris file
         virtual void write_ephemeris_file(const missionoptions& options,

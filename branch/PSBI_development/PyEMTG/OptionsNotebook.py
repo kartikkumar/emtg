@@ -1024,7 +1024,7 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.chkgenerate_initial_guess_file = wx.CheckBox(self, -1)
 
         self.lblmission_type_for_initial_guess_file = wx.StaticText(self, -1, "Mission type for initial guess file")
-        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM"]
+        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM","PSBI"]
         self.cmbmission_type_for_initial_guess_file = wx.ComboBox(self, -1, choices=initial_guess_file_choices, style=wx.CB_READONLY)
 
         self.lbloverride_working_directory = wx.StaticText(self, -1, "Override working directory?")

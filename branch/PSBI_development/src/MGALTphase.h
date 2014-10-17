@@ -85,16 +85,6 @@ namespace EMTG {
 																	double& dtdu,
 																	double& dtotal_available_thrust_time_du,
 																	double& dPdu);
-
-		//time information
-		vector <double> event_epochs;
-
-		//state information
-		vector<double> match_point_state;
-		vector<double> throttle;
-		vector<double> dVmax;
-		vector< vector<double> > dV;
-		vector< vector<double> > ForceVector;
 	};
 
 } /* namespace EMTG */

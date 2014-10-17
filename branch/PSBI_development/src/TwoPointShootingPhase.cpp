@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "TwoPointShootingPhase.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "EMTG_math.h"
 
 namespace EMTG {
@@ -173,5 +174,144 @@ namespace EMTG {
             this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
             this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state variables
+    }
+
+    void TwoPointShootingPhase::create_initial_guess(const int& desired_mission_type,
+        const bool& VSI,
+        double& current_epoch,
+        const int& j,
+        const int& p,
+        vector<double>& NewX,
+        int& NewXIndex,
+        const vector<string>& NewXDescriptions,
+        const missionoptions& options,
+        const Astrodynamics::universe& Universe)
+    {
+        if (p == 0)
+        {
+            //the first entry is always the journey initial mass scale factor if applicable
+            if (options.journey_starting_mass_increment[j] > 0.0 && options.journey_variable_mass_increment[j])
+            {
+                NewX.push_back(this->journey_initial_mass_increment_scale_factor);
+                ++NewXIndex;
+            }
+            //unless this journey starts with a flyby
+            if (!(options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 6))
+            {
+                //the next entry is always the launch date or stay time unless this journey starts with a flyby
+                NewX.push_back((this->phase_start_epoch - current_epoch) / 86400.0);
+                ++NewXIndex;
+
+                //should add code to copy variable boundary conditions here
+
+                //then encode the departure asymptote (three variables)
+                NewX.push_back(sqrt(this->C3_departure));
+                NewX.push_back(this->RA_departure);
+                NewX.push_back(this->DEC_departure);
+                NewXIndex += 3;
+
+                //mission initial mass multiplier if applicable
+                if (j == 0 && options.allow_initial_mass_to_vary)
+                {
+                    NewX.push_back(this->mission_initial_mass_multiplier);
+                    ++NewXIndex;
+                }
+            }
+        }
+        else
+        {
+            //encode flyby information
+            if (desired_mission_type == 1)
+            {
+                //MGA-DSM phases want a periapse distance and b-plane angle - we're making up an angle for now but some day it should be calculated properly
+                NewX.push_back(1.0 + this->flyby_altitude / this->Body1->radius);
+                NewX.push_back(math::PI);
+                NewXIndex += 2;
+            }
+            else if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
+            {
+                //MGALT, FBLT, MGANDSM phases want an initial v-infinity vector
+                NewX.push_back(this->V_infinity_out(0));
+                NewX.push_back(this->V_infinity_out(1));
+                NewX.push_back(this->V_infinity_out(2));
+                NewXIndex += 3;
+            }
+        }
+
+        //all phase types place the time of flight next
+        NewX.push_back(this->TOF / 86400.0);
+        ++NewXIndex;
+
+        //MGALT, FBLT, MGANDSM, and PSBI phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
+        {
+            if (p < options.number_of_phases[j] - 1 || options.journey_arrival_type[j] == 2)
+            {
+                double boundary_state[6];
+                this->Body2->locate_body(this->phase_end_epoch, boundary_state, false, (missionoptions*)&options);
+                NewX.push_back(this->V_infinity_out(0));
+                NewX.push_back(this->V_infinity_out(1));
+                NewX.push_back(this->V_infinity_out(2));
+                NewXIndex += 3;
+            }
+
+            NewX.push_back(this->state_at_end_of_phase[6]);
+            ++NewXIndex;
+        }
+
+        //MGADSM and MGANDSM phases want the burn index next
+        //we'll pretend it's in the middle
+        if (desired_mission_type == 1 || desired_mission_type == 4)
+        {
+            NewX.push_back(0.5);
+            ++NewXIndex;
+        }
+
+        //MGALT, FBLT, and PSBI phases want the control values (and sometimes state values) next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 5)
+        {
+            //set all of the control parameters to 0 for now
+            //maybe later introduce some delta-v smoothing
+            for (int step = 0; step < options.num_timesteps; ++step)
+            {
+                if (desired_mission_type == 5)
+                {
+                    double state_left[6];
+                    if (options.mission_type == 2) //for MGALT we have to subtract off the maneuver
+                    {
+                        double unperturbed_state[6];
+                        for (size_t state = 0; state < 3; ++state)
+                        {
+                            unperturbed_state[state] = this->spacecraft_state[step][state];
+                            unperturbed_state[state + 3] = this->spacecraft_state[step][state + 3] - this->dV[step][state];
+                        }
+
+                        Kepler::Kepler_Lagrange_Laguerre_Conway_Der(unperturbed_state,
+                            state_left,
+                            Universe.mu,
+                            Universe.LU,
+                            -this->time_step_sizes[step] / 2.0);
+                    }
+                    for (size_t state = 0; state < 6; ++state)
+                        NewX.push_back(state_left[state]);
+                    NewX.push_back(this->spacecraft_state[step][6]);
+                    NewXIndex += 7;
+                }
+                NewX.push_back(this->control[step][0]);
+                NewX.push_back(this->control[step][1]);
+                NewX.push_back(this->control[step][2]);
+                NewXIndex += 3;
+                //set Isp, if VSI, to options.IspLT
+                if (VSI)
+                {
+                    NewX.push_back(this->available_Isp[step]);
+                    ++NewXIndex;
+                }
+            }
+        }
+
+        //finally set the current epoch to the phase end epoch
+        current_epoch = this->phase_end_epoch;
+        return;
     }
 }//close namespace EMTG

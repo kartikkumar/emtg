@@ -3377,3 +3377,7 @@ class MissionOptions(object):
             optionsnotebook.tabOutput.lblforced_working_directory.Show(False)
             optionsnotebook.tabOutput.txtforced_working_directory.Show(False)
             optionsnotebook.tabOutput.btnforced_working_directory.Show(False)
+
+        #re-size the panel
+        optionsnotebook.tabOutput.Layout()
+        optionsnotebook.tabOutput.SetupScrolling()

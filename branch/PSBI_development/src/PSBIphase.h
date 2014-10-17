@@ -94,6 +94,17 @@ namespace EMTG
                                                     double& dtdu,
                                                     double& dtotal_available_thrust_time_du,
                                                     double& dPdu);
+        //function to create an initial guess for another phase type
+        virtual void create_initial_guess(const int& desired_mission_type,
+            const bool& VSI,
+            double& current_epoch,
+            const int& j,
+            const int& p,
+            vector<double>& NewX,
+            int& NewXIndex,
+            const vector<string>& NewXDescriptions,
+            const missionoptions& options,
+            const Astrodynamics::universe& Universe);
 
         //time information
         vector <double> event_epochs;

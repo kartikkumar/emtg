@@ -885,7 +885,8 @@ namespace EMTG
 										vector<double>& NewX,
 										int& NewXIndex, 
 										const vector<string>& NewXDescriptions,
-										const missionoptions& options)
+										const missionoptions& options,
+                                        const Astrodynamics::universe& Universe)
 	{
 		//first insert any variables that exist at the journey level
 		//currently (8-29-2014), there are none
@@ -900,7 +901,8 @@ namespace EMTG
 													NewX,
 													NewXIndex,
 													NewXDescriptions, 
-													options);
+													options,
+                                                    Universe);
 
 		return;
 	}

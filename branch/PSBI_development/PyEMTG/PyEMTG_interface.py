@@ -1691,7 +1691,8 @@ class PyEMTG_interface(wx.Frame):
                             or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 1) \
                             or (guess_type_string == "MGALT" and self.missionoptions.mission_type == 2) \
                             or (guess_type_string == "FBLT" and self.missionoptions.mission_type == 3) \
-                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 4):
+                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 4) \
+                            or (guess_type_string == "PSBI" and self.missionoptions.mission_type == 5):
 
                             guessvector = []
                             for entry in line.split(','):
