@@ -2324,7 +2324,7 @@ namespace EMTG
         }
 
         //apply the right-hand side of the constraint
-        for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
+        for (size_t timevar = (options->derivative_type > 3 ? 0 : 1); timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
         {
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
@@ -2370,31 +2370,44 @@ namespace EMTG
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
             G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
         }
-        /*
+        
+
         //add the additional term for the derivative of rightmost defect constraint with respect to current phase flight time
-        dtdu = 0.0;
-        dtotal_available_thrust_timedu = 1.0;
-        this->calculate_derivative_of_right_hand_state(options,
-                                                        Universe,
-                                                        options->num_timesteps - 1,
-                                                        dxdu,
-                                                        dydu,
-                                                        dzdu,
-                                                        dxdotdu,
-                                                        dydotdu,
-                                                        dzdotdu,
-                                                        dmdu,
-                                                        dtdu,
-                                                        dtotal_available_thrust_timedu,
-                                                        dPdu);
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0] * dxdu / Universe->LU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0] * dydu / Universe->LU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0] * dzdu / Universe->LU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0] * dxdotdu / Universe->LU * Universe->TU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0] * dydotdu / Universe->LU * Universe->TU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0] * dzdotdu / Universe->LU * Universe->TU;
-        G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
-        */
+        if (options->derivative_type > 3)
+        {
+            dtdu = 1.0;
+            dtotal_available_thrust_timedu = 1.0;
+            dPdu = 0.0;
+            dxdu = (this->Kepler_Fdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][0] + this->Kepler_Gdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][3]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dydu = (this->Kepler_Fdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][1] + this->Kepler_Gdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][4]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dzdu = (this->Kepler_Fdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][2] + this->Kepler_Gdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][5]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dxdotdu = (this->Kepler_Fdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][0] + this->Kepler_Gdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][3]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dydotdu = (this->Kepler_Fdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][1] + this->Kepler_Gdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][4]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dzdotdu = (this->Kepler_Fdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][2] + this->Kepler_Gdotdot[2 * options->num_timesteps - 2] * this->left_hand_state[options->num_timesteps - 1][5]) * this->Propagation_Step_Time_Fraction[options->num_timesteps - 1];
+            dmdu = 0.0;
+
+            this->calculate_derivative_of_right_hand_state(options,
+                Universe,
+                options->num_timesteps - 1,
+                dxdu,
+                dydu,
+                dzdu,
+                dxdotdu,
+                dydotdu,
+                dzdotdu,
+                dmdu,
+                dtdu,
+                dtotal_available_thrust_timedu,
+                dPdu);
+
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][0] * dxdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][0] * dydu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][0] * dzdu / Universe->LU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][0] * dxdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][0] * dydotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][0] * dzdotdu / Universe->LU * Universe->TU;
+            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][0] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+        }
     }
 
     void PSBIphase::calculate_derivative_of_right_hand_state(missionoptions* options,
