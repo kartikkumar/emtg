@@ -147,9 +147,9 @@ namespace EMTG
             vector< vector<int> > G_index_of_derivative_of_defect_with_respect_to_BOL_power;
 
         //derivatives for the FIRST left-handed defect constraint only
-            vector<int> G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier;
+            int G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier;
 
-            vector<int> G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
+            int G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
 
             vector< vector<int> > G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition;
             vector< vector<double> > X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_variable_left_boundary_condition;
@@ -164,8 +164,10 @@ namespace EMTG
             vector < vector<double> > X_scale_range_of_derivative_of_leftmost_defect_constraint_with_respect_to_previous_journey_variable_right_boundary_condition;
 
         //derivatives for SUCCESSIVE left-handed defect constraints only
-            vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control;
-            vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state_and_control;
+            vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state;
+            vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state;
+            vector< vector< vector<int> > > G_index_of_derivative_of_defect_constraints_with_respect_to_previous_control;
+            vector< vector< vector<double> > > X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_control;
 
         //derivatives of the right-handed defect constraint
             vector< vector<int> > G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_rightmost_state_and_control;
