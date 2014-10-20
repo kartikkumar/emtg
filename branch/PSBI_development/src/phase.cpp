@@ -1786,7 +1786,7 @@ namespace EMTG {
 		}
 		else
 		{
-			outputfile.width(14); outputfile << "-";
+			outputfile.width(14); outputfile << 0.0;
 			outputfile.width(3); outputfile << " | ";
 		}
 

@@ -188,10 +188,11 @@ class Journey(object):
         if PlotOptions.PlotPower:
             Powervector = []
             for event in self.missionevents:
-                if event.AvailablePower > 0.0:
-                    Powervector.append(event.AvailablePower)
-                elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
-                    Powervector.append(0.0)
+                if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
+                    if event.AvailablePower > 0.0:
+                        Powervector.append(event.AvailablePower)
+                    else:
+                        Powervector.append(0.0)
             if firstpass:
                 DataAxes.plot(date_vector, Powervector, c='Navy', lw=2, ls='-', label='Power produced by spacecraft (kW)')
             else:
@@ -272,7 +273,8 @@ class Journey(object):
                 if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     activepowervector.append(event.ActivePower)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
-                    activepowervector.append(0)
+                    activepowervector.append(0.0)
+
             if firstpass:
                 DataAxes.plot(date_vector, activepowervector, c='Navy', lw=2, ls='--', label='Power used by the propulsion system (kW)')
             else:

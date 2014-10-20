@@ -104,7 +104,8 @@ namespace EMTG { namespace Solvers {
 		this->SNOPTproblem->setUserFun(SNOPT_user_function);
 		this->SNOPTproblem->setIntParameter("Iterations limit", 100 * Problem->options.snopt_major_iterations);
 		this->SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
-        this->SNOPTproblem->setIntParameter("Scale option", 2);
+        //if (Problem->options.mission_type == 5)
+            //this->SNOPTproblem->setIntParameter("Scale option", 2);
         if (Problem->options.derivative_type == 4)
             this->SNOPTproblem->setIntParameter("Derivative option", 1);
         else
