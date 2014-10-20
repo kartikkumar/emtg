@@ -297,8 +297,12 @@ namespace EMTG {
 
 			//compute the central-difference forward step value of the constraint
 			double perturbation_step;
-			if ( this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024 )
-				perturbation_step = 10.0;
+            if (this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024)
+                perturbation_step = 10.0;
+            else if (this->Gdescriptions[gIndex].find(" x") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024)
+                || (this->Gdescriptions[gIndex].find(" y") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024))
+                || (this->Gdescriptions[gIndex].find(" z") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024)))
+                perturbation_step = 1.0;
 			else
 				perturbation_step = 1.0e-6;
 			X_perturbed[jGvar[gIndex]] += perturbation_step;

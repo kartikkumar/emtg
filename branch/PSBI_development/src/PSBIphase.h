@@ -148,6 +148,7 @@ namespace EMTG
 
         //derivatives for the FIRST left-handed defect constraint only
             int G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier;
+            double X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier;
 
             int G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
 

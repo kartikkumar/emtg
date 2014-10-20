@@ -575,6 +575,7 @@ namespace EMTG
                                 EntryNameStream << "Derivative of " << prefix << statename[state] << " leftmost defect constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                                 Gdescriptions->push_back(EntryNameStream.str());
                                 this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier = Gdescriptions->size() - 1;
+                                this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier = (*Xupperbounds)[entry] - (*Xlowerbounds)[entry];
                                 break;
                             }
                         }
@@ -1044,7 +1045,7 @@ namespace EMTG
             this->event_epochs[step] = phase_start_epoch + phase_time_elapsed_forward;
             EMTG::Astrodynamics::force_model(options,
                                             Universe,
-                                            spacecraft_state[step].data(),
+                                            this->spacecraft_state[step].data(),
                                             &event_epochs[step],
                                             X,
                                             control[step].data(),
@@ -1066,18 +1067,18 @@ namespace EMTG
                                             dagravdRvec[step],
                                             dagravdtvec[step]);
 
-            double effective_mass = spacecraft_state[step][6] > 1.0e-3 ? spacecraft_state[step][6] : 1.0e-3;
+            double effective_mass = this->spacecraft_state[step][6] > 1.0e-3 ? this->spacecraft_state[step][6] : 1.0e-3;
             dVmax[step] = options->engine_duty_cycle * available_thrust[step] / effective_mass * (time_step_sizes[step]);
 
             //Step 6.3.8 apply the control for this step
             for (size_t k = 0; k < 3; ++k)
             {
                 dV[step][k] = ForceVector[step][k] / spacecraft_state[step][6] * (time_step_sizes[step]);
-                spacecraft_state[step][k + 3] += dV[step][k];
+                this->spacecraft_state[step][k + 3] += dV[step][k];
             }
             impulse_magnitude = local_throttle * dVmax[step];
             *current_deltaV += impulse_magnitude;
-            spacecraft_state[step][6] -= local_throttle * options->engine_duty_cycle * available_mass_flow_rate[step] * (time_step_sizes[step]);
+            this->spacecraft_state[step][6] -= local_throttle * options->engine_duty_cycle * available_mass_flow_rate[step] * (time_step_sizes[step]);
 
             //Step 6.3.9 propagate to the right-hand side of the step
             Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
@@ -2142,13 +2143,16 @@ namespace EMTG
                 //if applicable, derivative of leftmost mass defect with respect to mission initial mass increment
                 if (j == 0 && p == 0 && options->allow_initial_mass_to_vary && !(options->journey_departure_type[j] == 5))
                 {
-                    G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier] = -this->unscaled_phase_initial_mass / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+                    G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier] = -this->X_scale_range_of_derivative_of_leftmost_defect_constraints_with_respect_to_mission_initial_mass_multiplier * this->unscaled_phase_initial_mass / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
                 }
                 //if applicable, derivative of leftmost mass defect with respect to journey initial mass increment
+                //TODO this is WRONG and needs to be fixed - note that journey initial mass increment multiplier appears in the denominator of EVERY mass defect constraint! (this is probably bad)
+                /*
                 if (p == 0 && options->journey_variable_mass_increment[j] && !(options->journey_departure_type[j] == 5))
                 {
                     G[this->G_index_of_derivative_of_leftmost_defect_constraints_with_respect_to_journey_initial_mass_increment_multiplier] = -this->unscaled_phase_initial_mass / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
                 }
+                */
 
             }
             else //for successive steps
