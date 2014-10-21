@@ -172,7 +172,7 @@ class Mission(object):
                 CurrentJourney.UpdateLabelPosition(self.MissionFigure, self.MissionAxes)
 
     def GenerateDataPlot(self, PlotOptions):
-        if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotGamma or PlotOptions.PlotDelta or PlotOptions.PlotCB_thrust_angle or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat:
+        if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotGamma or PlotOptions.PlotDelta or PlotOptions.PlotCB_thrust_angle or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat or PlotOptions.PlotEarthDistance or PlotOptions.PlotSunEarthSpacecraftAngle:
             self.DataFigure = matplotlib.pyplot.figure()
             self.DataAxes = self.DataFigure.add_axes([0.1, 0.1, 0.8, 0.8])
             matplotlib.rcParams.update({'font.size': PlotOptions.FontSize})

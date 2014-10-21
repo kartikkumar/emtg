@@ -2204,10 +2204,7 @@ namespace EMTG
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][3][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][3][state] * dxdotdu / Universe->LU * Universe->TU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][4][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][4][state] * dydotdu / Universe->LU * Universe->TU;
                     G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][5][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][5][state] * dzdotdu / Universe->LU * Universe->TU;
-                    //if (state == 6)
-                        G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][6][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][6][state] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
-                    //else //we set this explicitly zero instead of removing it from the pattern because it will be nonzero for integrated trajectories later
-                      //  G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][6][state]] = 0.0;
+                    G[this->G_index_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][6][state]] = -this->X_scale_range_of_derivative_of_defect_constraints_with_respect_to_previous_state[step][6][state] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
                 }
                 
                 //derivative with respect to previous step control variables

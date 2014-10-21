@@ -293,6 +293,55 @@ class Journey(object):
             else:
                 DataAxes.plot(date_vector, WasteHeatvector, c='Crimson', lw=2, ls='--')
 
+        #plot Earth distance in LU
+        if PlotOptions.PlotEarthDistance or PlotOptions.PlotSunEarthSpacecraftAngle:
+            if self.central_body.lower() != 'sun':
+                print 'getting Earth distance and Sun-Spacecraft-Earth angle is only supported if the central body is the sun'
+            else:
+                import de423
+                from jplephem import Ephemeris
+                eph = Ephemeris(de423)
+
+                EarthDistanceVector = []
+                SunEarthSpacecraftAngle = []
+                for event in self.missionevents:
+                    if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
+                    
+                        
+                        #get the position of the central body relative to the solar system barycenter
+                        cb_relative_to_solar_system_barycenter_in_ICRC = eph.position(self.central_body.lower(), event.JulianDate)
+
+                        #get the position of the Earth relative to the central body
+                        embarycenter_in_ICRC = eph.position('earthmoon', event.JulianDate)
+                        moonvector_in_ICRC = eph.position('moon', event.JulianDate)
+                        Earth_relative_to_solar_system_barycenter_in_ICRC = embarycenter_in_ICRC - moonvector_in_ICRC * eph.earth_share
+                        Earth_relative_to_cb_in_ICRC = Earth_relative_to_solar_system_barycenter_in_ICRC + cb_relative_to_solar_system_barycenter_in_ICRC
+
+                        #rotate the spacecraft state relative to the central body into the ICRF frame
+                        spacecraft_state_relative_to_central_body_in_ICRF = AstroFunctions.rotate_from_ecliptic_to_equatorial3(np.array(event.SpacecraftState[0:3]))
+
+                        #get the vector from the Earth to the Spacecraft
+                        Earth_Spacecraft_Vector = spacecraft_state_relative_to_central_body_in_ICRF - np.transpose(Earth_relative_to_cb_in_ICRC)[0]
+
+                        #return the magnitude of the Earth-centered position vector
+                        EarthDistanceVector.append(np.linalg.norm(Earth_Spacecraft_Vector) / self.LU)
+
+                        #if applicable, compute sun-spacecraft-Earth angle
+                        if PlotOptions.PlotSunEarthSpacecraftAngle:
+                            cosAngle = np.dot(-Earth_Spacecraft_Vector, -spacecraft_state_relative_to_central_body_in_ICRF)/np.linalg.norm(spacecraft_state_relative_to_central_body_in_ICRF)/np.linalg.norm(Earth_Spacecraft_Vector)
+                            SunEarthSpacecraftAngle.append(np.arccos(cosAngle) * 180.0/math.pi)
+
+                if firstpass:
+                    if PlotOptions.PlotEarthDistance:
+                        DataAxes.plot(date_vector, EarthDistanceVector, c='g', lw=2, label='Distance from Earth (LU)')
+                    if PlotOptions.PlotSunEarthSpacecraftAngle:
+                        DataAxes.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.', label='Sun-Spacecraft-Earth Angle')
+                else:
+                    if PlotOptions.PlotEarthDistance:
+                        DataAxes.plot(date_vector, EarthDistanceVector, c='g', lw=2)
+                    if PlotOptions.PlotSunEarthSpacecraftAngle:
+                        DataAxes.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.')
+
 
     def OutputSTKEphemeris(self, MissionPanel):
         #Step 1: open the journey ephemeris file for writing

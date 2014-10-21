@@ -580,6 +580,12 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 					*dTdP = *dTdP*power_penalty + T*dpenalty_dP;
 					*dmdotdP = *dmdotdP*power_penalty + F*dpenalty_dP;
 				}
+
+                if (*power > maxP * *number_of_active_engines)
+                {
+                    *dTdP = 0.0;
+                    *dmdotdP = 0.0;
+                }
 			}
 
 			*power = input_power;
