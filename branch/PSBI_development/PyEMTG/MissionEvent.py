@@ -220,7 +220,7 @@ class MissionEvent(object):
         elif self.EventType == "match_point":
             GraphicsObject.scatter(self.SpacecraftState[0], self.SpacecraftState[1], self.SpacecraftState[2], s=4, c='k', marker='s')
 
-        if PlotOptions.ShowTextDescriptions and not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point"):
+        if PlotOptions.ShowTextDescriptions and not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point" or self.EventType == "waiting"):
             self.LabelEvent(GraphicsObject, PlotOptions)
 
     def LabelEvent(self, GraphicsObject, PlotOptions):
@@ -237,6 +237,8 @@ class MissionEvent(object):
             EventTypeFormatted = 'begin spiral'
         elif EventTypeFormatted == 'end_spiral':
             EventTypeFormatted = 'end spiral'
+        elif EventTypeFormatted == 'mission_end':
+            EventTypeFormatted = 'end of mission'
 
         description = EventTypeFormatted + '\n' + self.Location + '\n' + self.GregorianDate
 
@@ -285,7 +287,7 @@ class MissionEvent(object):
             self.rcid = GraphicsObject.figure.canvas.mpl_connect('button_release_event', self.ReleaseAnnotation)
 
     def UpdateLabelPosition(self, Figure, Axes):
-        if not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point" or (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001)):
+        if not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point" or self.EventType == "waiting" or (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001)):
             x2, y2, _ = proj3d.proj_transform(self.SpacecraftState[0],self.SpacecraftState[1],self.SpacecraftState[2], Axes.get_proj())
             self.eventlabel.xy = x2,y2
             self.eventlabel.update_positions(Figure.canvas.renderer)

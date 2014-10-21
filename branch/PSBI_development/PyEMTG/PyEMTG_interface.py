@@ -687,6 +687,7 @@ class PyEMTG_interface(wx.Frame):
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
+        self.optionsnotebook.tabOutput.txtpost_mission_wait_time.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_wait_time)
         self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.Bind(wx.EVT_CHECKBOX, self.Changegenerate_initial_guess_file)
         self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Bind(wx.EVT_COMBOBOX, self.Changemisson_type_for_initial_guess)
         self.optionsnotebook.tabOutput.chkoverride_working_directory.Bind(wx.EVT_CHECKBOX, self.Changeoverride_working_directory)
@@ -1742,10 +1743,10 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_all_panels(self.optionsnotebook)
 
     def Changespacecraft_area(self, e):
-        self.missionoptions.spacecraft_area = float(self.optionsnotebook.tabPhysics.txtspacecraft_area.GetValue())
+        self.missionoptions.spacecraft_area = eval(self.optionsnotebook.tabPhysics.txtspacecraft_area.GetValue())
 
     def Changecoefficient_of_reflectivity(self, e):
-        self.missionoptions.coefficient_of_reflectivity = float(self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.GetValue())
+        self.missionoptions.coefficient_of_reflectivity = eval(self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.GetValue())
 
     def Changespiral_model_type(self, e):
         self.missionoptions.spiral_model_type = self.optionsnotebook.tabPhysics.cmbspiral_model_type.GetSelection()
@@ -1755,10 +1756,13 @@ class PyEMTG_interface(wx.Frame):
 
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.missionoptions.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.missionoptions.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+
+    def Changepost_mission_wait_time(self, e):
+        self.missionoptions.post_mission_wait_time = eval(self.optionsnotebook.tabOutput.txtpost_mission_wait_time.GetValue())
 
     def Changegenerate_initial_guess_file(self, e):
         self.missionoptions.generate_initial_guess_file = int(self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.GetValue())

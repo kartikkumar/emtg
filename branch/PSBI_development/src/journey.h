@@ -48,13 +48,37 @@ namespace EMTG
                         EMTG::Astrodynamics::universe& Universe,
                         missionoptions* options);
 
-	    //output function
-	    //return 0 if successful, 1 if failure
+	    //output functions
+	    //main output function
 	    int output(missionoptions* options,
                    const double& launchdate,
-                   int j, 
-                   EMTG::Astrodynamics::universe&, 
+                   const int& j, 
+                   int& jprint,
+                   EMTG::Astrodynamics::universe& Universe, 
                    int* eventcount);
+
+        //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
+        void output_journey_prologue(const missionoptions* options,
+                                    const double& launchdate,
+                                    const int& j,
+                                    int& jprint,
+                                    EMTG::Astrodynamics::universe& Universe,
+                                    int* eventcount);
+
+        //method to output additional stay time at the target body
+        void output_journey_postlogue(  const missionoptions* options,
+                                        const double& launchdate,
+                                        const int& j,
+                                        int& jprint,
+                                        EMTG::Astrodynamics::universe& Universe,
+                                        int* eventcount);
+
+        //method to output journey header
+        void output_journey_header(const missionoptions* options,
+                                    EMTG::Astrodynamics::universe& Universe,
+                                    const int& j,
+                                    int& jprint,
+                                    const int& waiting);
 
 	    //bounds calculation function
 	    //return 0 if successful, 1 if failure

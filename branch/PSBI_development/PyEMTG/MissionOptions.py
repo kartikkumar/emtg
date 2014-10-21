@@ -198,6 +198,7 @@ class MissionOptions(object):
         
     #output format settings
     output_units = 0 #0: km and km/s, 1: LU and LU/day
+    post_mission_wait_time = 0.0
     create_GMAT_script = 0 #0: no, 1: yes
     generate_initial_guess_file = 0
     mission_type_for_initial_guess_file = 2
@@ -771,6 +772,8 @@ class MissionOptions(object):
                     #output format settings
                     elif choice == "output_units":
                         self.output_units = int(linecell[1])
+                    elif choice == "post_mission_wait_time":
+                        self.post_mission_wait_time = float(linecell[1])
                     elif choice == "create_GMAT_script":
                         self.create_GMAT_script = int(linecell[1])
                     elif choice == "generate_initial_guess_file":
@@ -1572,6 +1575,8 @@ class MissionOptions(object):
         outputfile.write("##output format settings\n")
         outputfile.write("#output units, 0: km and km/s, 1: LU and LU/day\n")
         outputfile.write("output_units " + str(self.output_units) + "\n")
+        outputfile.write("#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)\n")
+        outputfile.write("post_mission_wait_time " + str(self.post_mission_wait_time) + "\n")
         outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
         outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
         outputfile.write("#Generate initial guess file?\n")
@@ -3355,6 +3360,7 @@ class MissionOptions(object):
     def update_output_options_panel(self, optionsnotebook):
         optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
+        optionsnotebook.tabOutput.txtpost_mission_wait_time.SetValue(str(self.post_mission_wait_time))
         optionsnotebook.tabOutput.chkgenerate_initial_guess_file.SetValue(self.generate_initial_guess_file)
         optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.SetSelection(self.mission_type_for_initial_guess_file)
         optionsnotebook.tabOutput.chkoverride_working_directory.SetValue(self.override_working_directory)

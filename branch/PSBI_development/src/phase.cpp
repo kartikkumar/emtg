@@ -1702,7 +1702,7 @@ namespace EMTG {
 
 		//thrust, Isp, power
 		outputfile.precision(5);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
+		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby" || event_type == "waiting" || event_type == "mission_end")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";
@@ -1719,7 +1719,7 @@ namespace EMTG {
 		}
 
 		outputfile.precision(0);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
+        if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby" || event_type == "waiting" || event_type == "mission_end")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";

@@ -79,18 +79,18 @@ class Journey(object):
             if event.EventType == 'upwr_flyby' or event.EventType == 'pwr_flyby' or event.EventType == 'LT_rndzvs' or event.EventType == 'rendezvous' or event.EventType == 'intercept' or event.EventType == 'insertion' or event.EventType == 'match-vinf' or event.EventType == 'launch' or event.EventType == 'departure' or event.EventType == "begin_spiral" or event.EventType == "end_spiral":
                 event_epoch = datetime.datetime.strptime(event.GregorianDate,'%m/%d/%Y').date()
                 if firstpass and boundarylegendflag:
-                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = ':', lw=2, label='Phase boundary')
+                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = '-.', lw=3, label='Phase boundary')
                     boundarylegendflag = False
                 else:
-                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = ':', lw=2)
+                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = '-.', lw=3)
 
             if event.EventType == 'chem_burn':
                 event_epoch = datetime.datetime.strptime(event.GregorianDate,'%m/%d/%Y').date()
                 if firstpass and burnlegendflag:
-                    DataAxes.plot([event_epoch]*2, Ybounds, c='r', marker='+', ls = ':', lw=2, label='Deep-Space Maneuver')
+                    DataAxes.plot([event_epoch]*2, Ybounds, c='r', marker='+', ls = '-.', lw=3, label='Deep-Space Maneuver')
                     burnlegendflag = False
                 else:
-                    DataAxes.plot([event_epoch]*2, Ybounds, c='r', marker='+', ls = ':', lw=2)
+                    DataAxes.plot([event_epoch]*2, Ybounds, c='r', marker='+', ls = '-.', lw=3)
 
 
     def GenerateJourneyDataPlot(self, DataAxes, PlotOptions, firstpass):

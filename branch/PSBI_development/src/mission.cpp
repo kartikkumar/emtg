@@ -1362,10 +1362,11 @@ int mission::output()
 	//next, output summary lines describing each event in the mission
 	int errcode = 0;
 	int eventcount = 1;
+    int jprint = 0;
 	try
 	{
 		for (int j = 0; j < number_of_journeys; ++j) {
-			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
+			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, jprint, TheUniverse[j], &eventcount);
 			if (!(errcode == 0))
 				return errcode;
 		}

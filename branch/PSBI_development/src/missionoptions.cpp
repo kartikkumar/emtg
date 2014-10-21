@@ -78,6 +78,7 @@ missionoptions::missionoptions() {
 
 	this->LambertSolver = 0;
 
+    this->post_mission_wait_time = 0.0;
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
 	this->override_working_directory = false;    
@@ -145,6 +146,7 @@ missionoptions::missionoptions(string optionsfile) {
 
 	this->LambertSolver = 0;
 
+    this->post_mission_wait_time = 0.0;
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
 	this->override_working_directory = false;
@@ -1719,6 +1721,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->output_units = (int) value;
 		return 0;
 	}
+    if (choice == "post_mission_wait_time") {
+        this->post_mission_wait_time = value;
+        return 0;
+    }
 	if (choice == "create_GMAT_script") {
 		this->create_GMAT_script = (int) value;
 		return 0;
@@ -2676,7 +2682,9 @@ int missionoptions::print_options_file(string filename) {
 
 		outputfile << "##output format settings" << endl;
 		outputfile << "#output units, 0: km and km/s, 1: LU and LU/day" << endl;
-		outputfile << "output_units " << this->output_units << endl;
+        outputfile << "output_units " << this->output_units << endl;
+        outputfile << "#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)" << endl;
+        outputfile << "post_mission_wait_time " << this->post_mission_wait_time << endl;
 		outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
 		outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
 		outputfile << "#Generate initial guess file?" << endl;

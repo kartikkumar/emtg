@@ -1020,6 +1020,9 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
 
+        self.lblpost_mission_wait_time = wx.StaticText(self, -1, "Stay time at the final target")
+        self.txtpost_mission_wait_time = wx.TextCtrl(self, -1, "post_mission_wait_time")
+
         self.lblgenerate_initial_guess_file = wx.StaticText(self, -1, "Generate initial guess file? (experimental!)")
         self.chkgenerate_initial_guess_file = wx.CheckBox(self, -1)
 
@@ -1042,14 +1045,15 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
         self.chkbackground_mode = wx.CheckBox(self, -1)
 
-        self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
-                           self.lbloutput_units, self.cmboutput_units,
-                           self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
-                           self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
-                           self.lbloverride_working_directory, self.chkoverride_working_directory,
-                           self.lblforced_working_directory, working_directory_sizer,
-                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
-                           self.lblbackground_mode, self.chkbackground_mode])
+        self.mainbox.AddMany([  self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
+                                self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
+                                self.lbloutput_units, self.cmboutput_units,
+                                self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
+                                self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
+                                self.lbloverride_working_directory, self.chkoverride_working_directory,
+                                self.lblforced_working_directory, working_directory_sizer,
+                                self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
+                                self.lblbackground_mode, self.chkbackground_mode])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()
