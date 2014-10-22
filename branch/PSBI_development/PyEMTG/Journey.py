@@ -79,7 +79,7 @@ class Journey(object):
             if event.EventType == 'upwr_flyby' or event.EventType == 'pwr_flyby' or event.EventType == 'LT_rndzvs' or event.EventType == 'rendezvous' or event.EventType == 'intercept' or event.EventType == 'insertion' or event.EventType == 'match-vinf' or event.EventType == 'launch' or event.EventType == 'departure' or event.EventType == "begin_spiral" or event.EventType == "end_spiral":
                 event_epoch = datetime.datetime.strptime(event.GregorianDate,'%m/%d/%Y').date()
                 if firstpass and boundarylegendflag:
-                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = '-.', lw=3, label='Phase boundary')
+                    DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = '-.', lw=3)#, label='Phase boundary')
                     boundarylegendflag = False
                 else:
                     DataAxes.plot([event_epoch]*2, Ybounds, c='k', marker='+', ls = '-.', lw=3)
@@ -93,7 +93,7 @@ class Journey(object):
                     DataAxes.plot([event_epoch]*2, Ybounds, c='r', marker='+', ls = '-.', lw=3)
 
 
-    def GenerateJourneyDataPlot(self, DataAxes, PlotOptions, firstpass):
+    def GenerateJourneyDataPlot(self, DataAxesLeft, DataAxesRight, PlotOptions, firstpass):
 
         #generate a vector of dates
         date_string_vector = []
@@ -103,6 +103,10 @@ class Journey(object):
 
         date_vector = [datetime.datetime.strptime(d,'%m/%d/%Y').date() for d in date_string_vector]
 
+        #dummy line across the bottom so that neither axes object crashes
+        DataAxesLeft.plot(date_vector, np.zeros_like(date_vector), c='w', lw = 0.1)
+        DataAxesRight.plot(date_vector, np.zeros_like(date_vector), c='w', lw = 0.1)
+
         #plot distance from central body
         if PlotOptions.PlotR:
             Rvector = []
@@ -110,9 +114,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Rvector.append(math.sqrt(event.SpacecraftState[0]**2 + event.SpacecraftState[1]**2 + event.SpacecraftState[2]**2) / self.LU)
             if firstpass:
-                DataAxes.plot(date_vector, Rvector, c='k', lw=2, label='Distance from central body (LU)')
+                DataAxesLeft.plot(date_vector, Rvector, c='k', lw=2, label='Distance from central body (LU)')
             else:
-                DataAxes.plot(date_vector, Rvector, c='k', lw=2)
+                DataAxesLeft.plot(date_vector, Rvector, c='k', lw=2)
 
         #plot velocity
         if PlotOptions.PlotV:
@@ -121,9 +125,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Vvector.append(math.sqrt(event.SpacecraftState[3]**2 + event.SpacecraftState[4]**2 + event.SpacecraftState[5]**2) / self.LU * self.TU)
             if firstpass:
-                DataAxes.plot(date_vector, Vvector, c='k', lw=2, ls='-.', label='Velocity magnitude (LU/TU)')
+                DataAxesLeft.plot(date_vector, Vvector, c='k', lw=2, ls='-.', label='Velocity magnitude (LU/TU)')
             else:
-                DataAxes.plot(date_vector, Vvector, c='k', lw=2, ls='-.')
+                DataAxesLeft.plot(date_vector, Vvector, c='k', lw=2, ls='-.')
 
         #plot Thrust
         if PlotOptions.PlotThrust:
@@ -132,9 +136,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Thrustvector.append(math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2) * 10.0)
             if firstpass:
-                DataAxes.plot(date_vector, Thrustvector, c='r', lw=2, ls='-', label='Applied thrust (0.1 N)')
+                DataAxesLeft.plot(date_vector, Thrustvector, c='r', lw=2, ls='-', label='Applied thrust (0.1 N)')
             else:
-                DataAxes.plot(date_vector, Thrustvector, c='r', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, Thrustvector, c='r', lw=2, ls='-')
 
         #plot Isp
         if PlotOptions.PlotIsp:
@@ -143,9 +147,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Ispvector.append(event.Isp / 1000.0)
             if firstpass:
-                DataAxes.plot(date_vector, Ispvector, c='c', lw=2, ls='-', label='Isp (1000 s)')
+                DataAxesLeft.plot(date_vector, Ispvector, c='c', lw=2, ls='-', label='Isp (1000 s)')
             else:
-                DataAxes.plot(date_vector, Ispvector, c='c', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, Ispvector, c='c', lw=2, ls='-')
 
         #plot mass flow rate
         if PlotOptions.PlotMdot:
@@ -154,9 +158,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Mdotvector.append(event.MassFlowRate * 1.0e6)
             if firstpass:
-                DataAxes.plot(date_vector, Mdotvector, c='brown', lw=2, ls='-', label='Mass flow rate (mg/s)')
+                DataAxesLeft.plot(date_vector, Mdotvector, c='brown', lw=2, ls='-', label='Mass flow rate (mg/s)')
             else:
-                DataAxes.plot(date_vector, Mdotvector, c='brown', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, Mdotvector, c='brown', lw=2, ls='-')
 
         #plot Efficiency
         if PlotOptions.PlotEfficiency:
@@ -167,9 +171,9 @@ class Journey(object):
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Efficiencyvector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, Efficiencyvector, c='DarkGreen', lw=2, ls='-', label='Propulsion system efficiency')
+                DataAxesLeft.plot(date_vector, Efficiencyvector, c='DarkGreen', lw=2, ls='-', label='Propulsion system efficiency')
             else:
-                DataAxes.plot(date_vector, Efficiencyvector, c='DarkGreen', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, Efficiencyvector, c='DarkGreen', lw=2, ls='-')
 
         #plot Throttle
         if PlotOptions.PlotThrottle:
@@ -180,9 +184,9 @@ class Journey(object):
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Throttlevector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, Throttlevector, c='r', lw=2, ls='--', label='Throttle')
+                DataAxesLeft.plot(date_vector, Throttlevector, c='r', lw=2, ls='--', label='Throttle')
             else:
-                DataAxes.plot(date_vector, Throttlevector, c='r', lw=2, ls='--')
+                DataAxesLeft.plot(date_vector, Throttlevector, c='r', lw=2, ls='--')
 
         #plot power
         if PlotOptions.PlotPower:
@@ -194,22 +198,22 @@ class Journey(object):
                     else:
                         Powervector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, Powervector, c='Navy', lw=2, ls='-', label='Power produced by spacecraft (kW)')
+                DataAxesLeft.plot(date_vector, Powervector, c='Navy', lw=2, ls='-', label='Power produced by spacecraft (kW)')
             else:
-                DataAxes.plot(date_vector, Powervector, c='Navy', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, Powervector, c='Navy', lw=2, ls='-')
 
         #plot gamma
         if PlotOptions.PlotGamma:
             gammavector = []
             for event in self.missionevents:
                 if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
-                    gammavector.append(math.atan2(event.Thrust[1], event.Thrust[0]))
+                    gammavector.append(math.atan2(event.Thrust[1], event.Thrust[0]) * 180.0 / math.pi)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     gammavector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, gammavector, c='DarkGreen', lw=2, ls='--', label=r'$\gamma$ (radians)')
+                DataAxesRight.plot(date_vector, gammavector, c='DarkGreen', lw=2, ls='--', label=r'$\gamma$ (radians)')
             else:
-                DataAxes.plot(date_vector, gammavector, c='DarkGreen', lw=2, ls='--')
+                DataAxesRight.plot(date_vector, gammavector, c='DarkGreen', lw=2, ls='--')
 
         #plot delta
         if PlotOptions.PlotDelta:
@@ -217,13 +221,13 @@ class Journey(object):
             for event in self.missionevents:
                 if event.EventType == 'SFthrust' or event.EventType == 'FBLTthrust' or event.EventType == "PSBIthrust":
                     AppliedThrust = math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2)
-                    deltavector.append(math.asin(event.Thrust[2] / AppliedThrust))
+                    deltavector.append(math.asin(event.Thrust[2] / AppliedThrust) * 180.0 / math.pi)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     deltavector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, deltavector, c='LightGreen', lw=2, ls='--', label=r'$\delta$ (radians)')
+                DataAxesRight.plot(date_vector, deltavector, c='LightGreen', lw=2, ls='--', label=r'$\delta$ (radians)')
             else:
-                DataAxes.plot(date_vector, deltavector, c='LightGreen', lw=2, ls='--')
+                DataAxesRight.plot(date_vector, deltavector, c='LightGreen', lw=2, ls='--')
 
 
         #plot central body to thrust vector angle
@@ -234,13 +238,13 @@ class Journey(object):
                     r = math.sqrt(event.SpacecraftState[0]**2 + event.SpacecraftState[1]**2 + event.SpacecraftState[2]**2)
                     AppliedThrust = math.sqrt(event.Thrust[0]**2 + event.Thrust[1]**2 + event.Thrust[2]**2)
                     rdotT = event.SpacecraftState[0]*event.Thrust[0] + event.SpacecraftState[1]*event.Thrust[1] + event.SpacecraftState[2]*event.Thrust[2]
-                    CBthrustvector.append( math.acos( rdotT / (r * AppliedThrust) ) )
+                    CBthrustvector.append( math.acos( rdotT / (r * AppliedThrust) ) * 180.0 / math.pi)
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     CBthrustvector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, CBthrustvector, c='Salmon', lw=2, ls='--', label='CB-thrust angle (radians)')
+                DataAxesRight.plot(date_vector, CBthrustvector, c='Salmon', lw=2, ls='--', label='CB-thrust angle (radians)')
             else:
-                DataAxes.plot(date_vector, CBthrustvector, c='Salmon', lw=2, ls='--')
+                DataAxesRight.plot(date_vector, CBthrustvector, c='Salmon', lw=2, ls='--')
 
         #plot mass
         if PlotOptions.PlotMass:
@@ -249,9 +253,9 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     mass.append(event.Mass * 1.0e-3)
             if firstpass:
-                DataAxes.plot(date_vector, mass, c='DarkGrey', lw=2, ls='-', label='Mass (1000 kg)')
+                DataAxesLeft.plot(date_vector, mass, c='DarkGrey', lw=2, ls='-', label='Mass (1000 kg)')
             else:
-                DataAxes.plot(date_vector, mass, c='DarkGrey', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, mass, c='DarkGrey', lw=2, ls='-')
 
         #plot number of active thrusters
         if PlotOptions.PlotNumberOfEngines:
@@ -262,9 +266,9 @@ class Journey(object):
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     numberofengines.append(0)
             if firstpass:
-                DataAxes.plot(date_vector, numberofengines, c='Orange', lw=2, ls='-', label='Number of active thrusters')
+                DataAxesLeft.plot(date_vector, numberofengines, c='Orange', lw=2, ls='-', label='Number of active thrusters')
             else:
-                DataAxes.plot(date_vector, numberofengines, c='Orange', lw=2, ls='-')
+                DataAxesLeft.plot(date_vector, numberofengines, c='Orange', lw=2, ls='-')
 
         #plot power actively used by the thrusters
         if PlotOptions.PlotActivePower:
@@ -276,9 +280,9 @@ class Journey(object):
                     activepowervector.append(0.0)
 
             if firstpass:
-                DataAxes.plot(date_vector, activepowervector, c='Navy', lw=2, ls='--', label='Power used by the propulsion system (kW)')
+                DataAxesLeft.plot(date_vector, activepowervector, c='Navy', lw=2, ls='--', label='Power used by the propulsion system (kW)')
             else:
-                DataAxes.plot(date_vector, activepowervector, c='Navy', lw=2, ls='--')
+                DataAxesLeft.plot(date_vector, activepowervector, c='Navy', lw=2, ls='--')
 
         #plot waste heat from the propulsion system
         if PlotOptions.PlotWasteHeat:
@@ -289,11 +293,11 @@ class Journey(object):
                 elif event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     WasteHeatvector.append(0.0)
             if firstpass:
-                DataAxes.plot(date_vector, WasteHeatvector, c='Crimson', lw=2, ls='--', label='Waste heat from propulsion system (kW)')
+                DataAxesLeft.plot(date_vector, WasteHeatvector, c='Crimson', lw=2, ls='--', label='Waste heat from propulsion system (kW)')
             else:
-                DataAxes.plot(date_vector, WasteHeatvector, c='Crimson', lw=2, ls='--')
+                DataAxesLeft.plot(date_vector, WasteHeatvector, c='Crimson', lw=2, ls='--')
 
-        #plot Earth distance in LU
+        #plot Earth distance in LU and SPE angle
         if PlotOptions.PlotEarthDistance or PlotOptions.PlotSunEarthSpacecraftAngle:
             if self.central_body.lower() != 'sun':
                 print 'getting Earth distance and Sun-Spacecraft-Earth angle is only supported if the central body is the sun'
@@ -331,16 +335,17 @@ class Journey(object):
                             cosAngle = np.dot(-Earth_Spacecraft_Vector, -spacecraft_state_relative_to_central_body_in_ICRF)/np.linalg.norm(spacecraft_state_relative_to_central_body_in_ICRF)/np.linalg.norm(Earth_Spacecraft_Vector)
                             SunEarthSpacecraftAngle.append(np.arccos(cosAngle) * 180.0/math.pi)
 
-                if firstpass:
-                    if PlotOptions.PlotEarthDistance:
-                        DataAxes.plot(date_vector, EarthDistanceVector, c='g', lw=2, label='Distance from Earth (LU)')
-                    if PlotOptions.PlotSunEarthSpacecraftAngle:
-                        DataAxes.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.', label='Sun-Spacecraft-Earth Angle')
-                else:
-                    if PlotOptions.PlotEarthDistance:
-                        DataAxes.plot(date_vector, EarthDistanceVector, c='g', lw=2)
-                    if PlotOptions.PlotSunEarthSpacecraftAngle:
-                        DataAxes.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.')
+                
+                if PlotOptions.PlotEarthDistance:
+                    if firstpass:
+                        DataAxesLeft.plot(date_vector, EarthDistanceVector, c='g', lw=2, label='Distance from Earth (LU)')
+                    else:
+                        DataAxesLeft.plot(date_vector, EarthDistanceVector, c='g', lw=2)
+                if PlotOptions.PlotSunEarthSpacecraftAngle:
+                    if firstpass:
+                        DataAxesRight.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.', label='Sun-Spacecraft-Earth Angle')
+                    else:
+                        DataAxesRight.plot(date_vector, SunEarthSpacecraftAngle, c='orangered', lw=2, ls = '-.')
 
 
     def OutputSTKEphemeris(self, MissionPanel):

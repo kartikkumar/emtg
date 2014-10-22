@@ -174,38 +174,63 @@ class Mission(object):
     def GenerateDataPlot(self, PlotOptions):
         if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotGamma or PlotOptions.PlotDelta or PlotOptions.PlotCB_thrust_angle or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat or PlotOptions.PlotEarthDistance or PlotOptions.PlotSunEarthSpacecraftAngle:
             self.DataFigure = matplotlib.pyplot.figure()
-            self.DataAxes = self.DataFigure.add_axes([0.1, 0.1, 0.8, 0.8])
+            self.DataAxesLeft = self.DataFigure.add_axes([0.1, 0.1, 0.8, 0.8])
+            self.DataAxesRight = self.DataAxesLeft.twinx()
             matplotlib.rcParams.update({'font.size': PlotOptions.FontSize})
 
             if self.ActiveJourney <= len(self.Journeys) - 1:
-                self.Journeys[self.ActiveJourney].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, True)
+                self.Journeys[self.ActiveJourney].GenerateJourneyDataPlot(self.DataAxesLeft, self.DataAxesRight, PlotOptions, True)
 
             else:
                 for j in range(0, len(self.Journeys)):
                     if j == 0:
-                        self.Journeys[j].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, True)
+                        self.Journeys[j].GenerateJourneyDataPlot(self.DataAxesLeft, self.DataAxesRight, PlotOptions, True)
                             
                     else:
-                        self.Journeys[j].GenerateJourneyDataPlot(self.DataAxes, PlotOptions, False)
+                        self.Journeys[j].GenerateJourneyDataPlot(self.DataAxesLeft, self.DataAxesRight, PlotOptions, False)
             
             if PlotOptions.PlotCriticalEvents:
                 if self.ActiveJourney <= len(self.Journeys) - 1:
-                    self.Journeys[self.ActiveJourney].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
+                    self.Journeys[self.ActiveJourney].PlotPhaseBoundariesOnDataPlot(self.DataAxesLeft, PlotOptions, True)
                 else:
                     for j in range(0, len(self.Journeys)):
                         if j == 0:
-                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, True)
+                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxesLeft, PlotOptions, True)
                         else:
-                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxes, PlotOptions, False)
+                            self.Journeys[j].PlotPhaseBoundariesOnDataPlot(self.DataAxesLeft, PlotOptions, False)
 
-            self.DataAxes.set_xlabel('Epoch')
+            self.DataAxesLeft.set_xlabel('Epoch')
             def format_date(x, pos=None):
                 return pylab.num2date(x).strftime('%m-%d-%Y')
 
-            self.DataAxes.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
+            
             self.DataFigure.autofmt_xdate()
-            self.DataAxes.grid(b=True, ls='-')
-            leg = self.DataAxes.legend(loc='best', fancybox=True)
+
+            h1 = []
+            h2 = []
+            l1 = []
+            l2 = []
+            
+            if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat or PlotOptions.PlotEarthDistance:
+                h1, l1 = self.DataAxesLeft.get_legend_handles_labels()
+                self.DataAxesLeft.set_ylabel('Scalar Metric')
+                self.DataAxesLeft.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
+                #self.DataAxesLeft.grid(b=True, ls='-')
+            else:
+                yticks = self.DataAxesLeft.yaxis.get_major_ticks()
+                for tick in yticks:
+                    tick.set_visible(False)
+            if PlotOptions.PlotGamma or PlotOptions.PlotDelta or PlotOptions.PlotCB_thrust_angle or PlotOptions.PlotSunEarthSpacecraftAngle:
+                h2, l2 = self.DataAxesRight.get_legend_handles_labels()
+                self.DataAxesRight.set_ylabel('Angle Metric')
+                self.DataAxesRight.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
+                #self.DataAxesRight.grid(b=True, ls='-')
+            else:
+                yticks = self.DataAxesRight.yaxis.get_major_ticks()
+                for tick in yticks:
+                    tick.set_visible(False)
+
+            leg = self.DataAxesLeft.legend(h1+h2, l1+l2, loc='best', fancybox=True)
             leg.get_frame().set_alpha(0.5)
             leg.draggable(use_blit=True)
             self.DataFigure.show()
