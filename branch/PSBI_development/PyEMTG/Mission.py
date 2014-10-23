@@ -230,7 +230,7 @@ class Mission(object):
                 for tick in yticks:
                     tick.set_visible(False)
 
-            leg = self.DataAxesLeft.legend(h1+h2, l1+l2, loc='best', fancybox=True)
+            leg = self.DataAxesRight.legend(h1+h2, l1+l2, loc='best', fancybox=True)
             leg.get_frame().set_alpha(0.5)
             leg.draggable(use_blit=True)
             self.DataFigure.show()

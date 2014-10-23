@@ -15,7 +15,7 @@ def EOM_inertial_2bodyconstant_thrust(t, X, Thrust, Mdot, mu):
 
     return dX
 
-def EOM_jacobian_intertial_2bodyconstant_thrust(t, X, Thrust, Mdot, mu):
+def EOM_jacobian_inertial_2bodyconstant_thrust(t, X, Thrust, Mdot, mu):
     r = np.linalg.norm(X[0:3])
 
     r3 = r**3

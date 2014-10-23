@@ -114,7 +114,11 @@ class Journey(object):
                 if event.EventType != 'match_point' and event.EventType != 'upwr_flyby' and event.EventType != 'pwr_flyby':
                     Rvector.append(math.sqrt(event.SpacecraftState[0]**2 + event.SpacecraftState[1]**2 + event.SpacecraftState[2]**2) / self.LU)
             if firstpass:
-                DataAxesLeft.plot(date_vector, Rvector, c='k', lw=2, label='Distance from central body (LU)')
+                unitstring = 'LU'
+                if self.central_body.lower() == 'sun' and math.fabs(self.LU - 149597870.69100001) < 1.0:
+                    unitstring = 'AU'
+                labelstring = 'Distance from ' + self.central_body + ' (' + unitstring + ')'
+                DataAxesLeft.plot(date_vector, Rvector, c='k', lw=2, label=labelstring)
             else:
                 DataAxesLeft.plot(date_vector, Rvector, c='k', lw=2)
 
@@ -338,7 +342,11 @@ class Journey(object):
                 
                 if PlotOptions.PlotEarthDistance:
                     if firstpass:
-                        DataAxesLeft.plot(date_vector, EarthDistanceVector, c='g', lw=2, label='Distance from Earth (LU)')
+                        unitstring = 'LU'
+                        if self.central_body.lower() == 'sun' and math.fabs(self.LU - 149597870.69100001) < 1.0:
+                            unitstring = 'AU'
+                        labelstring = 'Distance from Earth (' + unitstring + ')'
+                        DataAxesLeft.plot(date_vector, EarthDistanceVector, c='g', lw=2, label=labelstring)
                     else:
                         DataAxesLeft.plot(date_vector, EarthDistanceVector, c='g', lw=2)
                 if PlotOptions.PlotSunEarthSpacecraftAngle:
