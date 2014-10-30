@@ -687,6 +687,7 @@ class PyEMTG_interface(wx.Frame):
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
+        self.optionsnotebook.tabOutput.chkoutput_dormant_journeys.Bind(wx.EVT_CHECKBOX, self.Changeoutput_dormant_journeys)
         self.optionsnotebook.tabOutput.txtpost_mission_wait_time.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_wait_time)
         self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.Bind(wx.EVT_CHECKBOX, self.Changegenerate_initial_guess_file)
         self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Bind(wx.EVT_COMBOBOX, self.Changemisson_type_for_initial_guess)
@@ -1769,6 +1770,10 @@ class PyEMTG_interface(wx.Frame):
 
     def Changeoutput_units(self, e):
         self.missionoptions.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+
+    def Changeoutput_dormant_journeys(self, e):
+        self.missionoptions.output_dormant_journeys = int(self.optionsnotebook.tabOutput.chkoutput_dormant_journeys.GetValue())
+        self.missionoptions.update_output_options_panel(self.optionsnotebook)
 
     def Changepost_mission_wait_time(self, e):
         self.missionoptions.post_mission_wait_time = eval(self.optionsnotebook.tabOutput.txtpost_mission_wait_time.GetValue())

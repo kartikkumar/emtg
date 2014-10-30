@@ -85,6 +85,7 @@ missionoptions::missionoptions() {
 	this->forced_working_directory = "..//EMTGv8_Results";
     this->generate_forward_integrated_ephemeris = false;
     this->background_mode = true;
+    this->output_dormant_journeys = false;
 
 	this->file_status = parse_options_file("options.emtgopt");
 
@@ -153,6 +154,7 @@ missionoptions::missionoptions(string optionsfile) {
 	this->forced_working_directory = "..//EMTGv8_Results";
     this->generate_forward_integrated_ephemeris = false;
     this->background_mode = true;
+    this->output_dormant_journeys = false;
 
 	this->file_status = parse_options_file(optionsfile);
 
@@ -1754,6 +1756,11 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
         this->background_mode = (bool)value;
         return 0;
     }
+    if (choice == "output_dormant_journeys")
+    {
+        this->output_dormant_journeys = (bool)value;
+        return 0;
+    }
 
 	//debug code
 	if (choice == "check_derivatives") {
@@ -2683,6 +2690,10 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "##output format settings" << endl;
 		outputfile << "#output units, 0: km and km/s, 1: LU and LU/day" << endl;
         outputfile << "output_units " << this->output_units << endl;
+        outputfile << "#Output journey entries for wait times at intermediate and final target?" << endl;
+        outputfile << "#0: no" << endl;
+        outputfile << "#1: yes" << endl;
+        outputfile << "output_dormant_journeys " << this->output_dormant_journeys << endl;
         outputfile << "#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)" << endl;
         outputfile << "post_mission_wait_time " << this->post_mission_wait_time << endl;
 		outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;

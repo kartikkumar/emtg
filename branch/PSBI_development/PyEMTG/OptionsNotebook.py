@@ -1019,6 +1019,9 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbloutput_units = wx.StaticText(self, -1, "Output units")
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
+        
+        self.lbloutput_dormant_journeys = wx.StaticText(self, -1, "Output journey entries for wait times at intermediate and final target?")
+        self.chkoutput_dormant_journeys = wx.CheckBox(self, -1)
 
         self.lblpost_mission_wait_time = wx.StaticText(self, -1, "Stay time at the final target")
         self.txtpost_mission_wait_time = wx.TextCtrl(self, -1, "post_mission_wait_time")
@@ -1045,7 +1048,8 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
         self.chkbackground_mode = wx.CheckBox(self, -1)
 
-        self.mainbox.AddMany([  self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
+        self.mainbox.AddMany([  self.lbloutput_dormant_journeys, self.chkoutput_dormant_journeys,
+                                self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
                                 self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
                                 self.lbloutput_units, self.cmboutput_units,
                                 self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,

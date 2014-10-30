@@ -975,7 +975,7 @@ namespace EMTG
 		int errcode = 0;
 
         //if applicable, print the journey prologue
-        if (j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
+        if (options->output_dormant_journeys && j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
         {
             ++jprint;
             this->output_journey_prologue(options,
@@ -1074,7 +1074,7 @@ namespace EMTG
 		outputfile.close();
 
         //If this is the last journey and a post-mission wait time has been specified then print out that post-mission wait
-        if (j == options->number_of_journeys - 1 && options->post_mission_wait_time > 1.0)
+        if (options->output_dormant_journeys && j == options->number_of_journeys - 1 && options->post_mission_wait_time > 1.0)
         {
             ++jprint;
             this->output_journey_postlogue(options, launchdate, j, jprint, Universe, eventcount);
