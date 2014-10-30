@@ -10,8 +10,6 @@
 #include "outerloop_NSGAII.h"
 #include "mission.h"
 
-
-
 #include "boost/algorithm/string.hpp"
 
 namespace GeneticAlgorithm
@@ -309,7 +307,10 @@ namespace GeneticAlgorithm
 		// assign crowding distance to member of each front
 		for (int front = 0; front < this->nondominated_fronts.size(); ++front)
 		{
-			this->assign_crowding_distance(this->nondominated_fronts[front]);
+			if (this->nondominated_fronts[front].size() > 1)
+				this->assign_crowding_distance(this->nondominated_fronts[front]);
+			else
+				this->nondominated_fronts[front][0].crowding_distance = 0.0;
 		}
 
 		// rebuild population 
@@ -365,7 +366,7 @@ namespace GeneticAlgorithm
 			for (int i = 0; i < local_front.size(); ++i)  // for each individual, i, in local_front except the two boundary individuals
 			{
 				if (obj_ind == 0)
-					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0;  // initialize crowding_distance to 0
+					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0.0;  // initialize crowding_distance to 0
 				double prev_crowd_dist = local_front[obj_value[obj_ind][i].second].crowding_distance;
 				double obj_range = max_obj_value[obj_ind] - min_obj_value[obj_ind]; // range of objective function values for current objective
 				double current_crowd_dist;
@@ -388,11 +389,9 @@ namespace GeneticAlgorithm
 			{
 				if (obj_ind != obj_ind2)
 				{
-					//int current_min_fitness_idx = obj_value[obj_ind][0].second;
-					int current_min_fitness_idx = -1;
+					int current_min_fitness_idx = obj_value[obj_ind][0].second;
 					double current_min_fitness = 9e99;
-					//int current_max_fitness_idx = obj_value[obj_ind][local_front.size()-1].second;
-					int current_max_fitness_idx = -1;
+					int current_max_fitness_idx = obj_value[obj_ind][local_front.size()-1].second;
 					double current_max_fitness = 9e99;
 
 					for (int i = 0; i < local_front.size(); ++i)  // for each individual, i
