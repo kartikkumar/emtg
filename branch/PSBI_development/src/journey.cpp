@@ -257,7 +257,7 @@ namespace EMTG
 				//if this is NOT the first journey, transform the coordinate system into the central body frame of the current journey
 				if (j > 0)
 				{
-					Universe.locate_central_body(*current_epoch, central_body_state, options);
+					Universe.locate_central_body(*current_epoch, central_body_state, options, false);
 					for (int k = 0; k < 6; ++k)
 						current_state[k] -= central_body_state[k];
 				}
@@ -270,7 +270,7 @@ namespace EMTG
 				errcode = phases[p].evaluate(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary_states[p].data(), boundary_states[p+1].data(), j, p, &Universe, options);	
 
 				//at the end of the journey, transform the coordinate system back into the central body frame of the Sun (EMTG global reference frame)
-				Universe.locate_central_body(*current_epoch, central_body_state, options);
+				Universe.locate_central_body(*current_epoch, central_body_state, options, false);
 				for (int k = 0; k < 6; ++k)
 					current_state[k] += central_body_state[k];
 			}

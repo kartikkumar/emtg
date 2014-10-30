@@ -50,6 +50,11 @@ FBLT_phase::FBLT_phase() {
 	    active_power.resize(options->num_timesteps);
 	    number_of_active_engines.resize(options->num_timesteps);
 
+        //vector to track the state and derivatives of the central body
+        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options->num_timesteps; ++step)
+            this->central_body_state_mks.push_back(central_body_state_dummy);
+
 	    //set the bodies
 	    boundary1_location_code = options->sequence[j][p];
 	    boundary2_location_code = options->sequence[j][p+1];

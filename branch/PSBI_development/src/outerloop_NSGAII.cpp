@@ -362,12 +362,8 @@ namespace GeneticAlgorithm
 			// set min and max of objective function values for all objectives of the vector of local_front
 			min_obj_value.push_back(local_front[obj_value[obj_ind][0].second].fitness_values[obj_ind]);
 			max_obj_value.push_back(local_front[obj_value[obj_ind][local_front.size()-1].second].fitness_values[obj_ind]);
-		}
 
-		// assign crowding distance measure to remaining individuals according to "distance" of neighbors in objective space
-		for (int i = 1; i < local_front.size()-1; ++i)  // for each individual, i, in local_front
-		{
-			for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+			for (int i = 1; i < local_front.size()-1; ++i)  // for each individual, i, in local_front except the two boundary individuals
 			{
 				if (obj_ind == 0)
 					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0;  // initialize crowding_distance to 0
@@ -1037,6 +1033,7 @@ namespace GeneticAlgorithm
 		this->evaluatepop(options, Universe); //evaluates this->this_generation vector of solution indiviudals
 
 		//1b. assign pareto rank and crowding distance value to initial parent population using non-dominated sorting
+
 		this->parent_population = this->this_generation; //random initial parent population of size n based on copy of this->this_generation
 		std::stringstream popfilestream;
 		popfilestream << options.working_directory << "//NSGAII_initial_population.NSGAII";

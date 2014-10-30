@@ -77,7 +77,8 @@ namespace EMTG{ namespace Astrodynamics
 					double* dPdt,
 					double* dSRPdr,
 					vector<double>& dagravdRvec,
-					vector<double>& dagravdtvec);
+                    vector<double>& dagravdtvec,
+                    vector<double>& central_body_state_mks);
 
 	//******************************
 	//launch vehicle code

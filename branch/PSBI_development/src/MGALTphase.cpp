@@ -35,79 +35,84 @@ namespace EMTG {
 		vector<double> dV_or_control_dummy(3);
 
 		for (int step = 0; step < options->num_timesteps; ++step) {
-			spacecraft_state.push_back(state_dummy);
-			dV.push_back(dV_or_control_dummy);
-			control.push_back(dV_or_control_dummy);
-			ForceVector.push_back(dV_or_control_dummy);
-			dagravdRvec.push_back(dV_or_control_dummy);
-			dagravdtvec.push_back(dV_or_control_dummy);
+            this->spacecraft_state.push_back(state_dummy);
+            this->dV.push_back(dV_or_control_dummy);
+            this->control.push_back(dV_or_control_dummy);
+            this->ForceVector.push_back(dV_or_control_dummy);
+            this->dagravdRvec.push_back(dV_or_control_dummy);
+            this->dagravdtvec.push_back(dV_or_control_dummy);
 		}
 
-		match_point_state.resize(7);
+        this->match_point_state.resize(7);
 
-		event_epochs.resize(options->num_timesteps);
-		dVmax.resize(options->num_timesteps);
-		available_power.resize(options->num_timesteps);
-		available_mass_flow_rate.resize(options->num_timesteps);
-		available_thrust.resize(options->num_timesteps);
-		available_Isp.resize(options->num_timesteps);
-		active_power.resize(options->num_timesteps);
-		number_of_active_engines.resize(options->num_timesteps);
-		throttle.resize(options->num_timesteps);
+        this->event_epochs.resize(options->num_timesteps);
+        this->dVmax.resize(options->num_timesteps);
+        this->available_power.resize(options->num_timesteps);
+        this->available_mass_flow_rate.resize(options->num_timesteps);
+        this->available_thrust.resize(options->num_timesteps);
+        this->available_Isp.resize(options->num_timesteps);
+        this->active_power.resize(options->num_timesteps);
+        this->number_of_active_engines.resize(options->num_timesteps);
+		this->throttle.resize(options->num_timesteps);
+
+        //vector to track the state and derivatives of the central body
+        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options->num_timesteps; ++step)
+            this->central_body_state_mks.push_back(central_body_state_dummy);
 
 		//size the vectors that will be used to calculate the b-plane
-		V_infinity_in.resize(3, 1);
-		V_infinity_out.resize(3, 1);
-		BoundaryR.resize(3, 1);
-		BoundaryV.resize(3, 1);
+        this->V_infinity_in.resize(3, 1);
+        this->V_infinity_out.resize(3, 1);
+        this->BoundaryR.resize(3, 1);
+        this->BoundaryV.resize(3, 1);
 
 		//set the bodies
-		boundary1_location_code = options->sequence[j][p];
-		boundary2_location_code = options->sequence[j][p+1];
+        this->boundary1_location_code = options->sequence[j][p];
+        this->boundary2_location_code = options->sequence[j][p + 1];
 
 		//size the vectors of state transition matrices
-		Forward_STM.resize(options->num_timesteps/2 + 1);
-		Backward_STM.resize(options->num_timesteps/2 + 1);
-		Kepler_F_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_Fdot_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_G_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_Gdot_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_F_Backward.resize(options->num_timesteps/2 + 1);
-		Kepler_Fdot_Backward.resize(options->num_timesteps/2 + 1);
-		Kepler_G_Backward.resize(options->num_timesteps/2 + 1);
-		Kepler_Gdot_Backward.resize(options->num_timesteps/2 + 1);
-		Kepler_Fdotdot_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_Gdotdot_Forward.resize(options->num_timesteps/2 + 1);
-		Kepler_Fdotdot_Backward.resize(options->num_timesteps/2 + 1);
-		Kepler_Gdotdot_Backward.resize(options->num_timesteps/2 + 1);
-		Propagation_Step_Time_Fraction_Forward.resize(options->num_timesteps/2 + 1);
-		Propagation_Step_Time_Fraction_Backward.resize(options->num_timesteps/2 + 1);
-		Propagation_Step_Time_Fraction_Derivative_Forward.resize(options->num_timesteps/2 + 1);
-		Propagation_Step_Time_Fraction_Derivative_Backward.resize(options->num_timesteps/2 + 1);
+        this->Forward_STM.resize(options->num_timesteps / 2 + 1);
+        this->Backward_STM.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_F_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Fdot_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_G_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Gdot_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_F_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Fdot_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_G_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Gdot_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Fdotdot_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Gdotdot_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Fdotdot_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Kepler_Gdotdot_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Derivative_Forward.resize(options->num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Derivative_Backward.resize(options->num_timesteps / 2 + 1);
 
-		current_mass_increment = 0.0;
-		journey_initial_mass_increment_scale_factor = 1.0;
+        this->current_mass_increment = 0.0;
+        this->journey_initial_mass_increment_scale_factor = 1.0;
 
 		//size the time step vector
-		time_step_sizes.resize(options->num_timesteps);
+        this->time_step_sizes.resize(options->num_timesteps);
 
 		//size the vectors necessary to compute the patch-point derivatives
 		if (p == 0 && options->allow_initial_mass_to_vary)
-			G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier.resize(7);
+            this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier.resize(7);
 
 		if (options->journey_variable_mass_increment[j])
-			G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier.resize(7);
+            this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier.resize(7);
 
 		if (options->objective_type == 13)
-			G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
+            this->G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
 
-		dTdP.resize(options->num_timesteps);
-		dmdotdP.resize(options->num_timesteps);
-		dTdIsp.resize(options->num_timesteps);
-		dmdotdIsp.resize(options->num_timesteps);
-		dPdr.resize(options->num_timesteps);
-		dPdt.resize(options->num_timesteps);
-		dFSRPdr.resize(options->num_timesteps);
+        this->dTdP.resize(options->num_timesteps);
+        this->dmdotdP.resize(options->num_timesteps);
+        this->dTdIsp.resize(options->num_timesteps);
+        this->dmdotdIsp.resize(options->num_timesteps);
+        this->dPdr.resize(options->num_timesteps);
+        this->dPdt.resize(options->num_timesteps);
+        this->dFSRPdr.resize(options->num_timesteps);
 
 		//set derivatives for spirals
 		this->spiral_escape_dm_after_dm_before = 1.0;
@@ -355,7 +360,8 @@ namespace EMTG {
 											&dPdt[step],
 											&dFSRPdr[step],
 											dagravdRvec[step],
-											dagravdtvec[step]);
+                                            dagravdtvec[step],
+                                            this->central_body_state_mks[step]);
 
 			double effective_mass = spacecraft_state[step][6] > 1.0e-3 ? spacecraft_state[step][6] : 1.0e-3;
 			dVmax[step] = options->engine_duty_cycle * available_thrust[step] / effective_mass * (time_step_sizes[step]);
@@ -601,7 +607,8 @@ namespace EMTG {
 											&dPdt[backstep],
 											&dFSRPdr[backstep],
 											dagravdRvec[backstep],
-											dagravdtvec[step]);
+                                            dagravdtvec[step],
+                                            this->central_body_state_mks[step]);
 
 			double mass_before_impulse = spacecraft_state[backstep][6] + local_throttle * options->engine_duty_cycle * available_mass_flow_rate[backstep] * (time_step_sizes[backstep]);
 			double effective_mass = mass_before_impulse > 1.0e-3 ? mass_before_impulse : 1.0e-3;
@@ -2899,7 +2906,6 @@ namespace EMTG {
 		double vy = spacecraft_state[stepnext - 1][4];
 		double vz = spacecraft_state[stepnext - 1][5];
 		double r = sqrt(x*x + y*y + z*z);
-		double r3 = r*r*r;
 		double cmag = (math::norm(control[stepnext-1].data(),3) + 1.0e-10);
 
 
@@ -3033,7 +3039,6 @@ namespace EMTG {
 		double vy = spacecraft_state[backstepnext - 1][4];
 		double vz = spacecraft_state[backstepnext - 1][5];
 		double r = sqrt(x*x + y*y + z*z);
-		double r3 = r*r*r;
 		double cmag = (math::norm(control[backstepnext-1].data(),3) + 1.0e-10);
 
 

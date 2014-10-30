@@ -327,7 +327,7 @@ namespace EMTG {
 				{
 					double central_body_state_in_km[6];
 					double position_relative_to_sun_in_AU[3];
-					Universe->locate_central_body(*current_epoch, central_body_state_in_km, options);
+					Universe->locate_central_body(*current_epoch, central_body_state_in_km, options, false);
 
 					position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + this->spiral_escape_state_before_spiral[0]) / options->AU;
 					position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + this->spiral_escape_state_before_spiral[1]) / options->AU;
@@ -798,7 +798,7 @@ namespace EMTG {
 			{
 				double central_body_state_in_km[6];
 				double position_relative_to_sun_in_AU[3];
-				Universe->locate_central_body(*current_epoch + this->TOF, central_body_state_in_km, options);
+				Universe->locate_central_body(*current_epoch + this->TOF, central_body_state_in_km, options, false);
 
 				position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + this->spiral_capture_state_before_spiral[0]) / options->AU;
 				position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + this->spiral_capture_state_before_spiral[1]) / options->AU;
@@ -1852,9 +1852,9 @@ namespace EMTG {
 						Xlowerbounds->push_back(options->journey_departure_elements_bounds[j][k][0]);
 						Xupperbounds->push_back(options->journey_departure_elements_bounds[j][k][1]);
 						if (options->journey_departure_elements_type[j])
-							Xdescriptions->push_back(prefix + " left boundary point " + ClassicalOrbitElementNames[k]);
+							Xdescriptions->push_back(prefix + "left boundary point " + ClassicalOrbitElementNames[k]);
 						else
-							Xdescriptions->push_back(prefix + " left boundary point " + CartesianElementNames[k]);
+							Xdescriptions->push_back(prefix + "left boundary point " + CartesianElementNames[k]);
 					}
 				}
 
@@ -1867,7 +1867,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "left boundary central body exclusion radius constraint");
 
 						//this constraint has derivatives with respect to SMA, ECC, and TA
 						//only create a derivative entry with respect to an orbit element if that element is being varied
@@ -1880,7 +1880,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1897,7 +1897,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1914,7 +1914,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1931,7 +1931,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "left boundary central body exclusion radius constraint");
 					}
 
 					//this constraint has derivatives with respect to x, y, and z
@@ -1945,7 +1945,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1962,7 +1962,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1979,7 +1979,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2093,7 +2093,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2133,7 +2133,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry+1);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
+						EntryNameStream << "Derivative of " << prefix << "flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry+1);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2149,7 +2149,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry-1);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
+						EntryNameStream << "Derivative of " << prefix << "flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry-1);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2173,7 +2173,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry+2);
 						stringstream entryNameStream;
-						entryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
+						entryNameStream << "Derivative of " << prefix << "flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
 						Gdescriptions->push_back(entryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry+2);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2189,7 +2189,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2216,7 +2216,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2232,7 +2232,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2262,7 +2262,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
 					}
@@ -2276,7 +2276,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
 						++foundcount;
@@ -2456,9 +2456,9 @@ namespace EMTG {
 						Xlowerbounds->push_back(options->journey_arrival_elements_bounds[j][k][0]);
 						Xupperbounds->push_back(options->journey_arrival_elements_bounds[j][k][1]);
 						if (options->journey_arrival_elements_type[j])
-							Xdescriptions->push_back(prefix + " right boundary point " + ClassicalOrbitElementNames[k]);
+							Xdescriptions->push_back(prefix + "right boundary point " + ClassicalOrbitElementNames[k]);
 						else
-							Xdescriptions->push_back(prefix + " right boundary point " + CartesianElementNames[k]);
+							Xdescriptions->push_back(prefix + "right boundary point " + CartesianElementNames[k]);
 					}
 				}
 
@@ -2471,7 +2471,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " right boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "right boundary central body exclusion radius constraint");
 
 						//this constraint has derivatives with respect to SMA, ECC, and TA
 						//only create a derivative entry with respect to an orbit element if that element is being varied
@@ -2484,7 +2484,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2501,7 +2501,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2518,7 +2518,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2549,7 +2549,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2566,7 +2566,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2583,7 +2583,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);

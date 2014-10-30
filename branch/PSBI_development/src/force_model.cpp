@@ -28,7 +28,8 @@ namespace EMTG { namespace Astrodynamics {
 					double* dPdt,
 					double* dFSRPdr,
 					vector<double>& dagravdRvec,
-					vector<double>& dagravdtvec)
+					vector<double>& dagravdtvec,
+                    vector<double>& central_body_state_mks)
 	{
 		//Note: all thrusts are returned in Newtons
 
@@ -38,17 +39,20 @@ namespace EMTG { namespace Astrodynamics {
 
 		if (!(Universe->central_body_SPICE_ID == 10))
 		{
-			double central_body_state_in_km[6];	
-			Universe->locate_central_body(*epoch, central_body_state_in_km, options);
+            Universe->locate_central_body(*epoch, central_body_state_mks.data(), options, generate_derivatives);
 
-			position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + spacecraft_state[0]) / options->AU;
-			position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + spacecraft_state[1]) / options->AU;
-			position_relative_to_sun_in_AU[2] = (central_body_state_in_km[2] + spacecraft_state[2]) / options->AU;
+            position_relative_to_sun_in_AU[0] = (central_body_state_mks[0] + spacecraft_state[0]) / options->AU;
+            position_relative_to_sun_in_AU[1] = (central_body_state_mks[1] + spacecraft_state[1]) / options->AU;
+            position_relative_to_sun_in_AU[2] = (central_body_state_mks[2] + spacecraft_state[2]) / options->AU;
 
 			distance_from_sun_in_AU = math::norm(position_relative_to_sun_in_AU, 3);
 		}
-		else //if we are orbiting the sun, it's quite silly to look up the position of the sun relative to itself, so don't bother
-			distance_from_sun_in_AU = math::norm(spacecraft_state, 3)/Universe->LU;
+        else //if we are orbiting the sun, it's quite silly to look up the position of the sun relative to itself, so don't bother
+        {
+            distance_from_sun_in_AU = math::norm(spacecraft_state, 3) / Universe->LU;
+            for (size_t k = 0; k < (generate_derivatives && options->derivative_type > 2? 12 : 6); ++k)
+                central_body_state_mks[k] = 0.0;
+        }
 
 		//compute the thrust available from the engine
 		EMTG::Astrodynamics::find_engine_parameters(options,

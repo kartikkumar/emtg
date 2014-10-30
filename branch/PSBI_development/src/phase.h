@@ -471,6 +471,7 @@ namespace EMTG {
 		vector< vector<int> > control_vector_G_indices;		
 
 		//derivatives of force model
+        vector< vector <double> > central_body_state_mks;
 		vector<double> dTdP;
 		vector<double> dmdotdP;
 		vector<double> dTdIsp;

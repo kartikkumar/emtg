@@ -202,19 +202,46 @@ namespace EMTG {
                 NewX.push_back((this->phase_start_epoch - current_epoch) / 86400.0);
                 ++NewXIndex;
 
-                //should add code to copy variable boundary conditions here
-
-                //then encode the departure asymptote (three variables)
-                NewX.push_back(sqrt(this->C3_departure));
-                NewX.push_back(this->RA_departure);
-                NewX.push_back(this->DEC_departure);
-                NewXIndex += 3;
-
-                //mission initial mass multiplier if applicable
-                if (j == 0 && options.allow_initial_mass_to_vary)
+                //variable left boundary conditions
+                if (options.destination_list[j][0] == -1)
                 {
-                    NewX.push_back(this->mission_initial_mass_multiplier);
-                    ++NewXIndex;
+                    if (options.journey_departure_elements_type[j] == 0) //Cartesian
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_local_frame_state[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                    else //COE
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_orbit_elements[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                }
+                //then encode the departure asymptote (three variables)
+                if (!(options.journey_departure_type[j] == 5 || options.journey_departure_type[j] == 2))
+                {
+                    NewX.push_back(sqrt(this->C3_departure));
+                    NewX.push_back(this->RA_departure);
+                    NewX.push_back(this->DEC_departure);
+                    NewXIndex += 3;
+
+                    //mission initial mass multiplier if applicable
+                    if (j == 0 && options.allow_initial_mass_to_vary)
+                    {
+                        NewX.push_back(this->mission_initial_mass_multiplier);
+                        ++NewXIndex;
+                    }
                 }
             }
         }
@@ -241,6 +268,33 @@ namespace EMTG {
         //all phase types place the time of flight next
         NewX.push_back(this->TOF / 86400.0);
         ++NewXIndex;
+
+        //variable right-hand boundary
+        if (options.destination_list[j][1] == -1)
+        {
+            if (options.journey_arrival_elements_type[j] == 0) //Cartesian
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_local_frame_state[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+            else //COE
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_orbit_elements[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+        }
 
         //MGALT, FBLT, MGANDSM, and PSBI phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
         if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)

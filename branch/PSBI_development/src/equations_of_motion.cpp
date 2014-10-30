@@ -39,7 +39,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
 		
-		static vector<double> dagravdRvec(3), dagravdtvec(3);
+        static vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks(6);
 
 		double r = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]); //magnitude of position vector
 		r = fabs(r) < EMTG::math::SMALL ? EMTG::math::sgn(r) * EMTG::math::SMALL : r;
@@ -81,7 +81,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										&dPdt,
 										&dFSRPdr,
 										dagravdRvec,
-										dagravdtvec);
+                                        dagravdtvec,
+                                        central_body_state_mks);
 
 		for (int k = 0; k < 3; ++k)
 			ForceVector[k] /= ( (Universe->LU / (Universe->TU * Universe->TU)) );
@@ -139,7 +140,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
 		
-		static vector<double> dagravdRvec(3), dagravdtvec(3);
+        static vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks(6);
 
 		double r = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]); //magnitude of position vector
 		r = fabs(r) < EMTG::math::SMALL ? EMTG::math::sgn(r) * EMTG::math::SMALL : r;
@@ -171,7 +172,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										&dPdt,
 										&dFSRPdr,
 										dagravdRvec,
-										dagravdtvec);
+                                        dagravdtvec,
+                                        central_body_state_mks);
 
 		for (int k = 0; k < 3; ++k)
 			ForceVector[k] /= (Universe->LU / (Universe->TU * Universe->TU));

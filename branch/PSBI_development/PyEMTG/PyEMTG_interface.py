@@ -1682,12 +1682,16 @@ class PyEMTG_interface(wx.Frame):
                 guessfile = open(os.path.join(self.dirname, self.filename), "r")
                 
                 counter = 0
+                guess_type_string = []
+                guess_num_timesteps = 0
 
                 for line in guessfile:
                     counter += 1
                     if counter == 4:
                         guess_type_string = line.strip('\n')
-                    elif counter == 7:
+                    elif counter == 6:
+                        guess_num_timesteps = int(line.strip('\n'))
+                    elif counter == 9:
                         if (guess_type_string == "MGA" and self.missionoptions.mission_type == 0) \
                             or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 1) \
                             or (guess_type_string == "MGALT" and self.missionoptions.mission_type == 2) \
@@ -1700,6 +1704,11 @@ class PyEMTG_interface(wx.Frame):
                                 guessvector.append(float(entry))
 
                             self.missionoptions.trialX = [copy.deepcopy(guessvector)]
+
+                            if not (guess_num_timesteps == self.missionoptions.num_timesteps):
+                                errordlg = wx.MessageDialog(self, "Initial guess has " + str(guess_num_timesteps) + " time-steps per phase but this options file has " + str(self.missionoptions.num_timesteps) + " time-steps per phase. This initial guess will not work unless you (a) use the same number of time-steps or (b) use the initial guess interpolator.", "EMTG Error", wx.OK)
+                                errordlg.ShowModal()
+                                errordlg.Destroy()
                         else:
                             errordlg = wx.MessageDialog(self, "Initial guess file type does not match this options file's mission type.", "EMTG Error", wx.OK)
                             errordlg.ShowModal()

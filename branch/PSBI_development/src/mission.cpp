@@ -1610,6 +1610,8 @@ void mission::create_initial_guess(const int& desired_mission_type, const bool& 
 	initialguessfile << "#Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
 	initialguessfile << "#for mission type:" << endl;
 	initialguessfile << new_mission_type_string << endl;
+    initialguessfile << "#Number of time steps:" << endl;
+    initialguessfile << options.num_timesteps << endl;
 	initialguessfile << endl;
 
 	initialguessfile.precision(20);
