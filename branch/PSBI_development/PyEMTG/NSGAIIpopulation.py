@@ -240,7 +240,7 @@ class NSGAII_outerloop_population(object):
                         self.legal_solutions.append(solution)
 
                         if self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Flight time (days)' and self.TimeUnit == 0:
-                            objective_values_vector.append(solution.objective_values[objective_index] / 365.25)
+                            objective_values_vector.append(solution.objective_values[ordered_list_of_objectives[objective_index]] / 365.25)
                         elif self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
                             objective_values_vector.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[ordered_list_of_objectives[objective_index]] + 2400000.5).GetTicks())))
                         else:
@@ -360,16 +360,12 @@ class NSGAII_outerloop_population(object):
                 solution.point.changed()
 
     def onpick(self, event):
-        #description = []
-        #for objective_index in ordered_list_of_objectives:
-        #    description = description + self.objective_column_headers[objective_index] + ': ' + str(
         ind = event.ind[0]
         if len(self.ordered_list_of_objectives) == 2: #2D
             print '2D picker not implemented'
         elif len(self.ordered_list_of_objectives) >= 3: #3D or 4D plot
             x, y, z = event.artist._offsets3d
 
-            candidate_solution_indices_per_objective = []
             idx = np.where(self.objective_values_matrix[0] == x[ind])
             idy = np.where(self.objective_values_matrix[1] == y[ind])
             idz = np.where(self.objective_values_matrix[2] == z[ind])
