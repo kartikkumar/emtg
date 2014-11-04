@@ -78,6 +78,7 @@ missionoptions::missionoptions() {
 
 	this->LambertSolver = 0;
 
+    this->post_mission_wait_time = 0.0;
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
 	this->override_working_directory = false;    
@@ -145,6 +146,7 @@ missionoptions::missionoptions(string optionsfile) {
 
 	this->LambertSolver = 0;
 
+    this->post_mission_wait_time = 0.0;
 	this->generate_initial_guess_file = false;
 	this->mission_type_for_initial_guess_file = 2;
 	this->override_working_directory = false;
@@ -204,7 +206,7 @@ int missionoptions::parse_options_file(string optionsfile) {
 	this->error_message = "Options file '" + optionsfile + "' read successfully";
 
 	//make sure we aren't choosing any engine parameters for impulsive mission types!
-	if (this->mission_type == 0 || this->mission_type == 1 || this->mission_type == 5) //impulsive mission types
+	if (this->mission_type == 0 || this->mission_type == 1) //impulsive mission types
 		this->engine_type = 0;
 
 	return 0;
@@ -1719,6 +1721,10 @@ int missionoptions::parse_options_line(ifstream& inputfile, string& choice, doub
 		this->output_units = (int) value;
 		return 0;
 	}
+    if (choice == "post_mission_wait_time") {
+        this->post_mission_wait_time = value;
+        return 0;
+    }
 	if (choice == "create_GMAT_script") {
 		this->create_GMAT_script = (int) value;
 		return 0;
@@ -2233,7 +2239,7 @@ int missionoptions::print_options_file(string filename) {
 		outputfile << "#2: MGA-LT" << endl;
 		outputfile << "#3: FBLT" << endl;
 		outputfile << "#4: MGA-NDSM" << endl;
-		outputfile << "#5: DTLT" << endl;
+		outputfile << "#5: PSBI" << endl;
 		outputfile << "#6: solver chooses (MGA, MGA-DSM)" << endl;
 		outputfile << "#7: solver chooses (MGA, MGA-LT)" << endl;
 		outputfile << "#8: solver chooses (MGA-DSM, MGA-LT)" << endl;
@@ -2676,7 +2682,9 @@ int missionoptions::print_options_file(string filename) {
 
 		outputfile << "##output format settings" << endl;
 		outputfile << "#output units, 0: km and km/s, 1: LU and LU/day" << endl;
-		outputfile << "output_units " << this->output_units << endl;
+        outputfile << "output_units " << this->output_units << endl;
+        outputfile << "#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)" << endl;
+        outputfile << "post_mission_wait_time " << this->post_mission_wait_time << endl;
 		outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
 		outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
 		outputfile << "#Generate initial guess file?" << endl;

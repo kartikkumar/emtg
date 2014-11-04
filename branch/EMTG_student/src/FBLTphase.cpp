@@ -1435,7 +1435,7 @@ FBLT_phase::FBLT_phase() {
 						    dV_arrival_mag,
 						    -1,
 						    options->IspChem,
-						    -1,
+						    temp_power,
 						    0,
 						    0,
 						    0);

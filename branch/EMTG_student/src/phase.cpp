@@ -520,12 +520,12 @@ namespace EMTG {
 			//store the left boundary state derivative if we are using time derivatives
 			if (options->derivative_type > 2 && needG)
 			{
-				left_boundary_state_derivative[0] = boundary1_state[3];
-				left_boundary_state_derivative[1] = boundary1_state[4];
-				left_boundary_state_derivative[2] = boundary1_state[5];
-				left_boundary_state_derivative[3] = boundary1_state[6];
-				left_boundary_state_derivative[4] = boundary1_state[7];
-				left_boundary_state_derivative[5] = boundary1_state[8];
+				left_boundary_state_derivative[0] = boundary1_state[6];
+				left_boundary_state_derivative[1] = boundary1_state[7];
+				left_boundary_state_derivative[2] = boundary1_state[8];
+				left_boundary_state_derivative[3] = boundary1_state[9];
+				left_boundary_state_derivative[4] = boundary1_state[10];
+				left_boundary_state_derivative[5] = boundary1_state[11];
 			}
 
 			vinf_in = this->V_infinity_in.norm();
@@ -1024,12 +1024,12 @@ namespace EMTG {
 															true,
 															options);
 
-					left_boundary_state_derivative[0] = boundary_state[3];
-					left_boundary_state_derivative[1] = boundary_state[4];
-					left_boundary_state_derivative[2] = boundary_state[5];
-					left_boundary_state_derivative[3] = boundary_state[6];
-					left_boundary_state_derivative[4] = boundary_state[7];
-					left_boundary_state_derivative[5] = boundary_state[8];
+					left_boundary_state_derivative[0] = boundary_state[6];
+					left_boundary_state_derivative[1] = boundary_state[7];
+					left_boundary_state_derivative[2] = boundary_state[8];
+					left_boundary_state_derivative[3] = boundary_state[9];
+					left_boundary_state_derivative[4] = boundary_state[10];
+					left_boundary_state_derivative[5] = boundary_state[11];
 				}
 				else
 					Universe->bodies[location-1].locate_body(epoch,
@@ -1208,12 +1208,12 @@ namespace EMTG {
 				if (needG && options->derivative_type > 2)
 				{
 					Universe->bodies[location-1].locate_body(epoch, boundary_state, true, options);
-					right_boundary_state_derivative[0] = boundary_state[3];
-					right_boundary_state_derivative[1] = boundary_state[4];
-					right_boundary_state_derivative[2] = boundary_state[5];
-					right_boundary_state_derivative[3] = boundary_state[6];
-					right_boundary_state_derivative[4] = boundary_state[7];
-					right_boundary_state_derivative[5] = boundary_state[8];
+					right_boundary_state_derivative[0] = boundary_state[6];
+					right_boundary_state_derivative[1] = boundary_state[7];
+					right_boundary_state_derivative[2] = boundary_state[8];
+					right_boundary_state_derivative[3] = boundary_state[9];
+					right_boundary_state_derivative[4] = boundary_state[10];
+					right_boundary_state_derivative[5] = boundary_state[11];
 				}
 				else
 					Universe->bodies[location-1].locate_body(epoch, boundary_state, false, options);
@@ -1674,7 +1674,7 @@ namespace EMTG {
 
 		//Thrust
 		outputfile.precision(12);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust")
 		{
 			for (size_t k = 0; k < 3; ++k)
 				rot_in_vec(k) = ThrustVector[k];
@@ -1702,7 +1702,7 @@ namespace EMTG {
 
 		//thrust, Isp, power
 		outputfile.precision(5);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
+		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby" || event_type == "waiting" || event_type == "mission_end")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";
@@ -1719,7 +1719,7 @@ namespace EMTG {
 		}
 
 		outputfile.precision(0);
-		if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby")
+        if (event_type == "coast" || event_type == "force-coast" || event_type == "upwr_flyby" || event_type == "intercept" || event_type == "interface" || event_type == "LT_rndzvs" || event_type == "departure" || event_type == "match_point" || event_type == "match-vinf" || event_type == "zeroflyby" || event_type == "waiting" || event_type == "mission_end")
 		{
 			outputfile.width(14); outputfile << "-";
 			outputfile.width(3); outputfile << " | ";
@@ -1753,7 +1753,7 @@ namespace EMTG {
 			outputfile.width(3); outputfile << " | ";
 		}
 
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 		{
 			outputfile.precision(8);
 			outputfile.width(19); outputfile << scientific << mdot << fixed;
@@ -1772,21 +1772,21 @@ namespace EMTG {
 		
 		//number of active engines
 		outputfile.width(14);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 			outputfile << number_of_active_engines;
 		else
 			outputfile << "-";
 		
 		outputfile.width(3); outputfile << " | ";
 		outputfile.precision(5);
-		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "FBLTSthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
+		if (event_type == "SFthrust" || event_type == "FBLTthrust" || event_type == "PSBIthrust" || event_type == "begin_spiral" || event_type == "end_spiral")
 		{
 			outputfile.width(14); outputfile << active_power;
 			outputfile.width(3); outputfile << " | ";
 		}
 		else
 		{
-			outputfile.width(14); outputfile << "-";
+			outputfile.width(14); outputfile << 0.0;
 			outputfile.width(3); outputfile << " | ";
 		}
 
@@ -2290,16 +2290,10 @@ namespace EMTG {
 
 	void phase::calcbounds_flight_time(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
 	{
-		double a1, a2, e1, e2, T1, T2;
 		if (boundary1_location_code > 0)
 		{
-			a1 = Universe->bodies[boundary1_location_code-1].SMA;
-			e1 = Universe->bodies[boundary1_location_code-1].ECC;
-		}
-		else if (boundary1_location_code == -2) //start at periapse of incoming hyperbola
-		{
-			a1 = Universe->r_SOI / 2.0;
-			e1 = 0.0;
+			this->a1 = Universe->bodies[boundary1_location_code-1].SMA;
+            this->e1 = Universe->bodies[boundary1_location_code - 1].ECC;
 		}
 		else if (boundary1_location_code == -1) //end at fixed or free point in space
 		{
@@ -2316,8 +2310,8 @@ namespace EMTG {
 				}
 
 				Astrodynamics::inertial2COE(temp_coordinates, Universe->mu, temp_elements);
-				a1 = temp_elements[0];
-				e1 = temp_elements[1];
+                this->a1 = temp_elements[0];
+                this->e1 = temp_elements[1];
 			}
 			else if (options->journey_departure_elements_type[j] == 1) //orbit defined in classical orbital elements
 			{
@@ -2330,15 +2324,15 @@ namespace EMTG {
 						temp_elements[k] = options->journey_departure_elements[j][k];
 				}
 
-				a1 = temp_elements[0];
-				e1 = temp_elements[1];
+                this->a1 = temp_elements[0];
+                this->e1 = temp_elements[1];
 			}
 		}
 
 		if (boundary2_location_code > 0)
 		{
-			a2 = Universe->bodies[boundary2_location_code-1].SMA;
-			e2 = Universe->bodies[boundary2_location_code-1].ECC;
+            this->a2 = Universe->bodies[boundary2_location_code - 1].SMA;
+            this->e2 = Universe->bodies[boundary2_location_code - 1].ECC;
 		}
 		else if (boundary2_location_code == -1) //end at fixed or free point in space
 		{
@@ -2355,8 +2349,8 @@ namespace EMTG {
 				}
 
 				Astrodynamics::inertial2COE(temp_coordinates, Universe->mu, temp_elements);
-				a2 = temp_elements[0];
-				e2 = temp_elements[1];
+                this->a2 = temp_elements[0];
+                this->e2 = temp_elements[1];
 			}
 			else if (options->journey_arrival_elements_type[j] == 1) //orbit defined in classical orbital elements
 			{
@@ -2369,23 +2363,23 @@ namespace EMTG {
 						temp_elements[k] = options->journey_arrival_elements[j][k];
 				}
 
-				a2 = temp_elements[0];
-				e2 = temp_elements[1];
+                this->a2 = temp_elements[0];
+                this->e2 = temp_elements[1];
 			}
 		}
 
-		if (e1 < 1.0)
-			pseudoa1 = a1 * (1 + e1);
+        if (this->e1 < 1.0)
+            this->pseudoa1 = this->a1 * (1 + this->e1);
 		else
-			pseudoa1 = Universe->r_SOI / 5.0;
+            this->pseudoa1 = Universe->r_SOI / 5.0;
 
-		if (e2 < 1.0)
-			pseudoa2 = a2 * (1 + e2);
+        if (this->e2 < 1.0)
+            this->pseudoa2 = this->a2 * (1 + e2);
 		else
-			pseudoa2 = Universe->r_SOI / 5.0;
+            this->pseudoa2 = Universe->r_SOI / 5.0;
 
-		T1 = 2*math::PI*sqrt(pseudoa1*pseudoa1*pseudoa1/Universe->mu);// pseudo-period of body 1 in days
-		T2 = 2*math::PI*sqrt(pseudoa2*pseudoa2*pseudoa2/Universe->mu);// pseudo-period of body 2 in days
+        this->T1 = 2 * math::PI*sqrt(this->pseudoa1*this->pseudoa1*this->pseudoa1 / Universe->mu);// pseudo-period of body 1 in days
+        this->T2 = 2 * math::PI*sqrt(this->pseudoa2*this->pseudoa2*this->pseudoa2 / Universe->mu);// pseudo-period of body 2 in days
 	
 		double forced_coast_this_phase = 0.0;
 		if (p == 0 && j == 0)
@@ -2395,46 +2389,40 @@ namespace EMTG {
 		if (p < options->number_of_phases[j] - 1 || (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0)) )
 			forced_coast_this_phase += options->forced_flyby_coast;
 
-		if (boundary1_location_code == -2) //start at periapse of an arrival hyperbola
+		if (boundary1_location_code == boundary2_location_code && boundary1_location_code > 0) //if this transfer is a repeat of the same planet, we have special rules
 		{
-			double lowerbound_temp = 0.1*min(T1,T2);
+            double lowerbound_temp = this->T1 * 0.5;
 			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
-			Xupperbounds->push_back(20.0*max(T1,T2));
-		}
-		else if (boundary1_location_code == boundary2_location_code && boundary1_location_code > 0) //if this transfer is a repeat of the same planet, we have special rules
-		{
-			double lowerbound_temp = T1 * 0.5;
-			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
-			Xupperbounds->push_back(T1 * 20.0);
+            Xupperbounds->push_back(this->T1 * 20.0);
 		}
 		else if (boundary1_location_code == -1 && boundary2_location_code == -1) //for transfers between two free or fixed orbits
 		{
 			double lowerbound_temp = 1.0;
 			Xlowerbounds->push_back(lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase);
-			Xupperbounds->push_back(max(T1,T2) * 20.0);
+            Xupperbounds->push_back(max(this->T1, this->T2) * 20.0);
 		}
 		else
 		{
 			//lower bound is the same for all non-resonant phases
-			double lowerbound_temp = 0.1 * min(T1,T2);
+            double lowerbound_temp = 0.1 * min(this->T1, this->T2);
 
 			lowerbound_temp = lowerbound_temp > forced_coast_this_phase ? lowerbound_temp : forced_coast_this_phase;
 			Xlowerbounds->push_back(lowerbound_temp > 10.0 *  Universe->TU ? 10.0 *  Universe->TU : lowerbound_temp);
 
 			if (max(pseudoa1,pseudoa2)/Universe->LU < 2.0) //outermost body is an inner body with a < 2 LU
-				Xupperbounds->push_back(2.0 * max(T1, T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 2.0 * max(T1, T2));
+                Xupperbounds->push_back(2.0 * max(this->T1, this->T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 2.0 * max(this->T1, this->T2));
 			 
 			else //outermost body is an outer body
-				Xupperbounds->push_back(1.0 * max(T1, T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 1.0 * max(T1, T2));
+                Xupperbounds->push_back(1.0 * max(this->T1, this->T2) < 45.0 * Universe->TU ? 45.0 * Universe->TU : 1.0 * max(this->T1, this->T2));
 		}
 
 		Xdescriptions->push_back(prefix + "phase flight time");
 
 		//compute the synodic period of the boundary points, for use in the MBH synodic period perturbation
 		//these are "true" periods, not the pseudo-periods used for computing the bounds
-		T1 = 2*math::PI*sqrt(a1*a1*a1/Universe->mu);
-		T2 = 2*math::PI*sqrt(a2*a2*a2/Universe->mu);
-		synodic_periods->push_back(1.0 / (fabs(1.0/T1 - 1.0/T2)));
+        this->T1 = 2 * math::PI*sqrt(this->a1*this->a1*this->a1 / Universe->mu);
+        this->T2 = 2 * math::PI*sqrt(this->a2*this->a2*this->a2 / Universe->mu);
+        synodic_periods->push_back(1.0 / (fabs(1.0 / this->T1 - 1.0 / this->T2)));
 	}
 
 	void phase::calcbounds_right_boundary(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
@@ -2935,4 +2923,28 @@ namespace EMTG {
 		}//end loop over journeys
 	}
 
+    void phase::calcbounds_phase_thruster_parameters(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    {
+        if (options->engine_type == 1 && (j == 0 && p == 0))
+        {
+            //constant Isp, efficiency, EMTG computes input power
+            Xlowerbounds->push_back(options->engine_input_power_bounds[0]);
+            Xupperbounds->push_back(options->engine_input_power_bounds[1]);
+            Xdescriptions->push_back(prefix + "engine input power (kW)");
+        }
+        else if (options->engine_type == 2 && (j == 0 && p == 0))
+        {
+            //constant power, EMTG chooses Isp
+            Xlowerbounds->push_back(options->IspLT_minimum);
+            Xupperbounds->push_back(options->IspLT);
+            Xdescriptions->push_back(prefix + "engine Isp (s)");
+        }
+        else if (options->objective_type == 13 && j == 0 && p == 0)
+        {
+            //EMTG varies input power for whatever engine/power model you have
+            Xlowerbounds->push_back(math::SMALL);
+            Xupperbounds->push_back(options->power_at_1_AU);
+            Xdescriptions->push_back(prefix + "engine input power (kW)");
+        }
+    }
 } /* namespace EMTG */

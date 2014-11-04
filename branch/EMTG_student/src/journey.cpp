@@ -15,11 +15,14 @@
 #include "MGALTphase.h"
 #include "FBLTphase.h"
 #include "MGANDSMphase.h"
+#include "PSBIphase.h"
 #include "journey.h"
 #include "missionoptions.h"
 #include "universe.h"
 #include "EMTG_math.h"
 #include "EMTG_time_utilities.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
+#include "Astrodynamics.h"
 
 namespace EMTG
 {
@@ -36,7 +39,7 @@ namespace EMTG
 		central_body_name = options->journey_central_body[j];
 
 		//initialize the boundary states array
-		vector<double> state_dummy(9);
+		vector<double> state_dummy(12);
 		boundary_states.push_back(state_dummy);
 
 		//create the phases
@@ -78,9 +81,8 @@ namespace EMTG
 				break;
 				case 5:
 					{
-						//this phase is a DTLT phase
-						cout << "DTLT not yet implemented" << endl;
-						throw 1711;
+						//this phase is a PSBI phase
+                        phases.push_back(new PSBIphase(j, p, options));
 					}
 				break;
 			}
@@ -328,210 +330,676 @@ namespace EMTG
 		return 0;
 	}
 
-	//output function
-	//return 0 if successful, 1 if failure
-	int journey::output(missionoptions* options, const double& launchdate, int j, EMTG::Astrodynamics::universe& Universe, int* eventcount)
+	//output functions
+    void journey::output_journey_header(const missionoptions* options,
+                                        EMTG::Astrodynamics::universe& Universe,
+                                        const int& j,
+                                        int& jprint,
+                                        const int& waiting)
+    {
+        //first output a bunch of header stuff
+        ofstream outputfile;
+        outputfile.open(options->outputfile.c_str(), ios::out | ios::app);
+
+        vector<string> phase_type_codes;
+        phase_type_codes.push_back("MGA");
+        phase_type_codes.push_back("MGA-DSM");
+        phase_type_codes.push_back("MGA-LT");
+        phase_type_codes.push_back("FBLT");
+        phase_type_codes.push_back("MGANDSM");
+        phase_type_codes.push_back("PSBI");
+
+        outputfile.precision(20);
+
+        outputfile << endl;
+        outputfile << "Journey: " << jprint << endl;
+        string location;
+        if (waiting > 0)
+        {
+            if (options->destination_list[j][0] == -1)
+                location = "free_point";
+            else if (waiting == 1)
+                location = this->phases[0].Body1->name;
+            else if (waiting == 2)
+                location = this->phases[options->number_of_phases[j] - 1].Body2->name;
+            outputfile << "Journey name: Waiting_at_" << location << endl;
+        }
+        else
+            outputfile << "Journey name: " << options->journey_names[j] << endl;
+        outputfile << "Central Body: " << this->central_body_name << endl;
+        outputfile << "Radius (km): " << Universe.central_body_radius << endl;
+        outputfile << "mu (km^2/s^3): " << Universe.mu << endl;
+        outputfile << "Characteristic length unit (km): " << Universe.LU << endl;
+
+        if (options->mission_type == 2 || options->mission_type == 5) //MGALT or PSBI
+            outputfile << "Thruster duty cycle: " << options->engine_duty_cycle << endl;
+        outputfile << endl;
+
+        //next, column headers
+
+        //column headers line 1
+        outputfile.width(5); outputfile << "#";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(16); outputfile << "JulianDate";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(11); outputfile << "MM/DD/YYYY";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(12); outputfile << "event type";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(25); outputfile << "location";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(15); outputfile << "step size";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "altitude";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "BdotR";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "BdotT";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(8); outputfile << "RA";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(8); outputfile << "DEC";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "C3";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " x";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " y";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " z";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " xdot";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " ydot";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " zdot";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " dV_x";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " dV_y";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " dV_z";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " T_x";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " T_y";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << " T_z";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(17); outputfile << "|dV| (km/s)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "Avail. Thrust";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "Isp";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "Avail. Power";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "Mass Flow";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "mass";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "number of";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "active power";
+        outputfile << endl;
+
+        //column headers line 2
+        outputfile.width(5); outputfile << "";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(16); outputfile << " (ET)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(11); outputfile << "";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(12); outputfile << "";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(25); outputfile << "";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(15); outputfile << "(days)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "(km)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "(km)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "(km)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(8); outputfile << "degrees";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(8); outputfile << "degrees";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(km^2/s^2)";
+        outputfile.width(3); outputfile << " | ";
+        if (options->output_units == 0)
+        {
+            outputfile.width(19); outputfile << "(km)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(km/s)";
+            outputfile.width(3); outputfile << " | ";
+        }
+        else if (options->output_units == 1)
+        {
+            outputfile.width(19); outputfile << "(LU)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+            outputfile.width(19); outputfile << "(LU/day)";
+            outputfile.width(3); outputfile << " | ";
+        }
+        outputfile.width(19); outputfile << "(N)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "(N)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "(N)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(17); outputfile << "throttle (0-1)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(N)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(s)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(kW)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(19); outputfile << "rate (kg/s)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(kg)";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "active engines";
+        outputfile.width(3); outputfile << " | ";
+        outputfile.width(14); outputfile << "(kW)";
+        outputfile << endl;
+
+
+        for (int k = 0; k < 615; ++k)
+            outputfile << "-";
+        outputfile << endl;
+
+        outputfile.close();
+    }
+
+    //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
+    void journey::output_journey_prologue(const missionoptions* options,
+                                        const double& launchdate,
+                                        const int& j,
+                                        int& jprint,
+                                        EMTG::Astrodynamics::universe& Universe,
+                                        int* eventcount)
+    {
+        //first output the "journey and a half" header
+        this->output_journey_header(options, Universe, j, jprint, 1);
+
+        //get the state vector at the beginning of the wait
+        double state_at_beginning_of_wait[7];
+
+        //get the beginning of the wait time by stepping back from the phase start epoch
+        double wait_start_epoch;
+        if (options->journey_departure_type[j] == 5)
+        {
+            wait_start_epoch = this->phases[0].phase_start_epoch - this->phases[0].spiral_escape_time - this->phases[0].phase_wait_time;
+            state_at_beginning_of_wait[6] = this->phases[0].spiral_escape_mass_before;
+        }
+        else
+        {
+            wait_start_epoch = this->phases[0].phase_start_epoch - this->phases[0].phase_wait_time;
+            state_at_beginning_of_wait[6] = this->phases[0].state_at_beginning_of_phase[6];
+        }
+        
+
+        
+        //if this journey begins with a free point in space then back-propagate from the starting location
+        if (options->destination_list[j][0] == -1)
+        {
+            Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->phases[0].state_at_beginning_of_phase,
+                                                        state_at_beginning_of_wait,
+                                                        Universe.mu,
+                                                        Universe.LU,
+                                                        -this->phases[0].phase_wait_time);
+        }
+        //alternatively, if this journey begins at a body then look up the position and velocity of the body at the beginning of the wait
+        else
+        {
+            this->phases[0].Body1->locate_body(wait_start_epoch,
+                                                state_at_beginning_of_wait,
+                                                false,
+                                                (EMTG::missionoptions*) options);
+        }
+
+        //now output wait time steps
+        double wait_time_step_size = this->phases[0].phase_wait_time / options->num_timesteps;
+
+        ofstream outputfile;
+        outputfile.open(options->outputfile.c_str(), ios::out | ios::app);
+
+        //output the first step
+        double temp_power, temp_thrust, temp_mdot, temp_Isp,
+            temp_active_power, temp_dTdP, temp_dmdotdP,
+            temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
+        int temp_active_thrusters;
+        double empty_vector[] = { 0, 0, 0 };
+
+        //we have to calculate the available power
+        if (options->mission_type > 1)
+            Astrodynamics::find_engine_parameters((EMTG::missionoptions*) options,
+                                                    math::norm(state_at_beginning_of_wait, 3) / Universe.LU,
+                                                    wait_start_epoch / 86400.0,
+                                                    &temp_thrust,
+                                                    &temp_mdot,
+                                                    &temp_Isp,
+                                                    &temp_power,
+                                                    &temp_active_power,
+                                                    &temp_active_thrusters,
+                                                    false,
+                                                    &temp_dTdP,
+                                                    &temp_dmdotdP,
+                                                    &temp_dTdIsp,
+                                                    &temp_dmdotdIsp,
+                                                    &temp_dPdr,
+                                                    &temp_dPdt);
+
+        //then print
+        this->phases[0].write_summary_line((EMTG::missionoptions*) options,
+                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            eventcount,
+                                            wait_start_epoch / 86400.0,
+                                            "waiting",
+                                            (options->destination_list[j][0] == -1) ? "deep-space" : this->phases[0].Body1->name,
+                                            wait_time_step_size / 86400.0,
+                                            -1,
+                                            -1,
+                                            -1,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            state_at_beginning_of_wait,
+                                            empty_vector,
+                                            empty_vector,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            options->mission_type <= 1 ? -1 : temp_power,
+                                            0.0,
+                                            0,
+                                            0.0);
+
+        //then output the next (n-1) steps
+        for (size_t step = 1; step < options->num_timesteps; ++step)
+        {
+            //find the spacecraft state
+            double wait_state[7];
+            wait_state[6] = state_at_beginning_of_wait[6];
+
+            if (options->destination_list[j][0] == -1)
+            {
+                Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_beginning_of_wait,
+                                                            wait_state,
+                                                            Universe.mu,
+                                                            Universe.LU,
+                                                            step * wait_time_step_size);
+            }
+            //alternatively, if this journey begins at a body then look up the position and velocity of the body at the beginning of the wait
+            else
+            {
+                this->phases[0].Body1->locate_body(wait_start_epoch + step * wait_time_step_size,
+                                                    wait_state,
+                                                    false,
+                                                    (EMTG::missionoptions*) options);
+            }
+
+            //determine the available power
+            if (options->mission_type > 1)
+                Astrodynamics::find_engine_parameters((EMTG::missionoptions*) options,
+                                                        math::norm(wait_state, 3) / Universe.LU,
+                                                        wait_start_epoch + step * wait_time_step_size,
+                                                        &temp_thrust,
+                                                        &temp_mdot,
+                                                        &temp_Isp,
+                                                        &temp_power,
+                                                        &temp_active_power,
+                                                        &temp_active_thrusters,
+                                                        false,
+                                                        &temp_dTdP,
+                                                        &temp_dmdotdP,
+                                                        &temp_dTdIsp,
+                                                        &temp_dmdotdIsp,
+                                                        &temp_dPdr,
+                                                        &temp_dPdt);
+
+            //print
+            this->phases[0].write_summary_line((EMTG::missionoptions*) options,
+                                                (EMTG::Astrodynamics::universe *) &Universe,
+                                                eventcount,
+                                                (wait_start_epoch + step * wait_time_step_size) / 86400.0,
+                                                "waiting",
+                                                (options->destination_list[j][0] == -1) ? "deep-space" : this->phases[0].Body1->name,
+                                                wait_time_step_size / 86400.0,
+                                                -1,
+                                                -1,
+                                                -1,
+                                                0.0,
+                                                0.0,
+                                                0.0,
+                                                wait_state,
+                                                empty_vector,
+                                                empty_vector,
+                                                0.0,
+                                                0.0,
+                                                0.0,
+                                                options->mission_type <= 1 ? -1 : temp_power,
+                                                0.0,
+                                                0,
+                                                0.0);
+        }
+
+        //output the last step
+        double wait_end_state[7];
+        wait_end_state[6] = state_at_beginning_of_wait[6];
+        if (options->destination_list[j][0] == -1)
+        {
+            for (size_t k = 0; k < 6; ++k)
+                wait_end_state[k] = this->phases[0].state_at_beginning_of_phase[k];
+        }
+        //alternatively, if this journey begins at a body then look up the position and velocity of the body at the beginning of the wait
+        else
+        {
+            this->phases[0].Body1->locate_body(wait_start_epoch + this->phases[0].phase_wait_time,
+                                                wait_end_state,
+                                                false,
+                                                (EMTG::missionoptions*) options);
+        }
+        //determine the available power
+        if (options->mission_type > 1)
+            Astrodynamics::find_engine_parameters((EMTG::missionoptions*) options,
+                                                    math::norm(wait_end_state, 3) / Universe.LU,
+                                                    wait_start_epoch + this->phases[0].phase_wait_time,
+                                                    &temp_thrust,
+                                                    &temp_mdot,
+                                                    &temp_Isp,
+                                                    &temp_power,
+                                                    &temp_active_power,
+                                                    &temp_active_thrusters,
+                                                    false,
+                                                    &temp_dTdP,
+                                                    &temp_dmdotdP,
+                                                    &temp_dTdIsp,
+                                                    &temp_dmdotdIsp,
+                                                    &temp_dPdr,
+                                                    &temp_dPdt);
+
+        //print
+        this->phases[0].write_summary_line((EMTG::missionoptions*) options,
+                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            eventcount,
+                                            (wait_start_epoch + this->phases[0].phase_wait_time) / 86400.0,
+                                            "waiting",
+                                            (options->destination_list[j][0] == -1) ? "deep-space" : this->phases[0].Body1->name,
+                                            0.0,
+                                            -1,
+                                            -1,
+                                            -1,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            wait_end_state,
+                                            empty_vector,
+                                            empty_vector,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            options->mission_type <= 1 ? -1 : temp_power,
+                                            0.0,
+                                            0,
+                                            0.0);
+
+        //skip two lines
+        outputfile << endl;
+        outputfile << endl;
+
+        outputfile << "End journey" << endl;
+
+        outputfile.close();
+
+    }
+
+    void journey::output_journey_postlogue( const missionoptions* options,
+                                            const double& launchdate,
+                                            const int& j,
+                                            int& jprint,
+                                            EMTG::Astrodynamics::universe& Universe,
+                                            int* eventcount)
+    {
+        //first output the "journey and a half" header
+        this->output_journey_header(options, Universe, j, jprint, 2);
+
+        //get the state vector at the beginning of the wait
+        double state_at_beginning_of_wait[7];
+        int lastphase = options->number_of_phases[j] - 1;
+
+        //the beginning of the wait time is the end of the phase
+        double wait_start_epoch;
+        if (options->journey_arrival_type[j] == 7)
+        {
+            wait_start_epoch = this->phases[lastphase].phase_end_epoch + this->phases[lastphase].spiral_capture_time;
+            state_at_beginning_of_wait[6] = this->phases[lastphase].spiral_capture_state_after_spiral[6];
+        }
+        else
+        {
+            wait_start_epoch = this->phases[lastphase].phase_end_epoch;
+            state_at_beginning_of_wait[6] = this->phases[lastphase].state_at_end_of_phase[6];
+        }
+
+
+
+        //if this journey begins with a free point in space then copy the final location
+        if (options->destination_list[j][1] == -1)
+        {
+            for (size_t k = 0; k < 6; ++k)
+                state_at_beginning_of_wait[k] = this->phases[lastphase].state_at_end_of_phase[k];
+        }
+        //alternatively, if this journey begins at a body then look up the position and velocity of the body at the beginning of the wait
+        else
+        {
+            this->phases[lastphase].Body2->locate_body(wait_start_epoch,
+                                                state_at_beginning_of_wait,
+                                                false,
+                                                (EMTG::missionoptions*) options);
+        }
+
+        //now output wait time steps
+        double wait_time_step_size = options->post_mission_wait_time / options->num_timesteps;
+
+        ofstream outputfile;
+        outputfile.open(options->outputfile.c_str(), ios::out | ios::app);
+
+        //output the first step
+        double temp_power, temp_thrust, temp_mdot, temp_Isp,
+            temp_active_power, temp_dTdP, temp_dmdotdP,
+            temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
+        int temp_active_thrusters;
+        double empty_vector[] = { 0, 0, 0 };
+
+        //we have to calculate the available power
+        if (options->mission_type > 1)
+            Astrodynamics::find_engine_parameters((EMTG::missionoptions*) options,
+                                                    math::norm(state_at_beginning_of_wait, 3) / Universe.LU,
+                                                    wait_start_epoch / 86400.0,
+                                                    &temp_thrust,
+                                                    &temp_mdot,
+                                                    &temp_Isp,
+                                                    &temp_power,
+                                                    &temp_active_power,
+                                                    &temp_active_thrusters,
+                                                    false,
+                                                    &temp_dTdP,
+                                                    &temp_dmdotdP,
+                                                    &temp_dTdIsp,
+                                                    &temp_dmdotdIsp,
+                                                    &temp_dPdr,
+                                                    &temp_dPdt);
+
+        //then print
+        this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
+                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            eventcount,
+                                            wait_start_epoch / 86400.0,
+                                            "waiting",
+                                            (options->destination_list[j][1] == -1) ? "deep-space" : this->phases[lastphase].Body2->name,
+                                            wait_time_step_size,
+                                            -1,
+                                            -1,
+                                            -1,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            state_at_beginning_of_wait,
+                                            empty_vector,
+                                            empty_vector,
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            options->mission_type <= 1 ? -1 : temp_power,
+                                            0.0,
+                                            0,
+                                            0.0);
+
+        //then output the next (n-1) steps
+        for (size_t step = 1; step < options->num_timesteps + 1; ++step)
+        {
+            //find the spacecraft state
+            double wait_state[7];
+            wait_state[6] = state_at_beginning_of_wait[6];
+
+            if (options->destination_list[j][1] == -1)
+            {
+                Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_beginning_of_wait,
+                                                            wait_state,
+                                                            Universe.mu,
+                                                            Universe.LU,
+                                                            step * wait_time_step_size * 86400.0);
+            }
+            //alternatively, if this journey begins at a body then look up the position and velocity of the body at the beginning of the wait
+            else
+            {
+                this->phases[lastphase].Body2->locate_body(wait_start_epoch + step * wait_time_step_size * 86400.0,
+                                                            wait_state,
+                                                            false,
+                                                            (EMTG::missionoptions*) options);
+            }
+
+            //determine the available power
+            if (options->mission_type > 1)
+                Astrodynamics::find_engine_parameters((EMTG::missionoptions*) options,
+                                                        math::norm(wait_state, 3) / Universe.LU,
+                                                        wait_start_epoch + step * wait_time_step_size,
+                                                        &temp_thrust,
+                                                        &temp_mdot,
+                                                        &temp_Isp,
+                                                        &temp_power,
+                                                        &temp_active_power,
+                                                        &temp_active_thrusters,
+                                                        false,
+                                                        &temp_dTdP,
+                                                        &temp_dmdotdP,
+                                                        &temp_dTdIsp,
+                                                        &temp_dmdotdIsp,
+                                                        &temp_dPdr,
+                                                        &temp_dPdt);
+
+            //print
+            this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
+                                                        (EMTG::Astrodynamics::universe *) &Universe,
+                                                        eventcount,
+                                                        wait_start_epoch / 86400.0 + step * wait_time_step_size,
+                                                        step == options->num_timesteps ? "mission_end" : "waiting",
+                                                        (options->destination_list[j][1] == -1) ? "deep-space" : this->phases[lastphase].Body2->name,
+                                                        wait_time_step_size,
+                                                        -1,
+                                                        -1,
+                                                        -1,
+                                                        0.0,
+                                                        0.0,
+                                                        0.0,
+                                                        wait_state,
+                                                        empty_vector,
+                                                        empty_vector,
+                                                        0.0,
+                                                        0.0,
+                                                        0.0,
+                                                        options->mission_type <= 1 ? -1 : temp_power,
+                                                        0.0,
+                                                        0,
+                                                        0.0);
+        }
+
+
+        //skip two lines
+        outputfile << endl;
+        outputfile << endl;
+
+        outputfile << "End journey" << endl;
+
+        outputfile.close();
+
+    }
+
+	int journey::output(missionoptions* options, 
+                        const double& launchdate,
+                        const int& j,
+                        int& jprint,
+                        EMTG::Astrodynamics::universe& Universe,
+                        int* eventcount)
 	{
 		int errcode = 0;
 
-		//first output a bunch of header stuff
-		ofstream outputfile;
-		outputfile.open (options->outputfile.c_str(), ios::out | ios::app);
+        //if applicable, print the journey prologue
+        if (j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
+        {
+            ++jprint;
+            this->output_journey_prologue(options,
+                                        launchdate,
+                                        j,
+                                        jprint,
+                                        Universe,
+                                        eventcount);
+        }
 
-		vector<string> phase_type_codes;
-		phase_type_codes.push_back("MGA");
-		phase_type_codes.push_back("MGA-DSM");
-		phase_type_codes.push_back("MGA-LT");
-		phase_type_codes.push_back("FBLT");
-
-		outputfile.precision(20);
-
-		outputfile << endl;
-		outputfile << "Journey: " << j+1 << endl;
-		outputfile << "Journey name: " << options->journey_names[j] << endl;
-		outputfile << "Central Body: " << central_body_name << endl;
-		outputfile << "Radius (km): " << Universe.central_body_radius << endl;
-		outputfile << "mu (km^2/s^3): " << Universe.mu << endl;
-		outputfile << "Characteristic length unit (km): " << Universe.LU << endl;
-
-		if (options->mission_type == 2) //MGALT
-			outputfile << "Thruster duty cycle: " << options->engine_duty_cycle << endl;
-		outputfile << endl;
-
-		//next, column headers
-		
-		//column headers line 1
-		outputfile.width(5); outputfile << "#";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(16); outputfile << "JulianDate";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(11); outputfile << "MM/DD/YYYY";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(12); outputfile << "event type";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(25); outputfile << "location";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(15); outputfile << "step size";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "altitude";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "BdotR";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "BdotT";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(8); outputfile << "RA";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(8); outputfile << "DEC";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "C3";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " x";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " y";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " z";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " xdot";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " ydot";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " zdot";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " dV_x";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " dV_y";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " dV_z";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " T_x";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " T_y";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << " T_z";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(17); outputfile << "|dV| (km/s)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "Avail. Thrust";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "Isp";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "Avail. Power";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "Mass Flow";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "mass";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "number of";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "active power";
-		outputfile << endl;
-
-		//column headers line 2
-		outputfile.width(5); outputfile << "";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(16); outputfile << " STK: JED";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(11); outputfile << "";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(12); outputfile << "";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(25); outputfile << "";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(15); outputfile << "(days)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "(km)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "(km)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "(km)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(8); outputfile << "degrees";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(8); outputfile << "degrees";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(km^2/s^2)";
-		outputfile.width(3); outputfile << " | ";
-		if (options->output_units == 0)
-		{
-			outputfile.width(19); outputfile << "(km)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(km/s)";
-			outputfile.width(3); outputfile << " | ";
-		}
-		else if (options->output_units == 1)
-		{
-			outputfile.width(19); outputfile << "(LU)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-			outputfile.width(19); outputfile << "(LU/day)";
-			outputfile.width(3); outputfile << " | ";
-		}
-		outputfile.width(19); outputfile << "(N)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "(N)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "(N)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(17); outputfile << "throttle (0-1)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(N)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(s)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(kW)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(19); outputfile << "rate (kg/s)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(kg)";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "active engines";
-		outputfile.width(3); outputfile << " | ";
-		outputfile.width(14); outputfile << "(kW)";
-		outputfile << endl;
-	
-
-		for (int k = 0; k < 615; ++k)
-			outputfile << "-";
-		outputfile << endl;
-
-		outputfile.close();
+		//print this journey
+        //start with the header
+        ++jprint;
+        this->output_journey_header(options, Universe, j, jprint, false);
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
-			errcode = phases[p].output(options, launchdate, j, p, &Universe, eventcount);
+			errcode = this->phases[p].output(options, launchdate, j, p, &Universe, eventcount);
 			if (!(errcode == 0))
 				return errcode;
 		}
 
 		//print journey end information
-
+        ofstream outputfile;
 		outputfile.open (options->outputfile.c_str(), ios::out | ios::app);
 
 		//skip two lines
@@ -604,6 +1072,13 @@ namespace EMTG
 		outputfile << "End journey" << endl;
 
 		outputfile.close();
+
+        //If this is the last journey and a post-mission wait time has been specified then print out that post-mission wait
+        if (j == options->number_of_journeys - 1 && options->post_mission_wait_time > 1.0)
+        {
+            ++jprint;
+            this->output_journey_postlogue(options, launchdate, j, jprint, Universe, eventcount);
+        }
 	
 
 		return 0;
@@ -885,7 +1360,8 @@ namespace EMTG
 										vector<double>& NewX,
 										int& NewXIndex, 
 										const vector<string>& NewXDescriptions,
-										const missionoptions& options)
+										const missionoptions& options,
+                                        const Astrodynamics::universe& Universe)
 	{
 		//first insert any variables that exist at the journey level
 		//currently (8-29-2014), there are none
@@ -900,7 +1376,8 @@ namespace EMTG
 													NewX,
 													NewXIndex,
 													NewXDescriptions, 
-													options);
+													options,
+                                                    Universe);
 
 		return;
 	}

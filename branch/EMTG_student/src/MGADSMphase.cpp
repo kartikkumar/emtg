@@ -1513,7 +1513,8 @@ namespace EMTG
 												vector<double>& NewX,
 												int& NewXIndex,
 												const vector<string>& NewXDescriptions,
-												const missionoptions& options)
+                                                const missionoptions& options,
+                                                const Astrodynamics::universe& Universe)
 	{
 		if (p == 0)
 		{
@@ -1530,13 +1531,20 @@ namespace EMTG
 				NewX.push_back((this->phase_start_epoch - current_epoch) / 86400.0);
 				++NewXIndex;
 
-				//should add code to copy variable boundary conditions here
+                //should add code to copy variable boundary conditions here
 
-				//then encode the departure asymptote (three variables)
-				NewX.push_back(this->C3_departure);
-				NewX.push_back(this->RA_departure);
-				NewX.push_back(this->DEC_departure);
-				NewXIndex += 3;
+                //then encode the departure asymptote (three variables)
+                NewX.push_back(sqrt(this->C3_departure));
+                NewX.push_back(this->RA_departure);
+                NewX.push_back(this->DEC_departure);
+                NewXIndex += 3;
+
+                //mission initial mass multiplier if applicable
+                if (j == 0 && options.allow_initial_mass_to_vary)
+                {
+                    NewX.push_back(this->mission_initial_mass_multiplier);
+                    ++NewXIndex;
+                }
 			}
 		}
 		else
@@ -1563,8 +1571,8 @@ namespace EMTG
 		NewX.push_back(this->TOF / 86400.0);
 		++NewXIndex;
 
-		//MGALT, FBLT, MGANDSM phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
-		if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4)
+		//MGALT, FBLT, MGANDSM, and PSBI phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
 		{
 			if (p < options.number_of_phases[j] - 1 || options.journey_arrival_type[j] == 2)
 			{
@@ -1587,13 +1595,26 @@ namespace EMTG
 			++NewXIndex;
 		}
 
-		//MGALT and FBLT phases want the control values next
-		if (desired_mission_type == 2 || desired_mission_type == 3)
+		//MGALT, FBLT, and PSBI phases want the control values (and sometimes state values) next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 5)
 		{
 			//set all of the control parameters to 0 for now
 			//maybe later introduce some delta-v smoothing
 			for (int step = 0; step < options.num_timesteps; ++step)
 			{
+                if (desired_mission_type == 5)
+                {
+                    double state_left[6];
+                    Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
+                        state_left,
+                        Universe.mu,
+                        Universe.LU,
+                        -this->time_step_sizes[step] / 2.0);
+                    for (size_t state = 0; state < 6; ++state)
+                        NewX.push_back(state_left[state]);
+                    NewX.push_back(this->spacecraft_state[step][6]);
+                    NewXIndex += 7;
+                }
 				NewX.push_back(0.0);
 				NewX.push_back(0.0);
 				NewX.push_back(0.0);

@@ -5,11 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <algorithm>
 
 #include "outerloop_NSGAII.h"
 #include "mission.h"
-
-
 
 #include "boost/algorithm/string.hpp"
 
@@ -308,7 +307,10 @@ namespace GeneticAlgorithm
 		// assign crowding distance to member of each front
 		for (int front = 0; front < this->nondominated_fronts.size(); ++front)
 		{
-			this->assign_crowding_distance(this->nondominated_fronts[front]);
+			if (this->nondominated_fronts[front].size() > 1)
+				this->assign_crowding_distance(this->nondominated_fronts[front]);
+			else
+				this->nondominated_fronts[front][0].crowding_distance = 0.0;
 		}
 
 		// rebuild population 
@@ -353,28 +355,69 @@ namespace GeneticAlgorithm
 			std::sort(obj_value[obj_ind].begin(), obj_value[obj_ind].end());
 		}
 
-		// assign large crowding distance measure to solutions at boundaries for each objective function
+		// assign crowding distance measure to solutions for each objective function
 		for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
 		{
-			local_front[obj_value[obj_ind][0].second].crowding_distance = 9.9e99; // individual with smallest objective value
-			local_front[obj_value[obj_ind][local_front.size()-1].second].crowding_distance = 9.9e98; // individual with largest objective value (set smaller than individual w/ smallest obj value)
 
 			// set min and max of objective function values for all objectives of the vector of local_front
 			min_obj_value.push_back(local_front[obj_value[obj_ind][0].second].fitness_values[obj_ind]);
 			max_obj_value.push_back(local_front[obj_value[obj_ind][local_front.size()-1].second].fitness_values[obj_ind]);
-		}
 
-		// assign crowding distance measure to remaining individuals according to "distance" of neighbors in objective space
-		for (int i = 1; i < local_front.size()-1; ++i)  // for each individual, i, in local_front
-		{
-			for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+			for (int i = 0; i < local_front.size(); ++i)  // for each individual, i, in local_front except the two boundary individuals
 			{
 				if (obj_ind == 0)
-					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0;  // initialize crowding_distance to 0
+					local_front[obj_value[obj_ind][i].second].crowding_distance  = 0.0;  // initialize crowding_distance to 0
 				double prev_crowd_dist = local_front[obj_value[obj_ind][i].second].crowding_distance;
 				double obj_range = max_obj_value[obj_ind] - min_obj_value[obj_ind]; // range of objective function values for current objective
-				double current_crowd_dist = (local_front[obj_value[obj_ind][i+1].second].fitness_values[obj_ind] - local_front[obj_value[obj_ind][i-1].second].fitness_values[obj_ind]) / obj_range;
+				double current_crowd_dist;
+				if (i == 0)
+					current_crowd_dist = (local_front[obj_value[obj_ind][i+1].second].fitness_values[obj_ind] - local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind]) / obj_range;
+				else if (i == local_front.size()-1)
+					current_crowd_dist = (local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind] - local_front[obj_value[obj_ind][i-1].second].fitness_values[obj_ind]) / obj_range;
+				else
+					current_crowd_dist = (local_front[obj_value[obj_ind][i+1].second].fitness_values[obj_ind] - local_front[obj_value[obj_ind][i-1].second].fitness_values[obj_ind]) / obj_range;
+
 				local_front[obj_value[obj_ind][i].second].crowding_distance = prev_crowd_dist + current_crowd_dist; // add crowding distance measure of current objective
+			}
+		}
+
+		// assign large crowding distance to solutions at boundaries for each objective function 
+		// if multiple individuals possess the same bondary fitness, assign large crowding distance to individuals with the lowest fitness for each other objective
+		for (int obj_ind = 0; obj_ind < this->number_of_objectives; ++obj_ind)
+		{
+			for (int obj_ind2 = 0; obj_ind2 < this->number_of_objectives; ++obj_ind2)
+			{
+				if (obj_ind != obj_ind2)
+				{
+					int current_min_fitness_idx = obj_value[obj_ind][0].second;
+					double current_min_fitness = 9e99;
+					int current_max_fitness_idx = obj_value[obj_ind][local_front.size()-1].second;
+					double current_max_fitness = 9e99;
+
+					for (int i = 0; i < local_front.size(); ++i)  // for each individual, i
+					{
+						// if individual is in boundary group, find individual with lowest fitness for objective[obj_ind2] when evaluating boundary members of minimum objective[obj_ind]
+						if (local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind] == min_obj_value[obj_ind])
+						{
+							if (local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind2] < current_min_fitness)
+							{
+								current_min_fitness = local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind2];
+								current_min_fitness_idx = obj_value[obj_ind][i].second;
+							}
+						}
+						// if individual is in boundary group, find individual with lowest fitness for objective[obj_ind2] when evaluating boundary members of maximum objective[obj_ind]
+						if (local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind] == max_obj_value[obj_ind])
+						{
+							if (local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind2] < current_max_fitness)
+							{
+								current_max_fitness = local_front[obj_value[obj_ind][i].second].fitness_values[obj_ind2];
+								current_max_fitness_idx = obj_value[obj_ind][i].second;
+							}
+						}
+					}
+					local_front[current_min_fitness_idx].crowding_distance = 9.9e99; // min objective[obj_ind2] individual for min objective[obj_ind] boundary group 
+					local_front[current_max_fitness_idx].crowding_distance = 9.9e98; // min objective[obj_ind2] individual for max objective[obj_ind] boundary group 
+				}
 			}
 		}
 	}
@@ -1037,6 +1080,7 @@ namespace GeneticAlgorithm
 		this->evaluatepop(options, Universe); //evaluates this->this_generation vector of solution indiviudals
 
 		//1b. assign pareto rank and crowding distance value to initial parent population using non-dominated sorting
+
 		this->parent_population = this->this_generation; //random initial parent population of size n based on copy of this->this_generation
 		std::stringstream popfilestream;
 		popfilestream << options.working_directory << "//NSGAII_initial_population.NSGAII";

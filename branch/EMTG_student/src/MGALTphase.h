@@ -36,7 +36,6 @@ namespace EMTG {
 		int output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount);
 
 		//bounds calculation function
-		//return 0 if successful, 1 if failure
 		void calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options);
 
 		//top-level function to calculate the match point derivatives
@@ -86,16 +85,6 @@ namespace EMTG {
 																	double& dtdu,
 																	double& dtotal_available_thrust_time_du,
 																	double& dPdu);
-
-		//time information
-		vector <double> event_epochs;
-
-		//state information
-		vector<double> match_point_state;
-		vector<double> throttle;
-		vector<double> dVmax;
-		vector< vector<double> > dV;
-		vector< vector<double> > ForceVector;
 	};
 
 } /* namespace EMTG */

@@ -1362,10 +1362,11 @@ int mission::output()
 	//next, output summary lines describing each event in the mission
 	int errcode = 0;
 	int eventcount = 1;
+    int jprint = 0;
 	try
 	{
 		for (int j = 0; j < number_of_journeys; ++j) {
-			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, TheUniverse[j], &eventcount);
+			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, jprint, TheUniverse[j], &eventcount);
 			if (!(errcode == 0))
 				return errcode;
 		}
@@ -1497,6 +1498,7 @@ int mission::output_mission_tree(string filename)
 	phase_type_codes.push_back("MGA-LT");
 	phase_type_codes.push_back("FBLT");
 	phase_type_codes.push_back("MGA-NDSM");
+    phase_type_codes.push_back("PSBI");
 	std::ofstream outputfile(filename.c_str(), ios::trunc);
 
 	if (outputfile.is_open())
@@ -1574,7 +1576,8 @@ void mission::create_initial_guess(const int& desired_mission_type, const bool& 
 												NewX,
 												NewXIndex,
 												newmission.Xdescriptions,
-												options);
+												options,
+                                                TheUniverse[j]);
 
 	//finally, write out the upper bounds, decision vector, lower bounds, and descriptions
 	string new_mission_type_string;
@@ -1595,6 +1598,9 @@ void mission::create_initial_guess(const int& desired_mission_type, const bool& 
 	case 4:
 		new_mission_type_string = "MGANDSM";
 		break;
+    case 5:
+        new_mission_type_string = "PSBI";
+        break;
 	}
 
 	string initialguesssfilestring = this->options.working_directory + "//" + this->options.mission_name + "_" + new_mission_type_string + ".emtg_initialguess";
@@ -1634,7 +1640,7 @@ void mission::create_initial_guess(const int& desired_mission_type, const bool& 
 //function to interpolate an initial guess
 void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 {
-	//the purpose of this function is to interpolate MGALT, FBLT, and FBLTS decision vectors for use as initial guesses for SNOPT
+	//the purpose of this function is to interpolate MGALT, FBLT, and PSBI decision vectors for use as initial guesses for SNOPT
 	//linear interpolation will be used
 	//the only values that should be interpolated are the unit control vectors and Isps (in the case of VSI propulsion)
 
@@ -1678,27 +1684,60 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 
 			//construct a data table of all control values
 			//we will do this by looping through the old vector and extracting the control values
+            //if this is a PSBI mission then we will also extract the state values
+            vector< pair<double, double> > Oldx;
+            vector< pair<double, double> > Oldy;
+            vector< pair<double, double> > Oldz;
+            vector< pair<double, double> > Oldxdot;
+            vector< pair<double, double> > Oldydot;
+            vector< pair<double, double> > Oldzdot;
+            vector< pair<double, double> > Oldmass;
 			vector< pair<double, double> > OldUx;
 			vector< pair<double, double> > OldUy;
 			vector< pair<double, double> > OldUz;
 			vector< pair<double, double> > OldIsp;
 
 			//first encode the left hand side of the phase
-			OldUx.push_back(std::make_pair(0.0, Xold[XOldEntry]));
-			OldUy.push_back(std::make_pair(0.0, Xold[XOldEntry+1]));
-			OldUz.push_back(std::make_pair(0.0, Xold[XOldEntry+2]));
+            int offset;
+            if (OldOptions->mission_type == 5)
+            {
+                Oldx.push_back(std::make_pair(0.0, Xold[XOldEntry]));
+                Oldy.push_back(std::make_pair(0.0, Xold[XOldEntry + 1]));
+                Oldz.push_back(std::make_pair(0.0, Xold[XOldEntry + 2]));
+                Oldxdot.push_back(std::make_pair(0.0, Xold[XOldEntry + 3]));
+                Oldydot.push_back(std::make_pair(0.0, Xold[XOldEntry + 4]));
+                Oldzdot.push_back(std::make_pair(0.0, Xold[XOldEntry + 5]));
+                Oldmass.push_back(std::make_pair(0.0, Xold[XOldEntry + 6]));
+                offset = 7;
+            }
+            else
+                offset = 0;
+
+			OldUx.push_back(std::make_pair(0.0, Xold[XOldEntry + offset]));
+			OldUy.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 1]));
+			OldUz.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 2]));
 			if (OldOptions->engine_type == 4 || OldOptions->engine_type == 12 || OldOptions->engine_type == 13)
 			{
-				OldIsp.push_back(std::make_pair(0.0, Xold[XOldEntry+3]));
+				OldIsp.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 3]));
 			}
 
 			//then each step
 			for (int step = 0; step < OldOptions->num_timesteps; ++step)
 			{
-				OldUx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry]));
-				OldUy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry+1]));
-				OldUz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry+2]));
-				XOldEntry += 3;
+                if (OldOptions->mission_type == 5)
+                {
+                    Oldx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry]));
+                    Oldy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 1]));
+                    Oldz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 2]));
+                    Oldxdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 3]));
+                    Oldydot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 4]));
+                    Oldzdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 5]));
+                    Oldmass.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 6]));
+                }
+				OldUx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset]));
+				OldUy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset + 1]));
+				OldUz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset + 2]));
+				XOldEntry += 3 + offset;
 
 				//for variable specific impulse engine types, we must also encode an Isp
 				if (OldOptions->engine_type == 4 || OldOptions->engine_type == 12 || OldOptions->engine_type == 13)
@@ -1709,6 +1748,16 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			}
 
 			//and finally the right-hand side
+            if (OldOptions->mission_type == 5)
+            {
+                Oldx.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 11]));
+                Oldy.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 10]));
+                Oldz.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 9]));
+                Oldxdot.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 8]));
+                Oldydot.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 7]));
+                Oldzdot.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 6]));
+                Oldmass.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 5]));
+            }
 			OldUx.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-4]));
 			OldUy.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-3]));
 			OldUz.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-2]));
@@ -1718,6 +1767,13 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			}
 
 			//interpolate the data tables to fill in the new control vector
+            math::interpolator x_interpolator(Oldx);
+            math::interpolator y_interpolator(Oldy);
+            math::interpolator z_interpolator(Oldz);
+            math::interpolator xdot_interpolator(Oldxdot);
+            math::interpolator ydot_interpolator(Oldydot);
+            math::interpolator zdot_interpolator(Oldzdot);
+            math::interpolator mass_interpolator(Oldmass);
 			math::interpolator ux_interpolator(OldUx);
 			math::interpolator uy_interpolator(OldUy);
 			math::interpolator uz_interpolator(OldUz);
@@ -1728,6 +1784,18 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				double current_time = most_recent_time_increment * (step + 0.5) / options.num_timesteps;
 				stringstream stepstream;
 				stepstream << step;
+
+                //if applicable, interpolate and encode the state vector
+                if (OldOptions->mission_type == 5)
+                {
+                    Xnew.push_back(x_interpolator.interpolate(current_time));
+                    Xnew.push_back(y_interpolator.interpolate(current_time));
+                    Xnew.push_back(z_interpolator.interpolate(current_time));
+                    Xnew.push_back(xdot_interpolator.interpolate(current_time));
+                    Xnew.push_back(ydot_interpolator.interpolate(current_time));
+                    Xnew.push_back(zdot_interpolator.interpolate(current_time));
+                    Xnew.push_back(mass_interpolator.interpolate(current_time));
+                }
 
 				//interpolate and encode the control vector
 				Xnew.push_back(ux_interpolator.interpolate(current_time));

@@ -1,0 +1,40 @@
+Welcome to EMTGv8 Open Source Release
+README.student file compiled by Jacob Englander 11-4-2014
+
+This package contains a compiled version of EMTG-student, a variant of EMTGv8 which is linked against the SNOPT Windows Student Edition. This package does NOT ship with the SNOPT dynamic link libraries, which must be acquired directly from the developer, which you may acquire from:
+
+http://ccom.ucsd.edu/~optimizers/downloads.php
+
+Please perform the following steps before running EMTG:
+
+1. Unzip this archive to your hard drive.
+
+2. Go to http://ccom.ucsd.edu/~optimizers/downloads.php and fill out the request for the trial version of SNOPT. You will need the 32-bit Windows version of SNOPT to run EMTG.
+3. Download and install Python(x,y) from https://code.google.com/p/pythonxy/
+
+4. Upon recieving your SNOPT, place the files snopt.dll and snopt_cpp.dll into your EMTG_student/bin/ directory. Note that these MUST be the 32-bit versions because this EMTG package is compiled in 32-bit. If you really need a 64-bit version please contact me and I will make you one. I am providing the 32-bit version because there will be some prospective users who cannot run in 64 bits.
+
+5. Install the 32-bit Microsoft Visual C++ 2013 Redistributable runtime library from http://www.microsoft.com/en-us/download/details.aspx?id=40784
+
+6. Install the 32-bit Intel Visual Fortran runtime library, which is necessary for SNOPT, from https://software.intel.com/en-us/articles/redistributables-for-intel-parallel-studio-xe-2015-composer-edition-for-windows
+
+7. Acquire ephemeris kernel files from NAIF. This step is optional but will improve the accuracy of EMTG's modeling of the positions and velocities of the planets. This may be unnecessary for academic work. Go to http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/ and acquire "de430.bsp". Go to http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/satellites/ and aquire all .bsp files in that directory. There are quite a few of them and they are big.
+
+8. Open EMTG_student/PyEMTG/PyEMTG.options and set the two fields there to point to your EMTG_student executable and your /universe/ folder respectively
+
+After completing these steps you should be able to run PyEMTG, create a new mission and run it using the default settings. The steps to do this are:
+1. Double click PyEMTG.py or run it from you Python(x,y) window. If you installed Python(x,y) correctly then double-clicking should work.
+2. Go to File->New->Mission
+3. Go to the "physics" tab and click "default" next to "Universe Folder." This works only if you completed step 1 above and without it nothing will work because EMTG will not be able to find your ephemeris files.
+4. Go to File->Run and allow your options file to be overwritten. This will save your change to the Universe folder so that you never have to do it again. Best practices, however, is that all scripts you create be placed in a separate folder marked "scripts" once you start designing missions.
+
+
+The actual use of EMTG beyond setup and test is beyond the scope of this readme. I encourage you to break lots of things and tell me about it. You can get help on using EMTG from someone at your university who has experience, or from me directly although I am very busy and may not respond quickly. At some point there will be a tutorial.
+
+If you ever get error messages from SNOPT that your problem is too large (i.e. too many variables or constraints) then you have exceeded the capabilities of the trial version of SNOPT. The only solution to that problem is to either reduce the number of time-steps and hope for the best or purchase a full version of SNOPT. On that note, special thanks to Elizabeth Wong for creating the trial version of SNOPT which makes this student version of EMTG possible.
+
+I hope you have as much fun using EMTG as the team has had creating it.
+
+Jacob Englander
+Navigation and Mission Design Branch, NASA Goddard Space Flight Center
+jacob.a.englander@nasa.gov

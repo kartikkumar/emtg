@@ -83,7 +83,8 @@ public:
 										vector<double>& NewX,
 										int& NewXIndex,
 										const vector<string>& NewXDescriptions,
-										const missionoptions& options);
+										const missionoptions& options,
+                                        const Astrodynamics::universe& Universe);
 
 	//GMAT output methods
 	void output_GMAT_fueltank_and_thruster(int& j, int& p, vector<EMTG::Astrodynamics::body>& missionbodies, int& index_body_visited, std::ofstream& GMATfile);

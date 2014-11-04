@@ -90,7 +90,8 @@ namespace EMTG {
                                         vector<double>& NewX,
                                         int& NewXIndex,
                                         const vector<string>& NewXDescriptions,
-                                        const missionoptions& options)		{};
+                                        const missionoptions& options,
+                                        const Astrodynamics::universe& Universe);
 
         //method to output a .e ephemeris file
         virtual void write_ephemeris_file(const missionoptions& options,
@@ -104,25 +105,6 @@ namespace EMTG {
 
         //functions that only exist for phases of this type
     protected:
-        void calcbounds_phase_thruster_parameters(const string& prefix,
-                                                int first_X_entry_in_phase,
-                                                vector<double>* Xupperbounds,
-                                                vector<double>* Xlowerbounds,
-                                                vector<double>* Fupperbounds,
-                                                vector<double>* Flowerbounds,
-                                                vector<string>* Xdescriptions,
-                                                vector<string>* Fdescriptions,
-                                                vector<int>* iAfun,
-                                                vector<int>* jAvar,
-                                                vector<int>* iGfun,
-                                                vector<int>* jGvar,
-                                                vector<string>* Adescriptions,
-                                                vector<string>* Gdescriptions,
-                                                int j,
-                                                int p,
-                                                EMTG::Astrodynamics::universe* Universe,
-                                                missionoptions* options);
-
         void calcbounds_LT_match_points(const string& prefix,
                                         int first_X_entry_in_phase,
                                         vector<double>* Xupperbounds,

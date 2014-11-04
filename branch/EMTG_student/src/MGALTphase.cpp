@@ -1349,8 +1349,6 @@ namespace EMTG {
 		{
 			double state_at_initial_coast_midpoint[7];
 			double initial_coast_duration;
-			double F, G, Ft, Gt, Ftt, Gtt;
-			Kepler::STM stm;
 			state_at_initial_coast_midpoint[6] = state_at_beginning_of_phase[6];
 
 			if (j == 0 && p == 0 && options->forced_post_launch_coast > 0.0)
@@ -1368,15 +1366,7 @@ namespace EMTG {
 														state_at_initial_coast_midpoint,
 														Universe->mu,
 														Universe->LU,
-														initial_coast_duration / 2.0,
-														F,
-														G,
-														Ft,
-														Gt,
-														Ftt,
-														Gtt,
-														&stm,
-														false);
+														initial_coast_duration / 2.0);
 
 			//we have to calculate the available power at the midpoint of the forced coast
 			Astrodynamics::find_engine_parameters(	options,
@@ -1532,23 +1522,13 @@ namespace EMTG {
 		{
 			double state_at_terminal_coast_midpoint[7];
 			double terminal_coast_duration = options->forced_flyby_coast;
-			double F, G, Ft, Gt, Ftt, Gtt;
-			Kepler::STM stm;
 			state_at_terminal_coast_midpoint[6] = state_at_end_of_phase[6];
 
 			Kepler::Kepler_Lagrange_Laguerre_Conway_Der(state_at_end_of_phase,
 														state_at_terminal_coast_midpoint,
 														Universe->mu,
 														Universe->LU,
-														-terminal_coast_duration / 2.0,
-														F,
-														G,
-														Ft,
-														Gt,
-														Ftt,
-														Gtt,
-														&stm,
-														false);
+														-terminal_coast_duration / 2.0);
 
 			//we have to calculate the available power at the midpoint of the forced coast
 			Astrodynamics::find_engine_parameters(	options,
@@ -2940,24 +2920,24 @@ namespace EMTG {
 		//evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
 		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			//double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			//double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			//double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			//double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			//double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			//double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Forward[stepnext];
-			dxdt = this->Kepler_Fdot_Forward[stepnext] * x// + this->Kepler_F_Forward[stepnext] * dx_ddeltatprop
-				+ this->Kepler_Gdot_Forward[stepnext] * vx;// + this->Kepler_G_Forward[stepnext] * dvx_ddeltatprop;
-			dydt = this->Kepler_Fdot_Forward[stepnext] * y// + this->Kepler_F_Forward[stepnext] * dy_ddeltatprop
-				+ this->Kepler_Gdot_Forward[stepnext] * vy;// + this->Kepler_G_Forward[stepnext] * dvy_ddeltatprop;
-			dzdt = this->Kepler_Fdot_Forward[stepnext] * z// + this->Kepler_F_Forward[stepnext] * dz_ddeltatprop
-				+ this->Kepler_Gdot_Forward[stepnext] * vz;// + this->Kepler_G_Forward[stepnext] * dvz_ddeltatprop;
-			dxdotdt = this->Kepler_Fdotdot_Forward[stepnext] * x// + this->Kepler_Fdot_Forward[stepnext] * dx_ddeltatprop
-				+ this->Kepler_Gdotdot_Forward[stepnext] * vx;// + this->Kepler_Gdot_Forward[stepnext] * dvx_ddeltatprop;
-			dydotdt = this->Kepler_Fdotdot_Forward[stepnext] * y// + this->Kepler_Fdot_Forward[stepnext] * dy_ddeltatprop
-				+ this->Kepler_Gdotdot_Forward[stepnext] * vy;// + this->Kepler_Gdot_Forward[stepnext] * dvy_ddeltatprop;
-			dzdotdt = this->Kepler_Fdotdot_Forward[stepnext] * z// + this->Kepler_Fdot_Forward[stepnext] * dz_ddeltatprop
-				+ this->Kepler_Gdotdot_Forward[stepnext] * vz;// + this->Kepler_Gdot_Forward[stepnext] * dvz_ddeltatprop;
+			double dx_ddeltatprop = dxdu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			double dy_ddeltatprop = dydu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			double dz_ddeltatprop = dzdu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			double dvx_ddeltatprop = dxdotdu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			double dvy_ddeltatprop = dydotdu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			double dvz_ddeltatprop = dzdotdu * this->Propagation_Step_Time_Fraction_Forward[stepnext];
+			dxdt = this->Kepler_Fdot_Forward[stepnext] * x + this->Kepler_F_Forward[stepnext] * dx_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vx + this->Kepler_G_Forward[stepnext] * dvx_ddeltatprop;
+			dydt = this->Kepler_Fdot_Forward[stepnext] * y + this->Kepler_F_Forward[stepnext] * dy_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vy + this->Kepler_G_Forward[stepnext] * dvy_ddeltatprop;
+			dzdt = this->Kepler_Fdot_Forward[stepnext] * z + this->Kepler_F_Forward[stepnext] * dz_ddeltatprop
+				+ this->Kepler_Gdot_Forward[stepnext] * vz + this->Kepler_G_Forward[stepnext] * dvz_ddeltatprop;
+			dxdotdt = this->Kepler_Fdotdot_Forward[stepnext] * x + this->Kepler_Fdot_Forward[stepnext] * dx_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vx + this->Kepler_Gdot_Forward[stepnext] * dvx_ddeltatprop;
+			dydotdt = this->Kepler_Fdotdot_Forward[stepnext] * y + this->Kepler_Fdot_Forward[stepnext] * dy_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vy + this->Kepler_Gdot_Forward[stepnext] * dvy_ddeltatprop;
+			dzdotdt = this->Kepler_Fdotdot_Forward[stepnext] * z + this->Kepler_Fdot_Forward[stepnext] * dz_ddeltatprop
+				+ this->Kepler_Gdotdot_Forward[stepnext] * vz + this->Kepler_Gdot_Forward[stepnext] * dvz_ddeltatprop;
 		}
 		else
 		{
@@ -3075,24 +3055,24 @@ namespace EMTG {
 		//evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
 		if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
 		{
-			//double dx_ddeltatprop = dxdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			//double dy_ddeltatprop = dydu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			//double dz_ddeltatprop = dzdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			//double dvx_ddeltatprop = dxdotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			//double dvy_ddeltatprop = dydotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			//double dvz_ddeltatprop = dzdotdu;// * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
-			dxdt = this->Kepler_Fdot_Backward[stepnext+1] * x// + this->Kepler_F_Backward[stepnext+1] * dx_ddeltatprop
-				+ this->Kepler_Gdot_Backward[stepnext+1] * vx;// + this->Kepler_G_Backward[stepnext+1] * dvx_ddeltatprop);
-			dydt = this->Kepler_Fdot_Backward[stepnext+1] * y// + this->Kepler_F_Backward[stepnext+1] * dy_ddeltatprop
-				+ this->Kepler_Gdot_Backward[stepnext+1] * vy;// + this->Kepler_G_Backward[stepnext+1] * dvy_ddeltatprop);
-			dzdt = this->Kepler_Fdot_Backward[stepnext+1] * z// + this->Kepler_F_Backward[stepnext+1] * dz_ddeltatprop
-				+ this->Kepler_Gdot_Backward[stepnext+1] * vz;// + this->Kepler_G_Backward[stepnext+1] * dvz_ddeltatprop);
-			dxdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * x// + this->Kepler_Fdot_Backward[stepnext+1] * dx_ddeltatprop
-				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vx;// + this->Kepler_Gdot_Backward[stepnext+1] * dvx_ddeltatprop);
-			dydotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * y// + this->Kepler_Fdot_Backward[stepnext+1] * dy_ddeltatprop
-				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vy;// + this->Kepler_Gdot_Backward[stepnext+1] * dvy_ddeltatprop);
-			dzdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * z// + this->Kepler_Fdot_Backward[stepnext+1] * dz_ddeltatprop
-				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vz;// + this->Kepler_Gdot_Backward[stepnext+1] * dvz_ddeltatprop);
+			double dx_ddeltatprop = dxdu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			double dy_ddeltatprop = dydu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			double dz_ddeltatprop = dzdu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			double dvx_ddeltatprop = dxdotdu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			double dvy_ddeltatprop = dydotdu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			double dvz_ddeltatprop = dzdotdu * this->Propagation_Step_Time_Fraction_Backward[stepnext+1];
+			dxdt = this->Kepler_Fdot_Backward[stepnext+1] * x + this->Kepler_F_Backward[stepnext+1] * dx_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vx + this->Kepler_G_Backward[stepnext+1] * dvx_ddeltatprop;
+			dydt = this->Kepler_Fdot_Backward[stepnext+1] * y + this->Kepler_F_Backward[stepnext+1] * dy_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vy + this->Kepler_G_Backward[stepnext+1] * dvy_ddeltatprop;
+			dzdt = this->Kepler_Fdot_Backward[stepnext+1] * z + this->Kepler_F_Backward[stepnext+1] * dz_ddeltatprop
+				+ this->Kepler_Gdot_Backward[stepnext+1] * vz + this->Kepler_G_Backward[stepnext+1] * dvz_ddeltatprop;
+			dxdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * x + this->Kepler_Fdot_Backward[stepnext+1] * dx_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vx + this->Kepler_Gdot_Backward[stepnext+1] * dvx_ddeltatprop;
+			dydotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * y + this->Kepler_Fdot_Backward[stepnext+1] * dy_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vy + this->Kepler_Gdot_Backward[stepnext+1] * dvy_ddeltatprop;
+			dzdotdt = this->Kepler_Fdotdot_Backward[stepnext+1] * z + this->Kepler_Fdot_Backward[stepnext+1] * dz_ddeltatprop
+				+ this->Kepler_Gdotdot_Backward[stepnext+1] * vz + this->Kepler_Gdot_Backward[stepnext+1] * dvz_ddeltatprop;
 		}
 		else
 		{
