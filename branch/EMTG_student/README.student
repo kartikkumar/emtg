@@ -9,7 +9,8 @@ Please perform the following steps before running EMTG:
 
 1. Unzip this archive to your hard drive.
 
-2. Go to http://ccom.ucsd.edu/~optimizers/downloads.php and fill out the request for the trial version of SNOPT. You will need the 32-bit Windows version of SNOPT to run EMTG.
+2. Go to http://ccom.ucsd.edu/~optimizers/downloads.php and fill out the request for the trial version of SNOPT. You will need the 32-bit Windows C/C++/Fortran version of SNOPT to run EMTG.
+
 3. Download and install Python(x,y) from https://code.google.com/p/pythonxy/
 
 4. Upon recieving your SNOPT, place the files snopt.dll and snopt_cpp.dll into your EMTG_student/bin/ directory. Note that these MUST be the 32-bit versions because this EMTG package is compiled in 32-bit. If you really need a 64-bit version please contact me and I will make you one. I am providing the 32-bit version because there will be some prospective users who cannot run in 64 bits.
