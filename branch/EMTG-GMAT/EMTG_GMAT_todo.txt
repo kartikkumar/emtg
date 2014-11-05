@@ -1,7 +1,7 @@
 * Features that "should (i.e marginally tested)" be working as of 2014_08_01:
 * - multiphase
-* - multijourney (single-phase)
-* - objective function (maximize final mass)
+* - multijourney (single-phase) --> (as of 2014_08_11 appears multi-journey multi-phase was fine)
+* - objective function (maximize final mass, min. time)
 * - departures( launch direct-departure, free departure)
 * - arrivals ( low-thrust rendezvous)
 * - engine models (fixed isp / fixed thrust)
@@ -10,29 +10,36 @@
 * - bound journey TOF enforced
 * - variable phase TOF
 * - variable flyby position and velocity with bounds enabled
+* - minimum dry mass constraint (2014_11_02)
+* - propellant mass constraint (2014_11_02)
+* - variable initial mass (2014_11_04)
+* - journey mass increment/decrement (2014_11_04)
+
+
 
 
 * Features that need to be implemented into the SRC in the near future (2014_08_01)
+
 - all objective functions
 - journey arrival date and journey aggregate elapsed time bound 'journey_time_bounded' == 3 is aggregate case.  
 - all departure and arrival conditions (except spiral).
 - boundary types such that we can start/end at a fixed point in space or specified (partially) COE/Inertial "phase.frame.rotate(ICRF, local) ..."
 - depart / insert to a parking orbit (EMTG only encodes sma and ecc). can have varied or fixed elements.
 - pre and post coasts (coasts start after phase epochs) [for launches and flybys]
-- minimum dry mass constraint
-- propellant mass constraint
 - propellant, power, launch_vehicle margin
 - launch vehicle C3 curves
-- variable initial mass
-- journey mass increment/decrement
 - (TBD) zero-turn flyby (for some bodies); 
-- SRP on and all planets for SRP 
+- SRP on
+- 3rd Body Perturbations
 - Option for scaling constraints {solve first with scaled and then resolved with unscaled}
 - method for reseeding GMAT
 - A Post-process GMAT optimization to propagate the final result and show Views (aka figures)
-- hooks for GMAT electric and nuclear power models, as well as electric thruster models
 
 
 * Features that need to be implemented into the GUI in the near future (2014_08_01) 
 - check box for debug file 
 - selection of the user's optimizer of choice
+
+
+* GMAT Development dependent features
+x hooks for GMAT electric and nuclear power models, as well as electric thruster models
