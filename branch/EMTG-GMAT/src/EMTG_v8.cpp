@@ -374,10 +374,11 @@ int main(int argc, char* argv[])
 					//temporarily we can't output MGA or MGA-DSM missions
 					if (options.mission_type > 1 && options.create_GMAT_script)
 					{
+						//schadegg code
 						TrialMission.output_GMAT_preamble();
 						TrialMission.output_GMAT_mission();
 
-						//testing for new approach to gmat script file generation
+						//beeson code
 						EMTG::gmatscripter gmat_script(&TrialMission);
 						gmat_script.write_GMAT_script();
 

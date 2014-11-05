@@ -83,6 +83,7 @@ struct gmat_spacecraft {
 	double flyby_velocity_upperbound = 1e10;
 	math::Matrix<double> flyby_states;
 	double initialconditions[6];
+	double mass_margin = 0.0;
 };
 
 //a struct type for forcemodel(s)
@@ -127,10 +128,10 @@ public:
 	~gmatbaseclass(){};
 
 	//collection members
-	vector <vector <string>> variables;			//collection of 'variables' (n x (1 or 2))
+	vector <vector<string> > variables;			//collection of 'variables' (n x (1 or 2))
 	vector <struct gmat_vary> vary;				//collection of vary 'variables' to be performed in the optimize sequence.           
 	vector <struct gmat_calculate> calculate;	//collection of calculate 'variables' to be performed in the optimize sequence.  
-	vector <vector <string>> constraints;		//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
+	vector <vector<string> > constraints;		//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
 
 	//method
 	void setVariable(string avariable) {
@@ -243,8 +244,8 @@ public:
 	//method to write a GMAT 'Variable' line
 	void printVariable(std::ofstream& File) {
 		for (int index = 0; index < this->variables.size(); ++index) {
-			File << "Create Variable " << this->variables[index][0] << endl;
-			if (this->variables[index].size() == 2) { File << variables[index][0] << variables[index][1] << endl; }
+			File << "Create Variable " << this->variables[index][0] << std::endl;
+			if (this->variables[index].size() == 2) { File << variables[index][0] << variables[index][1] << std::endl; }
 		}
 	}
 
@@ -255,22 +256,22 @@ public:
 					", {Perturbation = " << this->vary[index].perturbation << 
 					", Lower = " << this->vary[index].lowerbound << 
 					", Upper = " << this->vary[index].upperbound << 
-					", MaxStep = " << this->vary[index].maxstep << " })" << endl;
+					", MaxStep = " << this->vary[index].maxstep << " })" << std::endl;
 		}
 	}
 
 	//method to write a GMAT 'Calculate' line (int mode (1) if printing at "front" and (0) at "end") (see write_GMAT_optimization for e.g.)
 	void printCalculate(std::ofstream& File, int mode = 1) {
 		for (int index = 0; index < this->calculate.size(); ++index){
-			if (mode && this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << endl; }
-			else if (!mode && !this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << endl; }
+			if (mode && this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << std::endl; }
+			else if (!mode && !this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << std::endl; }
 		}
 	}
 
 	// method to write a GMAT 'NonlinearConstraint' line
 	void printConstraint(std::ofstream& File) {
 		for (int index = 0; index < this->constraints.size(); ++index) {
-			File << "   " << "NonlinearConstraint '" << this->constraints[index][0] << "' NLPObject( " << this->constraints[index][1] << " " << this->constraints[index][2] << " " << this->constraints[index][3] << " )" << endl;
+			File << "   " << "NonlinearConstraint '" << this->constraints[index][0] << "' NLPObject( " << this->constraints[index][1] << " " << this->constraints[index][2] << " " << this->constraints[index][3] << " )" << std::endl;
 		}
 	}
 
@@ -404,7 +405,7 @@ public:
 		if (p == 0) { isFirstPhase = true; }
 		if (p == myjourney->number_of_emtg_phases - 1) { isLastPhase = true; }
 		this->set_names();
-		this->set_fuelmass_epoch();
+		this->set_fuelmass_epoch_drymass();
 		this->get_my_bodies();
 		this->get_flyby_data();
 		this->set_initialconditions();
@@ -425,8 +426,8 @@ public:
 	bool isLastPhase  = false;
 	bool StartsWithFlyby = false;
 	bool EndsWithFlyby   = false;
-	double ineligabletime = 0.0;
-	double eligabletime   = 0.0;
+	double ineligibletime = 0.0;
+	double eligibletime   = 0.0;
 	double TOF = 0.0; 
 	double iepoch;
 	double fepoch;
@@ -451,13 +452,54 @@ public:
 	}
 
 	//method
-	void set_fuelmass_epoch() {
-		//forward spacecraft
-		spacecraft_forward.Thruster.Tank.FuelMass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_beginning_of_phase[6];
+	void set_fuelmass_epoch_drymass() {
+		//assignment of relevant data from emtg mission
+		double starting_mass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_beginning_of_phase[6];
+		double final_mass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_end_of_phase[6];
+		double drymass_min = this->myjourney->mymission->emtgmission->options.minimum_dry_mass;
+		double drymass_max_increment = this->myjourney->mymission->emtgmission->options.journey_starting_mass_increment[this->myjourney->j]; // this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].current_mass_increment;
+		double drymass_increment_scaling = 1.0;
+		//find the optimal drymass scaling for journey 'j'
+		if (drymass_max_increment > 0.0) {
+			for (size_t iX = 0; iX < this->myjourney->mymission->emtgmission->Xdescriptions.size(); ++iX) {
+				//find index in Xdescriptions where the launch time bounds are located
+				if (this->myjourney->mymission->emtgmission->Xdescriptions[iX] == "j" + std::to_string(this->myjourney->j) + "p0: journey initial mass scale factor") {
+					drymass_increment_scaling = this->myjourney->mymission->emtgmission->Xopt[iX];
+					break;
+				}
+			}
+		}
+		//forward spacecraft drymass
+		if (this->myjourney->j == 0) {
+			spacecraft_forward.DryMass = drymass_min + drymass_increment_scaling * drymass_max_increment;
+		}
+		else {
+			spacecraft_forward.DryMass = this->myjourney->mymission->myjourneys[this->myjourney->j - 1].myphases.back().spacecraft_forward.DryMass +
+										 drymass_increment_scaling * drymass_max_increment;
+		}
+		//forward spacecraft mass margin (i.e. difference between drymass and propellant maximum)
+		if (this->myjourney->j == 0 && this->myjourney->mymission->emtgmission->options.enable_maximum_propellant_mass_constraint) {
+			spacecraft_forward.mass_margin = this->myjourney->mymission->emtgmission->journeys[0].phases[0].state_at_beginning_of_phase[6]
+											 - spacecraft_forward.DryMass
+											 - this->myjourney->mymission->emtgmission->options.maximum_propellant_mass;
+		}
+		else if (this->myjourney->mymission->emtgmission->options.enable_maximum_propellant_mass_constraint) {
+			spacecraft_forward.mass_margin = this->myjourney->mymission->myjourneys[this->myjourney->j - 1].myphases[0].spacecraft_forward.mass_margin;
+		}
+		//correct forward 'DryMass' when mass margin is positive
+		if (this->myjourney->j == 0 && spacecraft_forward.mass_margin > 0.0) {
+			spacecraft_forward.DryMass += spacecraft_forward.mass_margin;
+		}
+		//forward spacecraft fuelmass
+		spacecraft_forward.Thruster.Tank.FuelMass = starting_mass - spacecraft_forward.DryMass;
+		if (spacecraft_forward.Thruster.Tank.FuelMass < 0.0) { spacecraft_forward.Thruster.Tank.FuelMass = 0.0; }
+		//forward spacecraft epoch
 		spacecraft_forward.Epoch = (this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].phase_start_epoch / 86400.0) + 2400000.5 - 2430000;
-		//backward spacecraft
-		spacecraft_backward.Thruster.Tank.FuelMass = this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].state_at_end_of_phase[6];
+		//backward spacecraft parameters
 		spacecraft_backward.Epoch = (this->myjourney->mymission->emtgmission->journeys[myjourney->j].phases[p].phase_end_epoch / 86400.0) + 2400000.5 - 2430000;
+		spacecraft_backward.DryMass = spacecraft_forward.DryMass;
+		spacecraft_backward.Thruster.Tank.FuelMass = final_mass - spacecraft_backward.DryMass;
+		if (spacecraft_backward.Thruster.Tank.FuelMass < 0.0) { spacecraft_backward.Thruster.Tank.FuelMass = 0.0; }
 	}
 
 	//method
@@ -923,12 +965,12 @@ public:
 
 	//method
 	void printBeginBurn(std::ofstream& File) {
-		File << "   " << "Begin" << this->myspacecraft->Burn.Type << " 'Begin" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << endl;
+		File << "   " << "Begin" << this->myspacecraft->Burn.Type << " 'Begin" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
 	}
 
 	//method
 	void printEndBurn(std::ofstream& File) {
-		File << "   " << "End" << this->myspacecraft->Burn.Type << " 'End" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << endl;
+		File << "   " << "End" << this->myspacecraft->Burn.Type << " 'End" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
 	}
 
 };

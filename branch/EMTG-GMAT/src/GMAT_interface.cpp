@@ -42,7 +42,7 @@ namespace EMTG
 		int index_body_visited = 0;
 
 		//create a filename, instantiate an ofstream object called GMATfile
-		string filename = options.working_directory + "//" + options.mission_name + "_" + options.description + "_GMAT.script";
+		string filename = options.working_directory + "//" + options.mission_name + "_" + options.description + "_GMAT_Old.script";
 		string filestring;
 		ofstream GMATfile(filename.c_str(), ios::trunc);
 		//set floating point decimal precision

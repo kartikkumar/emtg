@@ -28,11 +28,9 @@ namespace EMTG {
 gmatscripter::gmatscripter(){}
 
 // constructor
-gmatscripter::gmatscripter(mission* mission_in){
+gmatscripter::gmatscripter(mission* mission_in) : GMATMission(mission_in){
+	//instantiate a 'gmatmissison' and assign a point to the 'EMTG mission class'
 	this->ptr_gmatmission = mission_in;
-	//instantiate a 'gmatmission'
-	gmatmission gmatMission(mission_in);
-	GMATMission = gmatMission;
 }
 
 // destructor
@@ -119,7 +117,7 @@ void gmatscripter::create_GMAT_file(){
 	//create a filename
 	string filename = this->ptr_gmatmission->options.working_directory + "//" + 
 					  this->ptr_gmatmission->options.mission_name + "_" + 
-					  this->ptr_gmatmission->options.description + "_GMAT_Test.script";
+					  this->ptr_gmatmission->options.description + "_GMAT_New.script";
 	//open the ofstream object called GMATfile
 	this->GMATfile.open(filename.c_str(), ios::trunc);
 	//set floating point decimal precision
@@ -147,11 +145,17 @@ void gmatscripter::create_GMAT_missions() {
 	double LaunchWindow;
 	double LaunchDate;
 	double LaunchScaling;
-	//temporary descriptive parameters
-	LaunchDate_LowerBounds = (ptr_gmatmission->Xlowerbounds[0] / 86400.0) + TAIModJOffset;
-	LaunchDate_UpperBounds = (ptr_gmatmission->Xupperbounds[0] / 86400.0) + TAIModJOffset;
+	//find the Xdescription index related to the optimal launch date
+	for (size_t iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
+		if (this->ptr_gmatmission->Xdescriptions[iX] == "j0p0: launch epoch (MJD)") {
+			LaunchDate_LowerBounds = (ptr_gmatmission->Xlowerbounds[iX] / 86400.0) + TAIModJOffset;
+			LaunchDate_UpperBounds = (ptr_gmatmission->Xupperbounds[iX] / 86400.0) + TAIModJOffset;
+			LaunchDate = (ptr_gmatmission->Xopt[iX] / 86400.0) + TAIModJOffset;
+			break;
+		}
+	}
+	//assignments
 	LaunchWindow = LaunchDate_UpperBounds - LaunchDate_LowerBounds;
-	LaunchDate = (ptr_gmatmission->Xopt[0] / 86400.0) + TAIModJOffset;
 	LaunchScaling = (LaunchDate - LaunchDate_LowerBounds) / LaunchWindow;
 
 
@@ -210,11 +214,11 @@ void gmatscripter::create_GMAT_missions() {
 
 
 	//DEBUG FILE
-	GMATDebug << " ------------ " << endl;
-	GMATDebug << "LaunchDate_LowerBounds: " << LaunchDate_LowerBounds << endl;
-	GMATDebug << "LaunchDate_UpperBounds: " << LaunchDate_UpperBounds << endl;
-	GMATDebug << "LaunchDate: " << LaunchDate << endl;
-	GMATDebug << " ------------ " << endl;
+	GMATDebug << " ------------ " << std::endl;
+	GMATDebug << "LaunchDate_LowerBounds: " << LaunchDate_LowerBounds << std::endl;
+	GMATDebug << "LaunchDate_UpperBounds: " << LaunchDate_UpperBounds << std::endl;
+	GMATDebug << "LaunchDate: " << LaunchDate << std::endl;
+	GMATDebug << " ------------ " << std::endl;
 
 }//end of get_GMAT_missionlevelparameters() method
 
@@ -222,40 +226,82 @@ void gmatscripter::create_GMAT_missions() {
 // method to get the journey level parameters
 void gmatscripter::create_GMAT_journeys() {
 
-	GMATDebug << endl;
-	GMATDebug << "create_GMAT_journeys()" << endl;
-	GMATDebug << endl; 
+	GMATDebug << std::endl;
+	GMATDebug << "create_GMAT_journeys()" << std::endl;
+	GMATDebug << std::endl; 
 
-	for (int index = 0; index < this->ptr_gmatmission->options.number_of_journeys; ++index) {
+	for (int j = 0; j < this->ptr_gmatmission->options.number_of_journeys; ++j) {
 		
 		// -----------------------------
 		//         INSTANTIATION
 		// -----------------------------
-		gmatjourney agmatjourney(&GMATMission, index);
+		gmatjourney agmatjourney(&GMATMission, j);
 
 		// -----------------------------
 		//       VARIABLE CREATION
 		// -----------------------------
-	
+		//dry mass increment/decrement
+		//if (j == 0 && !(this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 && this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0)) {
+		//	agmatjourney.setVariable(agmatjourney.id + "_DryMass", this->ptr_gmatmission->options.minimum_dry_mass + this->ptr_gmatmission->options.journey_starting_mass_increment[0]);
+		//}
+		//else if (j > 0) {
+		//	agmatjourney.setVariable(agmatjourney.id + "_DryMass");
+		//}
+		////dry mass variation
+		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
 
+		//	double drymass_scaling = 0.0;
+		//	//find the optimal drymass scaling for journey 'j'
+		//	for (size_t iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
+		//		//find index in Xdescriptions where the launch time bounds are located
+		//		if (this->ptr_gmatmission->Xdescriptions[iX] == "j" + std::to_string(j) + "p0: journey initial mass scale factor") {
+		//			drymass_scaling = this->ptr_gmatmission->Xopt[iX];
+		//			agmatjourney.setVariable(agmatjourney.id + "_DryMassScaling", this->ptr_gmatmission->Xopt[iX]);
+		//			break;
+		//		}
+		//	}
+		//	//drymass window and lowerbound
+		//	agmatjourney.setVariable(agmatjourney.id + "_DryMassWindow", this->ptr_gmatmission->options.journey_starting_mass_increment[j]);
+		//	if (j == 0) {
+		//		agmatjourney.setVariable(agmatjourney.id + "_DryMassLowerBound", this->ptr_gmatmission->options.minimum_dry_mass);
+		//		agmatjourney.setVariable(agmatjourney.id + "_DryMass", this->ptr_gmatmission->options.minimum_dry_mass + drymass_scaling * this->ptr_gmatmission->options.journey_starting_mass_increment[0]);
+		//	}
+		//}
 
 		// -----------------------------
 		//         VARY CREATION
 		// -----------------------------
-		
+		////dry mass increment/decrement and variation
+		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
+		//	agmatjourney.setVary(agmatjourney.id + "_DryMassScaling", 1e-005, 0.0, 1.0, 0.1);
+		//}
 
 
 		// -----------------------------
 		//      CALCULATE CREATION
 		// -----------------------------
-		
+		////dry mass increment/decrement and variation
+		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
+		//	if (j == 0) {
+		//		agmatjourney.setCalculate(agmatjourney.id + "_DryMass", agmatjourney.id + "_DryMassLowerBound" + " + " + agmatjourney.id + "_DryMassScaling" + " * " + agmatjourney.id + "_DryMassWindow");
+		//	}
+		//	else {
+		//		agmatjourney.setCalculate(agmatjourney.id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + agmatjourney.id + "_DryMassScaling" + " * " + agmatjourney.id + "_DryMassWindow");
+		//	}
+		//}
+		//else if (j > 0) {
+		//	agmatjourney.setCalculate(agmatjourney.id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + std::to_string(this->ptr_gmatmission->options.journey_starting_mass_increment[j]));
+		//}
 
 
 		// -----------------------------
 		//      CONSTRAINT CREATION
 		// -----------------------------
 		// journey time bounds (0: unbounded, 1: bounded flight time, 2: bounded arrival date)
-		if (this->ptr_gmatmission->options.journey_timebounded[index] == 0) {
+		if (this->ptr_gmatmission->options.journey_timebounded[j] == 0) {
 			
 		}
 
@@ -273,21 +319,28 @@ void gmatscripter::create_GMAT_journeys() {
 // method to get the phase level parameters
 void gmatscripter::create_GMAT_phases() {
 
-	GMATDebug << endl;
-	GMATDebug << "create_GMAT_phases()" << endl;
-	GMATDebug << endl;
+	GMATDebug << std::endl;
+	GMATDebug << "create_GMAT_phases()" << std::endl;
+	GMATDebug << std::endl;
 
 	//declarations
 	double fuelwindow;
+	double fuellowerbound = 0.0;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].number_of_emtg_phases; ++p) {
 			// -----------------------------
 			//        DATA COLLECTION
 			// -----------------------------
+			//fuellowerbound
+			fuellowerbound = 0.0;
 			//fuel window
-			if (this->ptr_gmatmission->options.enable_maximum_propellant_mass_constraint == 1) { fuelwindow = this->ptr_gmatmission->options.maximum_propellant_mass; }
-			else { fuelwindow = this->ptr_gmatmission->options.maximum_mass; }
+			if (this->ptr_gmatmission->options.enable_maximum_propellant_mass_constraint == 1) { 
+				fuelwindow = this->ptr_gmatmission->options.maximum_propellant_mass; 
+			}
+			else { 
+				fuelwindow = this->ptr_gmatmission->options.maximum_mass - this->ptr_gmatmission->options.minimum_dry_mass;
+			}
 			
 			// -----------------------------
 			//         INSTANTIATION
@@ -302,7 +355,14 @@ void gmatscripter::create_GMAT_phases() {
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelMass");
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", 0.0);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", fuellowerbound);
+			//allow the initial mass to vary
+			if (j == 0 && agmatphase.p == 0) {
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelMass"); // , agmatphase.spacecraft_forward.Thruster.Tank.FuelMass);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelScaling", agmatphase.spacecraft_forward.Thruster.Tank.FuelMass / fuelwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelWindow", fuelwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelLowerBound", fuellowerbound);
+			}
 			//variation of launch vinf
 			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
 				//RLA
@@ -312,11 +372,12 @@ void gmatscripter::create_GMAT_phases() {
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLALowerBound", -math::TwoPI);
 				//DLA
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLA");
-				double dlawindow = this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0];
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAScaling", this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].DEC_departure / dlawindow);
+				double dlawindow = (this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0]) * math::PI / 180.0;
+				double dlalowerbound = this->ptr_gmatmission->options.DLA_bounds[0] * math::PI / 180.0;
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAScaling", (this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].DEC_departure - dlalowerbound) / dlawindow);
 				if (agmatphase.myjourney->j == 0) {
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", dlawindow);
-					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", this->ptr_gmatmission->options.DLA_bounds[0]);
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", dlalowerbound);
 				}
 				else {
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", math::PI);
@@ -335,7 +396,13 @@ void gmatscripter::create_GMAT_phases() {
 			// -----------------------------
 			//         VARY CREATION
 			// -----------------------------
+			//backward spacecraft fuel scaling
 			agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_FuelScaling");
+			//forward spacecraft fuel scaling (1st journey only)
+			if (j == 0 && agmatphase.p == 0 && this->ptr_gmatmission->options.allow_initial_mass_to_vary) {
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_FuelScaling");
+			}
+			//forward spacecraft at beginning of journey, launch scalings
 			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_RLAScaling");
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_DLAScaling");
@@ -347,8 +414,12 @@ void gmatscripter::create_GMAT_phases() {
 			// -----------------------------
 			//      CALCULATE CREATION
 			// -----------------------------
-			//forward spacecraft epoch (first phase can vary using 'LaunchWindowScaling'). 
-			//otherwise phases use variable create from previous phase's backward spacecraft epoch [see postpass_GMAT_phases() method]
+			//spacecraft drymass
+			agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".DryMass", agmatphase.myjourney->id + "_DryMass");
+			agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + ".DryMass", agmatphase.myjourney->id + "_DryMass");
+			//forward spacecraft epoch 
+			//	(first phase can vary using 'LaunchWindowScaling'). 
+			//	otherwise phases use variable create from previous phase's backward spacecraft epoch [see postpass_GMAT_phases() method]
 			if (agmatphase.myjourney->j == 0 && agmatphase.p == 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat,
 										"(LaunchWindowScaling * LaunchWindow + LaunchWindowOpenDate)");
@@ -361,11 +432,22 @@ void gmatscripter::create_GMAT_phases() {
 			else if (agmatphase.p > 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".Epoch." + agmatphase.spacecraft_forward.DateFormat, GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_Epoch");
 			}
-			//forward spacecraft fuel scaling (first phase uses initial conditions)
-			if (p > 0) {
+			//forward spacecraft fuel scaling
+			//  for p == 0 and j == 0 the forward spacecraft can vary its fuel if the corresponding emtg option was flagged true.
+			//	for p == 0 but j != 0 the forward spacecraft adopts the backward spacecraft from the previous journey and may have mass increments/decrements.
+			//	for p > 0, the forward spacecraft adopts the backward spacecraft choice from the previous 'gmatstep'.
+			if (j == 0 && agmatphase.p == 0 && this->ptr_gmatmission->options.allow_initial_mass_to_vary) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_FuelMass",
+										agmatphase.spacecraft_forward.Name + "_FuelScaling * " + agmatphase.spacecraft_forward.Name + "_FuelWindow" + " + " + agmatphase.spacecraft_forward.Name + "_FuelLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", agmatphase.spacecraft_forward.Name + "_FuelMass");
+			}
+			else if (j != 0 && agmatphase.p == 0) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", GMATMission.myjourneys[j - 1].myphases.back().spacecraft_backward.Name + "_FuelMass");
+			}
+			else if (p > 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_FuelMass");
 			}
-			//backward spacecraft fuel scaling and setting
+			//backward spacecraft fuel scaling
 			agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_FuelMass",
 									agmatphase.spacecraft_backward.Name + "_FuelScaling * " + agmatphase.spacecraft_backward.Name + "_FuelWindow" + " + " + agmatphase.spacecraft_backward.Name + "_FuelLowerBound");
 			agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass", agmatphase.spacecraft_backward.Name + "_FuelMass");
@@ -416,9 +498,9 @@ void gmatscripter::create_GMAT_phases() {
 // method to get the step level parameters
 void gmatscripter::create_GMAT_steps() {
 
-	GMATDebug << endl;
-	GMATDebug << "create_GMAT_steps()" << endl;
-	GMATDebug << endl;
+	GMATDebug << std::endl;
+	GMATDebug << "create_GMAT_steps()" << std::endl;
+	GMATDebug << std::endl;
 
 	//declarations
 	int body_index;
@@ -450,7 +532,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -464,7 +546,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -514,7 +596,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 
@@ -526,7 +608,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -576,7 +658,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 
@@ -588,7 +670,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -608,7 +690,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -624,7 +706,7 @@ void gmatscripter::create_GMAT_steps() {
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
 					GMATDebug << "   iepoch: " << agmatstep.iepoch / 86400.0 << "   fepoch: " << agmatstep.fepoch / 86400.0 << "   usePushBack: " << agmatstep.usePushBack;
-					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << endl;
+					GMATDebug << "   inSOI0: " << agmatstep.inSOIatStart << "   inSOI1: " << agmatstep.inSOIatEnd << std::endl;
 					//reset the 'gmatstep'
 					agmatstep.reset();
 				}
@@ -638,9 +720,9 @@ void gmatscripter::create_GMAT_steps() {
 // method to generate additional variables, vary, calculate and constraint commands post 'gmat' class() creations
 void gmatscripter::postpass_GMAT_phases() {
 
-	GMATDebug << endl;
-	GMATDebug << "postpass_GMAT_phases()" << endl;
-	GMATDebug << endl;
+	GMATDebug << std::endl;
+	GMATDebug << "postpass_GMAT_phases()" << std::endl;
+	GMATDebug << std::endl;
 
 	//declaration
 	gmatphase* agmatphase;
@@ -663,7 +745,7 @@ void gmatscripter::postpass_GMAT_phases() {
 			// -----------------------------
 			//a variable that represents the amount of time that can be scaled during each journey
 			agmatphase->setVariable(agmatphase->id + "_TimeScaling", 1.0);
-			agmatphase->setVariable(agmatphase->id + "_EligableTime", agmatphase->eligabletime / 86400.0);
+			agmatphase->setVariable(agmatphase->id + "_EligibleTime", agmatphase->eligibletime / 86400.0);
 			agmatphase->setVariable(agmatphase->id + "_MatchPoint_PositionError");
 			agmatphase->setVariable(agmatphase->id + "_MatchPoint_VelocityError");
 			agmatphase->setVariable(agmatphase->id + "_MatchPoint_MassError");
@@ -710,7 +792,7 @@ void gmatscripter::postpass_GMAT_phases() {
 			// -----------------------------
 			//         VARY CREATION
 			// -----------------------------
-			agmatphase->setVary(agmatphase->id + "_TimeScaling", 1e-005, 0.0, 10e2, 1.0);
+			agmatphase->setVary(agmatphase->id + "_TimeScaling", 1e-005, 0.0, 20.0, 0.1);
 			if (agmatphase->EndsWithFlyby) {
 				agmatphase->setVary(agmatphase->spacecraft_backward.Name + "_XScaling");
 				agmatphase->setVary(agmatphase->spacecraft_backward.Name + "_YScaling");
@@ -726,8 +808,8 @@ void gmatscripter::postpass_GMAT_phases() {
 			// -----------------------------
 			//backward spacecraft epoch (1. create variable [see above], 2. set variable, 3. assign variable to the spacecraft)
 			agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_Epoch",
-									 agmatphase->spacecraft_forward.Name + ".Epoch." + agmatphase->spacecraft_forward.DateFormat + " + " + std::to_string(agmatphase->ineligabletime / 86400.0) +
-		  						     " + ( " + agmatphase->id + "_TimeScaling * " + agmatphase->id + "_EligableTime ) ");
+									 agmatphase->spacecraft_forward.Name + ".Epoch." + agmatphase->spacecraft_forward.DateFormat + " + " + std::to_string(agmatphase->ineligibletime / 86400.0) +
+		  						     " + ( " + agmatphase->id + "_TimeScaling * " + agmatphase->id + "_EligibleTime ) ");
 			agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + ".Epoch." + agmatphase->spacecraft_backward.DateFormat, agmatphase->spacecraft_backward.Name + "_Epoch");
 			//TOF
 			agmatphase->setCalculate(agmatphase->id + "_TOF",
@@ -736,28 +818,22 @@ void gmatscripter::postpass_GMAT_phases() {
 			//backward spacecraft X, Y, Z, VX, VY, VZ scaling and setting
 			if (agmatphase->EndsWithFlyby) {
 				//X
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_X",
-					agmatphase->spacecraft_backward.Name + "_XScaling * " + agmatphase->spacecraft_backward.Name + "_XWindow" + " + " + agmatphase->spacecraft_backward.Name + "_XLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_X", agmatphase->spacecraft_backward.Name + "_XScaling * " + agmatphase->spacecraft_backward.Name + "_XWindow" + " + " + agmatphase->spacecraft_backward.Name + "_XLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".X", agmatphase->spacecraft_backward.Name + "_X");
 				//Y
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_Y",
-					agmatphase->spacecraft_backward.Name + "_YScaling * " + agmatphase->spacecraft_backward.Name + "_YWindow" + " + " + agmatphase->spacecraft_backward.Name + "_YLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_Y", agmatphase->spacecraft_backward.Name + "_YScaling * " + agmatphase->spacecraft_backward.Name + "_YWindow" + " + " + agmatphase->spacecraft_backward.Name + "_YLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".Y", agmatphase->spacecraft_backward.Name + "_Y");
 				//Z
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_Z",
-					agmatphase->spacecraft_backward.Name + "_ZScaling * " + agmatphase->spacecraft_backward.Name + "_ZWindow" + " + " + agmatphase->spacecraft_backward.Name + "_ZLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_Z", agmatphase->spacecraft_backward.Name + "_ZScaling * " + agmatphase->spacecraft_backward.Name + "_ZWindow" + " + " + agmatphase->spacecraft_backward.Name + "_ZLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".Z", agmatphase->spacecraft_backward.Name + "_Z");
 				//VX
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VX",
-					agmatphase->spacecraft_backward.Name + "_VXScaling * " + agmatphase->spacecraft_backward.Name + "_VXWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VXLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VX", agmatphase->spacecraft_backward.Name + "_VXScaling * " + agmatphase->spacecraft_backward.Name + "_VXWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VXLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".VX", agmatphase->spacecraft_backward.Name + "_VX");
 				//VY
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VY",
-					agmatphase->spacecraft_backward.Name + "_VYScaling * " + agmatphase->spacecraft_backward.Name + "_VYWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VYLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VY", agmatphase->spacecraft_backward.Name + "_VYScaling * " + agmatphase->spacecraft_backward.Name + "_VYWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VYLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".VY", agmatphase->spacecraft_backward.Name + "_VY");
 				//VZ
-				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VZ",
-					agmatphase->spacecraft_backward.Name + "_VZScaling * " + agmatphase->spacecraft_backward.Name + "_VZWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VZLowerBound");
+				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_VZ", agmatphase->spacecraft_backward.Name + "_VZScaling * " + agmatphase->spacecraft_backward.Name + "_VZWindow" + " + " + agmatphase->spacecraft_backward.Name + "_VZLowerBound");
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "." + agmatphase->spacecraft_backward.CoordinateSystem + ".VZ", agmatphase->spacecraft_backward.Name + "_VZ");
 				//Position and Velocity Norm
 				agmatphase->setCalculate(agmatphase->spacecraft_backward.Name + "_PositionNorm", "sqrt( " + agmatphase->spacecraft_backward.Name + "_X ^ 2 + " + agmatphase->spacecraft_backward.Name + "_Y ^ 2 + " + agmatphase->spacecraft_backward.Name + "_Z ^ 2 )");
@@ -796,15 +872,15 @@ void gmatscripter::postpass_GMAT_phases() {
 			/////////////// TEMPORARY ///////////////////////
 			if (p == 1) {
 				math::Matrix<double> flyby_state;
-				GMATDebug << endl;
-				GMATDebug << "///////////////////       Calculate Flyby Periapse State       ///////////////////" << endl;
+				GMATDebug << std::endl;
+				GMATDebug << "///////////////////       Calculate Flyby Periapse State       ///////////////////" << std::endl;
 				flyby_state = this->ptr_gmatmission->journeys[j].phases[p].calculate_flyby_periapse_state(this->ptr_gmatmission->journeys[j].phases[p].V_infinity_in,
 					this->ptr_gmatmission->journeys[j].phases[p].V_infinity_out, this->ptr_gmatmission->journeys[j].phases[p].flyby_altitude, agmatphase->mybodies[0]);
 				for (int i = 0; i < 6; ++i) {
-					GMATDebug << flyby_state(i, 0) << endl;
+					GMATDebug << flyby_state(i, 0) << std::endl;
 				}
 				GMATDebug << "///////////////////////////////////////////////////////////////////////////////////";
-				GMATDebug << endl;
+				GMATDebug << std::endl;
 			}
 			/////////////// TEMPORARY ///////////////////////
 
@@ -837,10 +913,12 @@ void gmatscripter::postpass_GMAT_journeys() {
 		// -----------------------------
 		//       VARIABLE CREATION
 		// -----------------------------
-		//if either mission or myjourney is time-constrained then we need to produce a TOF variable
-		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1) {
+		//if either mission or myjourney is time-constrained then we need to produce a TOF variable OR if the objective function is min. time.
+		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1 ||
+			this->ptr_gmatmission->options.objective_type == 1) {
 			agmatjourney->setVariable(agmatjourney->id + "_TOF");
 		}
+		//wait times available for each journey
 		if (agmatjourney->j > 0) {
 			if (waittimewindow > 1e-6) { 
 				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeScaling", (agmatjourney->myphases.front().iepoch - GMATMission.myjourneys[j - 1].myphases.back().fepoch - this->ptr_gmatmission->options.journey_wait_time_bounds[j][0]) / 86400.0 / waittimewindow);
@@ -850,7 +928,32 @@ void gmatscripter::postpass_GMAT_journeys() {
 			else{ 
 				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeScaling", 0.0); 
 				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeWindow",  0.0);
+				agmatjourney->setVariable(agmatjourney->id + "_WaitTimeLowerBound", 0.0);
 			}
+		}
+		//dry mass
+		if (j == 0) { 
+			agmatjourney->setVariable(agmatjourney->id + "_DryMass", agmatjourney->myphases[0].spacecraft_forward.DryMass); 
+			agmatjourney->setVariable(agmatjourney->id + "_DryMassLowerBound", this->ptr_gmatmission->options.minimum_dry_mass);
+		}
+		else { agmatjourney->setVariable(agmatjourney->id + "_DryMass");
+		}
+		//mass increment scaling and window
+		if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+			this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
+
+			double drymass_scaling = 0.0;
+			//find the optimal drymass scaling for journey 'j'
+			for (size_t iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
+				//find index in Xdescriptions where the launch time bounds are located
+				if (this->ptr_gmatmission->Xdescriptions[iX] == "j" + std::to_string(j) + "p0: journey initial mass scale factor") {
+					drymass_scaling = this->ptr_gmatmission->Xopt[iX];
+					agmatjourney->setVariable(agmatjourney->id + "_MassIncrementScaling", this->ptr_gmatmission->Xopt[iX]);
+					break;
+				}
+			}
+			//mass increment window
+			agmatjourney->setVariable(agmatjourney->id + "_MassIncrementWindow", this->ptr_gmatmission->options.journey_starting_mass_increment[j]);
 		}
 
 
@@ -858,19 +961,51 @@ void gmatscripter::postpass_GMAT_journeys() {
 		//         VARY CREATION
 		// -----------------------------
 		if (agmatjourney->j > 0) { agmatjourney->setVary(agmatjourney->id + "_WaitTimeScaling"); }
+		//dry (pick-up) mass increment variation
+		if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+			this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
+			agmatjourney->setVary(agmatjourney->id + "_MassIncrementScaling", 1e-005, 0.0, 1.0, 0.1);
+		}
 
 
 		// -----------------------------
 		//      CALCULATE CREATION
 		// -----------------------------
-		//if either mission or myjourney is time-constrained then we need to calculate the TOF variable based on phase TOF
-		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1) {
+		//if either mission or myjourney is time-constrained then we need to calculate the TOF variable based on phase TOF, OR if the objective function is min. time.
+		if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.journey_timebounded[agmatjourney->j] == 1 || 
+			this->ptr_gmatmission->options.objective_type == 1) {
 			tempstream << agmatjourney->myphases[0].id << "_TOF";
 			for (int p = 1; p < agmatjourney->myphases.size(); ++p) {
 				tempstream << " + " << agmatjourney->myphases[p].id << "_TOF";
 			}
 			agmatjourney->setCalculate(agmatjourney->id + "_TOF", tempstream.str(), false);
 			tempstream.str("");
+		}
+		//dry mass calculation after possible (pick-up) mass increment and mass margin variation
+		if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
+			this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
+			if (j == 0) {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", agmatjourney->id + "_DryMassLowerBound" + " + " + agmatjourney->id + "_MassIncrementScaling" + " * " + agmatjourney->id + "_MassIncrementWindow" + " + " + "MassMargin");
+			}
+			else {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + agmatjourney->id + "_MassIncrementScaling" + " * " + agmatjourney->id + "_MassIncrementWindow");
+			}
+		}
+		else if (j == 0) {
+			if (this->ptr_gmatmission->options.journey_starting_mass_increment[j] != 0.0) {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", agmatjourney->id + "_DryMassLowerBound" + " + " + "MassMargin" + std::to_string(this->ptr_gmatmission->options.journey_starting_mass_increment[j]));
+			}
+			else {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", agmatjourney->id + "_DryMassLowerBound" + " + " + "MassMargin");
+			}
+		}
+		else {
+			if (this->ptr_gmatmission->options.journey_starting_mass_increment[j] != 0) {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + std::to_string(this->ptr_gmatmission->options.journey_starting_mass_increment[j]));
+			}
+			else {
+				agmatjourney->setCalculate(agmatjourney->id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass");
+			}
 		}
 
 
@@ -894,6 +1029,8 @@ void gmatscripter::postpass_GMAT_missions() {
 
 	//declarations
 	stringstream tempstream;
+	double massmargin = 0.0;
+	double massmarginwindow = 0.0;
 
 	// -----------------------------
 	//      POST-DATA COLLECTION
@@ -903,19 +1040,38 @@ void gmatscripter::postpass_GMAT_missions() {
 	//       VARIABLE CREATION
 	// -----------------------------
 	GMATMission.setVariable("ObjectiveFunction");
-	//if a mission is time-constrained then we need to create a mission-level TOF to later constrain
-	if (this->ptr_gmatmission->options.global_timebounded == 1) { GMATMission.setVariable("Mission_TOF"); }
+	//if a mission is time-constrained then we need to create a mission-level TOF to later constrain, OR if the objective function is min. time.
+	if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.objective_type == 1) { GMATMission.setVariable("Mission_TOF"); }
+	//mass margin
+	if (GMATMission.myjourneys[0].myphases[0].spacecraft_forward.mass_margin > 0.0) {
+		GMATMission.setVariable("MassMargin", GMATMission.myjourneys[0].myphases[0].spacecraft_forward.mass_margin);
+		massmargin = GMATMission.myjourneys[0].myphases[0].spacecraft_forward.mass_margin;
+	}
+	else {
+		GMATMission.setVariable("MassMargin", 0.0);
+	}
+	if (GMATMission.emtgmission->options.allow_initial_mass_to_vary) {
+		massmarginwindow = GMATMission.emtgmission->options.maximum_mass - GMATMission.emtgmission->options.minimum_dry_mass;
+		GMATMission.setVariable("MassMarginWindow", massmarginwindow);
+		GMATMission.setVariable("MassMarginScaling", massmargin / massmarginwindow);
+		GMATMission.setVariable("MaximumMass");
+	}
+
+	
 
 	// -----------------------------
 	//         VARY CREATION
 	// -----------------------------
-
+	//mass margin
+	if (GMATMission.emtgmission->options.allow_initial_mass_to_vary) {
+		GMATMission.setVary("MassMarginScaling");
+	}
 
 	// -----------------------------
 	//      CALCULATE CREATION
 	// -----------------------------
-	//if a mission is time-constrained then we need to calculate the mission-level TOF
-	if (this->ptr_gmatmission->options.global_timebounded == 1) {
+	//if a mission is time-constrained then we need to calculate the mission-level TOF OR if the objective function is min. time.
+	if (this->ptr_gmatmission->options.global_timebounded == 1 || this->ptr_gmatmission->options.objective_type == 1) {
 		tempstream << GMATMission.myjourneys[0].id << "_TOF";
 		for (int j = 1; j < GMATMission.myjourneys.size(); ++j) {
 			tempstream << " + " << GMATMission.myjourneys[j].id << "_TOF";
@@ -924,17 +1080,35 @@ void gmatscripter::postpass_GMAT_missions() {
 		tempstream.str("");
 	}
 	//objective function types
-	if (this->ptr_gmatmission->options.objective_type == 2) {
-		GMATMission.setCalculate("ObjectiveFunction", "-" + GMATMission.myjourneys.back().myphases.back().spacecraft_backward.Name + "_FuelMass", false);
+	if (this->ptr_gmatmission->options.objective_type == 1) {
+		GMATMission.setCalculate("ObjectiveFunction", "Mission_TOF", false);
+	}
+	else if (this->ptr_gmatmission->options.objective_type == 2) {
+		GMATMission.setCalculate("ObjectiveFunction", "-" + GMATMission.myjourneys.back().myphases.back().spacecraft_backward.Name + "_FuelMass" + 
+													  " - " + GMATMission.myjourneys.back().id + "_DryMass", false);
+	}
+	//mass margin
+	if (GMATMission.emtgmission->options.allow_initial_mass_to_vary) {
+		GMATMission.setCalculate("MassMargin", "MassMarginScaling * MassMarginWindow");
+	}
+	//maximum mass
+	if (GMATMission.emtgmission->options.allow_initial_mass_to_vary) {
+		GMATMission.setCalculate("MaximumMass", GMATMission.myjourneys[0].id + "_DryMassLowerBound" + " + " + "MassMargin" + " + " +
+												GMATMission.myjourneys[0].myphases[0].spacecraft_forward.Name + "_FuelMass", false);
 	}
 
 	// -----------------------------
 	//      CONSTRAINT CREATION
 	// -----------------------------
-	//if myjourney is time-constrained then we need constrain the TOF variable
+	//if mymission is time-constrained then we need constrain the TOF variable
 	if (this->ptr_gmatmission->options.global_timebounded == 1) {
 		GMATMission.setConstraint("Mission_TOF", ">=", this->ptr_gmatmission->options.total_flight_time_bounds[0] / 86400.0);
 		GMATMission.setConstraint("Mission_TOF", "<=", this->ptr_gmatmission->options.total_flight_time_bounds[1] / 86400.0);
+	}
+	//need to ensure that the sum of the dry mass, propellant, and margin at the start do not violate the maximum
+	//this should only be necessary if we allow initial mass to vary because then mass margin and initial propellant may be more than the max.
+	if (GMATMission.emtgmission->options.allow_initial_mass_to_vary) {
+		GMATMission.setConstraint("MaximumMass", "<=", this->ptr_gmatmission->options.maximum_mass);
 	}
 
 
@@ -950,18 +1124,18 @@ void gmatscripter::write_GMAT_preamble() {
 	timestream << static_cast<int>(now.date().month()) << "/" << now.date().day() << "/" << now.date().year() << " " << now.time_of_day().hours() << ":" << now.time_of_day().minutes() << ":" << now.time_of_day().seconds();
 
 	//preamble
-	GMATfile << "%--------------------------------------------------------------------------------" << endl;
-	GMATfile << "%GMAT script created by EMTGv8" << endl;
+	GMATfile << "%--------------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%GMAT script created by EMTGv8" << std::endl;
 	GMATfile << "%EMTG options file: " << this->ptr_gmatmission->options.working_directory + "/" + 
-										  this->ptr_gmatmission->options.mission_name + ".emtgopt" << endl;
-	GMATfile << "%EMTG output file: " <<  this->ptr_gmatmission->options.outputfile << endl;
-	GMATfile << "%EMTG output written on: " << timestream.str() << endl;
-	GMATfile << "%Author(s): Ryne Beeson     (2014_07_01)" << endl;
-	GMATfile << "%           Max Schadegg    (2013_06_03)" << endl;
-	GMATfile << "%           Jacob Englander (2013_08_09)" << endl;
-	GMATfile << "%--------------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
-	GMATfile << endl;
+										  this->ptr_gmatmission->options.mission_name + ".emtgopt" << std::endl;
+	GMATfile << "%EMTG output file: " <<  this->ptr_gmatmission->options.outputfile << std::endl;
+	GMATfile << "%EMTG output written on: " << timestream.str() << std::endl;
+	GMATfile << "%Author(s): Ryne Beeson     (2014_07_01)" << std::endl;
+	GMATfile << "%           Max Schadegg    (2013_06_03)" << std::endl;
+	GMATfile << "%           Jacob Englander (2013_08_09)" << std::endl;
+	GMATfile << "%--------------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -969,16 +1143,16 @@ void gmatscripter::write_GMAT_preamble() {
 // method to create spacecraft information
 void gmatscripter::write_GMAT_spacecraft() {
 
-	GMATDebug << "%-------------------------------------------------------------------------" << endl;
-	GMATDebug << "%---------- Spacecraft" << endl;
-	GMATDebug << "%-------------------------------------------------------------------------" << endl;
-	GMATDebug << endl;
+	GMATDebug << "%-------------------------------------------------------------------------" << std::endl;
+	GMATDebug << "%---------- Spacecraft" << std::endl;
+	GMATDebug << "%-------------------------------------------------------------------------" << std::endl;
+	GMATDebug << std::endl;
 
 	//spacecraft header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Spacecraft" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Spacecraft" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -987,14 +1161,14 @@ void gmatscripter::write_GMAT_spacecraft() {
 			//write out the backward spacecraft
 			this->create_GMAT_spacecraft(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 
-			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << endl;
-			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << std::endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << std::endl;
 
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
-	GMATDebug << "%-------------------------------------------------------------------------" << endl;
+	GMATDebug << "%-------------------------------------------------------------------------" << std::endl;
 
 }//end of write_GMAT_spacecraft() method
 
@@ -1003,10 +1177,10 @@ void gmatscripter::write_GMAT_spacecraft() {
 void gmatscripter::write_GMAT_hardware() {
 
 	//hardware header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Hardware components" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Hardware components" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1018,7 +1192,7 @@ void gmatscripter::write_GMAT_hardware() {
 			this->create_GMAT_thruster(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_hardware() method
 
@@ -1027,10 +1201,10 @@ void gmatscripter::write_GMAT_hardware() {
 void gmatscripter::write_GMAT_nonstandardbody(){
 
 	//force model header 
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- NonStandard Body Models" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- NonStandard Body Models" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//declarations
 	string filestring;
@@ -1044,21 +1218,21 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 		//must create any bodies that are not already defined in GMAT
 		if ((GMATMission.missionbodies[body_index].name != "Sun") && (GMATMission.missionbodies[body_index].name != "Mercury") && (GMATMission.missionbodies[body_index].name != "Venus") && (GMATMission.missionbodies[body_index].name != "Earth") && (GMATMission.missionbodies[body_index].name != "Mars") && (GMATMission.missionbodies[body_index].name != "Jupiter") && (GMATMission.missionbodies[body_index].name != "Saturn") && (GMATMission.missionbodies[body_index].name != "Uranus") && (GMATMission.missionbodies[body_index].name != "Neptune") && (GMATMission.missionbodies[body_index].name != "Pluto"))
 		{
-			GMATfile << "%Must create model for body visited" << endl;
-			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].name << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].spice_ID << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].radius << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".Mu = " << GMATMission.missionbodies_unique[body_index].mu << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".PosVelSource = 'SPICE'" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".CentralBody = '" << GMATMission.missionbodies_unique[body_index].central_body_name << "'" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationDataSource = 'IAUSimplified'" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".OrientationEpoch = 21545" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRAConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alpha0 << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRARate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alphadot << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.delta0 << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.deltadot << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.W << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.Wdot << endl;
+			GMATfile << "%Must create model for body visited" << std::endl;
+			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].name << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].spice_ID << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].radius << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".Mu = " << GMATMission.missionbodies_unique[body_index].mu << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".PosVelSource = 'SPICE'" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".CentralBody = '" << GMATMission.missionbodies_unique[body_index].central_body_name << "'" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationDataSource = 'IAUSimplified'" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".OrientationEpoch = 21545" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRAConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alpha0 << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisRARate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.alphadot << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.delta0 << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".SpinAxisDECRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.deltadot << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationConstant = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.W << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".RotationRate = " << GMATMission.missionbodies_unique[body_index].J2000_body_equatorial_frame.Wdot << std::endl;
 			GMATfile << GMATMission.missionbodies_unique[body_index].name << ".OrbitSpiceKernelName = {";
 
 			//find which spice file the body is located
@@ -1078,28 +1252,28 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 				}
 				number_of_windows = 0;
 			}
-			GMATfile << "'" << filestring << "'};" << endl;
-			GMATfile << endl;
+			GMATfile << "'" << filestring << "'};" << std::endl;
+			GMATfile << std::endl;
 		}
 
 		//must create any central bodies that are not already defined in GMAT
 		if ((GMATMission.missionbodies_unique[body_index].central_body_name != "Sun") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Mercury") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Venus") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Earth") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Mars") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Jupiter") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Saturn") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Uranus") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Neptune") && (GMATMission.missionbodies_unique[body_index].central_body_name != "Pluto"))
 		{
-			GMATfile << "%Must create model for central body" << endl;
-			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].central_body_name << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].central_body_spice_ID << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].central_body_radius << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".Mu = " << GMATMission.missionbodies_unique[body_index].universe_mu << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".PosVelSource = 'SPICE'" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".CentralBody = 'Sun'" << endl; //assume Sun for now
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationDataSource = 'IAUSimplified'" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".OrientationEpoch = 21545" << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRAConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alpha0 << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRARate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alphadot << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.delta0 << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.deltadot << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.W << endl;
-			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.Wdot << endl;
+			GMATfile << "%Must create model for central body" << std::endl;
+			GMATfile << "Create Planet " << GMATMission.missionbodies_unique[body_index].central_body_name << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".NAIFId = " << GMATMission.missionbodies_unique[body_index].central_body_spice_ID << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".EquatorialRadius = " << GMATMission.missionbodies_unique[body_index].central_body_radius << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".Mu = " << GMATMission.missionbodies_unique[body_index].universe_mu << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".PosVelSource = 'SPICE'" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".CentralBody = 'Sun'" << std::endl; //assume Sun for now
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationDataSource = 'IAUSimplified'" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".OrientationEpoch = 21545" << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRAConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alpha0 << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisRARate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.alphadot << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.delta0 << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".SpinAxisDECRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.deltadot << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationConstant = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.W << std::endl;
+			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".RotationRate = " << this->ptr_gmatmission->TheUniverse[0].LocalFrame.Wdot << std::endl;
 			GMATfile << GMATMission.missionbodies_unique[body_index].central_body_name << ".OrbitSpiceKernelName = {";
 
 			//find which spice file the body is located
@@ -1119,8 +1293,8 @@ void gmatscripter::write_GMAT_nonstandardbody(){
 				}
 				number_of_windows = 0;
 			}
-			GMATfile << "'" << filestring << "'};" << endl;
-			GMATfile << endl;
+			GMATfile << "'" << filestring << "'};" << std::endl;
+			GMATfile << std::endl;
 		}
 	}
 }//end of write_GMAT_nonstandardbody() method
@@ -1134,10 +1308,10 @@ void gmatscripter::write_GMAT_forcemodels(){
 	bool hasNotBeenCopied;
 
 	//force model header 
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Force Models" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Force Models" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//save the first force model and copy its name to a temporary vector of strings
 	//we will check against the temporary vector of strings to make sure we are not 
@@ -1165,7 +1339,7 @@ void gmatscripter::write_GMAT_forcemodels(){
 			}
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_forcemodels() method
 
@@ -1178,10 +1352,10 @@ void gmatscripter::write_GMAT_propagators(){
 	bool hasNotBeenCopied;
 
 	//propagator header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Propagators" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Propagators" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//save the first propagator and copy its name to a temporary vector of strings
 	//we will check against the temporary vector of strings to make sure we are not 
@@ -1209,7 +1383,7 @@ void gmatscripter::write_GMAT_propagators(){
 			}
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_propagators() method
 
@@ -1218,10 +1392,10 @@ void gmatscripter::write_GMAT_propagators(){
 void gmatscripter::write_GMAT_burns(){
 
 	//burn header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Burns" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Burns" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1231,7 +1405,7 @@ void gmatscripter::write_GMAT_burns(){
 			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Burn);
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_burns() method
 
@@ -1240,21 +1414,21 @@ void gmatscripter::write_GMAT_burns(){
 void gmatscripter::write_GMAT_coordinatesystems(){
 
 	//coordinate systems header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Coordinate systems" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Coordinate systems" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//always in J2000 Eq. Syst.
 	//TODO:: as of now it is assumed that the first central body is the principle central body
-	GMATfile << "%Create coordinate systems for plotting/viewing" << endl;
+	GMATfile << "%Create coordinate systems for plotting/viewing" << std::endl;
 	this->create_GMAT_coordinatesystem(GMATMission.missionbodies_unique[0].central_body_name);
 
 	for (int b = 0; b < GMATMission.missionbodies_unique.size(); ++b) {
 		this->create_GMAT_coordinatesystem(GMATMission.missionbodies_unique[b].name);
 	}
 	//add some vertical whitespace
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_coordinatesystems() method
 
@@ -1263,35 +1437,35 @@ void gmatscripter::write_GMAT_coordinatesystems(){
 void gmatscripter::write_GMAT_solvers(){
 
 	//solvers header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Solvers" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Solvers" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//fmincon or vf13ad
 	//default optimizer is VF13
-	GMATfile << "Create VF13ad NLPObject;" << endl;
-	GMATfile << "NLPObject.ShowProgress = true;" << endl;
-	GMATfile << "NLPObject.ReportStyle = Normal;" << endl;
-	GMATfile << "NLPObject.ReportFile = 'VF13adNLPObject.data';" << endl;
-	GMATfile << "NLPObject.MaximumIterations = 100;" << endl;
-	GMATfile << "NLPObject.Tolerance = 1e-004;" << endl;
-	GMATfile << "NLPObject.UseCentralDifferences = false;" << endl;
-	GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << endl;
-	GMATfile << endl;
+	GMATfile << "Create VF13ad NLPObject;" << std::endl;
+	GMATfile << "NLPObject.ShowProgress = true;" << std::endl;
+	GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
+	GMATfile << "NLPObject.ReportFile = 'VF13adNLPObject.data';" << std::endl;
+	GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
+	GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
+	GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
+	GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
+	GMATfile << std::endl;
 
 	//uncomment for use with fmincon
 	//DEBUG: should have option for using VF13ad or Fmincon
-	GMATfile << "%Uncomment for use with fmincon" << endl;
-	GMATfile << "%Create FminconOptimizer NLPObject;" << endl;
-	GMATfile << "%NLPObject.DiffMaxChange = '0.1000';" << endl;
-	GMATfile << "%NLPObject.DiffMinChange = '1.0000e-08';" << endl;
-	GMATfile << "%NLPObject.MaxFunEvals = '1000';" << endl;
-	GMATfile << "%NLPObject.TolX = '1.0000e-06';" << endl;
-	GMATfile << "%NLPObject.TolFun = '1.0000e-06';" << endl;
-	GMATfile << "%NLPObject.TolCon = '1.0000e-06';" << endl;
-	GMATfile << endl;
-	GMATfile << endl;
+	GMATfile << "%Uncomment for use with fmincon" << std::endl;
+	GMATfile << "%Create FminconOptimizer NLPObject;" << std::endl;
+	GMATfile << "%NLPObject.DiffMaxChange = '0.1000';" << std::endl;
+	GMATfile << "%NLPObject.DiffMinChange = '1.0000e-08';" << std::endl;
+	GMATfile << "%NLPObject.MaxFunEvals = '1000';" << std::endl;
+	GMATfile << "%NLPObject.TolX = '1.0000e-06';" << std::endl;
+	GMATfile << "%NLPObject.TolFun = '1.0000e-06';" << std::endl;
+	GMATfile << "%NLPObject.TolCon = '1.0000e-06';" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_solvers() method
 
@@ -1300,18 +1474,18 @@ void gmatscripter::write_GMAT_solvers(){
 void gmatscripter::write_GMAT_subscribers(){
 
 	//subscribers header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Subscribers" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Subscribers" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//includes orbit views, plots, etc...
 	//add central universe body view
-	GMATfile << "%Create subscriber for central body view" << endl;
-	GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[0].central_body_name << "View" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << endl;
+	GMATfile << "%Create subscriber for central body view" << std::endl;
+	GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[0].central_body_name << "View" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << std::endl;
 
 	//add which bodies and s/c to plot 
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.Add =	{";
@@ -1329,8 +1503,8 @@ void gmatscripter::write_GMAT_subscribers(){
 			GMATfile << ", ";
 		}
 	}
-	GMATfile << ", " << GMATMission.missionbodies_unique[0].central_body_name << "}" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.CoordinateSystem =		" << GMATMission.missionbodies_unique[0].central_body_name << "J2000Eq" << endl;
+	GMATfile << ", " << GMATMission.missionbodies_unique[0].central_body_name << "}" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.CoordinateSystem =		" << GMATMission.missionbodies_unique[0].central_body_name << "J2000Eq" << std::endl;
 	//bool flag parameters for drawing objects
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.DrawObject = [";
 	for (int index_plot = 0; index_plot < (GMATMission.missionbodies_unique.size()); ++index_plot)
@@ -1342,27 +1516,27 @@ void gmatscripter::write_GMAT_subscribers(){
 			GMATfile << "true true ";
 		}
 	}
-	GMATfile << "true]" << endl;
+	GMATfile << "true]" << std::endl;
 	//other parameters
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.DataCollectFrequency   = 1" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UpdatePlotFrequency    = 50" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.NumPointsToRedraw      = 300" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewScaleFactor        = 35" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointVector		  = [ 0 0 30000000 ];" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewUpAxis             = X" << endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UseInitialView         = On" << endl;
-	GMATfile << endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.DataCollectFrequency   = 1" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UpdatePlotFrequency    = 50" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.NumPointsToRedraw      = 300" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewScaleFactor        = 35" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[0].central_body_name << ";" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewPointVector		  = [ 0 0 30000000 ];" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ViewUpAxis             = X" << std::endl;
+	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.UseInitialView         = On" << std::endl;
+	GMATfile << std::endl;
 
 	//create orbit views for all bodies visited
-	GMATfile << "%Create subscribers for other body views" << endl;
+	GMATfile << "%Create subscribers for other body views" << std::endl;
 	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 	{
-		GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[body_index].name << "View" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ShowPlot               = false" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.SolverIterations       = All" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.RelativeZOrder         = 501" << endl;
+		GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[body_index].name << "View" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ShowPlot               = false" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.SolverIterations       = All" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.RelativeZOrder         = 501" << std::endl;
 
 		//add which bodies and s/c to plot
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.Add                    = {";
@@ -1380,8 +1554,8 @@ void gmatscripter::write_GMAT_subscribers(){
 				GMATfile << ", ";
 			}
 		}
-		GMATfile << "}" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.CoordinateSystem       = " << GMATMission.missionbodies_unique[body_index].name << "J2000Eq" << endl;
+		GMATfile << "}" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.CoordinateSystem       = " << GMATMission.missionbodies_unique[body_index].name << "J2000Eq" << std::endl;
 		//bool flag parameters for drawing objects
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.DrawObject             = [";
 		for (int index_plot = 0; index_plot < (GMATMission.missionbodies_unique.size()); ++index_plot)
@@ -1393,45 +1567,45 @@ void gmatscripter::write_GMAT_subscribers(){
 				GMATfile << "true true ";
 			}
 		}
-		GMATfile << "]" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.DataCollectFrequency   = 1" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UpdatePlotFrequency    = 50" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.NumPointsToRedraw      = 300" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewScaleFactor        = 35" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewUpAxis             = X" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UseInitialView         = On" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[body_index].name << ";" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[body_index].name << ";" << endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 3000000 ];" << endl;
-		GMATfile << endl;
+		GMATfile << "]" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.DataCollectFrequency   = 1" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UpdatePlotFrequency    = 50" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.NumPointsToRedraw      = 300" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewScaleFactor        = 35" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewUpAxis             = X" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UseInitialView         = On" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[body_index].name << ";" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[body_index].name << ";" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 3000000 ];" << std::endl;
+		GMATfile << std::endl;
 	}
-	GMATfile << endl;
-	GMATfile << endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 	//declarations
 	string report_name;
 	stringstream report_name_stream;
 
 	//create reports for debugging purposes
-	GMATfile << "%Create reports for debugging purposes" << endl;
-	GMATfile << "%Create a report for the central body and each unique body of the mission" << endl;
+	GMATfile << "%Create reports for debugging purposes" << std::endl;
+	GMATfile << "%Create a report for the central body and each unique body of the mission" << std::endl;
 
 	report_name_stream << "Report_Spacecraft_" << GMATMission.missionbodies[0].central_body_name << "_States";
 	report_name = report_name_stream.str();
-	GMATfile << "Create ReportFile " << report_name << endl;
-	GMATfile << report_name << ".SolverIterations = Current;" << endl;
-	GMATfile << report_name << ".UpperLeft = [ 0 0 ];" << endl;
-	GMATfile << report_name << ".Size = [ 0 0 ];" << endl;
-	GMATfile << report_name << ".RelativeZOrder = 0;" << endl;
-	GMATfile << report_name << ".Maximized = false;" << endl;
-	GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies[0].central_body_name << "Centered_States.txt';" << endl;
-	GMATfile << report_name << ".Precision = 16;" << endl;
-	GMATfile << report_name << ".WriteHeaders = true;" << endl;
-	GMATfile << report_name << ".LeftJustify = On;" << endl;
-	GMATfile << report_name << ".ZeroFill = Off;" << endl;
-	GMATfile << report_name << ".ColumnWidth = 20;" << endl;
-	GMATfile << report_name << ".WriteReport = true;" << endl;
-	GMATfile << endl;
+	GMATfile << "Create ReportFile " << report_name << std::endl;
+	GMATfile << report_name << ".SolverIterations = Current;" << std::endl;
+	GMATfile << report_name << ".UpperLeft = [ 0 0 ];" << std::endl;
+	GMATfile << report_name << ".Size = [ 0 0 ];" << std::endl;
+	GMATfile << report_name << ".RelativeZOrder = 0;" << std::endl;
+	GMATfile << report_name << ".Maximized = false;" << std::endl;
+	GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies[0].central_body_name << "Centered_States.txt';" << std::endl;
+	GMATfile << report_name << ".Precision = 16;" << std::endl;
+	GMATfile << report_name << ".WriteHeaders = true;" << std::endl;
+	GMATfile << report_name << ".LeftJustify = On;" << std::endl;
+	GMATfile << report_name << ".ZeroFill = Off;" << std::endl;
+	GMATfile << report_name << ".ColumnWidth = 20;" << std::endl;
+	GMATfile << report_name << ".WriteReport = true;" << std::endl;
+	GMATfile << std::endl;
 
 	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); body_index++){
 		// new report name
@@ -1440,46 +1614,46 @@ void gmatscripter::write_GMAT_subscribers(){
 		//report_name = report_name_stream.str();
 		report_name = "Report_Spacecraft_" + GMATMission.missionbodies_unique[body_index].name + "_States";
 		// GMAT script printing
-		GMATfile << "Create ReportFile " << report_name << endl;
-		GMATfile << report_name << ".SolverIterations = Current;" << endl;
-		GMATfile << report_name << ".UpperLeft = [ 0 0 ];" << endl;
-		GMATfile << report_name << ".Size = [ 0 0 ];" << endl;
-		GMATfile << report_name << ".RelativeZOrder = 0;" << endl;
-		GMATfile << report_name << ".Maximized = false;" << endl;
-		GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies_unique[body_index].name << "Centered_States.txt';" << endl;
-		GMATfile << report_name << ".Precision = 16;" << endl;
-		GMATfile << report_name << ".WriteHeaders = true;" << endl;
-		GMATfile << report_name << ".LeftJustify = On;" << endl;
-		GMATfile << report_name << ".ZeroFill = Off;" << endl;
-		GMATfile << report_name << ".ColumnWidth = 20;" << endl;
-		GMATfile << report_name << ".WriteReport = true;" << endl;
-		GMATfile << endl;
+		GMATfile << "Create ReportFile " << report_name << std::endl;
+		GMATfile << report_name << ".SolverIterations = Current;" << std::endl;
+		GMATfile << report_name << ".UpperLeft = [ 0 0 ];" << std::endl;
+		GMATfile << report_name << ".Size = [ 0 0 ];" << std::endl;
+		GMATfile << report_name << ".RelativeZOrder = 0;" << std::endl;
+		GMATfile << report_name << ".Maximized = false;" << std::endl;
+		GMATfile << report_name << ".Filename = 'Report_" << GMATMission.missionbodies_unique[body_index].name << "Centered_States.txt';" << std::endl;
+		GMATfile << report_name << ".Precision = 16;" << std::endl;
+		GMATfile << report_name << ".WriteHeaders = true;" << std::endl;
+		GMATfile << report_name << ".LeftJustify = On;" << std::endl;
+		GMATfile << report_name << ".ZeroFill = Off;" << std::endl;
+		GMATfile << report_name << ".ColumnWidth = 20;" << std::endl;
+		GMATfile << report_name << ".WriteReport = true;" << std::endl;
+		GMATfile << std::endl;
 	}
 
-	GMATfile << "Create ReportFile Report_SpacecraftControl;" << endl;
-	GMATfile << "Report_SpacecraftControl.SolverIterations = Current;" << endl;
-	GMATfile << "Report_SpacecraftControl.UpperLeft = [ 0 0 ];" << endl;
-	GMATfile << "Report_SpacecraftControl.Size = [ 0 0 ];" << endl;
-	GMATfile << "Report_SpacecraftControl.RelativeZOrder = 0;" << endl;
-	GMATfile << "Report_SpacecraftControl.Maximized = false;" << endl;
-	GMATfile << "Report_SpacecraftControl.Filename = 'Report_SpaceCraftControlHistory.txt';" << endl;
-	GMATfile << "Report_SpacecraftControl.Precision = 16;" << endl;
-	GMATfile << "Report_SpacecraftControl.WriteHeaders = true;" << endl;
-	GMATfile << "Report_SpacecraftControl.LeftJustify = On;" << endl;
-	GMATfile << "Report_SpacecraftControl.ZeroFill = Off;" << endl;
-	GMATfile << "Report_SpacecraftControl.ColumnWidth = 20;" << endl;
-	GMATfile << "Report_SpacecraftControl.WriteReport = true;" << endl;
-	GMATfile << endl;
-	GMATfile << endl;
+	GMATfile << "Create ReportFile Report_SpacecraftControl;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.SolverIterations = Current;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.UpperLeft = [ 0 0 ];" << std::endl;
+	GMATfile << "Report_SpacecraftControl.Size = [ 0 0 ];" << std::endl;
+	GMATfile << "Report_SpacecraftControl.RelativeZOrder = 0;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.Maximized = false;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.Filename = 'Report_SpaceCraftControlHistory.txt';" << std::endl;
+	GMATfile << "Report_SpacecraftControl.Precision = 16;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.WriteHeaders = true;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.LeftJustify = On;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.ZeroFill = Off;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.ColumnWidth = 20;" << std::endl;
+	GMATfile << "Report_SpacecraftControl.WriteReport = true;" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 	//XY Plots for visually informing user of the optimization progress
-	GMATfile << "%Creating some plots for to inform the user of the optimization progress" << endl;
-	GMATfile << "Create XYPlot PositionErrorPlot" << endl;
-	GMATfile << "PositionErrorPlot.SolverIterations = All" << endl;
-	GMATfile << "PositionErrorPlot.UpperLeft = [0 0]" << endl;
-	GMATfile << "PositionErrorPlot.Size = [0 0]" << endl;
-	GMATfile << "PositionErrorPlot.RelativeZOrder = 0" << endl;
-	GMATfile << "PositionErrorPlot.XVariable = Iterations" << endl;
+	GMATfile << "%Creating some plots for to inform the user of the optimization progress" << std::endl;
+	GMATfile << "Create XYPlot PositionErrorPlot" << std::endl;
+	GMATfile << "PositionErrorPlot.SolverIterations = All" << std::endl;
+	GMATfile << "PositionErrorPlot.UpperLeft = [0 0]" << std::endl;
+	GMATfile << "PositionErrorPlot.Size = [0 0]" << std::endl;
+	GMATfile << "PositionErrorPlot.RelativeZOrder = 0" << std::endl;
+	GMATfile << "PositionErrorPlot.XVariable = Iterations" << std::endl;
 	GMATfile << "PositionErrorPlot.YVariables = { ";
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1487,17 +1661,17 @@ void gmatscripter::write_GMAT_subscribers(){
 			else { GMATfile << " ," << GMATMission.myjourneys[j].myphases[p].id << "_MatchPoint_PositionError"; }
 		}
 	}
-	GMATfile << " }" << endl;
-	GMATfile << "PositionErrorPlot.ShowGrid = true" << endl;
-	GMATfile << "PositionErrorPlot.ShowPlot = true" << endl;
-	GMATfile << endl;
+	GMATfile << " }" << std::endl;
+	GMATfile << "PositionErrorPlot.ShowGrid = true" << std::endl;
+	GMATfile << "PositionErrorPlot.ShowPlot = true" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "Create XYPlot VelocityErrorPlot" << endl;
-	GMATfile << "VelocityErrorPlot.SolverIterations = All" << endl;
-	GMATfile << "VelocityErrorPlot.UpperLeft = [0 0]" << endl;
-	GMATfile << "VelocityErrorPlot.Size = [0 0]" << endl;
-	GMATfile << "VelocityErrorPlot.RelativeZOrder = 0" << endl;
-	GMATfile << "VelocityErrorPlot.XVariable = Iterations" << endl;
+	GMATfile << "Create XYPlot VelocityErrorPlot" << std::endl;
+	GMATfile << "VelocityErrorPlot.SolverIterations = All" << std::endl;
+	GMATfile << "VelocityErrorPlot.UpperLeft = [0 0]" << std::endl;
+	GMATfile << "VelocityErrorPlot.Size = [0 0]" << std::endl;
+	GMATfile << "VelocityErrorPlot.RelativeZOrder = 0" << std::endl;
+	GMATfile << "VelocityErrorPlot.XVariable = Iterations" << std::endl;
 	GMATfile << "VelocityErrorPlot.YVariables = { ";
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1505,17 +1679,17 @@ void gmatscripter::write_GMAT_subscribers(){
 			else { GMATfile << " ," << GMATMission.myjourneys[j].myphases[p].id << "_MatchPoint_VelocityError"; }
 		}
 	}
-	GMATfile << " }" << endl;
-	GMATfile << "VelocityErrorPlot.ShowGrid = true" << endl;
-	GMATfile << "VelocityErrorPlot.ShowPlot = true" << endl;
-	GMATfile << endl;
+	GMATfile << " }" << std::endl;
+	GMATfile << "VelocityErrorPlot.ShowGrid = true" << std::endl;
+	GMATfile << "VelocityErrorPlot.ShowPlot = true" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "Create XYPlot MassErrorPlot" << endl;
-	GMATfile << "MassErrorPlot.SolverIterations = All" << endl;
-	GMATfile << "MassErrorPlot.UpperLeft = [0 0]" << endl;
-	GMATfile << "MassErrorPlot.Size = [0 0]" << endl;
-	GMATfile << "MassErrorPlot.RelativeZOrder = 0" << endl;
-	GMATfile << "MassErrorPlot.XVariable = Iterations" << endl;
+	GMATfile << "Create XYPlot MassErrorPlot" << std::endl;
+	GMATfile << "MassErrorPlot.SolverIterations = All" << std::endl;
+	GMATfile << "MassErrorPlot.UpperLeft = [0 0]" << std::endl;
+	GMATfile << "MassErrorPlot.Size = [0 0]" << std::endl;
+	GMATfile << "MassErrorPlot.RelativeZOrder = 0" << std::endl;
+	GMATfile << "MassErrorPlot.XVariable = Iterations" << std::endl;
 	GMATfile << "MassErrorPlot.YVariables = { ";
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1523,17 +1697,17 @@ void gmatscripter::write_GMAT_subscribers(){
 			else { GMATfile << " ," << GMATMission.myjourneys[j].myphases[p].id << "_MatchPoint_MassError"; }
 		}
 	}
-	GMATfile << " }" << endl;
-	GMATfile << "MassErrorPlot.ShowGrid = true" << endl;
-	GMATfile << "MassErrorPlot.ShowPlot = true" << endl;
-	GMATfile << endl;
+	GMATfile << " }" << std::endl;
+	GMATfile << "MassErrorPlot.ShowGrid = true" << std::endl;
+	GMATfile << "MassErrorPlot.ShowPlot = true" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "Create XYPlot TOFPlot" << endl;
-	GMATfile << "TOFPlot.SolverIterations = All" << endl;
-	GMATfile << "TOFPlot.UpperLeft = [0 0]" << endl;
-	GMATfile << "TOFPlot.Size = [0 0]" << endl;
-	GMATfile << "TOFPlot.RelativeZOrder = 0" << endl;
-	GMATfile << "TOFPlot.XVariable = Iterations" << endl;
+	GMATfile << "Create XYPlot TOFPlot" << std::endl;
+	GMATfile << "TOFPlot.SolverIterations = All" << std::endl;
+	GMATfile << "TOFPlot.UpperLeft = [0 0]" << std::endl;
+	GMATfile << "TOFPlot.Size = [0 0]" << std::endl;
+	GMATfile << "TOFPlot.RelativeZOrder = 0" << std::endl;
+	GMATfile << "TOFPlot.XVariable = Iterations" << std::endl;
 	GMATfile << "TOFPlot.YVariables = { ";
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
@@ -1541,26 +1715,26 @@ void gmatscripter::write_GMAT_subscribers(){
 			else { GMATfile << " ," << GMATMission.myjourneys[j].myphases[p].id << "_TOF"; }
 		}
 	}
-	GMATfile << " }" << endl;
-	GMATfile << "TOFPlot.ShowGrid = true" << endl;
-	GMATfile << "TOFPlot.ShowPlot = true" << endl;
-	GMATfile << endl;
+	GMATfile << " }" << std::endl;
+	GMATfile << "TOFPlot.ShowGrid = true" << std::endl;
+	GMATfile << "TOFPlot.ShowPlot = true" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "%Create XYPlot ObjectiveFunctionPlot" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.SolverIterations = All" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.UpperLeft = [0 0]" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.Size = [0 0]" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.RelativeZOrder = 0" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.XVariable = Iterations" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.YVariables = { ObjectiveFunction }" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.ShowGrid = true" << endl;
-	GMATfile << "%ObjectiveFunctionPlot.ShowPlot = true" << endl;
-	GMATfile << endl;
+	GMATfile << "Create XYPlot ObjectiveFunctionPlot" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.SolverIterations = All" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.UpperLeft = [0 0]" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.Size = [0 0]" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.RelativeZOrder = 0" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.XVariable = Iterations" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.YVariables = { ObjectiveFunction }" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.ShowGrid = true" << std::endl;
+	GMATfile << "ObjectiveFunctionPlot.ShowPlot = true" << std::endl;
+	GMATfile << std::endl;
 
 	//An iteration counter for the Optimization Sequence (and necessary for the XY Plots above)
 	GMATMission.setVariable("Iterations", 0);
 	GMATMission.setCalculate("Iterations", "Iterations + 1", false);
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_subscribers() method
 
@@ -1569,57 +1743,57 @@ void gmatscripter::write_GMAT_subscribers(){
 void gmatscripter::write_GMAT_variables(){
 
 	//arrays and variables header
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Arrays, Variables, Strings" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Arrays, Variables, Strings" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//write out mission level variables
-	GMATfile << "% --- Mission Level: Arrays, Variables, and Strings" << endl;
+	GMATfile << "% --- Mission Level: Arrays, Variables, and Strings" << std::endl;
 	GMATMission.printVariable(GMATfile);
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 	//write out journey level variables
-	GMATfile << "% --- Journey Level: Arrays, Variables, and Strings" << endl;
+	GMATfile << "% --- Journey Level: Arrays, Variables, and Strings" << std::endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) { GMATMission.myjourneys[j].printVariable(GMATfile); }
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 	//write out the phase level variables
-	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
+	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << std::endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			GMATMission.myjourneys[j].myphases[p].printVariable(GMATfile);
 		}
-		GMATfile << endl;
+		GMATfile << std::endl;
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 	//write out the step level variables
-	GMATfile << "% --- Step Level: Arrays, Variables, and Strings" << endl;
+	GMATfile << "% --- Step Level: Arrays, Variables, and Strings" << std::endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
 				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printVariable(GMATfile);
 			}	
-			GMATfile << endl;
+			GMATfile << std::endl;
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 	//write out report variables
 	//create temporary strings to identify time steps during phases
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
-				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus" << endl;
-				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus: '" << endl;
-				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus" << endl;
-				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus: '" << endl;
+				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus" << std::endl;
+				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tminus: '" << std::endl;
+				GMATfile << "Create String tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus" << std::endl;
+				GMATfile << "tempString_" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus = '" << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << "_tplus: '" << std::endl;
 			}
 		}
 	}
-	GMATfile << endl;
-	GMATfile << endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_variables() method
 
@@ -1637,16 +1811,16 @@ void gmatscripter::write_GMAT_initialconditions(){
 	int body_index = 0;
 	int name_index = 0;
 
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Initial State Guesses" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Initial State Guesses" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "BeginScript 'Initial Guess Values' " << endl;
-	GMATfile << endl;
+	GMATfile << "BeginScript 'Initial Guess Values' " << std::endl;
+	GMATfile << std::endl;
 
 	//write out the phase level variables
-	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << endl;
+	GMATfile << "% --- Phase Level: Arrays, Variables, and Strings" << std::endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			//forward spacecraft
@@ -1656,9 +1830,9 @@ void gmatscripter::write_GMAT_initialconditions(){
 		}
 	}
 
-	GMATfile << endl;
-	GMATfile << "EndScript" << endl;
-	GMATfile << endl;
+	GMATfile << std::endl;
+	GMATfile << "EndScript" << std::endl;
+	GMATfile << std::endl;
 
 }//end of write_GMAT_initialguess() method
 
@@ -1666,9 +1840,9 @@ void gmatscripter::write_GMAT_initialconditions(){
 // method to create the beginmissionsequence statement
 void gmatscripter::write_GMAT_beginmissionsequence(){
 
-	GMATfile << "BeginMissionSequence" << endl;
-	GMATfile << endl;
-	GMATfile << endl;
+	GMATfile << "BeginMissionSequence" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -1676,13 +1850,13 @@ void gmatscripter::write_GMAT_beginmissionsequence(){
 // method to create the optimization sequence for the mission
 void gmatscripter::write_GMAT_optimization() {
 
-	GMATfile << "	" << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "	" << "%---------- Optimization Sequence" << endl;
-	GMATfile << "	" << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "	" << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "	" << "%---------- Optimization Sequence" << std::endl;
+	GMATfile << "	" << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
-	GMATfile << "Optimize 'OptimizeSequence' NLPObject {SolveMode = Solve, ExitMode = DiscardAndContinue}" << endl;
-	GMATfile << endl;
+	GMATfile << "Optimize 'OptimizeSequence' NLPObject {SolveMode = Solve, ExitMode = DiscardAndContinue}" << std::endl;
+	GMATfile << std::endl;
 
 	// vary journey waittime(s) for interphase spacecraft
 	// WITH
@@ -1698,25 +1872,25 @@ void gmatscripter::write_GMAT_optimization() {
 	//Mission level vary and calculate commands
 	GMATMission.printVary(GMATfile);
 	GMATMission.printCalculate(GMATfile);
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		//Journey ID
-		GMATfile << "   " << "% Journey ID: " << GMATMission.myjourneys[j].id << endl;
+		GMATfile << "   " << "% Journey ID: " << GMATMission.myjourneys[j].id << std::endl;
 		//Jouney level vary and calculate commands
 		GMATMission.myjourneys[j].printVary(GMATfile);
 		GMATMission.myjourneys[j].printCalculate(GMATfile);
-		GMATfile << endl;
+		GMATfile << std::endl;
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			//Phase ID
-			GMATfile << "   " << "% Phase ID: " << GMATMission.myjourneys[j].myphases[p].id << endl;
+			GMATfile << "   " << "% Phase ID: " << GMATMission.myjourneys[j].myphases[p].id << std::endl;
 			//Phase level vary and calculate commands
 			GMATMission.myjourneys[j].myphases[p].printVary(GMATfile);
 			GMATMission.myjourneys[j].myphases[p].printCalculate(GMATfile);
-			GMATfile << endl;
+			GMATfile << std::endl;
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
 				//Step ID
-				GMATfile << "   " << "% Step ID: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << endl;
+				GMATfile << "   " << "% Step ID: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << std::endl;
 				//'PenUp' command
 				PenUp();
 				//Step level vary commands
@@ -1734,7 +1908,7 @@ void gmatscripter::write_GMAT_optimization() {
 				//'PenDown' command
 				PenDown();
 				//write out the 'Propagate' command
-				GMATDebug << "spacecraft name: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name << " isForward: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->isForward << endl;
+				GMATDebug << "spacecraft name: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->Name << " isForward: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].myspacecraft->isForward << std::endl;
 				GMATDebug << "id: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << " stepsize: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].stepsize << "  zeroPropagate: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].zeroPropagate;
 				this->write_GMAT_report(GMATMission.myjourneys[j].myphases[p].mysteps[gs], true, true);
 				this->aux_GMAT_propagate(GMATMission.myjourneys[j].myphases[p].mysteps[gs], false);
@@ -1743,23 +1917,23 @@ void gmatscripter::write_GMAT_optimization() {
 				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printEndBurn(GMATfile);
 				//Step level calculate commands
 				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printCalculate(GMATfile, 0);
-				GMATfile << endl;
+				GMATfile << std::endl;
 			}//end of Step level
 			//Phase level constraint commands
 			GMATMission.myjourneys[j].myphases[p].printCalculate(GMATfile, 0);
 			GMATMission.myjourneys[j].myphases[p].printConstraint(GMATfile);
-			GMATfile << endl;
+			GMATfile << std::endl;
 		}//end of Phase level
 		//Journey level calculate and constraint commands
 		GMATMission.myjourneys[j].printCalculate(GMATfile, 0);
 		GMATMission.myjourneys[j].printConstraint(GMATfile);
-		GMATfile << endl;
+		GMATfile << std::endl;
 	}//end of Journey level
 
 	//Mission level calculate and constraint commands
 	GMATMission.printCalculate(GMATfile, 0);
 	GMATMission.printConstraint(GMATfile);
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 
 
@@ -1778,24 +1952,24 @@ void gmatscripter::write_GMAT_optimization() {
 	// vary spacecraft fuelmass 
 
 	//optimize the user-defined objective function
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << "%---------- Objective Function" << endl;
-	GMATfile << "%-------------------------------------------------------------------------" << endl;
-	GMATfile << endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Objective Function" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
 
 	//currently vf13 does not like to obey set bounds if an objective function is given
-	GMATfile << "	%Minimize objective function" << endl;
-	GMATfile << "	%Minimize NLPObject(ObjectiveFunction)" << endl;
-	GMATfile << endl;
-	GMATfile << "EndOptimize" << endl;
+	GMATfile << "	%Minimize objective function" << std::endl;
+	GMATfile << "	Minimize NLPObject(ObjectiveFunction)" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << "EndOptimize" << std::endl;
 
 	//TEMPORARY DEBUG CODE
-	GMATDebug << endl;
-	GMATDebug << " *** spacecraft vector<struct> print out *** " << endl;
+	GMATDebug << std::endl;
+	GMATDebug << " *** spacecraft vector<struct> print out *** " << std::endl;
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
-			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Epoch << endl;
-			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Epoch << endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Epoch << std::endl;
+			GMATDebug << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Name << " | " << "Epoch: " << GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Epoch << std::endl;
 		}
 	}
 
@@ -1832,7 +2006,7 @@ void gmatscripter::write_GMAT_report(class gmatstep& agmatstep, bool isbeforeman
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection1 ";
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection2 ";
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection3 ";
-		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".C1" << endl;
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".C1" << std::endl;
 	}
 	// write the spacecraft states in the central body frame
 	GMATfile << "	Report 'Report_SpacecraftState' Report_Spacecraft_" << agmatstep.myphase->mybodies[body_index].name << "_States " << tempString;
@@ -1849,14 +2023,14 @@ void gmatscripter::write_GMAT_report(class gmatstep& agmatstep, bool isbeforeman
 			GMATfile << agmatstep.myphase->variables[i][0] << " ";
 		}
 	}
-	GMATfile << endl;
+	GMATfile << std::endl;
 
 }
 
 
 // method to write a GMAT Propagate Command
 void gmatscripter::aux_GMAT_propagate(class gmatstep& agmatstep, bool useZeroPropagate){
-	if (useZeroPropagate && agmatstep.zeroPropagate) { GMATfile << "	Propagate 'Propagate " << agmatstep.myspacecraft->Name << "' " << agmatstep.propagator.Name << "( " << agmatstep.myspacecraft->Name << " ) { " << agmatstep.myspacecraft->Name << ".ElapsedSecs = " << 0.0 << " }" << endl; }
+	if (useZeroPropagate && agmatstep.zeroPropagate) { GMATfile << "	Propagate 'Propagate " << agmatstep.myspacecraft->Name << "' " << agmatstep.propagator.Name << "( " << agmatstep.myspacecraft->Name << " ) { " << agmatstep.myspacecraft->Name << ".ElapsedSecs = " << 0.0 << " }" << std::endl; }
 	else {
 		//declarations
 		string str;
@@ -1871,16 +2045,16 @@ void gmatscripter::aux_GMAT_propagate(class gmatstep& agmatstep, bool useZeroPro
 			str = "BackProp";
 		}
 
-		GMATDebug << " str: " << str << endl;
+		GMATDebug << " str: " << str << std::endl;
 		//write out the propagate command line
 		if (agmatstep.allowTheTimeStep2Vary) {
 			GMATfile << "	Propagate 'Propagate " << agmatstep.myspacecraft->Name << "' " << str << " " 
 				<< agmatstep.propagator.Name << "( " << agmatstep.myspacecraft->Name << " ) { " 
-				<< agmatstep.myspacecraft->Name << ".ElapsedSecs = " << agmatstep.id << "_TimeStep" << " }" << endl;
+				<< agmatstep.myspacecraft->Name << ".ElapsedSecs = " << agmatstep.id << "_TimeStep" << " }" << std::endl;
 		}
 		else {
 			GMATfile << "	Propagate 'Propagate " << agmatstep.myspacecraft->Name << "' " << str << " " 
-				<< agmatstep.propagator.Name << "( " << agmatstep.myspacecraft->Name << " ) { " << agmatstep.myspacecraft->Name << ".ElapsedSecs = " << elapsed_secs << " }" << endl;
+				<< agmatstep.propagator.Name << "( " << agmatstep.myspacecraft->Name << " ) { " << agmatstep.myspacecraft->Name << ".ElapsedSecs = " << elapsed_secs << " }" << std::endl;
 		}
 	}
 }
@@ -1893,7 +2067,7 @@ void gmatscripter::PenUp(){
 	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
 		GMATfile << " " << GMATMission.missionbodies[body_index].name << "View";
 	}
-	GMATfile << ";" << endl;
+	GMATfile << ";" << std::endl;
 
 }
 
@@ -1905,7 +2079,7 @@ void gmatscripter::PenDown(){
 	for (int body_index = 0; body_index < GMATMission.missionbodies.size(); ++body_index) {
 		GMATfile << " " << GMATMission.missionbodies[body_index].name << "View";
 	}
-	GMATfile << ";" << endl;
+	GMATfile << ";" << std::endl;
 
 }
 
@@ -1913,17 +2087,17 @@ void gmatscripter::PenDown(){
 // method to write a GMAT ForceModel Resource
 void gmatscripter::create_GMAT_forcemodel(struct gmat_forcemodel& forcemodel){
 
-	GMATfile << "Create ForceModel " << forcemodel.Name << endl;
-	GMATfile << forcemodel.Name << ".CentralBody = " << forcemodel.CentralBody << endl;
+	GMATfile << "Create ForceModel " << forcemodel.Name << std::endl;
+	GMATfile << forcemodel.Name << ".CentralBody = " << forcemodel.CentralBody << std::endl;
 	GMATfile << forcemodel.Name << ".PointMasses = {";
 	for (int item = 0; item < forcemodel.PointMasses.size(); ++item) {
 		if (item == forcemodel.PointMasses.size() - 1) { GMATfile << forcemodel.PointMasses[item]; }
 		else { GMATfile << forcemodel.PointMasses[item] << ", "; }
 	}
-	GMATfile << "};" << endl;
-	GMATfile << forcemodel.Name << ".Drag = None;" << endl;
-	GMATfile << forcemodel.Name << ".SRP = Off;" << endl;
-	GMATfile << endl;
+	GMATfile << "};" << std::endl;
+	GMATfile << forcemodel.Name << ".Drag = None;" << std::endl;
+	GMATfile << forcemodel.Name << ".SRP = Off;" << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -1940,14 +2114,14 @@ void gmatscripter::create_GMAT_propagator(struct gmat_propagator& propagator) {
 		maxstepsize = 8640.0;
 	}
 
-	GMATfile << "Create Propagator " << propagator.Name << endl;
-	GMATfile << propagator.Name << ".FM = " << propagator.ForceModel.Name << endl;
-	GMATfile << propagator.Name << ".Type = PrinceDormand78; " << endl;
-	GMATfile << propagator.Name << ".InitialStepSize = " << initialstepsize << endl;
-	GMATfile << propagator.Name << ".Accuracy = 1e-11; " << endl;
-	GMATfile << propagator.Name << ".MinStep = 0.0; " << endl;
-	GMATfile << propagator.Name << ".MaxStep = " << maxstepsize << endl;
-	GMATfile << endl;
+	GMATfile << "Create Propagator " << propagator.Name << std::endl;
+	GMATfile << propagator.Name << ".FM = " << propagator.ForceModel.Name << std::endl;
+	GMATfile << propagator.Name << ".Type = PrinceDormand78; " << std::endl;
+	GMATfile << propagator.Name << ".InitialStepSize = " << initialstepsize << std::endl;
+	GMATfile << propagator.Name << ".Accuracy = 1e-11; " << std::endl;
+	GMATfile << propagator.Name << ".MinStep = 0.0; " << std::endl;
+	GMATfile << propagator.Name << ".MaxStep = " << maxstepsize << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -1956,14 +2130,14 @@ void gmatscripter::create_GMAT_propagator(struct gmat_propagator& propagator) {
 void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 
 	//write out the spacecraft information
-	GMATfile << "Create Spacecraft " << spacecraft.Name << endl;
-	GMATfile << spacecraft.Name << ".DateFormat = " << spacecraft.DateFormat << endl;
-	GMATfile << spacecraft.Name << ".Epoch      = " << spacecraft.Epoch << endl;
-	GMATfile << spacecraft.Name << ".DryMass    = " << spacecraft.DryMass << endl;
-	GMATfile << spacecraft.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << endl;
-	GMATfile << spacecraft.Name << ".Tanks     = {" << spacecraft.Thruster.Tank.Name << "}" << endl;
-	GMATfile << spacecraft.Name << ".Thrusters = {" << spacecraft.Thruster.Name << "}" << endl;
-	GMATfile << endl;
+	GMATfile << "Create Spacecraft " << spacecraft.Name << std::endl;
+	GMATfile << spacecraft.Name << ".DateFormat = " << spacecraft.DateFormat << std::endl;
+	GMATfile << spacecraft.Name << ".Epoch      = " << spacecraft.Epoch << std::endl;
+	GMATfile << spacecraft.Name << ".DryMass    = " << spacecraft.DryMass << std::endl;
+	GMATfile << spacecraft.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << std::endl;
+	GMATfile << spacecraft.Name << ".Tanks     = {" << spacecraft.Thruster.Tank.Name << "}" << std::endl;
+	GMATfile << spacecraft.Name << ".Thrusters = {" << spacecraft.Thruster.Name << "}" << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -1971,11 +2145,11 @@ void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 // method to write a GMAT FuelTank Resource
 void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 
-	GMATfile << "Create FuelTank " << spacecraft.Thruster.Tank.Name << endl;
-	GMATfile << spacecraft.Thruster.Tank.Name << ".AllowNegativeFuelMass = false" << endl;
-	GMATfile << spacecraft.Thruster.Tank.Name << ".Volume = 10" << endl;
-	GMATfile << spacecraft.Thruster.Tank.Name << ".FuelMass = " << spacecraft.Thruster.Tank.FuelMass << endl;
-	GMATfile << endl;
+	GMATfile << "Create FuelTank " << spacecraft.Thruster.Tank.Name << std::endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".AllowNegativeFuelMass = true" << std::endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".Volume = 10" << std::endl;
+	GMATfile << spacecraft.Thruster.Tank.Name << ".FuelMass = " << spacecraft.Thruster.Tank.FuelMass << std::endl;
+	GMATfile << std::endl;
 	
 }
 
@@ -1983,20 +2157,20 @@ void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 // method to write a GMAT Thruster Resource
 void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 
-	//GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << endl;
-	GMATfile << "% note: with the exception of .CoordinateSystem and .Tank, all values are 'dummy values'" << endl;
-	GMATfile << "Create Thruster " << spacecraft.Thruster.Name << endl;
-	GMATfile << spacecraft.Thruster.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection3 = 0" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".DutyCycle = 1" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << endl;
-	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".C1 = .1" << endl;
-	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000" << endl;
-	GMATfile << endl;
+	//GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << std::endl;
+	GMATfile << "% note: with the exception of .CoordinateSystem and .Tank, all values are 'dummy values'" << std::endl;
+	GMATfile << "Create Thruster " << spacecraft.Thruster.Name << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection3 = 0" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".DutyCycle = 1" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".C1 = .1" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000" << std::endl;
+	GMATfile << std::endl;
 
 }
 
@@ -2005,8 +2179,8 @@ void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 void gmatscripter::create_GMAT_burn(struct gmat_burn& burn) {
 
 	if (burn.Type == "FiniteBurn") {
-		GMATfile << "Create FiniteBurn " << burn.Name << endl;
-		GMATfile << burn.Name << ".Thrusters = {" << burn.ThrusterName << "};" << endl;
+		GMATfile << "Create FiniteBurn " << burn.Name << std::endl;
+		GMATfile << burn.Name << ".Thrusters = {" << burn.ThrusterName << "};" << std::endl;
 	}
 
 }
@@ -2015,23 +2189,23 @@ void gmatscripter::create_GMAT_burn(struct gmat_burn& burn) {
 // method to write a GMAT CoordinateSystem Resource
 void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 
-	GMATfile << "Create CoordinateSystem " << bodyname << "J2000Eq;" << endl;
-	GMATfile << bodyname << "J2000Eq.Origin = " << bodyname << ";" << endl;
-	GMATfile << bodyname << "J2000Eq.Axes = MJ2000Eq;" << endl;
-	GMATfile << endl;
+	GMATfile << "Create CoordinateSystem " << bodyname << "J2000Eq;" << std::endl;
+	GMATfile << bodyname << "J2000Eq.Origin = " << bodyname << ";" << std::endl;
+	GMATfile << bodyname << "J2000Eq.Axes = MJ2000Eq;" << std::endl;
+	GMATfile << std::endl;
 
 }
 
 
 // method to write out a spacecraft's initial conditions
 void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft) {
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Z  = " << spacecraft.initialconditions[2] << endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VX = " << spacecraft.initialconditions[3] << endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VY = " << spacecraft.initialconditions[4] << endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VZ = " << spacecraft.initialconditions[5] << endl;
-	GMATfile << endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << std::endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << std::endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Z  = " << spacecraft.initialconditions[2] << std::endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VX = " << spacecraft.initialconditions[3] << std::endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VY = " << spacecraft.initialconditions[4] << std::endl;
+	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VZ = " << spacecraft.initialconditions[5] << std::endl;
+	GMATfile << std::endl;
 }
 
 
@@ -2099,8 +2273,10 @@ void gmatphase::append_step(gmatstep agmatstep) {
 //method
 void gmatphase::get_time_allocation() {
 	for (int index = 0; index < this->mysteps.size(); ++index) {
-		if (this->mysteps[index].allowTheTimeStep2Vary) { this->eligabletime += this->mysteps[index].stepsize; }
-		else { this->ineligabletime += this->mysteps[index].stepsize; }
+		//summing the eligible / ineligible time for the 'gmatphase'
+		if (this->mysteps[index].allowTheTimeStep2Vary) { this->eligibletime += this->mysteps[index].stepsize; }
+		else { this->ineligibletime += this->mysteps[index].stepsize; }
+		//summing the TOF for the 'gmatphase'
 		this->TOF += this->mysteps[index].stepsize;
 	}
 }
