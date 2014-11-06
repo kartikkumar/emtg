@@ -55,7 +55,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 		*Isp = options->IspLT;
 
 		//compute thrust
-		*dTdP = 2000 * (options->user_defined_engine_efficiency / (*Isp * options->g0));
+		*dTdP = 2000.0 * (options->user_defined_engine_efficiency / (*Isp * options->g0));
 		*max_thrust = *dTdP * options->power_at_1_AU;
 		*active_power = options->power_at_1_AU;
 
@@ -84,7 +84,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 			double g3 = options->solar_power_gamma[3];
 			double g4 = options->solar_power_gamma[4];
 			
-			input_power = options->power_at_1_AU / r2 * ( (g0 + g1/r + g2/r2) / (1 + g3 * r + g4 * r2) );
+			input_power = options->power_at_1_AU / r2 * ( (g0 + g1/r + g2/r2) / (1.0 + g3 * r + g4 * r2) );
 
 			if (generate_derivatives)
 			{
@@ -181,8 +181,8 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 
 				if (generate_derivatives)
 				{
-					*dTdIsp = -1.0 / (*Isp) * *max_thrust;
-					*dmdotdIsp = -2.0 / (*Isp) * *max_mass_flow_rate;
+					*dTdIsp = -1.0 / (*Isp) * (*max_thrust);
+					*dmdotdIsp = -2.0 / (*Isp) * (*max_mass_flow_rate);
 				}
 			}
 		}
@@ -558,7 +558,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 				F *= power_penalty;
 			}
 
-			//return Thrust in N and mass flow rate in kg/s
+			//return Thrust in N (convert from mN) and mass flow rate in kg/s (convert from mg/s)
 			*max_thrust = 1.0e-3 * T * *number_of_active_engines;
 			*max_mass_flow_rate = 1.0e-6 * F * *number_of_active_engines;
 			*Isp = *max_thrust / *max_mass_flow_rate / options->g0;
@@ -581,19 +581,21 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 					*dmdotdP = *dmdotdP*power_penalty + F*dpenalty_dP;
 				}
 
-                if (*power > maxP * *number_of_active_engines)
-                {
-                    *dTdP = 0.0;
-                    *dmdotdP = 0.0;
-                }
+				if (*power > maxP * *number_of_active_engines)
+				{
+					*dTdP = 0.0;
+					*dmdotdP = 0.0;
+				}
 			}
 
 			*power = input_power;
 		}
 	}
-	*max_thrust /= 1000.0; //kN to N conversion
-	*dTdIsp /= 1000.0; //kN to N conversion
-	*dTdP /= 1000.0; //kN to N conversion
+
+	*max_thrust /= 1000.0; //N to kN conversion
+	*dTdIsp /= 1000.0; //N to kN conversion
+	*dTdP /= 1000.0; //N to kN conversion
+
 	return 0;
 }
 

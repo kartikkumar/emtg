@@ -97,6 +97,26 @@ public:
                                     const double& propagation_time,
                                     const double& journey_starting_epoch);
 
+	void calculate_match_point_derivatives(double* G,
+		int * Gindex,
+		const int & j,
+		const int & p,
+		std::vector < EMTG::math::Matrix< double > > & STM_archive_forward,
+		std::vector < EMTG::math::Matrix< double > > & STM_archive_backward,
+		missionoptions * options,
+		EMTG::Astrodynamics::universe * Universe);
+
+	//FBLT STMs
+	std::vector < EMTG::math::Matrix< double > > STM_archive_forward;
+	EMTG::math::Matrix< double > initial_coast_STM;
+	std::vector < EMTG::math::Matrix< double > > STM_archive_backward;
+	EMTG::math::Matrix< double > terminal_coast_STM;
+
+	//FBLT STM dimension information
+	int STMrows;
+	int STMcolumns;
+	int num_states;
+	
 	//time information
 	vector <double> event_epochs;
 

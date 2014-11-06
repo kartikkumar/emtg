@@ -37,6 +37,8 @@ public:
 												double* power,
 												double* active_power,
 												int* number_of_active_engines,
+												int &STMrows,
+												int &STMcolumns,
 												void* optionsvoidpointer, 
 												void* Universepointer, 
 												void* ControllerPointer),
@@ -46,6 +48,8 @@ public:
 												double* power,
 												double* active_power,
 												int* number_of_active_engines,
+												int &STMrows,
+												int &STMcolumns,
 												void* optionspointer, void* Universepointer, void* ControllerPointer);
 
 	void adaptive_step_int(double *x_left_in, double *x_right, double *uleft, const double& t_left, const double& t_0, double const & local_step, double * resumeH, double * resumeError, double const & PRECISION_TARGET, void (*EOM)(double* x,
@@ -59,6 +63,8 @@ public:
 												double* power,
 												double* active_power,
 												int* number_of_active_engines,
+												int &STMrows,
+												int &STMcolumns,
 												void* optionsvoidpointer, 
 												void* Universepointer, 
 												void* ControllerPointer),
@@ -68,6 +74,8 @@ public:
 												double* power,
 												double* active_power,
 												int* number_of_active_engines,
+												int &STMrows,
+												int &STMcolumns,
 												void* optionspointer, void* Universepointer, void* ControllerPointer);
 };
 	

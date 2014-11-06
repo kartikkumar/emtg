@@ -83,6 +83,32 @@ namespace EMTG{ namespace Astrodynamics
                     vector<double>& dagravdtvec,
                     vector<double>& central_body_state_mks);
 
+	int FBLT_force_model(EMTG::missionoptions* options,
+		                EMTG::Astrodynamics::universe* Universe,
+		                double* spacecraft_state_relative_to_central_body_in_km,
+		                double* epoch,
+		                double* launch_epoch,
+		                double* control,
+		                double* max_thrust,
+		                double* max_mass_flow_rate,
+		                double* Isp,
+		                double* power,
+		                double* active_power,
+		                int* number_of_active_engines,
+		                double* force_vector,
+		                const bool& generate_derivatives,
+		                double* dTdP,
+		                double* dmdotdP,
+		                double* dTdIsp,
+		                double* dmdotdIsp,
+		                double* dPdr,
+		                double* dPdt,
+		                double* dFSRPdr,
+		                EMTG::math::Matrix<double> & A,
+		                vector<double>& dagravdRvec,
+		                vector<double>& dagravdtvec,
+                        vector<double>& central_body_state_mks);
+
 	//******************************
 	//launch vehicle code
 	void find_mass_to_orbit(double C3, double DLA, int LV_type, double* mass, double* dmdC3, missionoptions* options);

@@ -66,7 +66,13 @@ FBLT_phase::FBLT_phase() {
 	    BoundaryV.resize(3, 1);
 
 	    //set up the integrator
-	    integrator = new EMTG::integration::rk8713M(7);
+		//for analytical FBLT derivatives, we need to integrate STM
+		//entries as states as well, so we must instantiate the integrator 
+		//with the normal s/c states but also slots for the STM entries
+		this->STMrows = 11;
+		this->STMcolumns = 11;
+		this->num_states = 11 + 11 * 11;
+	    integrator = new EMTG::integration::rk8713M(num_states);
 
 	    current_mass_increment = 0.0;
 	    journey_initial_mass_increment_scale_factor = 1.0;
@@ -76,6 +82,15 @@ FBLT_phase::FBLT_phase() {
 
 	    //set derivatives for spirals
 	    this->spiral_escape_dm_after_dm_before = 1.0;
+
+		//set up STMS
+		for (size_t step = 0; step < options->num_timesteps / 2; ++step)
+		{
+			this->STM_archive_forward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+			this->STM_archive_backward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+    }
+		this->initial_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
+		this->terminal_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
     }
 
     FBLT_phase::~FBLT_phase() {
@@ -144,9 +159,23 @@ FBLT_phase::FBLT_phase() {
 
 	    //first initialize the forward integration
 	    //the following array holds the spacecraft state at "half steps," i.e. halfway through each integration segment
-	    double spacecraft_state_forward[7];
+
+        //WE MUST CHANGE THIS INTO A C++ VECTOR!!
+        double spacecraft_state_forward[11 + 11 * 11];
+        double spacecraft_state_forward_prop[11 + 11 * 11];
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_forward[k] = state_at_beginning_of_phase[k];
+
+        //in the FBLT STM test bed I passed ux,uy,uz and TOF around as part of the state
+        //to keep things consistent, let's just set these to zero for all time
+        //we will know something is wrong if, in fact, they are ever not zero
+        for (int k = 7; k < this->STMrows; ++k)
+            spacecraft_state_forward[k] = 0.0;
+
+        //we want to calculate the STM for every time step, but since we are propagating in half-steps let's do that for now
+        //first make an archive to store all of the STMs
+        //we also need to made a place to store the initial coast STMs if there is an initial coast
+
 
 	    //scale the integration state array to LU and TU
 	    for (int k = 0; k < 6; ++k)
@@ -161,9 +190,14 @@ FBLT_phase::FBLT_phase() {
 	    //scale the mass
 	    spacecraft_state_forward[6] /= options->maximum_mass;
 
+
+        bool detect_initial_coast = false;
 	    //Step 6.2.0.1 if there is an initial coast, propagate through it
 	    if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
 	    {
+
+            detect_initial_coast = true;
+
 		    //if this is a launch AND we are doing a forced post-launch initial coast
 		    double spacecraft_state_end_coast[7];
 		    double empty_vector[] = {0.0,0.0,0.0};
@@ -180,14 +214,23 @@ FBLT_phase::FBLT_phase() {
 			    initial_coast_duration = options->forced_flyby_coast;
 		    }
 
-		    double resumeH = initial_coast_duration/2.0 * 86400/Universe->TU;
+            double resumeH = initial_coast_duration * 86400 / Universe->TU;
+
+
+
+            //The initial coast STM entries of the state vector must be initialized to the identity
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_forward[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_forward[i] = 1.0;
+
 
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
-										    state_at_initial_coast_midpoint,
+                                            spacecraft_state_end_coast,
 										    empty_vector, 
 										    (phase_start_epoch) / Universe->TU,
 										    X[0],
-										    initial_coast_duration / 2.0 /Universe->TU, 
+                                            initial_coast_duration / Universe->TU,
 										    &resumeH,
 										    &resumeError,
 										    1.0e-8,
@@ -198,115 +241,408 @@ FBLT_phase::FBLT_phase() {
 										    &dummy_parameter,
 										    &dummy_parameter,
 										    (int*) &dummy_parameter,
+                                            this->STMrows,
+                                            this->STMcolumns,
 										    (void*)options,
 										    (void*)Universe,
 										    DummyControllerPointer      );	
 
-		    integrator->adaptive_step_int(	state_at_initial_coast_midpoint,
-										    spacecraft_state_end_coast,
-										    empty_vector, 
-										    (phase_start_epoch + initial_coast_duration / 2.0) / Universe->TU,
-										    X[0],
-										    initial_coast_duration / 2.0 / Universe->TU, 
-										    &resumeH,
-										    &resumeError,
-										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    (int*) &dummy_parameter,
-										    (void*)options,
-										    (void*)Universe,
-										    DummyControllerPointer      );	
+            //Store the initial coast's first half STM
+            int statecount = this->STMrows;
+            for (size_t i = 0; i < this->STMrows; ++i)
+            {
+                for (size_t j = 0; j < this->STMcolumns; ++j)
+                {
+                    initial_coast_STM(i, j) = spacecraft_state_end_coast[statecount];
+                    ++statecount;
+                }
+            }
 
 
-		    phase_time_elapsed_forward += initial_coast_duration;
+            phase_time_elapsed_forward += initial_coast_duration;
 
-		    for (int k = 0; k < 7; ++k)
-			    spacecraft_state_forward[k] = spacecraft_state_end_coast[k];
-	    }
+            for (int k = 0; k < 7; ++k)
+                spacecraft_state_forward[k] = spacecraft_state_end_coast[k];
+        }
 
-	    for (int step = 0; step < options->num_timesteps/2; ++step)
-	    {
-		    //step 6.2.1 extract the control unit vector from the decision vector
-		    control[step][0] = X[*Xindex];
-		    control[step][1] = X[*Xindex+1];
-		    control[step][2] = X[*Xindex+2];
-		
+        for (int step = 0; step < options->num_timesteps / 2; ++step)
+        {
+            //step 6.2.1 extract the control unit vector from the decision vector
+            control[step][0] = X[*Xindex];
+            control[step][1] = X[*Xindex + 1];
+            control[step][2] = X[*Xindex + 2];
 
-		    //extract the specific impulse for this step (VSI only)
-		    if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
-		    {
-			    available_Isp[step] = X[*Xindex+3];
-			    ++(*Xindex);
-		    }
 
-		    double throttle = math::norm(control[step].data(), 3);
-		    if (options->derivative_type > 0 && needG)
-		    {
-			    G[control_vector_G_indices[step][0]] = 2.0 * control[step][2] / throttle;
-			    G[control_vector_G_indices[step][1]] = 2.0 * control[step][1] / throttle;
-			    G[control_vector_G_indices[step][2]] = 2.0 * control[step][0] / throttle;
-			    (*Gindex) += 3;
-		    }
-		    (*Xindex) +=3;
+            //extract the specific impulse for this step (VSI only)
+            if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
+            {
+                available_Isp[step] = X[*Xindex + 3];
+                ++(*Xindex);
+            }
 
-		    //step 6.2.2 apply the control unit vector magnitude constraint
-		    F[*Findex] = throttle;
-		    ++(*Findex);
-					
-		    //step 6.2.3 propagate the spacecraft to the midpoint of the phase using the control unit vector
-		    integrator->adaptive_step_int(	spacecraft_state_forward,
-										    spacecraft_state[step].data(),
-										    control[step].data(), 
-										    (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
-										    X[0],
-										    time_step_sizes[step] / 2.0 / Universe->TU, 
-										    &resumeH,
-										    &resumeError,
-										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &available_thrust[step],
-										    &available_mass_flow_rate[step],
-										    &available_Isp[step],
-										    &available_power[step],
-										    &active_power[step],
-										    &number_of_active_engines[step],
-										    (void*)options,
-										    (void*)Universe,
-										    DummyControllerPointer                                                  );
+            double throttle = math::norm(control[step].data(), 3) + 1.0e-10;
+            if (options->derivative_type > 0 && needG)
+            {
+                G[control_vector_G_indices[step][0]] = 2.0 * control[step][2] / throttle;
+                G[control_vector_G_indices[step][1]] = 2.0 * control[step][1] / throttle;
+                G[control_vector_G_indices[step][2]] = 2.0 * control[step][0] / throttle;
+                (*Gindex) += 3;
+            }
+            (*Xindex) += 3;
 
-		
-		    //step 6.2.4 encode the epoch of the step midpoint
-		    event_epochs[step] = phase_start_epoch + phase_time_elapsed_forward + 0.5 * time_step_sizes[step];
-		    phase_time_elapsed_forward += time_step_sizes[step];
-		
-		    //step 6.2.5 propagate the spacecraft to the endpoint of the phase using the control unit vector
-		    integrator->adaptive_step_int(	spacecraft_state[step].data(),
-										    spacecraft_state_forward,
-										    control[step].data(),  
-										    (event_epochs[step]) / options->TU,
-										    X[0],
-										    time_step_sizes[step]/2.0 / Universe->TU, 
-										    &resumeH,
-										    &resumeError,
-										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &temp_available_thrust,
-										    &temp_available_mass_flow_rate,
-										    &temp_available_Isp,
-										    &temp_available_power,
-										    &temp_active_power,
-										    &temp_number_of_active_engines,
-										    (void*)options,
-										    (void*)Universe,
-										    DummyControllerPointer                                                  );
+            //step 6.2.2 apply the control unit vector magnitude constraint
+            F[*Findex] = throttle;
+            ++(*Findex);
 
-	    }
+            //step 6.2.3 propagate the spacecraft to the end of the FBLT step using the control unit vector
 
+            /*
+            //The STM entries of the state vector must be initialized to the identity before every step
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_forward[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_forward[i] = 1.0;
+
+
+            
+            //before we propagate with derivatives, let's do a "mini finite differencing" check
+            double control_perturbation = 1.0e-6;
+            double dstate_du[7][3]; //indexed as [state][control]
+            vector<double> reference_control = this->control[step];
+            double spacecraft_state_forward_prop_plus[11 + 11 * 11];
+            double spacecraft_state_forward_prop_minus[11 + 11 * 11];
+            for (size_t cindex = 0; cindex < 3; ++cindex)
+            {
+            vector<double> control_minus = reference_control;
+            vector<double> control_plus = reference_control;
+            control_minus[cindex] -= control_perturbation;
+            control_plus[cindex] += control_perturbation;
+
+            //get the forward step evaluation
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+            spacecraft_state_forward[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+            spacecraft_state_forward[i] = 1.0;
+            integrator->adaptive_step_int(spacecraft_state_forward,
+            spacecraft_state_forward_prop_plus,
+            control_plus.data(),
+            (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+            X[0],
+            time_step_sizes[step] / Universe->TU,
+            &resumeH,
+            &resumeError,
+            1.0e-8,
+            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+            &available_thrust[step],
+            &available_mass_flow_rate[step],
+            &available_Isp[step],
+            &available_power[step],
+            &active_power[step],
+            &number_of_active_engines[step],
+            this->STMrows,
+            this->STMcolumns,
+            (void*)options,
+            (void*)Universe,
+            DummyControllerPointer);
+
+            //get the backward step evaluation
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+            spacecraft_state_forward[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+            spacecraft_state_forward[i] = 1.0;
+            integrator->adaptive_step_int(spacecraft_state_forward,
+            spacecraft_state_forward_prop_minus,
+            control_minus.data(),
+            (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+            X[0],
+            time_step_sizes[step] / Universe->TU,
+            &resumeH,
+            &resumeError,
+            1.0e-8,
+            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+            &available_thrust[step],
+            &available_mass_flow_rate[step],
+            &available_Isp[step],
+            &available_power[step],
+            &active_power[step],
+            &number_of_active_engines[step],
+            this->STMrows,
+            this->STMcolumns,
+            (void*)options,
+            (void*)Universe,
+            DummyControllerPointer);
+
+            for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+            dstate_du[stateindex][cindex] = (spacecraft_state_forward_prop_plus[stateindex] - spacecraft_state_forward_prop_minus[stateindex]) / (2.0 * control_perturbation);
+            }
+            */
+            //now generate the actual STM
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_forward[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_forward[i] = 1.0;
+
+            integrator->adaptive_step_int(spacecraft_state_forward,
+                spacecraft_state_forward_prop,
+                control[step].data(),
+                (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+                X[0],
+                time_step_sizes[step] / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &available_thrust[step],
+                &available_mass_flow_rate[step],
+                &available_Isp[step],
+                &available_power[step],
+                &active_power[step],
+                &number_of_active_engines[step],
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
+
+            //Store this step's STM in the forward archive
+            int statecount = this->STMrows;
+            for (size_t i = 0; i < this->STMrows; ++i)
+            {
+                for (size_t j = 0; j < this->STMcolumns; ++j)
+                {
+                    STM_archive_forward[step](i, j) = spacecraft_state_forward_prop[statecount];
+                    ++statecount;
+                }
+            }
+            /*
+            //finally, compare the propagated STM to the central differenced STM
+            std::cout << "Difference between propagated STM and central differenced STM" << std::endl;
+            std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
+            vector<string> statenames;
+            vector<string> cnames;
+            statenames.push_back("x");
+            statenames.push_back("y");
+            statenames.push_back("z");
+            statenames.push_back("vx");
+            statenames.push_back("vy");
+            statenames.push_back("vz");
+            statenames.push_back("m");
+            cnames.push_back("ux");
+            cnames.push_back("uy");
+            cnames.push_back("uz");
+            for (size_t state = 0; state < 7; ++state)
+            {
+
+            for (size_t cindex = 0; cindex < 3; ++cindex)
+            {
+            std::cout << "[" << statenames[state] << "," << cnames[cindex] << "] ";
+            std::cout << string_utilities::convert_number_to_formatted_string(STM_archive_forward[step](state, 7 + cindex), 2) << "   "
+            << string_utilities::convert_number_to_formatted_string(dstate_du[state][cindex], 2) << "    "
+            << string_utilities::convert_number_to_formatted_string(STM_archive_forward[step](state, 7 + cindex) - dstate_du[state][cindex], 2) << "    "
+            << string_utilities::convert_number_to_formatted_string((STM_archive_forward[step](state, 7 + cindex) - dstate_du[state][cindex]) / dstate_du[state][cindex], 2)
+            << std::endl;
+            }
+            }
+            */
+
+            //copy the state over
+            for (size_t state = 0; state < 11; ++state)
+                spacecraft_state_forward[state] = spacecraft_state_forward_prop[state];
+
+            //step 6.2.4 encode the epoch of the step midpoint
+            event_epochs[step] = phase_start_epoch + phase_time_elapsed_forward + 0.5 * time_step_sizes[step];
+            phase_time_elapsed_forward += time_step_sizes[step];
+        }
+
+        /*
+        //now let's repeat the integration inside a finite difference loop to check the multiplication of the STMs
+        double control_perturbation = 1.0e-6;
+        vector<double> temp_control;
+        double dstate_du[7][3]; //indexed as [state][control]
+        double spacecraft_state_forward_prop_plus[11 + 11 * 11];
+        double spacecraft_state_forward_prop_plus_2[11 + 11 * 11];
+        double spacecraft_state_forward_prop_minus[11 + 11 * 11];
+        double spacecraft_state_forward_prop_minus_2[11 + 11 * 11];
+
+        for (size_t cindex = 0; cindex < 3; ++cindex)
+        {
+            //the following only works when there is NO initial coast
+            for (size_t state = 0; state < 3; ++state)
+            {
+                spacecraft_state_forward_prop_plus[state] = this->state_at_beginning_of_phase[state] / Universe->LU;
+                spacecraft_state_forward_prop_minus[state] = this->state_at_beginning_of_phase[state] / Universe->LU;
+                spacecraft_state_forward_prop_plus[state + 3] = this->state_at_beginning_of_phase[state + 3] / Universe->LU * Universe->TU;
+                spacecraft_state_forward_prop_minus[state + 3] = this->state_at_beginning_of_phase[state + 3] / Universe->LU * Universe->TU;
+            }
+            spacecraft_state_forward_prop_plus[6] = this->state_at_beginning_of_phase[6] / options->maximum_mass;
+            spacecraft_state_forward_prop_minus[6] = this->state_at_beginning_of_phase[6] / options->maximum_mass;
+            for (size_t placeholder = 7; placeholder < 11; ++placeholder)
+            {
+                spacecraft_state_forward_prop_plus[placeholder] = 0.0;
+                spacecraft_state_forward_prop_minus[placeholder] = 0.0;
+            }
+
+            //first the forward step of the central difference
+            for (int step = 0; step < options->num_timesteps / 2; ++step)
+            {
+                //clear the local STM
+
+                for (size_t i = this->STMrows; i < this->num_states; ++i)
+                    spacecraft_state_forward_prop_plus[i] = 0.0;
+                for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                    spacecraft_state_forward_prop_plus[i] = 1.0;
+
+                //set the perturbed control
+                temp_control = control[step];
+                if (step == 0)
+                    temp_control[cindex] += control_perturbation;
+
+                for (size_t uindex = 0; uindex < 3; ++uindex)
+                    spacecraft_state_forward_prop_plus[7 + uindex] = temp_control[uindex];
+
+                //propagate the spacecraft to the end of the FBLT step using the control unit vector
+
+                integrator->adaptive_step_int(spacecraft_state_forward_prop_plus,
+                                                spacecraft_state_forward_prop_plus_2,
+                                                temp_control.data(),
+                                                (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+                                                X[0],
+                                                time_step_sizes[step] / Universe->TU,
+                                                &resumeH,
+                                                &resumeError,
+                                                1.0e-8,
+                                                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                                &available_thrust[step],
+                                                &available_mass_flow_rate[step],
+                                                &available_Isp[step],
+                                                &available_power[step],
+                                                &active_power[step],
+                                                &number_of_active_engines[step],
+                                                this->STMrows,
+                                                this->STMcolumns,
+                                                (void*)options,
+                                                (void*)Universe,
+                                                DummyControllerPointer);
+
+                //copy the state over
+                for (size_t state = 0; state < 11; ++state)
+                    spacecraft_state_forward_prop_plus[state] = spacecraft_state_forward_prop_plus_2[state];
+            }
+
+            //then the backward step of the central difference
+            for (int step = 0; step < options->num_timesteps / 2; ++step)
+            {
+                //clear the local STM
+
+                for (size_t i = this->STMrows; i < this->num_states; ++i)
+                    spacecraft_state_forward_prop_minus[i] = 0.0;
+                for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                    spacecraft_state_forward_prop_minus[i] = 1.0;
+
+                //set the perturbed control
+                temp_control = control[step];
+                if (step == 0)
+                    temp_control[cindex] -= control_perturbation;
+
+                for (size_t uindex = 0; uindex < 3; ++uindex)
+                    spacecraft_state_forward_prop_minus[7 + uindex] = temp_control[uindex];
+
+                //propagate the spacecraft to the end of the FBLT step using the control unit vector
+
+                integrator->adaptive_step_int(spacecraft_state_forward_prop_minus,
+                                                spacecraft_state_forward_prop_minus_2,
+                                                temp_control.data(),
+                                                (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+                                                X[0],
+                                                time_step_sizes[step] / Universe->TU,
+                                                &resumeH,
+                                                &resumeError,
+                                                1.0e-8,
+                                                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                                &available_thrust[step],
+                                                &available_mass_flow_rate[step],
+                                                &available_Isp[step],
+                                                &available_power[step],
+                                                &active_power[step],
+                                                &number_of_active_engines[step],
+                                                this->STMrows,
+                                                this->STMcolumns,
+                                                (void*)options,
+                                                (void*)Universe,
+                                                DummyControllerPointer);
+
+                //copy the state over
+                for (size_t state = 0; state < 11; ++state)
+                    spacecraft_state_forward_prop_minus[state] = spacecraft_state_forward_prop_minus_2[state];
+            }
+
+            for (size_t state = 0; state < 7; ++state)
+                dstate_du[state][cindex] = (spacecraft_state_forward_prop_plus[state] - spacecraft_state_forward_prop_minus[state]) / (2.0 * control_perturbation);
+        }
+
+        //finally, compare the propagated STM to the central differenced STM
+        std::cout << "Difference between propagated STM and central differenced STM after " << options->num_timesteps / 2 << " steps" << std::endl;
+        std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
+        vector<string> statenames;
+        vector<string> cnames;
+        statenames.push_back("x");
+        statenames.push_back("y");
+        statenames.push_back("z");
+        statenames.push_back("vx");
+        statenames.push_back("vy");
+        statenames.push_back("vz");
+        statenames.push_back("m");
+        cnames.push_back("ux");
+        cnames.push_back("uy");
+        cnames.push_back("uz");
+        EMTG::math::Matrix <double> forward_cumulative_STM(this->STMrows, this->STMcolumns, 0.0);
+        for (size_t i = 0; i < this->STMrows; ++i)
+            forward_cumulative_STM(i, i) = 1.0;
+
+        //build the derivatives matrix through successive STM multiplication
+        //every time step we add one more STM to the chain
+        for (int step = options->num_timesteps / 2 - 1; step >= 0; --step)
+        {
+            EMTG::math::Matrix <double> stripped_step_STM = STM_archive_forward[step];
+            if (step > 0)
+            {
+                for (size_t row = 0; row < 7; ++row)
+                {
+                    for (size_t column = 7; column < 10; ++column)
+                        stripped_step_STM(row, column) = 0.0;
+                }
+            }
+            forward_cumulative_STM *= stripped_step_STM;
+        }
+
+        for (size_t state = 0; state < 7; ++state)
+        {
+
+            for (size_t cindex = 0; cindex < 3; ++cindex)
+            {
+                std::cout << "[" << statenames[state] << "," << cnames[cindex] << "] ";
+                std::cout << string_utilities::convert_number_to_formatted_string(forward_cumulative_STM(state, 7 + cindex), 2) << "   "
+                    << string_utilities::convert_number_to_formatted_string(dstate_du[state][cindex], 2) << "    "
+                    << string_utilities::convert_number_to_formatted_string(forward_cumulative_STM(state, 7 + cindex) - dstate_du[state][cindex], 2) << "    "
+                    << string_utilities::convert_number_to_formatted_string((forward_cumulative_STM(state, 7 + cindex) - dstate_du[state][cindex]) / dstate_du[state][cindex], 2)
+                    << std::endl;
+            }
+        }
+
+        cout << endl;
+        cout << "Check of propagated state vs propagated state+ and propagated state-" << endl;
+        for (size_t state = 0; state < 7; ++state)
+        {
+            std::cout << "[" << statenames[state] << "] ";
+            cout << string_utilities::convert_number_to_formatted_string(spacecraft_state_forward[state], 2) << "   "
+                << string_utilities::convert_number_to_formatted_string(spacecraft_state_forward_prop_plus[state], 2) << "   "
+                << string_utilities::convert_number_to_formatted_string(spacecraft_state_forward_prop_minus[state], 2) << endl;
+        }
+
+        getchar();
+        */
+        //end STM checker
+        
 	    //Step 6.3: propagate backward
 	    phase_time_elapsed_backward = 0.0;
 	    //store the initial prefered integration step size
@@ -314,10 +650,14 @@ FBLT_phase::FBLT_phase() {
 	    resumeError = 1.0e-6;
 	
 	    //first initialize the backward integration
-	    //the following array holds the spacecraft state at "half steps," i.e. integration steps where a burn is not applied
-	    double spacecraft_state_backward[7];
+	    double spacecraft_state_backward[11 + 11*11];
+        double spacecraft_state_backward_prop[11 + 11 * 11];
+
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_backward[k] = state_at_end_of_phase[k];
+
+		for (int k = 7; k < this->STMrows; ++k)
+			spacecraft_state_backward[k] = 0.0;
 
 	    //scale the integration state array to LU and TU
 	    for (int k = 0; k < 6; ++k)
@@ -333,9 +673,14 @@ FBLT_phase::FBLT_phase() {
 	    //scale the mass
 	    spacecraft_state_backward[6] /= options->maximum_mass;
 
+
+		bool detect_terminal_coast = false;
 	    //Step 6.3.0.1 if there is an terminal coast, propagate through it
 	    if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
 	    {
+
+			detect_terminal_coast = true;
+
 		    double spacecraft_state_end_coast[7];
 		    double empty_vector[] = {0.0,0.0,0.0};
 		    double dummy_parameter = 0.0;
@@ -345,12 +690,21 @@ FBLT_phase::FBLT_phase() {
 
 		    double resumeH = -terminal_coast_duration / 2.0 / Universe->TU;
 
+			
+			
+			//The terminal coast STM entries of the state vector must be initialized to the identity
+			for (size_t i = this->STMrows; i < this->num_states; ++i)
+				spacecraft_state_backward[i] = 0.0;
+			for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+				spacecraft_state_backward[i] = 1.0;
+
+
 		    integrator->adaptive_step_int(	spacecraft_state_backward,
-										    state_at_terminal_coast_midpoint,
+                                            spacecraft_state_end_coast,
 										    empty_vector, 
 										    (phase_end_epoch) / Universe->TU,
 										    X[0],
-										    -terminal_coast_duration / 2.0 / Universe->TU, 
+										    -terminal_coast_duration / Universe->TU, 
 										    &resumeH,
 										    &resumeError,
 										    1.0e-8,
@@ -361,30 +715,22 @@ FBLT_phase::FBLT_phase() {
 										    &dummy_parameter,
 										    &dummy_parameter,
 										    (int*) &dummy_parameter,
+											this->STMrows,
+											this->STMcolumns,
 										    (void*)options,
 										    (void*)Universe,
 										    DummyControllerPointer      );	
 
-		    integrator->adaptive_step_int(	state_at_terminal_coast_midpoint,
-										    spacecraft_state_end_coast,
-										    empty_vector, 
-										    (phase_end_epoch - terminal_coast_duration / 2.0) / Universe->TU,
-										    X[0],
-										    -terminal_coast_duration / 2.0 / Universe->TU, 
-										    &resumeH,
-										    &resumeError,
-										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    (int*) &dummy_parameter,
-										    (void*)options,
-										    (void*)Universe,
-										    DummyControllerPointer      );	
-
+			//Store the terminal coast's first-half STM 
+			int statecount = this->STMrows;
+			for (size_t i = 0; i < this->STMrows; ++i)
+			{
+				for (size_t j = 0; j < this->STMcolumns; ++j)
+				{
+					terminal_coast_STM(i, j) = state_at_terminal_coast_midpoint[statecount];
+					++statecount;
+				}
+			}
 
 		    phase_time_elapsed_backward += terminal_coast_duration;
 
@@ -413,7 +759,7 @@ FBLT_phase::FBLT_phase() {
 			    control[backstep][2] = X[*Xindex+2+3*(backstep - options->num_timesteps/2)];
 		    }
 
-		    double throttle = math::norm(control[backstep].data(), 3);
+			double throttle = math::norm(control[backstep].data(), 3) + 1.0e-10;
 		    if (options->derivative_type > 0 && needG)
 		    {
 			    G[control_vector_G_indices[backstep][0]] = 2.0 * control[backstep][2] / throttle;
@@ -425,13 +771,20 @@ FBLT_phase::FBLT_phase() {
 		    //step 6.3.2 apply the control unit vector magnitude constraint
 		    F[*Findex + (backstep - options->num_timesteps/2)] = throttle;
 		
-		    //step 6.3.3 propagate the spacecraft to the midpoint of the phase using the control unit vector
+
+			//The STM entries of the state vector must be initialized to the identity before every step
+			for (size_t i = this->STMrows; i < this->num_states; ++i)
+				spacecraft_state_backward[i] = 0.0;
+			for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+				spacecraft_state_backward[i] = 1.0;
+		
+		    //step 6.3.3 propagate the spacecraft to the midpoint of the step using the control unit vector
 		    integrator->adaptive_step_int(	spacecraft_state_backward,
-										    spacecraft_state[backstep].data(),
+										    spacecraft_state_backward_prop,
 										    control[backstep].data(),  
 										    (phase_end_epoch - phase_time_elapsed_backward) / Universe->TU,
 										    X[0],
-										    -time_step_sizes[backstep] / 2.0 / Universe->TU, 
+										    -time_step_sizes[backstep] / Universe->TU, 
 										    &resumeH,
 										    &resumeError,
 										    1.0e-8,
@@ -442,34 +795,32 @@ FBLT_phase::FBLT_phase() {
 										    &available_power[backstep],
 										    &active_power[backstep],
 										    &number_of_active_engines[backstep],
+											this->STMrows,
+											this->STMcolumns,
 										    (void*)options,
 										    (void*)Universe,
 										    DummyControllerPointer                                                  );
 		
+
+			//Store this half-step's STM in the backwards archive
+			int statecount = this->STMrows;
+			for (size_t i = 0; i < this->STMrows; ++i)
+			{
+				for (size_t j = 0; j < this->STMcolumns; ++j)
+				{
+                    STM_archive_backward[step](i, j) = spacecraft_state_backward_prop[statecount];
+                    spacecraft_state_backward[statecount] = spacecraft_state_backward_prop[statecount];
+					++statecount;
+				}
+			}
+
+            //copy the state over
+            for (size_t state = 0; state < 11; ++state)
+                spacecraft_state_backward[state] = spacecraft_state_backward_prop[state];
+
 		    //step 6.3.4 encode the epoch of the step midpoint
 		    event_epochs[backstep] = phase_end_epoch - phase_time_elapsed_backward - 0.5 * time_step_sizes[backstep];
 		    phase_time_elapsed_backward += time_step_sizes[backstep];
-		
-		    //step 6.3.5 propagate the spacecraft to the endpoint of the phase using the control unit vector
-		    integrator->adaptive_step_int(	spacecraft_state[backstep].data(),
-										    spacecraft_state_backward,
-										    control[backstep].data(),  
-										    (event_epochs[backstep]) / Universe->TU,
-										    X[0],
-										    -time_step_sizes[backstep] / 2.0 / Universe->TU, 
-										    &resumeH,
-										    &resumeError,
-										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &temp_available_thrust,
-										    &temp_available_mass_flow_rate,
-										    &temp_available_Isp,
-										    &temp_available_power,
-										    &temp_active_power,
-										    &temp_number_of_active_engines,
-										    (void*)options,
-										    (void*)Universe,
-										    DummyControllerPointer                                                  );
 	    }
 
 	    //step Xindex back to the end of the arc
@@ -485,21 +836,44 @@ FBLT_phase::FBLT_phase() {
 	    for (size_t k=0; k<3; ++k)
 	    {
 		    //position
-		    F[*Findex+k] = (spacecraft_state_backward[k] - spacecraft_state_forward[k]);
+            F[*Findex + k] = (spacecraft_state_backward_prop[k] - spacecraft_state_forward_prop[k]);
 		
 		    //velocity
-		    F[*Findex+k+3] = (spacecraft_state_backward[k+3] - spacecraft_state_forward[k+3]);
+            F[*Findex + k + 3] = (spacecraft_state_backward_prop[k + 3] - spacecraft_state_forward_prop[k + 3]);
 
-		    //match point state
-		    match_point_state[k] = spacecraft_state_forward[k] * Universe->LU;
-		    match_point_state[k+3] = spacecraft_state_forward[k+3] * Universe->LU / Universe->TU;
+		    //unscale the match point state (normalized to mks)
+            match_point_state[k] = spacecraft_state_forward_prop[k] * Universe->LU;
+            match_point_state[k + 3] = spacecraft_state_forward_prop[k + 3] * Universe->LU / Universe->TU;
 	    }
 	    //mass
-	    F[*Findex+6] = (spacecraft_state_backward[6] - spacecraft_state_forward[6]);
+        F[*Findex + 6] = (spacecraft_state_backward_prop[6] - spacecraft_state_forward_prop[6]);
 	    (*Findex) += 7;
 
-	    match_point_state[6] = spacecraft_state_forward[6] * options->maximum_mass;
+		//unscale the match point mass
+        match_point_state[6] = spacecraft_state_forward_prop[6] * options->maximum_mass;
 
+
+		//CALCULATE MATCH POINT DERIVATIVES HERE
+
+		//Prepend the coast STMs to the archives if there was a coast
+		//push the second half of the coast on first
+
+		std::vector<EMTG::math::Matrix< double >>::iterator it;
+
+		if (detect_initial_coast)
+		{
+			it = STM_archive_forward.begin();
+			STM_archive_forward.insert(it, initial_coast_STM);
+		}
+
+		if (detect_terminal_coast)
+		{
+			it = STM_archive_backward.begin();
+			STM_archive_backward.insert(it, terminal_coast_STM);
+		}
+
+		if (options->derivative_type > 1 && needG)
+			this->calculate_match_point_derivatives(G, Gindex, j, p, STM_archive_forward, STM_archive_backward, options, Universe);
 
 	    //******************************************************************
 	    //Step 7: process the arrival, if applicable
@@ -767,7 +1141,7 @@ FBLT_phase::FBLT_phase() {
 	    //finally, we encode the match point continuity constraints and their Jacobian entries,
 	    //noting that every patch point constraint in the phase has a derivative with respect to every variable in the phase
 	    //in addition, the patch point constraints have a derivative with respect to the previous phase's arrival mass
-	    //and the patch point constraints have a derivatives with respect to all previous time variables, including the launch date
+	    //and the patch point constraints have a derivative with respect to all previous time variables, including the launch date
 	    calcbounds_LT_match_points(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 	    //***************************************************************************
@@ -1721,6 +2095,8 @@ FBLT_phase::FBLT_phase() {
                                                 &available_power,
                                                 &active_power,
                                                 &number_of_active_engines,
+												this->STMrows,
+												this->STMcolumns,
                                                 (void*)&options,
                                                 (void*)&Universe,
                                                 this->DummyControllerPointer);
@@ -1751,5 +2127,213 @@ FBLT_phase::FBLT_phase() {
         }
         current_state[6] *= options.maximum_mass;
     }
+
+
+	//function to calculate the match point derivatives
+	void FBLT_phase::calculate_match_point_derivatives(double* G,
+		int* Gindex,
+		const int& j,
+		const int& p,
+		std::vector < EMTG::math::Matrix< double > > & STM_archive_forward,
+		std::vector < EMTG::math::Matrix< double > > & STM_archive_backward,
+		missionoptions* options,
+		EMTG::Astrodynamics::universe* Universe)
+	{
+		//compute and store the derivatives of the match-point constraint with respect to forward and backward propagation for variable initial power
+		//this will require passing in "dPdu"
+		if (options->objective_type == 13)
+		{
+			
+		}
+
+		//Match point constraint derivatives with respect to forward controls
+		//
+		EMTG::math::Matrix <double> forward_cumulative_STM(this->STMrows, this->STMcolumns, 0.0);
+
+		//build the derivatives matrix through successive STM multiplication
+		//every time step we add one more STM to the chain
+        for (int step = 0; step < options->num_timesteps / 2; ++step)
+		{
+            //initialize the derivatives matrix to the identity
+            forward_cumulative_STM.assign_zeros();
+            for (size_t i = 0; i < this->STMrows; ++i)
+                forward_cumulative_STM(i, i) = 1.0;
+
+            for (int stepnext = options->num_timesteps / 2 - 1; stepnext > step; --stepnext)
+            {
+                math::Matrix<double> stripped_step_STM = STM_archive_forward[stepnext];
+                for (size_t row = 0; row < 7; ++row)
+                {
+                    for (size_t column = 7; column < 10; ++column)
+                        stripped_step_STM(row, column) = 0.0;
+                }
+                forward_cumulative_STM *= stripped_step_STM;
+                
+            }
+            forward_cumulative_STM *= STM_archive_forward[step];
+
+			//std::cout << "STM at step " << step << std::endl;
+			//forward_cumulative_STM.print_to_screen();
+			//getchar();
+			
+			//place the derivatives in the Jacobian
+			//since the match point constraint is defined backward - forward, 
+			//the forward derivatives will have a negative sign
+
+			//match point with respect to control of the current step
+			for (size_t cindex = 0; cindex < 3; ++cindex)
+			{
+				for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+					G[match_point_constraint_G_indices[step + 1][stateindex][cindex]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[step + 1][stateindex][cindex]]] * forward_cumulative_STM(stateindex, 7 + cindex);
+			}
+		}
+
+
+			
+
+		//derivative with respect to Isp for forward propagation with VSI thruster
+		if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
+		{
+			 
+		}
+
+		if (options->objective_type == 13) //derivatives with respect to power for minimum power problems
+		{
+			
+		}
+
+		if (p == 0)
+		{
+			if (j == 0 && options->allow_initial_mass_to_vary && !(options->journey_departure_type[j] == 5))
+			{
+				
+			}
+			if (options->journey_variable_mass_increment[j] && !(options->journey_departure_type[j] == 5))
+			{
+				
+			}
+			if (options->journey_departure_type[j] == 0)// && options->LV_type > 0)
+			{
+				
+			}
+
+			if (j > 0) //for successive journeys the mass at the beginning of the phase affects the following patch point
+			{
+				//this must be disabled for phases that start with spirals
+				if (!(options->journey_arrival_type[j - 1] == 7))
+				{
+					
+				}
+			}
+		}
+		else//for other phases other than the first
+		{
+			
+		}
+
+		//derivatives of the constraints with respect to the forward flight time variables
+		//this in turn is dependent on the velocity and acceleration of the left-most body
+		if (options->derivative_type > 2)
+		{
+			
+
+			//the following derivatives are for the current phase flight time ONLY
+			if (options->derivative_type > 3)
+			{
+				
+			}
+		}
+		
+		//compute and store the backward derivatives of the match point constraints with respect to the control unit vector
+		//and (if applicable) variable Isp
+
+		EMTG::math::Matrix <double> backward_cumulative_STM(this->STMrows, this->STMcolumns, 0.0);
+
+		//initialize the derivatives matrix to the identity
+		for (size_t i = 0; i < this->STMrows; ++i)
+			backward_cumulative_STM(i, i) = 1.0;
+
+		//build the derivatives matrix through successive STM multiplication
+		//every time step we add one more STM to the chain
+        for (int step = 0; step < options->num_timesteps / 2; ++step)
+		{
+            //initialize the derivatives matrix to the identity
+            backward_cumulative_STM.assign_zeros();
+            for (size_t i = 0; i < this->STMrows; ++i)
+                backward_cumulative_STM(i, i) = 1.0;
+
+            for (int stepnext = options->num_timesteps / 2 - 1; stepnext > step; --stepnext)
+            {
+                math::Matrix<double> stripped_step_STM = STM_archive_backward[stepnext];
+                for (size_t row = 0; row < 7; ++row)
+                {
+                    for (size_t column = 7; column < 10; ++column)
+                        stripped_step_STM(row, column) = 0.0;
+                }
+                backward_cumulative_STM *= stripped_step_STM;
+
+            }
+			backward_cumulative_STM *= STM_archive_backward[step];
+
+			//place the derivatives in the Jacobian
+			//since the match point constraint is defined backward - forward, 
+			//the backward derivatives will have a positive sign
+
+			//match point with respect to u_x of the current step
+            //match point with respect to control of the current step
+            for (size_t cindex = 0; cindex < 3; ++cindex)
+            {
+                for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                {
+                    G[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]] = options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]]] * backward_cumulative_STM(stateindex, 7 + cindex);
+                }
+            }
+		}
+
+		//derivative with respect to Isp for backward propagation with VSI thruster
+		if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
+		{
+			for (int step = 0; step < options->num_timesteps / 2; ++step)
+			{
+				//translate into backward steps
+				int backstep = options->num_timesteps - 1 - step;
+
+				
+			}
+		}
+		 //end backward stuff
+
+		//derivative of match point constraints with respect to arrival mass
+		//disable this for a phase ending in a capture spiral
+		if (!(p == options->number_of_phases[j] && options->journey_arrival_type[j] == 7))
+		{
+			
+		}
+
+		//derivatives of the constraints with respect to the backward flight time variables
+		//this in turn is dependent on the velocity and acceleration of the right-most body
+		if (options->derivative_type > 2)
+		{
+			
+
+			//the following derivatives are for the current phase flight time
+			if (options->derivative_type > 3)
+			{
+				
+			}
+		}
+
+
+		//derivative with respect to arrival velocity
+		//only evaluated for phases that are not terminal intercepts
+		if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
+		{
+			for (int c = 0; c < 3; ++c)
+			{
+				
+			}//end loop over controls
+		}
+
+	}
 
 } /* namespace EMTG */
