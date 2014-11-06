@@ -10,6 +10,9 @@
 
 namespace EMTG{ namespace Astrodynamics
 {
+    //******************************
+    //some constants
+    const double AU = 149597870.691;
 	//******************************
 	//insertion burn
 	double insertion_burn(const double *Vin, const double *Vplanet, const double mu, const double R_SOI, const double destination_a, const double destination_e, double* v_inf_inbound);

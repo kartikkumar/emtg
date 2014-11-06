@@ -622,7 +622,7 @@ namespace EMTG
 
         //then print
         this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             wait_start_epoch / 86400.0,
                                             "waiting",
@@ -690,7 +690,7 @@ namespace EMTG
 
             //print
             this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                                (EMTG::Astrodynamics::universe *) &Universe,
+                                                (EMTG::Astrodynamics::universe*) &Universe,
                                                 eventcount,
                                                 (wait_start_epoch + step * wait_time_step_size) / 86400.0,
                                                 "waiting",
@@ -751,7 +751,7 @@ namespace EMTG
 
         //print
         this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             (wait_start_epoch + this->phases[0].phase_wait_time) / 86400.0,
                                             "waiting",
@@ -862,7 +862,7 @@ namespace EMTG
 
         //then print
         this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             wait_start_epoch / 86400.0,
                                             "waiting",
@@ -930,7 +930,7 @@ namespace EMTG
 
             //print
             this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
-                                                        (EMTG::Astrodynamics::universe *) &Universe,
+                                                        (EMTG::Astrodynamics::universe*) &Universe,
                                                         eventcount,
                                                         wait_start_epoch / 86400.0 + step * wait_time_step_size,
                                                         step == options->num_timesteps ? "mission_end" : "waiting",

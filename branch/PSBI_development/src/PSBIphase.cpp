@@ -2549,7 +2549,7 @@ namespace EMTG
 
         //values to be used in the derivative evaluation
         double dTdP = this->dTdP[step];
-        double dPdr = this->dPdr[step] / Universe->LU;
+        double dPdr = this->dPdr[step] / Astrodynamics::AU;
         double dPdt = this->dPdt[step];
         double Thrust = this->available_thrust[step];
         double mdot = this->available_mass_flow_rate[step];
