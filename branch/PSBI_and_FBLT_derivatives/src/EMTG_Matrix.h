@@ -2,13 +2,17 @@
 //header-only library for matrices
 //Jacob Englander 1/13/2013
 
+
 #pragma once
 
-#include <cmath>
+#include <math.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <exception>
+
+
+
 
 using namespace std;
 
@@ -149,6 +153,7 @@ namespace EMTG { namespace math {
 		bool issquare;
 		bool isvector;
 		T* values;
+
 	}; //end class definition: Matrix
 
 	
@@ -531,11 +536,13 @@ namespace EMTG { namespace math {
 		{
 			cout.precision(20);
 			cout << values[i*m];
+			
 			for (int j = 1; j < m; ++j)
 			{
 				cout.width(25);
 				cout.precision(20);
-				cout << values[i*m+j];
+				cout << values[i*m + j];
+				
 			}
 			cout << endl;
 		}
@@ -555,11 +562,14 @@ namespace EMTG { namespace math {
 			outputfile.width(30);
 			outputfile.precision(20);
 			outputfile << values[i*m];
+			
+
 			for (int j = 1; j < m; ++j)
 			{
 				outputfile.width(30);
 				outputfile.precision(20);
-				outputfile << values[i*m+j];
+				outputfile << values[i*m + j];
+				
 			}
 			outputfile << endl;
 		}
@@ -1118,7 +1128,10 @@ namespace EMTG { namespace math {
 				for (int i = 0; i < n; ++i)
 				{
 					for (int j = 0; j < m; ++j)
-						NewMatrix(i,j) = values[i*m+j] /= OtherMatrix(i,j);
+					{
+						values[i*m + j] /= OtherMatrix(i, j);
+						NewMatrix(i, j) = values[i*m + j];
+					}
 				}
 
 				return *this;
@@ -1131,7 +1144,10 @@ namespace EMTG { namespace math {
 				for (int i = 0; i < n; ++i)
 				{
 					for (int j = 0; j < m; ++j)
-						NewMatrix(i,j) = values[i*m+j] /= OtherMatrix.values[i];
+					{
+						values[i*m + j] /= OtherMatrix.values[i];
+						NewMatrix(i, j) = values[i*m + j];
+					}
 				}
 
 				return *this;
@@ -1153,7 +1169,10 @@ namespace EMTG { namespace math {
 				for (int i = 0; i < n; ++i)
 				{
 					for (int j = 0; j < m; ++j)
-						NewMatrix(i,j) = values[i*m+j] /= OtherMatrix.values[j];
+					{
+						values[i*m + j] /= OtherMatrix.values[j];
+						NewMatrix(i, j) = values[i*m + j];
+					}
 				}
 
 				return *this;
@@ -1238,7 +1257,7 @@ namespace EMTG { namespace math {
 			{
 				//first check if the matrix is invertible, i.e is the determinant nonzero?
 				T TheDeterminant = determinant();
-				if (TheDeterminant == 0)
+				if (TheDeterminant == 0.0)
 				{
 					cout << "EXCEPTION: Cannot invert matrix because determinant is zero." << endl;
 					throw 1711;
@@ -1458,3 +1477,4 @@ namespace EMTG { namespace math {
 		TargetMatrix.values[2] = values[0]*OtherMatrix.values[1] - values[1]*OtherMatrix.values[0];
 	}
 }}// close namespace
+

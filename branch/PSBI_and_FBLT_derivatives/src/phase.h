@@ -376,6 +376,8 @@ namespace EMTG {
 		double terminal_coast_duration;
 		double total_available_thrust_time; //time after intial and terminal coasts have been removed
 		vector<double> time_step_sizes;
+        bool detect_initial_coast;
+        bool detect_terminal_coast;
 
 		//calculation objects
         double a1, a2, e1, e2, T1, T2, pseudoa1, pseudoa2; //used for calculating bounds on phase flight time and, where applicable, the Sundman variable

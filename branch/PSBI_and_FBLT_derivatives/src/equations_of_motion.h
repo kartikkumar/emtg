@@ -19,6 +19,8 @@ namespace EMTG {namespace Astrodynamics { namespace EOM
 										double* power,
 										double* active_power,
 										int* number_of_active_engines,
+										int &STMrows,
+										int &STMcolumns,
 										void* optionsvoidpointer, 
 										void* Universepointer, 
 										void* ControllerPointer);
