@@ -40,6 +40,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		double launch_epoch = t0;
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
+        double temp_thrust, temp_mdot, temp_Isp, temp_power, temp_active_power;
+        int temp_number_of_active_engines;
 		
         static vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks((options->derivative_type > 2) ? 12 : 6);
 
@@ -75,12 +77,12 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 				                                &epoch,
 				                                &launch_epoch,
 				                                u,
-				                                thrust,
-				                                mdot,
-				                                Isp,
-				                                power,
-				                                active_power,
-				                                number_of_active_engines,
+				                                &temp_thrust,
+                                                &temp_mdot,
+                                                &temp_Isp,
+                                                &temp_power,
+                                                &temp_active_power,
+                                                &temp_number_of_active_engines,
 				                                ForceVector,
 				                                (options->derivative_type > 1) ? true : false,
 				                                &dTdP,
@@ -103,13 +105,13 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 				                            spacecraft_state,
 				                            &epoch,
 				                            &launch_epoch,
-				                            u,
-				                            thrust,
-				                            mdot,
-				                            Isp,
-				                            power,
-				                            active_power,
-				                            number_of_active_engines,
+                                            u,
+                                            &temp_thrust,
+                                            &temp_mdot,
+                                            &temp_Isp,
+                                            &temp_power,
+                                            &temp_active_power,
+                                            &temp_number_of_active_engines,
 				                            ForceVector,
 				                            false,
 				                            &dTdP,
@@ -154,7 +156,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		f[5] = -mu_normalized*x[2] / (r*r*r) + ForceVector[2] / x[6];
 
 		//mass
-		f[6] = -EMTG::math::norm(u, 3) * (*mdot) * options->engine_duty_cycle;
+		f[6] = -EMTG::math::norm(u, 3) * temp_mdot * options->engine_duty_cycle;
 
 
 

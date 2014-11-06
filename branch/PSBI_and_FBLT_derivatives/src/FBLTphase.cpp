@@ -1312,6 +1312,10 @@ FBLT_phase::FBLT_phase() {
 		    temp_active_power, temp_dTdP, temp_dmdotdP,
 		    temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
 	    int temp_active_thrusters;
+        double spacecraft_state_propagate[11 + 11 * 11];
+        double resumeH = initial_coast_duration * 86400 / Universe->TU;
+        double resumeError = 1.0e-8;
+        double dummy_parameter = 0.0;
 
 	    if (p > 0 || (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4))
 	    {
@@ -1477,14 +1481,104 @@ FBLT_phase::FBLT_phase() {
 	    //*****************************************************************************
 	    //next, if there was an initial coast, we must print it
 	    //we'll have to start by propagating to the halfway point of the initial coast step
-	    if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
+	    if (this->detect_initial_coast)
 	    {
-		    for (int k = 0; k < 3; ++k)
+            //if this is a launch AND we are doing a forced post-launch initial coast
+            //scale the integration state array to LU and TU
+
+            for (int k = 0; k < 6; ++k)
+            {
+                spacecraft_state_propagate[k] = this->state_at_beginning_of_phase[k] / Universe->LU;
+            }
+
+            for (int k = 3; k < 6; ++k)
+            {
+                spacecraft_state_propagate[k] *= Universe->TU;
+            }
+            //scale the mass
+            spacecraft_state_propagate[6] = state_at_beginning_of_phase[6] / options->maximum_mass;
+            
+
+            if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
+            {
+                //initial coast after launch
+                initial_coast_duration = options->forced_post_launch_coast;
+            }
+            else
+            {
+                //initial coast after flyby
+                initial_coast_duration = options->forced_flyby_coast;
+            }
+
+            double augmented_state_at_initial_coast_midpoint[11 + 11 * 11];
+
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
+
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                                        augmented_state_at_initial_coast_midpoint,
+                                        empty_vector,
+                                        (phase_start_epoch) / Universe->TU,
+                                        launchdate,
+                                        initial_coast_duration / 2.0 / Universe->TU,
+                                        &resumeH,
+                                        &resumeError,
+                                        1.0e-8,
+                                        EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        (int*)&dummy_parameter,
+                                        this->STMrows,
+                                        this->STMcolumns,
+                                        (void*)options,
+                                        (void*)Universe,
+                                        DummyControllerPointer);
+
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
+
+            //propagate forward to the end of the initial coast
+            integrator->adaptive_step_int(augmented_state_at_initial_coast_midpoint,
+                                            spacecraft_state_propagate,
+                                            empty_vector,
+                                            (phase_start_epoch) / Universe->TU,
+                                            launchdate,
+                                            initial_coast_duration / 2.0 / Universe->TU,
+                                            &resumeH,
+                                            &resumeError,
+                                            1.0e-8,
+                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            (int*)&dummy_parameter,
+                                            this->STMrows,
+                                            this->STMcolumns,
+                                            (void*)options,
+                                            (void*)Universe,
+                                            DummyControllerPointer);
+
+            for (int k = 0; k < 3; ++k)
 		    {
-			    state_at_initial_coast_midpoint[k] *= Universe->LU;
-			    state_at_initial_coast_midpoint[k+3] *= Universe->LU / Universe->TU;
+                state_at_initial_coast_midpoint[k] = augmented_state_at_initial_coast_midpoint[k] * Universe->LU;
+                state_at_initial_coast_midpoint[k + 3] = augmented_state_at_initial_coast_midpoint[k + 3] * Universe->LU / Universe->TU;
 		    }
-		    state_at_initial_coast_midpoint[6] *= options->maximum_mass;
+            state_at_initial_coast_midpoint[6] = augmented_state_at_initial_coast_midpoint[6] * options->maximum_mass;
 
 		    //we have to calculate the available power at the midpoint of the forced coast
 		    Astrodynamics::find_engine_parameters(	options,
@@ -1537,6 +1631,68 @@ FBLT_phase::FBLT_phase() {
 
 	    for (int step = 0; step < options->num_timesteps; ++step)
 	    {
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
+
+            //first propagate to get the mid-point state of each step
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                                        this->spacecraft_state[step].data(),
+                                        this->control[step].data(),
+                                        (phase_start_epoch + phase_time_elapsed) / Universe->TU,
+                                        launchdate,
+                                        this->time_step_sizes[step] / 2.0 / Universe->TU,
+                                        &resumeH,
+                                        &resumeError,
+                                        1.0e-8,
+                                        EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        (int*)&dummy_parameter,
+                                        this->STMrows,
+                                        this->STMcolumns,
+                                        (void*)options,
+                                        (void*)Universe,
+                                        DummyControllerPointer);
+
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
+
+            //then propagate to the end of the step
+            integrator->adaptive_step_int(this->spacecraft_state[step].data(),
+                                        spacecraft_state_propagate,
+                                        this->control[step].data(),
+                                        (phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step]) / Universe->TU,
+                                        launchdate,
+                                        this->time_step_sizes[step] / 2.0 / Universe->TU,
+                                        &resumeH,
+                                        &resumeError,
+                                        1.0e-8,
+                                        EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        &dummy_parameter,
+                                        (int*)&dummy_parameter,
+                                        this->STMrows,
+                                        this->STMcolumns,
+                                        (void*)options,
+                                        (void*)Universe,
+                                        DummyControllerPointer);
+
 		    double angle1, angle2;
 		    if (step >= (options->num_timesteps / 2))
 		    {
@@ -1549,37 +1705,24 @@ FBLT_phase::FBLT_phase() {
 			    angle2 = asin(-control[step][2] / EMTG::math::norm(control[step].data(), 3)) * EMTG::math::PI / 180.0;
 		    }
 
-		    /*if (options->engine_type == 0) //fixed thrust/Isp
-		    {
-			    current_thrust = options->Thrust;
-			    current_Isp = options->IspLT;
-			    current_power = -1;
-			    current_mass_flow_rate = current_thrust / current_Isp / options->g0;
-		    }
-		    else //thrust, Isp are functions of power
-		    {
-			    double mdot;
-			    double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt;
-			    EMTG::Astrodynamics::find_engine_parameters(options, EMTG::math::norm(spacecraft_state[step].data(), 3),
-														    event_epochs[step] - launchdate,
-														    &available_thrust[step],
-														    &mdot,
-														    &current_Isp,
-														    &available_power[step],
-														    &active_power[step],
-														    &number_of_active_engines[step],
-														    false,
-														    &dTdP,
-														    &dmdotdP,
-														    &dTdIsp,
-														    &dmdotdIsp,
-														    &dPdr,
-														    &dPdt);
+		    //get the power and propulsion parameters at this half-step
+			double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt;
+			EMTG::Astrodynamics::find_engine_parameters(options, EMTG::math::norm(spacecraft_state[step].data(), 3),
+														event_epochs[step] - launchdate,
+														&this->available_thrust[step],
+														&this->available_mass_flow_rate[step],
+                                                        &this->available_Isp[step],
+                                                        &this->available_power[step],
+                                                        &this->active_power[step],
+                                                        &this->number_of_active_engines[step],
+														false,
+														&dTdP,
+														&dmdotdP,
+														&dTdIsp,
+														&dmdotdIsp,
+														&dPdr,
+														&dPdt);
 
-			    current_thrust = available_thrust[step];
-			    current_power = available_power[step];
-			    current_mass_flow_rate = current_thrust / current_Isp / options->g0;
-		    }*/
 		    double thrust_vector[3];
 		    for (int k = 0; k < 3; ++k)
 			    thrust_vector[k] = control[step][k] * available_thrust[step] * 1000.0; //kN to N conversion
@@ -1622,7 +1765,7 @@ FBLT_phase::FBLT_phase() {
 						    this->available_thrust[step] * 1000.0, //kN to N conversion
 						    this->available_Isp[step],
 						    this->available_power[step],
-						    math::norm(control[step].data(),3) * available_mass_flow_rate[step],
+						    math::norm(this->control[step].data(),3) * this->available_mass_flow_rate[step],
 						    this->number_of_active_engines[step],
 						    this->active_power[step]);
 		
@@ -1631,40 +1774,78 @@ FBLT_phase::FBLT_phase() {
 		    //if we have stepped halfway through, insert the match point line
 		    if (step == options->num_timesteps / 2 - 1)
 			    write_summary_line(options,
-						    Universe,
-						    eventcount,
-						    (phase_start_epoch + phase_time_elapsed) / 86400.0,
-						    "match_point",
-						    "deep-space",
-						    0.0,
-						    -1,
-						    -1,
-						    -1,
-						    0,
-						    0,
-						    0,
-						    match_point_state.data(),
-						    empty_vector,
-						    empty_vector,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0);
+						        Universe,
+						        eventcount,
+						        (phase_start_epoch + phase_time_elapsed) / 86400.0,
+						        "match_point",
+						        "deep-space",
+						        0.0,
+						        -1,
+						        -1,
+						        -1,
+						        0,
+						        0,
+						        0,
+                                match_point_state.data(),
+						        empty_vector,
+						        empty_vector,
+						        0,
+						        0,
+						        0,
+						        0,
+						        0,
+						        0,
+						        0);
 	    }
 
 	    //*****************************************************************************
 	    //next, if there was an terminal coast, we must print it
-	    if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
+	    if (this->detect_terminal_coast)
 	    {
+            double augmented_state_at_terminal_coast_midpoint[11 + 11 * 11];
+            
+            double empty_vector[] = { 0.0, 0.0, 0.0 };
+            double dummy_parameter = 0.0;
+
+            //initial coast after flyby
+            terminal_coast_duration = options->forced_flyby_coast;
+
+            double resumeH = -terminal_coast_duration / 2.0 / Universe->TU;
+            double resumeError = 1.0e-8;
+
+
+            //The terminal coast STM entries of the state vector must be initialized to the identity
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                                            augmented_state_at_terminal_coast_midpoint,
+                                            empty_vector,
+                                            (phase_end_epoch + phase_time_elapsed) / Universe->TU,
+                                            launchdate,
+                                            terminal_coast_duration / 2.0 / Universe->TU,
+                                            &resumeH,
+                                            &resumeError,
+                                            1.0e-8,
+                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            &dummy_parameter,
+                                            (int*)&dummy_parameter,
+                                            this->STMrows,
+                                            this->STMcolumns,
+                                            (void*)options,
+                                            (void*)Universe,
+                                            DummyControllerPointer);
+
 		    for (int k = 0; k < 3; ++k)
 		    {
-			    state_at_terminal_coast_midpoint[k] *= Universe->LU;
-			    state_at_terminal_coast_midpoint[k+3] *= Universe->LU / Universe->TU;
+                state_at_terminal_coast_midpoint[k] = augmented_state_at_terminal_coast_midpoint[k] * Universe->LU;
+                state_at_terminal_coast_midpoint[k + 3] = augmented_state_at_terminal_coast_midpoint[k + 3] * Universe->LU / Universe->TU;
 		    }
-		    state_at_terminal_coast_midpoint[6] *= options->maximum_mass;
+            state_at_terminal_coast_midpoint[6] = augmented_state_at_terminal_coast_midpoint[6] * options->maximum_mass;
 
 		    //we have to calculate the available power at the midpoint of the forced coast
 		    Astrodynamics::find_engine_parameters(	options,
@@ -1704,7 +1885,7 @@ FBLT_phase::FBLT_phase() {
 							    0.0,
 							    0.0,
 							    0.0,
-							    0.0,
+							    temp_power,
 							    0.0,
 							    0,
 							    0.0);
@@ -1728,7 +1909,6 @@ FBLT_phase::FBLT_phase() {
 		    else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
 			    event_type = "match-vinf";
 	
-		    //compute RA and DEC in the frame of the target body
 		    //compute RA and DEC in the frame of the target body
 		    if (options->destination_list[j][1] > 0)
 		    {
