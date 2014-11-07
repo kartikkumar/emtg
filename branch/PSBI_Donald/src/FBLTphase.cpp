@@ -88,9 +88,24 @@ FBLT_phase::FBLT_phase() {
 		{
 			this->STM_archive_forward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
 			this->STM_archive_backward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
-    }
-		this->initial_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
-		this->terminal_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
+        }
+
+        if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
+        {
+            this->detect_initial_coast = true;
+            this->initial_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
+        }
+        else
+            this->detect_initial_coast = false;
+
+        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5)) && options->forced_flyby_coast > 1.0e-6)
+        {
+            this->detect_terminal_coast = true;
+            this->terminal_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
+        }
+        else
+            this->detect_terminal_coast = false;
+		
     }
 
     FBLT_phase::~FBLT_phase() {
@@ -190,14 +205,9 @@ FBLT_phase::FBLT_phase() {
 	    //scale the mass
 	    spacecraft_state_forward[6] /= options->maximum_mass;
 
-
-        bool detect_initial_coast = false;
 	    //Step 6.2.0.1 if there is an initial coast, propagate through it
-	    if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
+	    if (detect_initial_coast)
 	    {
-
-            detect_initial_coast = true;
-
 		    //if this is a launch AND we are doing a forced post-launch initial coast
 		    double spacecraft_state_end_coast[7];
 		    double empty_vector[] = {0.0,0.0,0.0};
@@ -296,7 +306,7 @@ FBLT_phase::FBLT_phase() {
 
             //step 6.2.3 propagate the spacecraft to the end of the FBLT step using the control unit vector
 
-            /*
+            
             //The STM entries of the state vector must be initialized to the identity before every step
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_forward[i] = 0.0;
@@ -304,7 +314,7 @@ FBLT_phase::FBLT_phase() {
                 spacecraft_state_forward[i] = 1.0;
 
 
-            
+            /*
             //before we propagate with derivatives, let's do a "mini finite differencing" check
             double control_perturbation = 1.0e-6;
             double dstate_du[7][3]; //indexed as [state][control]
@@ -414,9 +424,10 @@ FBLT_phase::FBLT_phase() {
                     ++statecount;
                 }
             }
+            
             /*
             //finally, compare the propagated STM to the central differenced STM
-            std::cout << "Difference between propagated STM and central differenced STM" << std::endl;
+            std::cout << "Difference between propagated STM and central differenced STM, forward step " << step << std::endl;
             std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
             vector<string> statenames;
             vector<string> cnames;
@@ -443,6 +454,8 @@ FBLT_phase::FBLT_phase() {
             << std::endl;
             }
             }
+            getchar();
+            //end local STM check
             */
 
             //copy the state over
@@ -647,7 +660,7 @@ FBLT_phase::FBLT_phase() {
 	    phase_time_elapsed_backward = 0.0;
 	    //store the initial prefered integration step size
 	    resumeH = -time_step_sizes[options->num_timesteps - 1] / Universe->TU;
-	    resumeError = 1.0e-6;
+	    resumeError = 1.0e-13;
 	
 	    //first initialize the backward integration
 	    double spacecraft_state_backward[11 + 11*11];
@@ -673,14 +686,9 @@ FBLT_phase::FBLT_phase() {
 	    //scale the mass
 	    spacecraft_state_backward[6] /= options->maximum_mass;
 
-
-		bool detect_terminal_coast = false;
 	    //Step 6.3.0.1 if there is an terminal coast, propagate through it
-	    if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
+	    if (this->detect_terminal_coast)
 	    {
-
-			detect_terminal_coast = true;
-
 		    double spacecraft_state_end_coast[7];
 		    double empty_vector[] = {0.0,0.0,0.0};
 		    double dummy_parameter = 0.0;
@@ -1315,540 +1323,726 @@ FBLT_phase::FBLT_phase() {
     //return 0 if successful, 1 if failure
     int FBLT_phase::output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount)
     {
-	    //Step 1: store data that will be used for the printing
-	    double empty_vector[] = {0,0,0};
-	    double phase_time_elapsed = 0.0;
-	    string event_type;
-	    double temp_power, temp_thrust, temp_mdot, temp_Isp,
-		    temp_active_power, temp_dTdP, temp_dmdotdP,
-		    temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
-	    int temp_active_thrusters;
+        //Step 1: store data that will be used for the printing
+        double empty_vector[] = { 0, 0, 0 };
+        double phase_time_elapsed = 0.0;
+        string event_type;
+        double temp_power, temp_thrust, temp_mdot, temp_Isp,
+            temp_active_power, temp_dTdP, temp_dmdotdP,
+            temp_dTdIsp, temp_dmdotdIsp, temp_dPdr, temp_dPdt;
+        int temp_active_thrusters;
+        double spacecraft_state_propagate[11 + 11 * 11], spacecraft_state_propagate_next[11 + 11 * 11];
+        double resumeH;
+        double resumeError = 1.0e-13;
+        double dummy_parameter = 0.0;
 
-	    if (p > 0 || (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4))
-	    {
-		    event_type = "upwr_flyby";
-		    math::Matrix<double> periapse_state = calculate_flyby_periapse_state(V_infinity_in, V_infinity_out, flyby_altitude, *Body1);
-		    math::Matrix<double> periapse_R(3, 1);
-		    periapse_R(0) = periapse_state(0);
-		    periapse_R(1) = periapse_state(1);
-		    periapse_R(2) = periapse_state(2);
-		    Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
-		    Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
+        //scale the integration state array to LU and TU
+        for (int k = 0; k < 6; ++k)
+        {
+            spacecraft_state_propagate[k] = this->state_at_beginning_of_phase[k] / Universe->LU;
+        }
 
-		    //compute RA and DEC in the frame of the target body
-		    this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
-		    math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+        for (int k = 3; k < 6; ++k)
+        {
+            spacecraft_state_propagate[k] *= Universe->TU;
+        }
+        //scale the mass
+        spacecraft_state_propagate[6] = state_at_beginning_of_phase[6] / options->maximum_mass;
 
-		    this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+        if (p > 0 || (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4))
+        {
+            event_type = "upwr_flyby";
+            math::Matrix<double> periapse_state = calculate_flyby_periapse_state(V_infinity_in, V_infinity_out, flyby_altitude, *Body1);
+            math::Matrix<double> periapse_R(3, 1);
+            periapse_R(0) = periapse_state(0);
+            periapse_R(1) = periapse_state(1);
+            periapse_R(2) = periapse_state(2);
+            Bplane.define_bplane(V_infinity_in, BoundaryR, BoundaryV);
+            Bplane.compute_BdotR_BdotT_from_periapse_position(Body1->mu, V_infinity_in, periapse_R, &BdotR, &BdotT);
 
-		    this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
-	    }
-	    else if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
-		    event_type = "launch";
-	    else if (options->journey_departure_type[j] == 6)
-	    {
-		    event_type = "zeroflyby";
-		    //compute RA and DEC in the frame of the target body
-		    this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
-		    math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
+            //compute RA and DEC in the frame of the target body
+            this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+            math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
 
-		    this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
+            this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
 
-		    this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
-	    }
-	    else
-		    event_type = "departure";
+            this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
+        }
+        else if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
+            event_type = "launch";
+        else if (options->journey_departure_type[j] == 6)
+        {
+            event_type = "zeroflyby";
+            //compute RA and DEC in the frame of the target body
+            this->Body1->J2000_body_equatorial_frame.construct_rotation_matrices(this->phase_start_epoch / 86400.0 + 2400000.5);
+            math::Matrix<double> rot_out_vec = this->Body1->J2000_body_equatorial_frame.R_from_ICRF_to_local * V_infinity_in;
 
-	    string boundary1_name;
-	    string boundary2_name;
+            this->RA_departure = atan2(rot_out_vec(1), rot_out_vec(0));
 
-		    switch (boundary1_location_code)
-	    {
-		    case -1:
-			    {
-				    boundary2_name = "free point";
-				    break;
-			    }
-		    case -2: //begin at SOI
-			    {
-				    boundary1_name = "Hyp-arrival";
-				    break;
-			    }
-		    default:
-			    boundary1_name = (Universe->bodies[boundary1_location_code - 1].name);
-	    }
+            this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
+        }
+        else
+            event_type = "departure";
 
-	    switch (boundary2_location_code)
-	    {
-		    case -1:
-			    {
-				    boundary2_name = "free point";
-				    break;
-			    }
-		    default:
-			    boundary2_name = (Universe->bodies[boundary2_location_code - 1].name);
-	    }
-	    double initial_Isp;
-	    if (j == 0 && p == 0)
-	    {
-		    if (options->journey_departure_type[j] == 1 || options->LV_type == -1)
-		    {
-			    initial_Isp =  options->IspDS;
-		    }
-		    else
-		    {
-			    initial_Isp =  -1;
-		    }
-	    }
-	    else
-	    {
-		    initial_Isp = options->IspChem;
-	    }
+        string boundary1_name;
+        string boundary2_name;
 
-	    //Step 2: all phases have at least 2+n events: departure, arrival, and n thrust/coast
-	    //*****************************************************************************
-	
-	    //Step 2.01 if this phase starts with an escape spiral, we have to encode the spiral start date
-		    if (options->journey_departure_type[j] == 5 && p == 0)
-		    {
-			    event_type = "departure";
+        switch (boundary1_location_code)
+        {
+        case -1:
+        {
+            boundary2_name = "free point";
+            break;
+        }
+        case -2: //begin at SOI
+        {
+            boundary1_name = "Hyp-arrival";
+            break;
+        }
+        default:
+            boundary1_name = (Universe->bodies[boundary1_location_code - 1].name);
+        }
 
-			    this->write_summary_line(options,
-									    Universe,
-									    eventcount, 
-									    (this->phase_start_epoch - this->spiral_escape_time) / 86400.0,
-									    "begin_spiral",
-									    this->Body1->name,
-									    this->spiral_escape_time / 86400.0,
-									    0.0,
-									    0.0,
-									    0.0,
-									    0.0,
-									    0.0,
-									    0.0,
-									    this->spiral_escape_state_before_spiral,
-									    empty_vector,
-									    empty_vector,
-									    this->spiral_escape_dv,
-									    this->spiral_escape_thrust * 1000.0, //kN to N conversion
-									    this->spiral_escape_Isp,
-									    this->spiral_escape_power,
-									    this->spiral_escape_mdot,
-									    this->spiral_escape_number_of_engines,
-									    this->spiral_escape_active_power);
-									
-		    }
+        switch (boundary2_location_code)
+        {
+        case -1:
+        {
+            boundary2_name = "free point";
+            break;
+        }
+        default:
+            boundary2_name = (Universe->bodies[boundary2_location_code - 1].name);
+        }
+        double initial_Isp;
+        if (j == 0 && p == 0)
+        {
+            if (options->journey_departure_type[j] == 1 || options->LV_type == -1)
+            {
+                initial_Isp = options->IspDS;
+            }
+            else
+            {
+                initial_Isp = -1;
+            }
+        }
+        else
+        {
+            initial_Isp = options->IspChem;
+        }
 
-	    //print the departure/flyby
-	    for (int k = 0; k < 3; ++k)
-		    dVdeparture[k] = V_infinity_out(k);
+        //Step 2: all phases have at least 2+n events: departure, arrival, and n thrust/coast
+        //*****************************************************************************
 
-	    //we have to calculate the available power at departure
-	    Astrodynamics::find_engine_parameters(	options,
-											    math::norm(this->state_at_beginning_of_phase, 3) / Universe->LU,
-											    (this->phase_start_epoch),
-											    &temp_thrust,
-											    &temp_mdot,
-											    &temp_Isp,
-											    &temp_power,
-											    &temp_active_power,
-											    &temp_active_thrusters,
-											    false,
-											    &temp_dTdP,
-											    &temp_dmdotdP,
-											    &temp_dTdIsp,
-											    &temp_dmdotdIsp,
-											    &temp_dPdr,
-											    &temp_dPdt);
+        //Step 2.01 if this phase starts with an escape spiral, we have to encode the spiral start date
+        if (options->journey_departure_type[j] == 5 && p == 0)
+        {
+            event_type = "departure";
 
-	    write_summary_line(options,
-						    Universe,
-						    eventcount,
-						    phase_start_epoch / 86400.0,
-						    event_type,
-						    boundary1_name,
-						    0,
-						    (p > 0 ? flyby_altitude : Bradius),
-						    (Btheta),
-						    (p > 0 ? flyby_turn_angle : -1),
-						    RA_departure,
-						    DEC_departure,
-						    C3_departure,
-						    state_at_beginning_of_phase,
-						    dVdeparture,
-						    empty_vector,
-						    (p == 0 ? (options->journey_departure_type[j] == 5 ? 0.0 : this->dV_departure_magnitude) : this->flyby_outgoing_v_infinity),
-						    -1,
-						    initial_Isp,
-						    temp_power,
-						    0,
-						    0,
-						    0);
+            this->write_summary_line(options,
+                Universe,
+                eventcount,
+                (this->phase_start_epoch - this->spiral_escape_time) / 86400.0,
+                "begin_spiral",
+                this->Body1->name,
+                this->spiral_escape_time / 86400.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                this->spiral_escape_state_before_spiral,
+                empty_vector,
+                empty_vector,
+                this->spiral_escape_dv,
+                this->spiral_escape_thrust * 1000.0, //kN to N conversion
+                this->spiral_escape_Isp,
+                this->spiral_escape_power,
+                this->spiral_escape_mdot,
+                this->spiral_escape_number_of_engines,
+                this->spiral_escape_active_power);
+        }
 
-	    //*****************************************************************************
-	    //next, if there was an initial coast, we must print it
-	    //we'll have to start by propagating to the halfway point of the initial coast step
-	    if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
-	    {
-		    for (int k = 0; k < 3; ++k)
-		    {
-			    state_at_initial_coast_midpoint[k] *= Universe->LU;
-			    state_at_initial_coast_midpoint[k+3] *= Universe->LU / Universe->TU;
-		    }
-		    state_at_initial_coast_midpoint[6] *= options->maximum_mass;
+        //print the departure/flyby
+        for (int k = 0; k < 3; ++k)
+            dVdeparture[k] = V_infinity_out(k);
 
-		    //we have to calculate the available power at the midpoint of the forced coast
-		    Astrodynamics::find_engine_parameters(	options,
-												    math::norm(state_at_initial_coast_midpoint, 3) / Universe->LU,
-												    phase_start_epoch + initial_coast_duration / 2.0,
-												    &temp_thrust,
-												    &temp_mdot,
-												    &temp_Isp,
-												    &temp_power,
-												    &temp_active_power,
-												    &temp_active_thrusters,
-												    false,
-												    &temp_dTdP,
-												    &temp_dmdotdP,
-												    &temp_dTdIsp,
-												    &temp_dmdotdIsp,
-												    &temp_dPdr,
-												    &temp_dPdt);
+        //we have to calculate the available power at departure
+        Astrodynamics::find_engine_parameters(options,
+            math::norm(this->state_at_beginning_of_phase, 3) / Universe->LU,
+            (this->phase_start_epoch),
+            &temp_thrust,
+            &temp_mdot,
+            &temp_Isp,
+            &temp_power,
+            &temp_active_power,
+            &temp_active_thrusters,
+            false,
+            &temp_dTdP,
+            &temp_dmdotdP,
+            &temp_dTdIsp,
+            &temp_dmdotdIsp,
+            &temp_dPdr,
+            &temp_dPdt);
 
-		    write_summary_line(	options,
-							    Universe,
-							    eventcount,
-							    (phase_start_epoch + 0.5 * initial_coast_duration) / 86400.0,
-							    "force-coast",
-							    "deep-space",
-							    initial_coast_duration / 86400.0,
-							    -1,
-							    -1,
-							    -1,
-							    0.0,
-							    0.0,
-							    0.0,
-							    state_at_initial_coast_midpoint,
-							    empty_vector,
-							    empty_vector,
-							    0.0,
-							    0.0,
-							    0.0,
-							    temp_power,
-							    0.0,
-							    0,
-							    0.0);
+        write_summary_line(options,
+            Universe,
+            eventcount,
+            phase_start_epoch / 86400.0,
+            event_type,
+            boundary1_name,
+            0,
+            (p > 0 ? flyby_altitude : Bradius),
+            (Btheta),
+            (p > 0 ? flyby_turn_angle : -1),
+            RA_departure,
+            DEC_departure,
+            C3_departure,
+            state_at_beginning_of_phase,
+            dVdeparture,
+            empty_vector,
+            (p == 0 ? (options->journey_departure_type[j] == 5 ? 0.0 : this->dV_departure_magnitude) : this->flyby_outgoing_v_infinity),
+            -1,
+            initial_Isp,
+            temp_power,
+            0,
+            0,
+            0);
 
-		    phase_time_elapsed += initial_coast_duration;
-	    }
+        //*****************************************************************************
+        //next, if there was an initial coast, we must print it
+        //we'll have to start by propagating to the halfway point of the initial coast step
+        if (this->detect_initial_coast)
+        {
+            //if this is a launch AND we are doing a forced post-launch initial coast
+            
+            if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
+            {
+                //initial coast after launch
+                initial_coast_duration = options->forced_post_launch_coast;
+            }
+            else
+            {
+                //initial coast after flyby
+                initial_coast_duration = options->forced_flyby_coast;
+            }
 
+            double augmented_state_at_initial_coast_midpoint[11 + 11 * 11];
 
-	    //*****************************************************************************
-	    //next, we must print each thrust arc
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
+            
+            resumeH = initial_coast_duration * 86400 / 2.0 / Universe->TU;
 
-	    for (int step = 0; step < options->num_timesteps; ++step)
-	    {
-		    double angle1, angle2;
-		    if (step >= (options->num_timesteps / 2))
-		    {
-			    angle1 =  atan2(control[step][1] + math::SMALL, control[step][0]) * EMTG::math::PI / 180.0;
-			    angle2 =  asin(control[step][2] / EMTG::math::norm(control[step].data(), 3)) * EMTG::math::PI / 180.0;
-		    }
-		    else
-		    {
-			    angle1 = atan2(-control[step][1] + math::SMALL, -control[step][0]) * EMTG::math::PI / 180.0;
-			    angle2 = asin(-control[step][2] / EMTG::math::norm(control[step].data(), 3)) * EMTG::math::PI / 180.0;
-		    }
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                augmented_state_at_initial_coast_midpoint,
+                empty_vector,
+                (phase_start_epoch) / Universe->TU,
+                launchdate,
+                initial_coast_duration / 2.0 / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
-		    /*if (options->engine_type == 0) //fixed thrust/Isp
-		    {
-			    current_thrust = options->Thrust;
-			    current_Isp = options->IspLT;
-			    current_power = -1;
-			    current_mass_flow_rate = current_thrust / current_Isp / options->g0;
-		    }
-		    else //thrust, Isp are functions of power
-		    {
-			    double mdot;
-			    double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt;
-			    EMTG::Astrodynamics::find_engine_parameters(options, EMTG::math::norm(spacecraft_state[step].data(), 3),
-														    event_epochs[step] - launchdate,
-														    &available_thrust[step],
-														    &mdot,
-														    &current_Isp,
-														    &available_power[step],
-														    &active_power[step],
-														    &number_of_active_engines[step],
-														    false,
-														    &dTdP,
-														    &dmdotdP,
-														    &dTdIsp,
-														    &dmdotdIsp,
-														    &dPdr,
-														    &dPdt);
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
 
-			    current_thrust = available_thrust[step];
-			    current_power = available_power[step];
-			    current_mass_flow_rate = current_thrust / current_Isp / options->g0;
-		    }*/
-		    double thrust_vector[3];
-		    for (int k = 0; k < 3; ++k)
-			    thrust_vector[k] = control[step][k] * available_thrust[step] * 1000.0; //kN to N conversion
+            //propagate forward to the end of the initial coast
+            integrator->adaptive_step_int(augmented_state_at_initial_coast_midpoint,
+                spacecraft_state_propagate,
+                empty_vector,
+                (phase_start_epoch) / Universe->TU,
+                launchdate,
+                initial_coast_duration / 2.0 / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
-		    if (EMTG::math::norm(control[step].data(), 3) > 1.0e-2 && fabs(available_thrust[step]) > 1.0e-6)
-		    {
-			    event_type = "FBLTthrust";
-		    }
-		    else
-		    {
-			    event_type = "coast";
-		    }
+            for (int k = 0; k < 3; ++k)
+            {
+                state_at_initial_coast_midpoint[k] = augmented_state_at_initial_coast_midpoint[k] * Universe->LU;
+                state_at_initial_coast_midpoint[k + 3] = augmented_state_at_initial_coast_midpoint[k + 3] * Universe->LU / Universe->TU;
+            }
+            state_at_initial_coast_midpoint[6] = augmented_state_at_initial_coast_midpoint[6] * options->maximum_mass;
 
-		    //scale from LU, LU/TU, MU to km, km/s, kg
-		    double scaled_state[7];
-		    for (int k = 0; k < 3; ++k)
-		    {
-			    scaled_state[k] = spacecraft_state[step][k] * Universe->LU;
-			    scaled_state[k+3] = spacecraft_state[step][k+3] * Universe->LU / Universe->TU;
-		    }
-		    scaled_state[6] = spacecraft_state[step][6] * options->maximum_mass;
+            //we have to calculate the available power at the midpoint of the forced coast
+            Astrodynamics::find_engine_parameters(options,
+                math::norm(state_at_initial_coast_midpoint, 3) / Universe->LU,
+                phase_start_epoch + initial_coast_duration / 2.0,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                false,
+                &temp_dTdP,
+                &temp_dmdotdP,
+                &temp_dTdIsp,
+                &temp_dmdotdIsp,
+                &temp_dPdr,
+                &temp_dPdt);
 
-		    write_summary_line(options,
-						    Universe,
-						    eventcount,
-						    (phase_start_epoch + phase_time_elapsed + 0.5 * time_step_sizes[step]) / 86400.0,
-						    event_type,
-						    "deep-space",
-						    time_step_sizes[step] / 86400.0,
-						    -1,
-						    -1,
-						    -1,
-						    angle1,
-						    angle2,
-						    0,
-						    scaled_state,
-						    this->control[step].data(),
-						    thrust_vector,
-						    EMTG::math::norm(this->control[step].data(), 3),
-						    this->available_thrust[step] * 1000.0, //kN to N conversion
-						    this->available_Isp[step],
-						    this->available_power[step],
-						    math::norm(control[step].data(),3) * available_mass_flow_rate[step],
-						    this->number_of_active_engines[step],
-						    this->active_power[step]);
-		
-		    phase_time_elapsed += time_step_sizes[step];
+            write_summary_line(options,
+                Universe,
+                eventcount,
+                (phase_start_epoch + 0.5 * initial_coast_duration) / 86400.0,
+                "force-coast",
+                "deep-space",
+                initial_coast_duration / 86400.0,
+                -1,
+                -1,
+                -1,
+                0.0,
+                0.0,
+                0.0,
+                state_at_initial_coast_midpoint,
+                empty_vector,
+                empty_vector,
+                0.0,
+                0.0,
+                0.0,
+                temp_power,
+                0.0,
+                0,
+                0.0);
 
-		    //if we have stepped halfway through, insert the match point line
-		    if (step == options->num_timesteps / 2 - 1)
-			    write_summary_line(options,
-						    Universe,
-						    eventcount,
-						    (phase_start_epoch + phase_time_elapsed) / 86400.0,
-						    "match_point",
-						    "deep-space",
-						    0.0,
-						    -1,
-						    -1,
-						    -1,
-						    0,
-						    0,
-						    0,
-						    match_point_state.data(),
-						    empty_vector,
-						    empty_vector,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0,
-						    0);
-	    }
-
-	    //*****************************************************************************
-	    //next, if there was an terminal coast, we must print it
-	    if ( (p < options->number_of_phases[j] - 1 ||  (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5) ) && options->forced_flyby_coast > 1.0e-6)
-	    {
-		    for (int k = 0; k < 3; ++k)
-		    {
-			    state_at_terminal_coast_midpoint[k] *= Universe->LU;
-			    state_at_terminal_coast_midpoint[k+3] *= Universe->LU / Universe->TU;
-		    }
-		    state_at_terminal_coast_midpoint[6] *= options->maximum_mass;
-
-		    //we have to calculate the available power at the midpoint of the forced coast
-		    Astrodynamics::find_engine_parameters(	options,
-												    math::norm(state_at_terminal_coast_midpoint, 3) / Universe->LU,
-												    this->phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration,
-												    &temp_thrust,
-												    &temp_mdot,
-												    &temp_Isp,
-												    &temp_power,
-												    &temp_active_power,
-												    &temp_active_thrusters,
-												    false,
-												    &temp_dTdP,
-												    &temp_dmdotdP,
-												    &temp_dTdIsp,
-												    &temp_dmdotdIsp,
-												    &temp_dPdr,
-												    &temp_dPdt);
+            phase_time_elapsed += initial_coast_duration;
+        }
 
 
-		    write_summary_line(	options,
-							    Universe,
-							    eventcount,
-							    (phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration) / 86400.0,
-							    "force-coast",
-							    "deep-space",
-							    terminal_coast_duration / 86400.0,
-							    -1,
-							    -1,
-							    -1,
-							    0.0,
-							    0.0,
-							    0.0,
-							    state_at_terminal_coast_midpoint,
-							    empty_vector,
-							    empty_vector,
-							    0.0,
-							    0.0,
-							    0.0,
-							    0.0,
-							    0.0,
-							    0,
-							    0.0);
+        //*****************************************************************************
+        //next, we must print each thrust arc
 
-		    phase_time_elapsed += terminal_coast_duration;
-	    }
+        for (int step = 0; step < options->num_timesteps; ++step)
+        {
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
 
-	    //*****************************************************************************
-	    //finally, terminal phases have an arrival maneuver
+            resumeH = time_step_sizes[0] / 2.0 / Universe->TU;
 
-	    if (p == options->number_of_phases[j] - 1)
-	    {
-		    if (options->journey_arrival_type[j] == 0)
-			    event_type = "insertion";
-		    else if (options->journey_arrival_type[j] == 1)
-			    event_type = "rendezvous";
-		    else if (options->journey_arrival_type[j] == 2)
-			    event_type = "intercept";
-		    else if (options->journey_arrival_type[j] == 3)
-			    event_type = "LT_rndzvs";
-		    else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
-			    event_type = "match-vinf";
-	
-		    //compute RA and DEC in the frame of the target body
-		    //compute RA and DEC in the frame of the target body
-		    if (options->destination_list[j][1] > 0)
-		    {
-			    this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
-			    math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
-			    math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+            //first propagate to get the mid-point state of each step
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                spacecraft_state_propagate_next,
+                this->control[step].data(),
+                (phase_start_epoch + phase_time_elapsed) / Universe->TU,
+                launchdate,
+                this->time_step_sizes[step] / 2.0 / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
-			    this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+            //save the midpoint state
+            for (size_t state = 0; state < 7; ++state)
+                this->spacecraft_state[step][state] = spacecraft_state_propagate_next[state];
 
-			    this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
-		    }
-		    else
-		    {
-			    this->RA_arrival = 0.0;
-			    this->DEC_arrival = 0.0;
-		    }
+            //initialize the propagator state
+            for (size_t i = 7; i < 11; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
+            for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+                spacecraft_state_propagate[i] = 1.0;
 
-		    double dV_arrival_mag;
-		    if (options->journey_arrival_type[j] == 2)
-		    {
-			    dV_arrival_mag = sqrt(C3_arrival);
-		    }
-		    else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3)
-		    {
-			    dV_arrival_mag = 0;
-			    dVarrival[0] = 0;
-			    dVarrival[1] = 0;
-			    dVarrival[2] = 0;
-			    this->RA_arrival = 0.0;
-			    this->DEC_arrival = 0.0;
-		    }
-		    else
-		    {
-			    dV_arrival_mag = dV_arrival_magnitude;
-		    }
+            //then propagate to the end of the step
+            integrator->adaptive_step_int(spacecraft_state_propagate_next,
+                spacecraft_state_propagate,
+                this->control[step].data(),
+                (phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step]) / Universe->TU,
+                launchdate,
+                this->time_step_sizes[step] / 2.0 / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
-		    //we have to calculate the available power at boundary
-		    Astrodynamics::find_engine_parameters(	options,
-												    math::norm(this->state_at_end_of_phase, 3) / Universe->LU,
-												    (this->phase_start_epoch + this->TOF),
-												    &temp_thrust,
-												    &temp_mdot,
-												    &temp_Isp,
-												    &temp_power,
-												    &temp_active_power,
-												    &temp_active_thrusters,
-												    false,
-												    &temp_dTdP,
-												    &temp_dmdotdP,
-												    &temp_dTdIsp,
-												    &temp_dmdotdIsp,
-												    &temp_dPdr,
-												    &temp_dPdt);
+            double angle1, angle2;
+            if (step >= (options->num_timesteps / 2))
+            {
+                angle1 = atan2(control[step][1] + math::SMALL, control[step][0]) * EMTG::math::PI / 180.0;
+                angle2 = asin(control[step][2] / EMTG::math::norm(control[step].data(), 3)) * EMTG::math::PI / 180.0;
+            }
+            else
+            {
+                angle1 = atan2(-control[step][1] + math::SMALL, -control[step][0]) * EMTG::math::PI / 180.0;
+                angle2 = asin(-control[step][2] / EMTG::math::norm(control[step].data(), 3)) * EMTG::math::PI / 180.0;
+            }
+
+            //get the power and propulsion parameters at this half-step
+            double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt;
+            EMTG::Astrodynamics::find_engine_parameters(options, EMTG::math::norm(spacecraft_state[step].data(), 3),
+                event_epochs[step] - launchdate,
+                &this->available_thrust[step],
+                &this->available_mass_flow_rate[step],
+                &this->available_Isp[step],
+                &this->available_power[step],
+                &this->active_power[step],
+                &this->number_of_active_engines[step],
+                false,
+                &dTdP,
+                &dmdotdP,
+                &dTdIsp,
+                &dmdotdIsp,
+                &dPdr,
+                &dPdt);
+
+            double thrust_vector[3];
+            for (int k = 0; k < 3; ++k)
+                thrust_vector[k] = control[step][k] * available_thrust[step] * 1000.0; //kN to N conversion
+
+            if (EMTG::math::norm(control[step].data(), 3) > 1.0e-2 && fabs(available_thrust[step]) > 1.0e-6)
+            {
+                event_type = "FBLTthrust";
+            }
+            else
+            {
+                event_type = "coast";
+            }
+
+            //scale from LU, LU/TU, MU to km, km/s, kg
+            double scaled_state[7];
+            for (int k = 0; k < 3; ++k)
+            {
+                scaled_state[k] = spacecraft_state[step][k] * Universe->LU;
+                scaled_state[k + 3] = spacecraft_state[step][k + 3] * Universe->LU / Universe->TU;
+            }
+            scaled_state[6] = spacecraft_state[step][6] * options->maximum_mass;
+
+            write_summary_line(options,
+                Universe,
+                eventcount,
+                (phase_start_epoch + phase_time_elapsed + 0.5 * time_step_sizes[step]) / 86400.0,
+                event_type,
+                "deep-space",
+                time_step_sizes[step] / 86400.0,
+                -1,
+                -1,
+                -1,
+                angle1,
+                angle2,
+                0,
+                scaled_state,
+                this->control[step].data(),
+                thrust_vector,
+                EMTG::math::norm(this->control[step].data(), 3),
+                this->available_thrust[step] * 1000.0, //kN to N conversion
+                this->available_Isp[step],
+                this->available_power[step],
+                math::norm(this->control[step].data(), 3) * this->available_mass_flow_rate[step],
+                this->number_of_active_engines[step],
+                this->active_power[step]);
+
+            phase_time_elapsed += time_step_sizes[step];
+
+            //if we have stepped halfway through, insert the match point line
+            if (step == options->num_timesteps / 2 - 1)
+                write_summary_line(options,
+                Universe,
+                eventcount,
+                (phase_start_epoch + phase_time_elapsed) / 86400.0,
+                "match_point",
+                "deep-space",
+                0.0,
+                -1,
+                -1,
+                -1,
+                0,
+                0,
+                0,
+                match_point_state.data(),
+                empty_vector,
+                empty_vector,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0);
+        }
+
+        //*****************************************************************************
+        //next, if there was an terminal coast, we must print it
+        if (this->detect_terminal_coast)
+        {
+            double augmented_state_at_terminal_coast_midpoint[11 + 11 * 11];
+
+            double empty_vector[] = { 0.0, 0.0, 0.0 };
+            double dummy_parameter = 0.0;
+
+            //initial coast after flyby
+            terminal_coast_duration = options->forced_flyby_coast;
+
+            double resumeH = -terminal_coast_duration / 2.0 / Universe->TU;
+            double resumeError = 1.0e-13;
 
 
-		    write_summary_line(options,
-						    Universe,
-						    eventcount,
-						    (phase_start_epoch + TOF) / 86400.0,
-						    event_type,
-						    boundary2_name,
-						    0,
-						    -1,
-						    -1,
-						    -1,
-						    RA_arrival,
-						    DEC_arrival,
-						    C3_arrival,
-						    state_at_end_of_phase,
-						    dVarrival,
-						    empty_vector,
-						    dV_arrival_mag,
-						    -1,
-						    options->IspChem,
-						    temp_power,
-						    0,
-						    0,
-						    0);
+            //The terminal coast STM entries of the state vector must be initialized to the identity
+            for (size_t i = this->STMrows; i < this->num_states; ++i)
+                spacecraft_state_propagate[i] = 0.0;
 
-		    //if the phase ends in a capture spiral, print it
-		    if (options->journey_arrival_type[j] == 7)
-		    {
-			    this->write_summary_line(options,
-								    Universe,
-								    eventcount, 
-								    (this->phase_start_epoch + this->TOF + this->spiral_capture_time) / 86400.0,
-								    "end_spiral",
-								    this->Body2->name,
-								    this->spiral_capture_time / 86400.0,
-								    0.0,
-								    0.0,
-								    0.0,
-								    0.0,
-								    0.0,
-								    0.0,
-								    this->spiral_capture_state_after_spiral,
-								    empty_vector,
-								    empty_vector,
-								    this->spiral_capture_dv,
-								    this->spiral_capture_thrust * 1000.0, //kN to N conversion
-								    this->spiral_capture_Isp,
-								    this->spiral_capture_power,
-								    this->spiral_capture_mdot,
-								    this->spiral_capture_number_of_engines,
-								    this->spiral_capture_active_power);
-		    }
-	    }
+            integrator->adaptive_step_int(spacecraft_state_propagate,
+                augmented_state_at_terminal_coast_midpoint,
+                empty_vector,
+                (phase_end_epoch + phase_time_elapsed) / Universe->TU,
+                launchdate,
+                terminal_coast_duration / 2.0 / Universe->TU,
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
-	    return 0;
+            for (int k = 0; k < 3; ++k)
+            {
+                state_at_terminal_coast_midpoint[k] = augmented_state_at_terminal_coast_midpoint[k] * Universe->LU;
+                state_at_terminal_coast_midpoint[k + 3] = augmented_state_at_terminal_coast_midpoint[k + 3] * Universe->LU / Universe->TU;
+            }
+            state_at_terminal_coast_midpoint[6] = augmented_state_at_terminal_coast_midpoint[6] * options->maximum_mass;
+
+            //we have to calculate the available power at the midpoint of the forced coast
+            Astrodynamics::find_engine_parameters(options,
+                math::norm(state_at_terminal_coast_midpoint, 3) / Universe->LU,
+                this->phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                false,
+                &temp_dTdP,
+                &temp_dmdotdP,
+                &temp_dTdIsp,
+                &temp_dmdotdIsp,
+                &temp_dPdr,
+                &temp_dPdt);
+
+
+            write_summary_line(options,
+                Universe,
+                eventcount,
+                (phase_start_epoch + phase_time_elapsed + 0.5 * terminal_coast_duration) / 86400.0,
+                "force-coast",
+                "deep-space",
+                terminal_coast_duration / 86400.0,
+                -1,
+                -1,
+                -1,
+                0.0,
+                0.0,
+                0.0,
+                state_at_terminal_coast_midpoint,
+                empty_vector,
+                empty_vector,
+                0.0,
+                0.0,
+                0.0,
+                temp_power,
+                0.0,
+                0,
+                0.0);
+
+            phase_time_elapsed += terminal_coast_duration;
+        }
+
+        //*****************************************************************************
+        //finally, terminal phases have an arrival maneuver
+
+        if (p == options->number_of_phases[j] - 1)
+        {
+            if (options->journey_arrival_type[j] == 0)
+                event_type = "insertion";
+            else if (options->journey_arrival_type[j] == 1)
+                event_type = "rendezvous";
+            else if (options->journey_arrival_type[j] == 2)
+                event_type = "intercept";
+            else if (options->journey_arrival_type[j] == 3)
+                event_type = "LT_rndzvs";
+            else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
+                event_type = "match-vinf";
+
+            //compute RA and DEC in the frame of the target body
+            if (options->destination_list[j][1] > 0)
+            {
+                this->Body2->J2000_body_equatorial_frame.construct_rotation_matrices((this->phase_start_epoch + this->TOF) / 86400.0 + 2400000.5);
+                math::Matrix<double> rot_in_vec(3, 1, this->dVarrival);
+                math::Matrix<double> rot_out_vec = this->Body2->J2000_body_equatorial_frame.R_from_ICRF_to_local * rot_in_vec;
+
+                this->RA_arrival = atan2(rot_out_vec(1), rot_out_vec(0));
+
+                this->DEC_arrival = asin(rot_out_vec(2) / sqrt(this->C3_arrival));
+            }
+            else
+            {
+                this->RA_arrival = 0.0;
+                this->DEC_arrival = 0.0;
+            }
+
+            double dV_arrival_mag;
+            if (options->journey_arrival_type[j] == 2)
+            {
+                dV_arrival_mag = sqrt(C3_arrival);
+            }
+            else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3)
+            {
+                dV_arrival_mag = 0;
+                dVarrival[0] = 0;
+                dVarrival[1] = 0;
+                dVarrival[2] = 0;
+                this->RA_arrival = 0.0;
+                this->DEC_arrival = 0.0;
+            }
+            else
+            {
+                dV_arrival_mag = dV_arrival_magnitude;
+            }
+
+            //we have to calculate the available power at boundary
+            Astrodynamics::find_engine_parameters(options,
+                math::norm(this->state_at_end_of_phase, 3) / Universe->LU,
+                (this->phase_start_epoch + this->TOF),
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                false,
+                &temp_dTdP,
+                &temp_dmdotdP,
+                &temp_dTdIsp,
+                &temp_dmdotdIsp,
+                &temp_dPdr,
+                &temp_dPdt);
+
+
+            write_summary_line(options,
+                Universe,
+                eventcount,
+                (phase_start_epoch + TOF) / 86400.0,
+                event_type,
+                boundary2_name,
+                0,
+                -1,
+                -1,
+                -1,
+                RA_arrival,
+                DEC_arrival,
+                C3_arrival,
+                state_at_end_of_phase,
+                dVarrival,
+                empty_vector,
+                dV_arrival_mag,
+                -1,
+                options->IspChem,
+                temp_power,
+                0,
+                0,
+                0);
+
+            //if the phase ends in a capture spiral, print it
+            if (options->journey_arrival_type[j] == 7)
+            {
+                this->write_summary_line(options,
+                    Universe,
+                    eventcount,
+                    (this->phase_start_epoch + this->TOF + this->spiral_capture_time) / 86400.0,
+                    "end_spiral",
+                    this->Body2->name,
+                    this->spiral_capture_time / 86400.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    this->spiral_capture_state_after_spiral,
+                    empty_vector,
+                    empty_vector,
+                    this->spiral_capture_dv,
+                    this->spiral_capture_thrust * 1000.0, //kN to N conversion
+                    this->spiral_capture_Isp,
+                    this->spiral_capture_power,
+                    this->spiral_capture_mdot,
+                    this->spiral_capture_number_of_engines,
+                    this->spiral_capture_active_power);
+            }
+        }
+
+        return 0;
     }
 
 

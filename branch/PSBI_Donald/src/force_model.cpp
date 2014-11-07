@@ -290,10 +290,12 @@ namespace EMTG { namespace Astrodynamics {
 		{
 			*max_thrust = (*max_thrust) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU;
 			*max_mass_flow_rate = (*max_mass_flow_rate) / options->maximum_mass * Universe->TU;
-			*Isp = (*Isp) / Universe->TU;
-			*dTdP = (*dTdP) / Universe->LU * Universe->TU * Universe->TU;
+			//we don't need to scale Isp, because none of the EOM's directly depend on it
+			//we don't want to scale Isp, because it will mess up the output to file
+			//*Isp = (*Isp) / Universe->TU;
+			*dTdP = (*dTdP) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU;
 			*dmdotdP = (*dmdotdP) / options->maximum_mass;
-			*dTdIsp = (*dTdIsp) / Universe->LU * Universe->TU * Universe->TU * Universe->TU;
+			*dTdIsp = (*dTdIsp) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU * Universe->TU;
 			*dmdotdIsp = (*dmdotdIsp) / options->maximum_mass * Universe->TU;
 			*dPdr = (*dPdr) / options->AU * Universe->LU;
 			*dPdt = (*dPdt) * Universe->TU;
@@ -301,7 +303,7 @@ namespace EMTG { namespace Astrodynamics {
 		//if we don't want normalized units, we still need to fix one derivative that is in kW/AU
 		else
 		{
-			*dPdr = (*dPdr) * options->AU;
+			*dPdr = (*dPdr) / options->AU;
 		}
 
 		//modify the thrust by the duty cycle of the engine
