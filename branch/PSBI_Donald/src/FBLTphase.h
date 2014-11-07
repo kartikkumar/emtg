@@ -107,10 +107,12 @@ public:
 		EMTG::Astrodynamics::universe * Universe);
 
 	//FBLT STMs
-	std::vector < EMTG::math::Matrix< double > > STM_archive_forward;
-	EMTG::math::Matrix< double > initial_coast_STM;
-	std::vector < EMTG::math::Matrix< double > > STM_archive_backward;
-	EMTG::math::Matrix< double > terminal_coast_STM;
+    std::vector < EMTG::math::Matrix< double > > STM_archive_forward;
+    std::vector< EMTG::math::Matrix <double> > forward_cumulative_STM_archive;
+    EMTG::math::Matrix< double > initial_coast_STM;
+    std::vector < EMTG::math::Matrix< double > > STM_archive_backward;
+    std::vector< EMTG::math::Matrix <double> > backward_cumulative_STM_archive;
+    EMTG::math::Matrix< double > terminal_coast_STM;
 
 	//FBLT STM dimension information
 	int STMrows;

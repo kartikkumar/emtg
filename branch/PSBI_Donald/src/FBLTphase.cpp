@@ -83,11 +83,13 @@ FBLT_phase::FBLT_phase() {
 	    //set derivatives for spirals
 	    this->spiral_escape_dm_after_dm_before = 1.0;
 
-		//set up STMS
-		for (size_t step = 0; step < options->num_timesteps / 2; ++step)
-		{
-			this->STM_archive_forward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
-			this->STM_archive_backward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+        //set up STMS
+        for (size_t step = 0; step < options->num_timesteps / 2; ++step)
+        {
+            this->STM_archive_forward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+            this->STM_archive_backward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+            this->forward_cumulative_STM_archive.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
+            this->backward_cumulative_STM_archive.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
         }
 
         if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
@@ -2333,43 +2335,60 @@ FBLT_phase::FBLT_phase() {
 		missionoptions* options,
 		EMTG::Astrodynamics::universe* Universe)
 	{
-		//compute and store the derivatives of the match-point constraint with respect to forward and backward propagation for variable initial power
-		//this will require passing in "dPdu"
-		if (options->objective_type == 13)
-		{
-			
-		}
+        //build the derivatives matrix through successive STM multiplication
+        //every time step we add one more STM to the chain
+        //this is symmetric for forward and backward propagation
+        //and before we can do that, we need to create a vector of STMs with the control entries zeroed out
+        vector<EMTG::math::Matrix <double>> forward_stripped_STMs = this->STM_archive_forward;
+        vector<EMTG::math::Matrix <double>> backward_stripped_STMs = this->STM_archive_backward;
+        EMTG::math::Matrix<double> forward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
+        EMTG::math::Matrix<double> backward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
 
+        //initialize
+        for (size_t i = 0; i < this->STMrows; ++i)
+        {
+            forward_cumulative_stripped_STM(i, i) = 1.0;
+            backward_cumulative_stripped_STM(i, i) = 1.0;
+        }
+
+        //step through and create STM chains
+        for (int step = options->num_timesteps / 2 - 1; step >= 0; --step)
+        {
+            //create a stripped version of this step's STM
+            for (int row = 0; row < 7; ++row)
+            {
+                for (int column = 7; column < 10; ++column)
+                {
+                    forward_stripped_STMs[step](row, column) = 0.0;
+                    backward_stripped_STMs[step](row, column) = 0.0;
+                }
+            }
+        
+            stringstream STMchainstream;
+
+            //compute the cumulative STM for this step
+            if (step < options->num_timesteps / 2 - 1)
+            {
+                forward_cumulative_stripped_STM *= forward_stripped_STMs[step + 1];
+                backward_cumulative_stripped_STM *= backward_stripped_STMs[step + 1];
+            }
+
+            //multiply in this step's STM
+            this->forward_cumulative_STM_archive[step] = forward_cumulative_stripped_STM * STM_archive_forward[step];
+            this->backward_cumulative_STM_archive[step] = backward_cumulative_stripped_STM * STM_archive_backward[step];
+        }
+        //advanced the cumulative stripped STMs all the way to the endpoints
+        forward_cumulative_stripped_STM *= forward_stripped_STMs[0];
+        backward_cumulative_stripped_STM *= backward_stripped_STMs[0];
+        
 		//Match point constraint derivatives with respect to forward controls
 		//
 		EMTG::math::Matrix <double> forward_cumulative_STM(this->STMrows, this->STMcolumns, 0.0);
 
 		//build the derivatives matrix through successive STM multiplication
 		//every time step we add one more STM to the chain
-        for (int step = 0; step < options->num_timesteps / 2; ++step)
+        for (int step = options->num_timesteps / 2 - 1; step >= 0; --step)
 		{
-            //initialize the derivatives matrix to the identity
-            forward_cumulative_STM.assign_zeros();
-            for (size_t i = 0; i < this->STMrows; ++i)
-                forward_cumulative_STM(i, i) = 1.0;
-
-            for (int stepnext = options->num_timesteps / 2 - 1; stepnext > step; --stepnext)
-            {
-                math::Matrix<double> stripped_step_STM = STM_archive_forward[stepnext];
-                for (size_t row = 0; row < 7; ++row)
-                {
-                    for (size_t column = 7; column < 10; ++column)
-                        stripped_step_STM(row, column) = 0.0;
-                }
-                forward_cumulative_STM *= stripped_step_STM;
-                
-            }
-            forward_cumulative_STM *= STM_archive_forward[step];
-
-			//std::cout << "STM at step " << step << std::endl;
-			//forward_cumulative_STM.print_to_screen();
-			//getchar();
-			
 			//place the derivatives in the Jacobian
 			//since the match point constraint is defined backward - forward, 
 			//the forward derivatives will have a negative sign
@@ -2378,7 +2397,7 @@ FBLT_phase::FBLT_phase() {
 			for (size_t cindex = 0; cindex < 3; ++cindex)
 			{
 				for (size_t stateindex = 0; stateindex < 7; ++stateindex)
-					G[match_point_constraint_G_indices[step + 1][stateindex][cindex]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[step + 1][stateindex][cindex]]] * forward_cumulative_STM(stateindex, 7 + cindex);
+                    G[match_point_constraint_G_indices[step + 1][stateindex][cindex]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[step + 1][stateindex][cindex]]] * forward_cumulative_STM_archive[step](stateindex, 7 + cindex);
 			}
 		}
 
@@ -2451,24 +2470,6 @@ FBLT_phase::FBLT_phase() {
 		//every time step we add one more STM to the chain
         for (int step = 0; step < options->num_timesteps / 2; ++step)
 		{
-            //initialize the derivatives matrix to the identity
-            backward_cumulative_STM.assign_zeros();
-            for (size_t i = 0; i < this->STMrows; ++i)
-                backward_cumulative_STM(i, i) = 1.0;
-
-            for (int stepnext = options->num_timesteps / 2 - 1; stepnext > step; --stepnext)
-            {
-                math::Matrix<double> stripped_step_STM = STM_archive_backward[stepnext];
-                for (size_t row = 0; row < 7; ++row)
-                {
-                    for (size_t column = 7; column < 10; ++column)
-                        stripped_step_STM(row, column) = 0.0;
-                }
-                backward_cumulative_STM *= stripped_step_STM;
-
-            }
-			backward_cumulative_STM *= STM_archive_backward[step];
-
 			//place the derivatives in the Jacobian
 			//since the match point constraint is defined backward - forward, 
 			//the backward derivatives will have a positive sign
@@ -2479,7 +2480,7 @@ FBLT_phase::FBLT_phase() {
             {
                 for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                 {
-                    G[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]] = options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]]] * backward_cumulative_STM(stateindex, 7 + cindex);
+                    G[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]] = options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[options->num_timesteps - step][stateindex][cindex]]] * backward_cumulative_STM_archive[step](stateindex, 7 + cindex);
                 }
             }
 		}
@@ -2518,16 +2519,35 @@ FBLT_phase::FBLT_phase() {
 		}
 
 
-		//derivative with respect to arrival velocity
-		//only evaluated for phases that are not terminal intercepts
-		if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
-		{
-			for (int c = 0; c < 3; ++c)
-			{
-				
-			}//end loop over controls
-		}
+        // derivative with respect to arrival velocity
+        //only evaluated for phases that are not terminal intercepts
+        if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
+        {
+            if (detect_terminal_coast)
+            {
+                //first we need to construct the cumulative STM for the terminal coast
+                EMTG::math::Matrix <double> cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
 
+                //then fill out the derivatives for the terminal coast
+                for (size_t vindex = 0; vindex < 3; ++vindex)
+                {
+                    for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                    {
+                        G[match_point_constraint_G_indices[options->num_timesteps + 1][stateindex][vindex]] = options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[options->num_timesteps + 1][stateindex][vindex]]] * cumulative_terminal_coast_STM(stateindex, vindex + 3);
+                    }
+                }
+            }
+            else
+            {
+                for (size_t vindex = 0; vindex < 3; ++vindex)
+                {
+                    for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                    {
+                        G[match_point_constraint_G_indices[options->num_timesteps + 1][stateindex][vindex]] = options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[options->num_timesteps + 1][stateindex][vindex]]] * backward_cumulative_stripped_STM(stateindex, vindex + 3);
+                    }
+                }
+            }
+        }//end code with respect to arrival velocity
 	}
 
 } /* namespace EMTG */
