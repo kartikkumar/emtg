@@ -737,7 +737,7 @@ FBLT_phase::FBLT_phase() {
 			{
 				for (size_t j = 0; j < this->STMcolumns; ++j)
 				{
-					terminal_coast_STM(i, j) = state_at_terminal_coast_midpoint[statecount];
+                    terminal_coast_STM(i, j) = spacecraft_state_end_coast[statecount];
 					++statecount;
 				}
 			}
@@ -2499,14 +2499,23 @@ FBLT_phase::FBLT_phase() {
 			}
 		}
 
-        /*
+        
         // derivative with respect to arrival velocity
         //only evaluated for phases that are not terminal intercepts
         if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
         {
             if (detect_terminal_coast)
             {
-                //first we need to construct the cumulative STM for the terminal coast
+                //strip the terminal coast STM because there is no control applied
+                for (int row = 0; row < 7; ++row)
+                {
+                    for (int column = 7; column < 10; ++column)
+                    {
+                        terminal_coast_STM(row, column) = 0.0;
+                    }
+                }
+
+                //construct the cumulative STM for the terminal coast
                 EMTG::math::Matrix <double> cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
 
                 //then fill out the derivatives for the terminal coast
@@ -2529,7 +2538,7 @@ FBLT_phase::FBLT_phase() {
                 }
             }
         }//end code with respect to arrival velocity
-        */
+        
 	}
 
 } /* namespace EMTG */

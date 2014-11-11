@@ -816,7 +816,83 @@ namespace EMTG
             this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state for right-hand defect constraint
 
-        
+        //***************************************************************************
+        //if this is the last phase, encode any constraints for the arrival processing
+        if (p == options->number_of_phases[j] - 1)
+        {
+            if (options->journey_arrival_type[j] == 2) //intercept with bounded v-infinity
+            {
+                Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
+                Fupperbounds->push_back(0.0);
+                Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+                //Jacobian entry for a bounded v-infinity intercept
+                //this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        terminal_velocity_constraint_G_indices.push_back(iGfun->size() - 1);
+                        terminal_velocity_constraint_X_indices.push_back(entry);
+                        terminal_velocity_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+
+            if (options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2)) //intercept with bounded v-infinity or orbit insertion
+            {
+                Flowerbounds->push_back(options->journey_arrival_declination_bounds[j][0] / options->journey_arrival_declination_bounds[j][1] - 1.0);
+                Fupperbounds->push_back(0.0);
+                Fdescriptions->push_back(prefix + "arrival declination constraint");
+
+                //Jacobian entry for arrival declination constraint
+                //this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        arrival_declination_constraint_G_indices.push_back(iGfun->size() - 1);
+                        arrival_declination_constraint_X_indices.push_back(entry);
+                        arrival_declination_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+
+            if (options->journey_arrival_type[j] == 6) //enforce escape constraint, E = 0
+            {
+                Flowerbounds->push_back(-math::SMALL);
+                Fupperbounds->push_back(math::LARGE);
+                Fdescriptions->push_back(prefix + "arrival escape condition (zero energy constraint)");
+
+                //Jacobian entry for zero energy condition
+                //this is a nonlinear constraint dependent on the terminal velocity vector
+                //note that it is NOT dependent on position because these phases always end at the SOI and SOI distance is constant
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024 || (*Xdescriptions)[entry].find("right boundary point") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " escape constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        escape_constraint_G_indices.push_back(iGfun->size() - 1);
+                        escape_constraint_X_indices.push_back(entry);
+                        escape_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+        }
     }
 
     //evaluate function
@@ -840,12 +916,6 @@ namespace EMTG
     {
         //declare some local variables
         int errcode = 0;
-        double temp_available_thrust;
-        double temp_available_mass_flow_rate;
-        double temp_available_Isp;
-        double temp_available_power;
-        double temp_active_power;
-        int temp_number_of_active_engines;
         double local_throttle, impulse_magnitude;
 
         //******************************************************************
