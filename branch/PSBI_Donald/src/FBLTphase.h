@@ -101,8 +101,6 @@ public:
 		int * Gindex,
 		const int & j,
 		const int & p,
-		std::vector < EMTG::math::Matrix< double > > & STM_archive_forward,
-		std::vector < EMTG::math::Matrix< double > > & STM_archive_backward,
 		missionoptions * options,
 		EMTG::Astrodynamics::universe * Universe);
 

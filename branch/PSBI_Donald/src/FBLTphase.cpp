@@ -211,7 +211,7 @@ FBLT_phase::FBLT_phase() {
 	    if (detect_initial_coast)
 	    {
 		    //if this is a launch AND we are doing a forced post-launch initial coast
-		    double spacecraft_state_end_coast[7];
+		    double spacecraft_state_end_coast[11*11+11];
 		    double empty_vector[] = {0.0,0.0,0.0};
 		    double dummy_parameter = 0.0;
 
@@ -691,7 +691,7 @@ FBLT_phase::FBLT_phase() {
 	    //Step 6.3.0.1 if there is an terminal coast, propagate through it
 	    if (this->detect_terminal_coast)
 	    {
-		    double spacecraft_state_end_coast[7];
+		    double spacecraft_state_end_coast[11+11*11];
 		    double empty_vector[] = {0.0,0.0,0.0};
 		    double dummy_parameter = 0.0;
 
@@ -865,25 +865,8 @@ FBLT_phase::FBLT_phase() {
 
 		//CALCULATE MATCH POINT DERIVATIVES HERE
 
-		//Prepend the coast STMs to the archives if there was a coast
-		//push the second half of the coast on first
-
-		std::vector<EMTG::math::Matrix< double >>::iterator it;
-
-		if (detect_initial_coast)
-		{
-			it = STM_archive_forward.begin();
-			STM_archive_forward.insert(it, initial_coast_STM);
-		}
-
-		if (detect_terminal_coast)
-		{
-			it = STM_archive_backward.begin();
-			STM_archive_backward.insert(it, terminal_coast_STM);
-		}
-
 		if (options->derivative_type > 1 && needG)
-			this->calculate_match_point_derivatives(G, Gindex, j, p, STM_archive_forward, STM_archive_backward, options, Universe);
+			this->calculate_match_point_derivatives(G, Gindex, j, p, options, Universe);
 
 	    //******************************************************************
 	    //Step 7: process the arrival, if applicable
@@ -1005,7 +988,7 @@ FBLT_phase::FBLT_phase() {
 			    current_state[k] = this->state_at_end_of_phase[k];
 	    }
 
-	    return 0;
+ 	    return 0;
     }
 
 
@@ -2330,8 +2313,6 @@ FBLT_phase::FBLT_phase() {
 		int* Gindex,
 		const int& j,
 		const int& p,
-		std::vector < EMTG::math::Matrix< double > > & STM_archive_forward,
-		std::vector < EMTG::math::Matrix< double > > & STM_archive_backward,
 		missionoptions* options,
 		EMTG::Astrodynamics::universe* Universe)
 	{
@@ -2518,7 +2499,7 @@ FBLT_phase::FBLT_phase() {
 			}
 		}
 
-
+        /*
         // derivative with respect to arrival velocity
         //only evaluated for phases that are not terminal intercepts
         if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
@@ -2548,6 +2529,7 @@ FBLT_phase::FBLT_phase() {
                 }
             }
         }//end code with respect to arrival velocity
+        */
 	}
 
 } /* namespace EMTG */
