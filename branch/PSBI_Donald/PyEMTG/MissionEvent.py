@@ -123,7 +123,7 @@ class MissionEvent(object):
                 CenterPointStateAfterManeuver = copy.deepcopy(CenterPointState)
                 CenterPointStateAfterManeuver[3:6] += np.array(self.DeltaVorThrustVectorControl) * TU /LU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body, jac=EOM.EOM_jacobian_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 ForwardIntegrateObject.set_initial_value(CenterPointStateAfterManeuver).set_f_params(1.0).set_jac_params(1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -132,7 +132,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body, jac=EOM.EOM_jacobian_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0).set_jac_params(1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -173,7 +173,7 @@ class MissionEvent(object):
                 ScaledThrust = np.array(self.Thrust) * TU * TU / 1000.0 / self.Mass / LU
                 ScaledMdot = self.MassFlowRate / self.Mass * TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust, jac=EOM.EOM_jacobian_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0).set_jac_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -182,7 +182,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust, jac=EOM.EOM_jacobian_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0).set_jac_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10

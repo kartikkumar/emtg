@@ -427,12 +427,15 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		/* uncomment these lines to re-enable MBH clipping. Currently we let SNOPT self-clip
-		if (Xtrial_scaled[k] > 1.0)
-			Xtrial_scaled[k] = 1.0;
-		else if (Xtrial_scaled[k] < 0.0)
-			Xtrial_scaled[k] = 0.0;
-			*/
+		//MBH clipping
+        for (size_t k = 0; k < Xtrial_scaled.size(); ++k)
+        {
+            if (Xtrial_scaled[k] > 1.0)
+                Xtrial_scaled[k] = 1.0;
+            else if (Xtrial_scaled[k] < 0.0)
+                Xtrial_scaled[k] = 0.0;
+        }
+
 
 		return 0;
 	}
@@ -443,7 +446,7 @@ namespace EMTG { namespace Solvers {
 		//loop through any time variables and if (uniform random < threshold) then add/subtract a synodic period
 		for (int timeindex = 0; timeindex < time_variable_indices.size(); ++timeindex)
 		{
-			if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
+            if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
 			{
 				int k = time_variable_indices[timeindex];
 				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
@@ -650,7 +653,7 @@ namespace EMTG { namespace Solvers {
 				//Step 1 (alternate): perturb the existing point
 				this->hop();
 
-				if (Problem->options.MBH_time_hop_probability > 0.0)
+                if (Problem->options.MBH_time_hop_probability > 0.0  && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
 					this->time_hop();
 			}
 			

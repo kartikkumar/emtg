@@ -112,16 +112,16 @@ class NSGAII_outerloop_solution(object):
 
     def plot_solution(self, PopulationAxes, PopulationFigure, ordered_list_of_objectives, colorbar, lowerbounds, upperbounds):
         if len(ordered_list_of_objectives) == 2: #2D
-            self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
+            self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], s=50, c='b', marker='o', lw=0, picker=1)
         elif len(ordered_list_of_objectives) == 3: #3D
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c='b', marker='o', lw=0, picker=1)
         else: #4D
             if self.colorbar is None:
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
                 self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
                 colorbar = PopulationFigure.colorbar(self.point)
             else:
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
                 self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
 
         self.picker = self.point.figure.canvas.mpl_connect('pick_event', self.onpick)
