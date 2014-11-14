@@ -2320,8 +2320,8 @@ FBLT_phase::FBLT_phase() {
         //every time step we add one more STM to the chain
         //this is symmetric for forward and backward propagation
         //and before we can do that, we need to create a vector of STMs with the control entries zeroed out
-        vector<EMTG::math::Matrix <double>> forward_stripped_STMs = this->STM_archive_forward;
-        vector<EMTG::math::Matrix <double>> backward_stripped_STMs = this->STM_archive_backward;
+        vector< EMTG::math::Matrix <double> > forward_stripped_STMs = this->STM_archive_forward;
+        vector< EMTG::math::Matrix <double> > backward_stripped_STMs = this->STM_archive_backward;
         EMTG::math::Matrix<double> forward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
         EMTG::math::Matrix<double> backward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
 
