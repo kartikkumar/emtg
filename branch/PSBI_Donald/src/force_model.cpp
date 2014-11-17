@@ -1,6 +1,7 @@
 //force model for EMTGv8
 //Jacob Englander 4/4/2013
 
+#include <iomanip>
 #include "Astrodynamics.h"
 #include "EMTG_math.h"
 #include "EMTG_Matrix.h"
@@ -265,6 +266,19 @@ namespace EMTG { namespace Astrodynamics {
 		double mass_kg = spacecraft_state_relative_to_central_body_in_km[6];
 		double mass_normalized = spacecraft_state_relative_to_central_body_in_km[6] / options->maximum_mass;
 
+
+		double r_pert = 1.0e-6;
+		double Pforward;
+		double Pbackward;
+
+		for (size_t loopCount = 0; loopCount < 3; ++loopCount)
+		{
+
+			if (loopCount == 0)
+				spacecraft_distance_from_sun_in_AU += r_pert;
+			else if (loopCount == 1)
+				spacecraft_distance_from_sun_in_AU -= r_pert;
+
 		//compute the maximum thrust available from the engines  
 		EMTG::Astrodynamics::find_engine_parameters(options,
 			spacecraft_distance_from_sun_in_AU,
@@ -284,7 +298,21 @@ namespace EMTG { namespace Astrodynamics {
 			dPdt // kW/s
 			);
 
-		//depending on whether we want normalized or MKS STMs we must convert
+		if (loopCount == 0)
+			Pforward = *power;
+		else if (loopCount == 1)
+			Pbackward = *power;
+
+		} //end finite difference loop
+
+
+		double dPdr_FD = (Pforward - Pbackward) / (2.0 * r_pert);
+		std::cout << setprecision(16);
+		std::cout << "Finite differenced dPdr: " << dPdr_FD << std::endl;
+		std::cout << "Analytical dPdr: " << (*dPdr) << std::endl;
+		//getchar();
+
+		//depend. Theing on whether we want normalized or MKS STMs we must convert
 		//the engine model derivative units
 		if (normalized_STMs)
 		{
