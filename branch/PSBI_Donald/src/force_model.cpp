@@ -284,24 +284,24 @@ namespace EMTG { namespace Astrodynamics {
 			else
 				spacecraft_distance_from_sun_in_AU = rtemp;
 
-		//compute the maximum thrust available from the engines  
-		EMTG::Astrodynamics::find_engine_parameters(options,
-			spacecraft_distance_from_sun_in_AU,
-			*epoch - *launch_epoch,
-			max_thrust, //kN
-			max_mass_flow_rate, // kg/s
-			Isp, // seconds
-			power, // kW
-			active_power, // kW
-			number_of_active_engines,
-			generate_derivatives,
-			dTdP, // kN/kW 
-			dmdotdP, // kg/kW
-			dTdIsp, // kN/s
-			dmdotdIsp, // kg/s
-			dPdr, // kW/AU
-			dPdt // kW/s
-			);
+			//compute the maximum thrust available from the engines  
+			EMTG::Astrodynamics::find_engine_parameters(options,
+				spacecraft_distance_from_sun_in_AU,
+				*epoch - *launch_epoch,
+				max_thrust, //kN
+				max_mass_flow_rate, // kg/s
+				Isp, // seconds
+				power, // kW
+				active_power, // kW
+				number_of_active_engines,
+				generate_derivatives,
+				dTdP, // kN/kW 
+				dmdotdP, // kg/kW
+				dTdIsp, // kN/s
+				dmdotdIsp, // kg/s
+				dPdr, // kW/AU
+				dPdt // kW/s
+				);
 
 		if (loopCount == 0)
 			Pforward = *power;
