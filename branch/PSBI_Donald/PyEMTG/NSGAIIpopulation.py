@@ -2,6 +2,8 @@
 #for use with EMTG-NSGAII outer-loop by Vavrina and Englander
 #Python interface by Jacob Englander begun 3-16-2014
 
+import Universe
+
 import os
 import numpy as np
 from scipy.integrate import ode
@@ -31,7 +33,7 @@ class NSGAII_outerloop_solution(object):
         self.number_of_thrusters = []
         self.launch_vehicle = []
         self.launch_date = []
-        self.description = [] # case name, can be parsed for data
+        self.description = '' # case name, can be parsed for data
         self.mission_sequence = []
         self.generation_found = [] #what generation was this solution found?
         self.timestamp = [] #at what time, in seconds from program start, was this solution found?
@@ -391,4 +393,20 @@ class NSGAII_outerloop_population(object):
             print '---------------------------------------------------------------------------------------------'
 
     def format_date(self, x, pos=None):
-     return dates.num2date(x).strftime('%Y-%m-%d')
+        return dates.num2date(x).strftime('%Y-%m-%d')
+
+    def generate_body_prevalence_report(self, Universe):
+        #this method generates a list of tuples, (BodyName, NumberOfOccurrences)
+        #pass in a Univeres object, return a list of tuples
+        
+        prevalence_report = []
+        for body in Universe.bodies:
+            number_of_occurrences = 0
+            for solution in self.solutions:
+                #only book-keep feasible solutions
+
+                if solution.objective_values[0] < 1.0e+99 and body.shortname in solution.description:
+                    number_of_occurrences += 1
+            prevalence_report.append((body.name, number_of_occurrences))
+
+        return prevalence_report

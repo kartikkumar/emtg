@@ -50,8 +50,15 @@ class PyEMTG_interface(wx.Frame):
 
             if linecell[0] == "EMTG_path":
                 self.emtgpath = linecell[1]
+                if len(linecell) > 2:
+                    for term in linecell[2:]:
+                        self.emtgpath += ' ' + term
+
             elif linecell[0] == "default_universe_path":
                 self.default_universe_path = linecell[1]
+                if len(linecell) > 2:
+                    for term in linecell[2:]:
+                        self.default_universe_path += ' ' + term
 
         inputfile.close()
         
