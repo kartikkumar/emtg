@@ -270,6 +270,7 @@ namespace EMTG { namespace Astrodynamics {
 		double r_pert = 1.0e-6;
 		double Pforward;
 		double Pbackward;
+		double rtemp = spacecraft_distance_from_sun_in_AU;
 
 		for (size_t loopCount = 0; loopCount < 3; ++loopCount)
 		{
@@ -277,7 +278,11 @@ namespace EMTG { namespace Astrodynamics {
 			if (loopCount == 0)
 				spacecraft_distance_from_sun_in_AU += r_pert;
 			else if (loopCount == 1)
-				spacecraft_distance_from_sun_in_AU -= r_pert;
+			{
+				spacecraft_distance_from_sun_in_AU -= 2.0*r_pert;
+			}
+			else
+				spacecraft_distance_from_sun_in_AU = rtemp;
 
 		//compute the maximum thrust available from the engines  
 		EMTG::Astrodynamics::find_engine_parameters(options,
