@@ -176,8 +176,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		//Form the STM
 		//The STM is comprised of state variables
 
-		EMTG::math::Matrix<double> STM(STMrows, STMcolumns, 0.0);
-		EMTG::math::Matrix<double> STMdot(STMrows, STMcolumns, 0.0);
+		static EMTG::math::Matrix<double> STM(STMrows, STMcolumns, 0.0);
+		static EMTG::math::Matrix<double> STMdot(STMrows, STMcolumns, 0.0);
 
 		int xcount = 11;
 

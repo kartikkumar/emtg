@@ -30,7 +30,7 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 								double* dPdt)
 {
 	//placeholders for engine performance coefficients
-	double at, bt, ct, dt, et, ht, gt, af, bf, cf, df, ef, hf, gf, minP, maxP, power_penalty;
+	double at, bt, ct, dt, et, ht, gt, af, bf, cf, df, ef, hf, gf, minP, maxP, power_penalty = 1.0;
 
 	if (options->engine_type == 0) //fixed thrust, Isp
 	{

@@ -266,7 +266,7 @@ namespace EMTG { namespace Astrodynamics {
 		double mass_kg = spacecraft_state_relative_to_central_body_in_km[6];
 		double mass_normalized = spacecraft_state_relative_to_central_body_in_km[6] / options->maximum_mass;
 
-
+        /*
 		double r_pert = 1.0e-6;
 		double Pforward;
 		double Pbackward;
@@ -283,7 +283,7 @@ namespace EMTG { namespace Astrodynamics {
 			}
 			else
 				spacecraft_distance_from_sun_in_AU = rtemp;
-
+                
 			//compute the maximum thrust available from the engines  
 			EMTG::Astrodynamics::find_engine_parameters(options,
 				spacecraft_distance_from_sun_in_AU,
@@ -302,20 +302,41 @@ namespace EMTG { namespace Astrodynamics {
 				dPdr, // kW/AU
 				dPdt // kW/s
 				);
-
+            
 		if (loopCount == 0)
 			Pforward = *power;
 		else if (loopCount == 1)
 			Pbackward = *power;
 
 		} //end finite difference loop
-
-
+        */
+        //compute the maximum thrust available from the engines  
+        EMTG::Astrodynamics::find_engine_parameters(options,
+                                                    spacecraft_distance_from_sun_in_AU,
+                                                    *epoch - *launch_epoch,
+                                                    max_thrust, //kN
+                                                    max_mass_flow_rate, // kg/s
+                                                    Isp, // seconds
+                                                    power, // kW
+                                                    active_power, // kW
+                                                    number_of_active_engines,
+                                                    generate_derivatives,
+                                                    dTdP, // kN/kW 
+                                                    dmdotdP, // kg/kW
+                                                    dTdIsp, // kN/s
+                                                    dmdotdIsp, // kg/s
+                                                    dPdr, // kW/AU
+                                                    dPdt // kW/s
+                                                    );
+        /*
 		double dPdr_FD = (Pforward - Pbackward) / (2.0 * r_pert);
 		std::cout << setprecision(16);
-		std::cout << "Finite differenced dPdr: " << dPdr_FD << std::endl;
+	    std::cout << "Finite differenced dPdr: " << dPdr_FD << std::endl;
 		std::cout << "Analytical dPdr: " << (*dPdr) << std::endl;
+        std::cout << "error: " << dPdr_FD - (*dPdr) << std::endl;
 		//getchar();
+        */
+        
 
 		//depend. Theing on whether we want normalized or MKS STMs we must convert
 		//the engine model derivative units
@@ -476,7 +497,7 @@ namespace EMTG { namespace Astrodynamics {
 			}
 
 			//A31 dmdotdr
-			double control_norm_D_dmdotdP_dPdr = control_norm * (options->engine_duty_cycle) * (*dmdotdP) * (*dPdr);
+            double control_norm_D_dmdotdP_dPdr = control_norm * (options->engine_duty_cycle) * (*dmdotdP) * (*dPdr);
 
 			if (normalized_STMs)
 			{
@@ -492,8 +513,8 @@ namespace EMTG { namespace Astrodynamics {
 			}
 
 			//A34 dmdotdu
-			double D_mdot = (options->engine_duty_cycle) * (*max_mass_flow_rate);
-
+            double D_mdot = (options->engine_duty_cycle) * (*max_mass_flow_rate);
+            
 			A(6, 7) = -dcontrol_normdux * D_mdot;
 			A(6, 8) = -dcontrol_normduy * D_mdot;
 			A(6, 9) = -dcontrol_normduz * D_mdot;
