@@ -414,8 +414,10 @@ namespace EMTG { namespace Astrodynamics {
 			
 			if (normalized_STMs)
 			{
-				double three_muCB_over_spacecraft_distance_from_CB_in_LU5 = 3.0 * 1.0 / pow(spacecraft_distance_from_central_body_in_LU, 5.0);
-				double muCB_over_spacecraft_distance_from_CB_in_LU3 = 1.0 / pow(spacecraft_distance_from_central_body_in_LU, 3.0);
+                double spacecraft_distance_from_CB_in_LU3 = spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU;
+                double spacecraft_distance_from_CB_in_LU5 = spacecraft_distance_from_CB_in_LU3 * spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU;
+                double three_muCB_over_spacecraft_distance_from_CB_in_LU5 = 3.0 / spacecraft_distance_from_CB_in_LU5;
+                double muCB_over_spacecraft_distance_from_CB_in_LU3 = 1.0 / spacecraft_distance_from_CB_in_LU3;
 				double D_dTdP_dPdr_over_msc = (options->engine_duty_cycle) * (*dTdP) * (*dPdr) / mass_normalized;
 				double* State = spacecraft_state_relative_to_central_body_in_LU;
 
@@ -431,8 +433,10 @@ namespace EMTG { namespace Astrodynamics {
 			}
 			else
 			{
-				double three_muCB_over_spacecraft_distance_from_CB_in_km5 = 3.0 * Universe->mu / pow(spacecraft_distance_from_central_body_in_km, 5.0);
-				double muCB_over_spacecraft_distance_from_CB_in_km3 = Universe->mu / pow(spacecraft_distance_from_central_body_in_km, 3.0);
+                double spacecraft_distance_from_CB_in_km3 = spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km;
+                double spacecraft_distance_from_CB_in_km5 = spacecraft_distance_from_CB_in_km3 * spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km;
+                double three_muCB_over_spacecraft_distance_from_CB_in_km5 = 3.0 * Universe->mu / spacecraft_distance_from_CB_in_km5;
+                double muCB_over_spacecraft_distance_from_CB_in_km3 = Universe->mu / spacecraft_distance_from_CB_in_km3;
 				double D_dTdP_dPdr_over_msc = (options->engine_duty_cycle) * (*dTdP) * (*dPdr) / mass_kg;
 				double* State = spacecraft_state_relative_to_central_body_in_km;
 
@@ -550,8 +554,10 @@ namespace EMTG { namespace Astrodynamics {
 					if (normalized_STMs)
 					{
 						double mu_sun_normalized = 1.32712440018e11 / Universe->mu;
-						double three_muSun_over_spacecraft_distance_from_sun_in_LU5 = 3.0 * mu_sun_normalized / pow(spacecraft_distance_from_sun_in_LU, 5.0);
-						double muSun_over_spacecraft_distance_from_sun_in_LU3 = mu_sun_normalized / pow(spacecraft_distance_from_sun_in_LU, 3.0);
+                        double spacecraft_distance_from_sun_in_LU3 = spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU;
+                        double spacecraft_distance_from_sun_in_LU5 = spacecraft_distance_from_sun_in_LU3 * spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU;
+                        double three_muSun_over_spacecraft_distance_from_sun_in_LU5 = 3.0 * mu_sun_normalized / spacecraft_distance_from_sun_in_LU5;
+                        double muSun_over_spacecraft_distance_from_sun_in_LU3 = mu_sun_normalized / spacecraft_distance_from_sun_in_LU3;
 
 						A(3, 0) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[0] * spacecraft_position_relative_to_sun_in_LU[0] - muSun_over_spacecraft_distance_from_sun_in_LU3;
 						A(3, 1) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[0] * spacecraft_position_relative_to_sun_in_LU[1];
@@ -565,8 +571,10 @@ namespace EMTG { namespace Astrodynamics {
 					}
 					else
 					{
-						double three_muSun_over_spacecraft_distance_from_sun_in_km5 = 3.0 * mu_sun_mks / pow(spacecraft_distance_from_sun_in_km, 5.0);
-						double muSun_over_spacecraft_distance_from_sun_in_km3 = mu_sun_mks / pow(spacecraft_distance_from_sun_in_km, 3.0);
+                        double spacecraft_distance_from_sun_in_km3 = spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km;
+                        double spacecraft_distance_from_sun_in_km5 = spacecraft_distance_from_sun_in_km3 * spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km;
+                        double three_muSun_over_spacecraft_distance_from_sun_in_km5 = 3.0 * mu_sun_mks / spacecraft_distance_from_sun_in_km5;
+                        double muSun_over_spacecraft_distance_from_sun_in_km3 = mu_sun_mks / spacecraft_distance_from_sun_in_km3;
 
 						A(3, 0) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[0] * spacecraft_position_relative_to_sun_in_km[0] - muSun_over_spacecraft_distance_from_sun_in_km3;
 						A(3, 1) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[0] * spacecraft_position_relative_to_sun_in_km[1];
@@ -623,8 +631,10 @@ namespace EMTG { namespace Astrodynamics {
 						if (normalized_STMs)
 						{
 							double mu_3B_normalized = Universe->bodies[Universe->perturbation_menu[b]].mu / Universe->mu;
-							double three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 = 3.0 * mu_3B_normalized / pow(spacecraft_distance_from_third_body_in_LU, 5.0);
-							double mu3B_over_spacecraft_distance_from_third_body_in_LU3 = mu_3B_normalized / pow(spacecraft_distance_from_third_body_in_LU, 3.0);
+                            double spacecraft_distance_from_third_body_in_LU3 = spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU;
+                            double spacecraft_distance_from_third_body_in_LU5 = spacecraft_distance_from_third_body_in_LU3 * spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU;
+                            double three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 = 3.0 * mu_3B_normalized / spacecraft_distance_from_third_body_in_LU3;
+                            double mu3B_over_spacecraft_distance_from_third_body_in_LU3 = mu_3B_normalized / spacecraft_distance_from_third_body_in_LU5;
 
 							A(3, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[0] * spacecraft_position_relative_to_third_body_in_LU[0] - mu3B_over_spacecraft_distance_from_third_body_in_LU3;
 							A(3, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[0] * spacecraft_position_relative_to_third_body_in_LU[1];
@@ -639,8 +649,10 @@ namespace EMTG { namespace Astrodynamics {
 						else
 						{
 							double mu_3B = Universe->bodies[Universe->perturbation_menu[b]].mu;
-							double three_mu3B_over_spacecraft_distance_from_third_body_in_km5 = 3.0 * mu_3B / pow(spacecraft_distance_from_third_body_in_km, 5.0);
-							double mu3B_over_spacecraft_distance_from_third_body_in_km3 = mu_3B / pow(spacecraft_distance_from_third_body_in_km, 3.0);
+                            double spacecraft_distance_from_third_body_in_km3 = spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km;
+                            double spacecraft_distance_from_third_body_in_km5 = spacecraft_distance_from_third_body_in_km3 * spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km;
+                            double three_mu3B_over_spacecraft_distance_from_third_body_in_km5 = 3.0 * mu_3B / spacecraft_distance_from_third_body_in_km5;
+                            double mu3B_over_spacecraft_distance_from_third_body_in_km3 = mu_3B / spacecraft_distance_from_third_body_in_km3;
 
 							A(3, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[0] * spacecraft_position_relative_to_third_body_in_km[0] - mu3B_over_spacecraft_distance_from_third_body_in_km3;
 							A(3, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[0] * spacecraft_position_relative_to_third_body_in_km[1];

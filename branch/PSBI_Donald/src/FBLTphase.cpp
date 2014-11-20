@@ -247,12 +247,12 @@ FBLT_phase::FBLT_phase() {
 										    &resumeError,
 										    1.0e-8,
 										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    (int*) &dummy_parameter,
+                                            &temp_available_thrust,
+                                            &temp_available_mass_flow_rate,
+                                            &temp_available_Isp,
+                                            &temp_available_power,
+                                            &temp_active_power,
+                                            &temp_number_of_active_engines,
                                             this->STMrows,
                                             this->STMcolumns,
 										    (void*)options,
@@ -718,13 +718,13 @@ FBLT_phase::FBLT_phase() {
 										    &resumeH,
 										    &resumeError,
 										    1.0e-8,
-										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    &dummy_parameter,
-										    (int*) &dummy_parameter,
+                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                            &temp_available_thrust,
+                                            &temp_available_mass_flow_rate,
+                                            &temp_available_Isp,
+                                            &temp_available_power,
+                                            &temp_active_power,
+                                            &temp_number_of_active_engines,
 											this->STMrows,
 											this->STMcolumns,
 										    (void*)options,
@@ -2429,8 +2429,10 @@ FBLT_phase::FBLT_phase() {
         //and before we can do that, we need to create a vector of STMs with the control entries zeroed out
         vector< EMTG::math::Matrix <double> > forward_stripped_STMs = this->STM_archive_forward;
         vector< EMTG::math::Matrix <double> > backward_stripped_STMs = this->STM_archive_backward;
-        EMTG::math::Matrix<double> forward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
-        EMTG::math::Matrix<double> backward_cumulative_stripped_STM(this->STMrows, this->STMcolumns, 0.0);
+        static EMTG::math::Matrix<double> forward_cumulative_stripped_STM(this->STMrows, this->STMcolumns);
+        static EMTG::math::Matrix<double> backward_cumulative_stripped_STM(this->STMrows, this->STMcolumns);
+        forward_cumulative_stripped_STM.assign_zeros();
+        backward_cumulative_stripped_STM.assign_zeros();
 
         //initialize
         for (size_t i = 0; i < this->STMrows; ++i)
@@ -2611,7 +2613,7 @@ FBLT_phase::FBLT_phase() {
                 }
 
                 //construct the cumulative STM for the terminal coast
-                EMTG::math::Matrix <double> cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
+                static EMTG::math::Matrix <double> cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
 
                 //then fill out the derivatives for the terminal coast
                 for (size_t vindex = 0; vindex < 3; ++vindex)
