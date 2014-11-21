@@ -35,7 +35,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		
 		double ForceVector[3];
 		double spacecraft_state[7];
-		double epoch = t * Universe->TU;
+		double epoch = t * Universe->TU; //FIX THIS....ADD h*c
 		double launch_epoch = t0;
 
 		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
