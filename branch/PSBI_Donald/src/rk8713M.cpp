@@ -54,7 +54,6 @@ namespace EMTG {
 			dX_leftdTOF.resize(ns);
 			dX_rightdTOF.resize(ns);
 
-
 			//x_left = new double[ns];
 			//f1 = new double[ns];
 			//f2 = new double[ns];
@@ -101,8 +100,8 @@ namespace EMTG {
 			const double & t_left_step, // epoch at the LHS of the current RK sub-step
 			const double & dt_left_stepdTOF,
 			const double & t_0, // launch epoch
-			double & h, // RK sub-step size
-			double & dhdTOF, // TOF derivative of RK sub-step size
+			const double & h, // RK sub-step size
+			const double & dhdTOF, // TOF derivative of RK sub-step size
 			double * error, // pointer to store error between 7th order and 8th order solutions
 			
 			void(*EOM)(double * x, // spacecraft's current state at left hand side of the current RK sub-step
