@@ -2453,8 +2453,6 @@ FBLT_phase::FBLT_phase() {
                     backward_stripped_STMs[step](row, column) = 0.0;
                 }
             }
-        
-            stringstream STMchainstream;
 
             //compute the cumulative STM for this step
             if (step < options->num_timesteps / 2 - 1)
@@ -2580,7 +2578,34 @@ FBLT_phase::FBLT_phase() {
 		//disable this for a phase ending in a capture spiral
 		if (!(p == options->number_of_phases[j] && options->journey_arrival_type[j] == 7))
 		{
-			
+            if (detect_terminal_coast)
+            {
+                //strip the terminal coast STM because there is no control applied
+                for (int row = 0; row < 7; ++row)
+                {
+                    for (int column = 7; column < 10; ++column)
+                    {
+                        terminal_coast_STM(row, column) = 0.0;
+                    }
+                }
+
+                //construct the cumulative STM for the terminal coast
+                static EMTG::math::Matrix <double> cumulative_terminal_coast_STM;
+                cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
+
+                //then fill out the derivatives for the terminal coast
+                for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                {
+                    G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass[stateindex]] = options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass[stateindex]]] * cumulative_terminal_coast_STM(stateindex, 6) / options->maximum_mass;
+                }
+            }
+            else
+            {
+                for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                {
+                    G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass[stateindex]] = options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_arrival_mass[stateindex]]] * backward_cumulative_stripped_STM(stateindex, 6) / options->maximum_mass;
+                }
+            }
 		}
 
 		//derivatives of the constraints with respect to the backward flight time variables
@@ -2613,7 +2638,8 @@ FBLT_phase::FBLT_phase() {
                 }
 
                 //construct the cumulative STM for the terminal coast
-                static EMTG::math::Matrix <double> cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
+                static EMTG::math::Matrix <double> cumulative_terminal_coast_STM;
+                cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
 
                 //then fill out the derivatives for the terminal coast
                 for (size_t vindex = 0; vindex < 3; ++vindex)
