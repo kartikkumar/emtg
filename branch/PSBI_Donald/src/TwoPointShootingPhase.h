@@ -105,6 +105,44 @@ namespace EMTG {
 
         //functions that only exist for phases of this type
     protected:
+        void calcbounds_step_distribution_scale_factor(const string& prefix,
+                                                        int first_X_entry_in_phase,
+                                                        vector<double>* Xupperbounds,
+                                                        vector<double>* Xlowerbounds,
+                                                        vector<double>* Fupperbounds,
+                                                        vector<double>* Flowerbounds,
+                                                        vector<string>* Xdescriptions,
+                                                        vector<string>* Fdescriptions,
+                                                        vector<int>* iAfun,
+                                                        vector<int>* jAvar,
+                                                        vector<int>* iGfun,
+                                                        vector<int>* jGvar,
+                                                        vector<string>* Adescriptions,
+                                                        vector<string>* Gdescriptions,
+                                                        int j,
+                                                        int p,
+                                                        EMTG::Astrodynamics::universe* Universe,
+                                                        missionoptions* options);
+
+        void calcbounds_LT_controls(const string& prefix,
+                                    int first_X_entry_in_phase,
+                                    vector<double>* Xupperbounds,
+                                    vector<double>* Xlowerbounds,
+                                    vector<double>* Fupperbounds,
+                                    vector<double>* Flowerbounds,
+                                    vector<string>* Xdescriptions,
+                                    vector<string>* Fdescriptions,
+                                    vector<int>* iAfun,
+                                    vector<int>* jAvar,
+                                    vector<int>* iGfun,
+                                    vector<int>* jGvar,
+                                    vector<string>* Adescriptions,
+                                    vector<string>* Gdescriptions,
+                                    int j,
+                                    int p,
+                                    EMTG::Astrodynamics::universe* Universe,
+                                    missionoptions* options);
+
         void calcbounds_LT_match_points(const string& prefix,
                                         int first_X_entry_in_phase,
                                         vector<double>* Xupperbounds,
@@ -123,6 +161,25 @@ namespace EMTG {
                                         int p,
                                         EMTG::Astrodynamics::universe* Universe,
                                         missionoptions* options);
+
+        void calcbounds_arrival_constraints(const string& prefix,
+                                            int first_X_entry_in_phase,
+                                            vector<double>* Xupperbounds,
+                                            vector<double>* Xlowerbounds,
+                                            vector<double>* Fupperbounds,
+                                            vector<double>* Flowerbounds,
+                                            vector<string>* Xdescriptions,
+                                            vector<string>* Fdescriptions,
+                                            vector<int>* iAfun,
+                                            vector<int>* jAvar,
+                                            vector<int>* iGfun,
+                                            vector<int>* jGvar,
+                                            vector<string>* Adescriptions,
+                                            vector<string>* Gdescriptions,
+                                            int j,
+                                            int p,
+                                            EMTG::Astrodynamics::universe* Universe,
+                                            missionoptions* options);
 
         //time information
         vector <double> event_epochs;

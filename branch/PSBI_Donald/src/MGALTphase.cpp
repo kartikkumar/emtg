@@ -97,16 +97,7 @@ namespace EMTG {
         this->time_step_sizes.resize(options->num_timesteps);
 
 		//size the vectors necessary to compute the patch-point derivatives
-		if (p == 0 && options->allow_initial_mass_to_vary)
-            this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier.resize(7);
-
-		if (options->journey_variable_mass_increment[j])
-            this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier.resize(7);
-
-		if (options->objective_type == 13)
-            this->G_index_of_derivative_of_match_point_with_respect_to_BOL_power.resize(7);
-
-        this->dTdP.resize(options->num_timesteps);
+		this->dTdP.resize(options->num_timesteps);
         this->dmdotdP.resize(options->num_timesteps);
         this->dTdIsp.resize(options->num_timesteps);
         this->dmdotdIsp.resize(options->num_timesteps);
@@ -841,337 +832,38 @@ namespace EMTG {
 
 		//**************************************************************************
 		//calculate bounds on variables and constraints governing the left boundary
-		calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+		this->calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//**************************************************************************
 		//if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-		calcbounds_phase_thruster_parameters(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_phase_thruster_parameters(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//**************************************************************************
 		//next, we need to encode the phase flight time
-		calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
+        this->calcbounds_flight_time(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, synodic_periods, j, p, Universe, options);
 
 		//**************************************************************************
 		//calculate bounds on variables and constraints governing the right boundary
-		calcbounds_right_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_right_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//**************************************************************************
 		//if we are using a variable scale/standard deviation distribution to pick the control points
-		if (options->step_size_distribution == 3 || options->step_size_distribution == 4)
-		{
-			Xlowerbounds->push_back(1.0);
-			Xupperbounds->push_back(options->step_size_stdv_or_scale);
-			Xdescriptions->push_back(prefix + "step size distribution standard deviation or scale factor");
-		}
-
+        this->calcbounds_step_distribution_scale_factor(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//**************************************************************************
 		//next, we need to include the decision variables and constraints for each burn
-		//now, for each timestep
-		if (options->control_coordinate_system == 0) //Cartesian control
-		{
-			for (int w = 0; w < options->num_timesteps; ++w)
-			{
-				stringstream stepstream;
-				stepstream << w;
-				//u_x
-				Xlowerbounds->push_back(-1.0);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_x");
-
-				//u_y
-				Xlowerbounds->push_back(-1.0);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_y");
-
-				//u_z
-				Xlowerbounds->push_back(-1.0);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_z");
-
-				//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
-				if (options->engine_type == 4 || options->engine_type == 13)
-				{
-					Xlowerbounds->push_back(options->IspLT_minimum);
-					Xupperbounds->push_back(options->IspLT);
-					Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-				}
-				else if (options->engine_type == 12)
-				{
-					Xlowerbounds->push_back(3000.0);
-					Xupperbounds->push_back(5000.0);
-					Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-				}
-
-				//and the throttle magnitude constraint
-				//throttle = 0
-				Flowerbounds->push_back(0.0);
-				Fupperbounds->push_back(1.0);
-				Fdescriptions->push_back(prefix + "step " + stepstream.str() + " throttle magnitude constraint");
-
-				//Jacobian entries for the throttle magnitude constraint
-				//The throttle magnitude constraint is dependent only on the preceding three throttle components
-				vector<int> step_G_indices;
-				vector<double> dummyvalues(3);
-				int vary_Isp_flag = (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13) ? 1 : 0;
-				for (size_t entry = Xdescriptions->size() - 1 - vary_Isp_flag; entry > Xdescriptions->size() - 4 - vary_Isp_flag; --entry)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of " << prefix + "step " << w << " throttle magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-
-					//store the position in the G vector
-					step_G_indices.push_back(iGfun->size() - 1);
-				}
-				control_vector_G_indices.push_back(step_G_indices);
-			}
-		}
-		else if (options->control_coordinate_system == 1) //Polar control
-		{
-			for (int w = 0; w < options->num_timesteps; ++w)
-			{
-				stringstream stepstream;
-				stepstream << w;
-				//u_x
-				Xlowerbounds->push_back(1.0e-10);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_Throttle");
-
-				//u_y
-				Xlowerbounds->push_back(0.0);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_u");
-
-				//u_z
-				Xlowerbounds->push_back(0.0);
-				Xupperbounds->push_back(1.0);
-				Xdescriptions->push_back(prefix + "step " + stepstream.str() + " u_v");
-
-				//for variable specific impulse propulsion systems, we must also encode the Isp for this time step
-				if (options->engine_type == 4 || options->engine_type == 13)
-				{
-					Xlowerbounds->push_back(options->IspLT_minimum);
-					Xupperbounds->push_back(options->IspLT);
-					Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-				}
-				else if (options->engine_type == 12)
-				{
-					Xlowerbounds->push_back(3000.0);
-					Xupperbounds->push_back(5000.0);
-					Xdescriptions->push_back(prefix + "step " + stepstream.str() + " Isp");
-				}
-			}
-		}
-
-
-
+        this->calcbounds_LT_controls(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//**************************************************************************
 		//finally, we encode the match point continuity constraints and their Jacobian entries,
 		//noting that every patch point constraint in the phase has a derivative with respect to every variable in the phase
 		//in addition, the patch point constraints have a derivative with respect to the previous phase's arrival mass
 		//and the patch point constraints have a derivatives with respect to all previous time variables, including the launch date
-		calcbounds_LT_match_points(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
-
-		//***************************************************************************
-		//Construct a helper array "rectangular prism" of G indices for match point derivatives with respect to state variables within the phase
-		vector < vector <int> > timeslice;
-		vector <int> scanline;
-		vector<string> constraint_type;
-		constraint_type.push_back(" patch point x constraint");
-		constraint_type.push_back(" patch point y constraint");
-		constraint_type.push_back(" patch point z constraint");
-		constraint_type.push_back(" patch point xdot constraint");
-		constraint_type.push_back(" patch point ydot constraint");
-		constraint_type.push_back(" patch point zdot constraint");
-		constraint_type.push_back(" patch point m constraint");
-
-		for (int step = 0; step < options->num_timesteps + 2; ++step)
-		{
-			timeslice.clear();
-		
-			//loop over constraint type dimension
-			for (int c = 0; c < 7; ++c)
-			{
-				scanline.clear();
-
-				string constraintname = prefix + constraint_type[c];
-
-				for (size_t entry = 0; entry < Gdescriptions->size(); ++entry)
-				{
-					if ( (*Gdescriptions)[entry].find(constraintname) < 1024)
-					{
-						if (step == 0) //derivatives with respect to initial velocity and other parameters applied in the first step
-						{
-							//the first step of the first phase of a journey is abnormal because instead of encoding an XYZ vector, we have encoded a magnitude and two angles
-							if (p == 0)
-							{
-								if ( (*Gdescriptions)[entry].find("magnitude of outgoing velocity asymptote") < 1024)
-								{
-									scanline.push_back(entry);     //derivative with respect to magnitude
-									scanline.push_back(entry + 1); //derivative with respect to RA
-									scanline.push_back(entry + 2); //derivative with respect to DEC
-								}
-							}
-							//otherwise look for an XYZ initial velocity increment and a departure mass
-							else
-							{
-								if ( (*Gdescriptions)[entry].find("initial velocity increment x") < 1024)
-								{
-									scanline.push_back(entry);     //derivative with respect to initial velocity increment x
-									scanline.push_back(entry + 1); //derivative with respect to initial velocity increment y
-									scanline.push_back(entry + 2); //derivative with respect to initial velocity increment z
-								}
-							}
-
-							if ( (*Gdescriptions)[entry].find("initial mass multiplier (0-1)") < 1024)
-							{
-								G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[c] = entry;
-							}
-							if ( /*p == 0 &&*/ (*Gdescriptions)[entry].find("journey initial mass scale factor") < 1024)
-							{
-								G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[c] = entry;
-							}
-						}
-						//derivatives with respect to final velocity - these do not exist for a terminal rendezvous phase
-						else if (step == options->num_timesteps + 1 && (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5)))
-						{
-							if ( (*Gdescriptions)[entry].find("terminal velocity increment x") < 1024)
-							{
-								scanline.push_back(entry);	   //derivative with respect to terminal velocity increment x
-								scanline.push_back(entry + 1); //derivative with respect to terminal velocity increment y
-								scanline.push_back(entry + 2); //derivative with respect to terminal velocity increment z
-							}
-						}
-						//derivatives with respect to the control parameters
-						else
-						{
-							stringstream stepstream;
-							stepstream << step - 1;
-
-							string controlname = prefix + "step " + stepstream.str() + " u_x";
-
-							if ( (*Gdescriptions)[entry].find(controlname) < 1024)
-							{
-								scanline.push_back(entry);	   //derivative with respect to u_x
-								scanline.push_back(entry + 1); //derivative with respect to u_y
-								scanline.push_back(entry + 2); //derivative with respect to u_z
-
-								if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
-									scanline.push_back(entry + 3); //derivative with respect to Isp
-							}
-						}
-					} //end if ( (*Gdescriptions)[entry].find(constraintname) )
-				} //end loop over Gdescriptions
-			
-				timeslice.push_back(scanline);
-			
-			} //end loop over constraint entries
-			match_point_constraint_G_indices.push_back(timeslice);
-	
-		} //end loop over time steps
-
-		//find derivative entries of match-point constraints with respect to time variables
-		for (int c = 0; c < 7; ++c)
-		{
-			vector<int> constraint_slice;
-			string constraintname = prefix + constraint_type[c];
-
-			for (size_t entry = 0; entry < Gdescriptions->size(); ++entry)
-			{
-				if ( (*Gdescriptions)[entry].find(constraintname) < 1024)
-				{
-					if ( (*Gdescriptions)[entry].find("launch epoch") < 1024 || (*Gdescriptions)[entry].find("phase flight time") < 1024 || (*Gdescriptions)[entry].find("stay time") < 1024)
-					{
-						constraint_slice.push_back(entry);
-					}
-				}
-			}
-
-			G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables.push_back(constraint_slice);
-		}
+        this->calcbounds_LT_match_points(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 
 		//***************************************************************************
 		//if this is the last phase, encode any constraints for the arrival processing
-		if (p == options->number_of_phases[j] - 1)
-		{
-			if (options->journey_arrival_type[j] == 2) //intercept with bounded v-infinity
-			{
-				Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
-				Fupperbounds->push_back(0.0);
-				Fdescriptions->push_back(prefix + "arrival C3 constraint");
-
-				//Jacobian entry for a bounded v-infinity intercept
-				//this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
-				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-				{
-					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
-					{
-						iGfun->push_back(Fdescriptions->size() - 1);
-						jGvar->push_back(entry);
-						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-						Gdescriptions->push_back(EntryNameStream.str());
-						terminal_velocity_constraint_G_indices.push_back(iGfun->size() - 1);
-						terminal_velocity_constraint_X_indices.push_back(entry);
-						terminal_velocity_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-					}
-				}
-			}
-
-			if ( options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2) ) //intercept with bounded v-infinity or orbit insertion
-			{
-				Flowerbounds->push_back(options->journey_arrival_declination_bounds[j][0] / options->journey_arrival_declination_bounds[j][1] - 1.0);
-				Fupperbounds->push_back(0.0);
-				Fdescriptions->push_back(prefix + "arrival declination constraint");
-
-				//Jacobian entry for arrival declination constraint
-				//this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
-				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-				{
-					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
-					{
-						iGfun->push_back(Fdescriptions->size() - 1);
-						jGvar->push_back(entry);
-						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-						Gdescriptions->push_back(EntryNameStream.str());
-						arrival_declination_constraint_G_indices.push_back(iGfun->size() - 1);
-						arrival_declination_constraint_X_indices.push_back(entry);
-						arrival_declination_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-					}
-				}
-			}
-
-			if (options->journey_arrival_type[j] == 6) //enforce escape constraint, E = 0
-			{
-				Flowerbounds->push_back(-math::SMALL);
-				Fupperbounds->push_back(math::LARGE);
-				Fdescriptions->push_back(prefix + "arrival escape condition (zero energy constraint)");
-
-				//Jacobian entry for zero energy condition
-				//this is a nonlinear constraint dependent on the terminal velocity vector
-				//note that it is NOT dependent on position because these phases always end at the SOI and SOI distance is constant
-				for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-				{
-					if ((*Xdescriptions)[entry].find("terminal velocity") < 1024 || (*Xdescriptions)[entry].find("right boundary point") < 1024)
-					{
-						iGfun->push_back(Fdescriptions->size() - 1);
-						jGvar->push_back(entry);
-						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " escape constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-						Gdescriptions->push_back(EntryNameStream.str());
-						escape_constraint_G_indices.push_back(iGfun->size() - 1);
-						escape_constraint_X_indices.push_back(entry);
-						escape_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-					}
-				}
-			}
-
-		
-		}
+        this->calcbounds_arrival_constraints(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 	}
 
 	//output function
