@@ -2315,7 +2315,20 @@ FBLT_phase::FBLT_phase() {
 				//this must be disabled for phases that start with spirals
 				if (!(options->journey_arrival_type[j - 1] == 7))
 				{
-					
+                    if (detect_initial_coast)
+                    {
+                        for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                        {
+                            G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]]] * cumulative_initial_coast_STM(stateindex, 6) / options->maximum_mass;
+                        }
+                    }
+                    else
+                    {
+                        for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                        {
+                            G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]]] * forward_cumulative_stripped_STM(stateindex, 6) / options->maximum_mass;
+                        }
+                    }
 				}
 			}
 		}
@@ -2323,6 +2336,7 @@ FBLT_phase::FBLT_phase() {
 		{
             if (detect_initial_coast)
             {
+                //initial velocity
                 for (size_t vindex = 0; vindex < 3; ++vindex)
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
@@ -2330,15 +2344,26 @@ FBLT_phase::FBLT_phase() {
                         G[match_point_constraint_G_indices[0][stateindex][vindex]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][vindex]]] * cumulative_initial_coast_STM(stateindex, vindex + 3) * Universe->TU / Universe->LU;
                     }
                 }
+                //initial mass
+                for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                {
+                    G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]]] * cumulative_initial_coast_STM(stateindex, 6) / options->maximum_mass;
+                }
             }
             else
             {
+                //initial velocity
                 for (size_t vindex = 0; vindex < 3; ++vindex)
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     {
                         G[match_point_constraint_G_indices[0][stateindex][vindex]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][vindex]]] * forward_cumulative_stripped_STM(stateindex, vindex + 3) * Universe->TU / Universe->LU;
                     }
+                }
+                //initial mass
+                for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                {
+                    G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_initial_mass[stateindex]]] * forward_cumulative_stripped_STM(stateindex, 6) / options->maximum_mass;
                 }
             }
 		}
