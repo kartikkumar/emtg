@@ -2277,14 +2277,14 @@ FBLT_phase::FBLT_phase() {
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     {
-                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]]] * cumulative_initial_coast_STM(stateindex, 6);
+                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]]] * this->unscaled_phase_initial_mass / options->maximum_mass * cumulative_initial_coast_STM(stateindex, 6);
                     }
                 }
                 else
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     {
-                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]]] * forward_cumulative_stripped_STM(stateindex, 6);
+                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier[stateindex]]] * this->unscaled_phase_initial_mass / options->maximum_mass * forward_cumulative_stripped_STM(stateindex, 6);
                     }
                 }
 			}
@@ -2294,20 +2294,86 @@ FBLT_phase::FBLT_phase() {
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     {
-                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]]] * cumulative_initial_coast_STM(stateindex, 6);
+                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]]] * options->journey_starting_mass_increment[j] / options->maximum_mass * cumulative_initial_coast_STM(stateindex, 6);
                     }
                 }
                 else
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     {
-                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]]] * forward_cumulative_stripped_STM(stateindex, 6);
+                        G[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]] = -options->X_scale_ranges[options->jGvar[this->G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier[stateindex]]] * options->journey_starting_mass_increment[j] / options->maximum_mass * forward_cumulative_stripped_STM(stateindex, 6);
                     }
                 }
 			}
 			if (options->journey_departure_type[j] == 0)// && options->LV_type > 0)
 			{
-				
+                
+				//initial asymptote derivatives
+                double cRA = cos(RA_departure);
+                double sRA = sin(RA_departure);
+                double cDEC = cos(DEC_departure);
+                double sDEC = sin(DEC_departure);
+                double v_infinity = sqrt(C3_departure);
+                
+                //derivatives with respect to v-infinity
+                double dvx0_dvinf = cRA * cDEC;
+                double dvy0_dvinf = sRA * cDEC;
+                double dvz0_dvinf = sDEC;
+
+                //derivatives with respect to RA
+                double dvx0_dRA = v_infinity * (-sRA*cDEC);
+                double dvy0_dRA = v_infinity * (cRA*cDEC);
+                double dvz0_dRA = 0.0;
+
+                //derivatives with respect to DEC
+                double dvx0_dDEC = v_infinity * (-cRA*sDEC);
+                double dvy0_dDEC = v_infinity * (-sRA*sDEC);
+                double dvz0_dDEC = v_infinity * (cDEC);
+ 
+                if (detect_initial_coast)
+                {
+                    for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                    {
+                        G[match_point_constraint_G_indices[0][stateindex][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][0]]] * Universe->TU / Universe->LU
+                            * (cumulative_initial_coast_STM(stateindex, 3) * dvx0_dvinf
+                            + cumulative_initial_coast_STM(stateindex, 4) * dvy0_dvinf
+                            + cumulative_initial_coast_STM(stateindex, 5) * dvz0_dvinf
+                            + cumulative_initial_coast_STM(stateindex, 6) * this->dmdvinf * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
+
+                        G[match_point_constraint_G_indices[0][stateindex][1]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][1]]] * Universe->TU / Universe->LU
+                            * (cumulative_initial_coast_STM(stateindex, 3) * dvx0_dRA
+                            + cumulative_initial_coast_STM(stateindex, 4) * dvy0_dRA
+                            + cumulative_initial_coast_STM(stateindex, 5) * dvz0_dRA);
+
+                        G[match_point_constraint_G_indices[0][stateindex][2]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][2]]] * Universe->TU / Universe->LU
+                            * (cumulative_initial_coast_STM(stateindex, 3) * dvx0_dDEC
+                            + cumulative_initial_coast_STM(stateindex, 4) * dvy0_dDEC
+                            + cumulative_initial_coast_STM(stateindex, 5) * dvz0_dDEC);
+                    }
+                }
+                else
+                {
+                    for (size_t stateindex = 0; stateindex < 7; ++stateindex)
+                    {
+                        G[match_point_constraint_G_indices[0][stateindex][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][0]]] * Universe->TU / Universe->LU
+                            * (forward_cumulative_stripped_STM(stateindex, 3) * dvx0_dvinf
+                            + forward_cumulative_stripped_STM(stateindex, 4) * dvy0_dvinf
+                            + forward_cumulative_stripped_STM(stateindex, 5) * dvz0_dvinf
+                            + forward_cumulative_stripped_STM(stateindex, 6) * this->dmdvinf * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
+
+                        G[match_point_constraint_G_indices[0][stateindex][1]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][1]]] * Universe->TU / Universe->LU
+                            * (forward_cumulative_stripped_STM(stateindex, 3) * dvx0_dRA
+                            + forward_cumulative_stripped_STM(stateindex, 4) * dvy0_dRA
+                            + forward_cumulative_stripped_STM(stateindex, 5) * dvz0_dRA);
+
+                        G[match_point_constraint_G_indices[0][stateindex][2]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][2]]] * Universe->TU / Universe->LU
+                            * (forward_cumulative_stripped_STM(stateindex, 3) * dvx0_dDEC
+                            + forward_cumulative_stripped_STM(stateindex, 4) * dvy0_dDEC
+                            + forward_cumulative_stripped_STM(stateindex, 5) * dvz0_dDEC);
+                    }
+                }
+
+                
 			}
 
 			if (j > 0) //for successive journeys the mass at the beginning of the phase affects the following patch point

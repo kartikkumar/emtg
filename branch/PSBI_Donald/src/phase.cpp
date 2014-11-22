@@ -141,13 +141,18 @@ namespace EMTG {
 																	&dmdvinf,
 																	options);
 
-							this->state_at_beginning_of_phase[6] = launch_mass > options->maximum_mass ? options->maximum_mass : launch_mass;
-						
-							//apply the mass margin
-							this->state_at_beginning_of_phase[6] *= 1.0 - options->LV_margin;
-
-							//convert from dm/dC3 to dm/dvinf
-							this->dmdvinf *= (2 * vinf_out)*(1.0 - options->LV_margin);
+                            if (launch_mass * (1.0 - options->LV_margin) > options->maximum_mass)
+                            {
+                                this->state_at_beginning_of_phase[6] = options->maximum_mass;
+                                this->dmdvinf = 0.0;
+                            }
+                            else
+                            {
+                                this->state_at_beginning_of_phase[6] = launch_mass * (1.0 - options->LV_margin);
+                                
+                                //convert from dm/dC3 to dm/dvinf
+                                this->dmdvinf *= (2 * vinf_out)*(1.0 - options->LV_margin);
+                            }
 						}
 						else if (options->LV_type == 0)
 						{
