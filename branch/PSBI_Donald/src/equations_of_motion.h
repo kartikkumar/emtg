@@ -8,23 +8,28 @@
 namespace EMTG {namespace Astrodynamics { namespace EOM
 {
 	//equations of motion for an object moving in the heliocentric inertial frame with a thrust term
-	void EOM_inertial_continuous_thrust(double* x,
-										double 
-										const double& t,
-										const double& t0,
-										double* u,
-										double* f,
-										double* thrust,
-										double* mdot,
-										double* Isp,
-										double* power,
-										double* active_power,
+	void EOM_inertial_continuous_thrust(std::vector <double> & x,
+										std::vector <double> & dxdTOF,
+										const double & t,
+										const double & dtdTOF,
+										const double & c,
+										const double & h,
+										const double & dhdTOF,
+										const double & t0,
+										double * u,
+										std::vector <double> & f,
+										std::vector <double> & dfdTOF,
+										double * thrust,
+										double * mdot,
+										double * Isp,
+										double * power,
+										double * active_power,
                                         int* number_of_active_engines,
-                                        int &STMrows,
-                                        int &STMcolumns,
-										void* optionsvoidpointer, 
-										void* Universepointer, 
-										void* ControllerPointer);
+                                        int & STMrows,
+                                        int & STMcolumns,
+										void * optionsvoidpointer, 
+										void * Universepointer, 
+										void * ControllerPointer);
 
 
 	//equations of motion for an object moving in the heliocentric inertial frame with a thrust term, using the Sundman transformation for non-uniform spacing of control points

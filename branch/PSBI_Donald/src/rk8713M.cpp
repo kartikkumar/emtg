@@ -18,11 +18,12 @@ namespace EMTG {
 	{
 		rk8713M::rk8713M(){} //the default constructor will never be called
 
-		rk8713M::rk8713M(int ns_in)
+		rk8713M::rk8713M(int ns_in) : x_left(ns, 0.0), x_right(ns, 0.0)
 		{
 			ns = ns_in;
 			
-			x_left = new double[ns];
+			//x_left.resize(ns);
+			//x_right.resize(ns);
 			f1.resize(ns);
 			f2.resize(ns);
 			f3.resize(ns);
@@ -51,8 +52,8 @@ namespace EMTG {
 			df13dTOF.resize(ns);
 			y.resize(ns);
 			dydTOF.resize(ns);
-			dX_leftdTOF.resize(ns);
-			dX_rightdTOF.resize(ns);
+			dx_leftdTOF.resize(ns);
+			dx_rightdTOF.resize(ns);
 
 			//x_left = new double[ns];
 			//f1 = new double[ns];
@@ -89,14 +90,11 @@ namespace EMTG {
 			//delete[] f3;
 			//delete[] f2;
 			//delete[] f1;
-			delete[] x_left;
+			//delete[] x_left;
 		}
 
-		void rk8713M::rk8713M_step(double * x_left, // spacecraft state at the LHS of the current RK sub-step 
-			double * x_right, // pointer to store the spacecraft's state at the RHS of the current sub-step
+		void rk8713M::rk8713M_step(
 			double * u, // control 3 vector
-			std::vector <double> & f1, // gradient vector from the first RK stage
-			std::vector <double> & df1dTOF, // TOF derivative of gradient vector from the first RK stage
 			const double & t_left_step, // epoch at the LHS of the current RK sub-step
 			const double & dt_left_stepdTOF,
 			const double & t_0, // launch epoch
@@ -104,8 +102,8 @@ namespace EMTG {
 			const double & dhdTOF, // TOF derivative of RK sub-step size
 			double * error, // pointer to store error between 7th order and 8th order solutions
 			
-			void(*EOM)(double * x, // spacecraft's current state at left hand side of the current RK sub-step
-			double * dx_dTOF,
+			void(*EOM)(std::vector <double> & x, // spacecraft's current state at left hand side of the current RK sub-step
+			std::vector <double> & dx_dTOF,
 			const double & t_left_step, // current epoch in TU's
 			const double & dt_left_stepdTOF,
 			const double & c2,
@@ -113,8 +111,8 @@ namespace EMTG {
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
 			double * u, // throttle parameter vector
-			double * f, // EOM gradient vector
-			double * dfdTOF,
+			std::vector <double> & f, // EOM gradient vector
+			std::vector <double> & dfdTOF,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -643,22 +641,25 @@ namespace EMTG {
 
 
 				//take the 8th order solution as truth and compare it with the 7th order solution to quantify the error for this substep
-				*error = max(*error, fabs(x_right[i] - y[i]));
+				*error = *error > fabs(x_right[i] - y[i]) ? *error : fabs(x_right[i] - y[i]);
+				//*error = max(*error, fabs(x_right[i] - y[i]));
 			}
 		}
 
 		void rk8713M::adaptive_step_int(double * x_left_in, // spacecraft's state at the left boundary of the current segment (FBLT "step")
-			double * x_right, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
-			double * uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
+			std::vector <double> & dx_left_indTOF,
+			double * x_right_out, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
+			const double * uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
 			const double & t_left, // current epoch in TU's
+			const double & dt_leftdTOF,
 			const double & t_0, // launch epoch (NOT time at beginning of phase, unless this is a 1 - phase mission)
 			double const & local_step, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
 			double * resumeH, // NO LONGER USED...in the original implementation we forcibly discretized a priori to the integration
 			double * resumeError, // NO LONGER USED...same reason, the outer for loop around the step do-while is no longer present
 			double const & PRECISION_TARGET, // integration error tolerance, currently 1.0e-8 in EMTG, this is set in FBLTphase.cpp (hard-coded)
 			
-			void(*EOM)(double * x, // spacecraft's current state at left hand side of the current RK sub-step
-			double * dx_dTOF,
+			void(*EOM)(std::vector <double> & x, // spacecraft's current state at left hand side of the current RK sub-step
+			std::vector <double> & dx_dTOF,
 			const double & t_left_step, // current epoch in TU's
 			const double & dt_left_stepdTOF, 
 			const double & c2,
@@ -666,8 +667,8 @@ namespace EMTG {
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
 			double * u, // throttle parameter vector
-			double * f, // EOM gradient vector
-			double * dfdTOF,
+			std::vector <double> & f, // EOM gradient vector
+			std::vector <double> & dfdTOF,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -709,11 +710,17 @@ namespace EMTG {
 			{ //loop until we get all the way through a full h (a full segment)
 
 				//-> INSERT EOM 1st call and STORE f1 values. Replace this with your EOM call of choice.	
-				(*EOM)(x_left, 
-					   t_left, 
+				(*EOM)(x_left,
+					   dx_left_indTOF,
+					   t_left,
+					   dt_leftdTOF,
+					   0.0,
+					   effectiveH,
+					   deffectiveHdTOF,
 					   t_0, 
 					   uleft, 
 					   f1, 
+					   df1dTOF,
 					   thrust, 
 					   mdot, 
 					   Isp, 
@@ -774,7 +781,7 @@ namespace EMTG {
 
 					//rk takes in x1 as the left-hand side, but returns it as the answer (right hand side)
 					//rk8713M (x_left, x_right, uleft, f1, effectiveH, precision_error, segment, ns, nc, nseg, sat_num, *design);
-					rk8713M_step(x_left, x_right, uleft, f1, t_left + accumulatedH, t_0, effectiveH, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
+					rk8713M_step(uleft, t_left + accumulatedH, t_0, effectiveH, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
 
 				} while (precision_error > PRECISION_TARGET);
 
@@ -797,6 +804,11 @@ namespace EMTG {
 
 
 			} while (fabs(accumulatedH) < fabs(local_step));
+
+			for (int statenum = 0; statenum < ns; ++statenum)
+			{
+				x_right_out[statenum] = x_right[statenum];
+			}
 
 			//end of integration routine
 		}

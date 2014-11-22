@@ -13,22 +13,28 @@
 namespace EMTG { namespace Astrodynamics {namespace EOM
 {	
 	//equations of motion for an object moving in the heliocentric inertial frame with a thrust term
-	void EOM_inertial_continuous_thrust(double* x,
-										const double& t,
-										const double& t0,
-										double* u,
-										double* f,
-										double* thrust,
-										double* mdot,
-										double* Isp,
-										double* power,
-										double* active_power,
-										int* number_of_active_engines,
-										int &STMrows,
-										int &STMcolumns,
-										void* optionsvoidpointer, 
-										void* Universepointer, 
-										void* ControllerPointer)
+	void EOM_inertial_continuous_thrust(std::vector <double> & x,
+										std::vector <double> & dxdTOF,
+										const double & t,
+										const double & dtdTOF,
+										const double & c,
+										const double & h,
+										const double & dhdTOF,
+										const double & t0,
+										double * u,
+										std::vector <double> & f, // EOM gradient vector
+										std::vector <double> & dfdTOF,
+										double * thrust,
+										double * mdot,
+										double * Isp,
+										double * power,
+										double * active_power,
+										int * number_of_active_engines,
+										int & STMrows,
+										int & STMcolumns,
+										void * optionsvoidpointer, 
+										void * Universepointer, 
+										void * ControllerPointer)
 	{
 		missionoptions* options = (missionoptions*) optionsvoidpointer;
 		EMTG::Astrodynamics::universe* Universe = (EMTG::Astrodynamics::universe*) Universepointer;
