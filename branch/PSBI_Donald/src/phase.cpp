@@ -138,7 +138,7 @@ namespace EMTG {
 																	this->DEC_departure * 180.0 / math::PI,
 																	options->LV_type,
 																	&launch_mass,
-																	&dmdvinf,
+																	&(this->dmdvinf),
 																	options);
 
                             if (launch_mass * (1.0 - options->LV_margin) > options->maximum_mass)
@@ -151,7 +151,7 @@ namespace EMTG {
                                 this->state_at_beginning_of_phase[6] = launch_mass * (1.0 - options->LV_margin);
                                 
                                 //convert from dm/dC3 to dm/dvinf
-                                this->dmdvinf *= (2 * vinf_out)*(1.0 - options->LV_margin);
+                                this->dmdvinf *= (2.0 * vinf_out)*(1.0 - options->LV_margin);
                             }
 						}
 						else if (options->LV_type == 0)
@@ -229,14 +229,16 @@ namespace EMTG {
 						this->state_at_beginning_of_phase[6] = current_state[6] * exp(-this->dV_departure_magnitude * 1000/ (options->IspDS * options->g0));
 				}
 
+                //handle the mission initial mass multiplier
+                this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
 				if (j == 0 && options->allow_initial_mass_to_vary)
 				{
 					//if we have enabled varying the initial mass, then pass through a mass multiplier
 					this->mission_initial_mass_multiplier = X[*Xindex];
 					++(*Xindex);
-					this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
 					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
 				}
+
 			}//end code for journeys that start with an impulse
 			else if (options->journey_departure_type[j] == 2)//free direct departure
 			{

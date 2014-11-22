@@ -35,20 +35,20 @@ FBLT_phase::FBLT_phase() {
 	    vector<double> dV_or_control_dummy(3);
 
 	    for (int step = 0; step < options->num_timesteps; ++step) {
-		    spacecraft_state.push_back(state_dummy);
-		    control.push_back(dV_or_control_dummy);
+            this->spacecraft_state.push_back(state_dummy);
+            this->control.push_back(dV_or_control_dummy);
 	    }
 
-	    match_point_state.resize(7);
+        this->match_point_state.resize(7);
 
 
-	    event_epochs.resize(options->num_timesteps);
-	    available_power.resize(options->num_timesteps);
-	    available_thrust.resize(options->num_timesteps);
-	    available_mass_flow_rate.resize(options->num_timesteps);
-	    available_Isp.resize(options->num_timesteps);
-	    active_power.resize(options->num_timesteps);
-	    number_of_active_engines.resize(options->num_timesteps);
+        this->event_epochs.resize(options->num_timesteps);
+        this->available_power.resize(options->num_timesteps);
+        this->available_thrust.resize(options->num_timesteps);
+        this->available_mass_flow_rate.resize(options->num_timesteps);
+        this->available_Isp.resize(options->num_timesteps);
+        this->active_power.resize(options->num_timesteps);
+        this->number_of_active_engines.resize(options->num_timesteps);
 
         //vector to track the state and derivatives of the central body
         vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
@@ -56,14 +56,14 @@ FBLT_phase::FBLT_phase() {
             this->central_body_state_mks.push_back(central_body_state_dummy);
 
 	    //set the bodies
-	    boundary1_location_code = options->sequence[j][p];
-	    boundary2_location_code = options->sequence[j][p+1];
+        this->boundary1_location_code = options->sequence[j][p];
+        this->boundary2_location_code = options->sequence[j][p + 1];
 
 	    //size the vectors that will be used to calculate the b-plane
-	    V_infinity_in.resize(3, 1);
-	    V_infinity_out.resize(3, 1);
-	    BoundaryR.resize(3, 1);
-	    BoundaryV.resize(3, 1);
+        this->V_infinity_in.resize(3, 1);
+        this->V_infinity_out.resize(3, 1);
+        this->BoundaryR.resize(3, 1);
+        this->BoundaryV.resize(3, 1);
 
 	    //set up the integrator
 		//for analytical FBLT derivatives, we need to integrate STM
@@ -72,13 +72,14 @@ FBLT_phase::FBLT_phase() {
 		this->STMrows = 11;
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
-	    integrator = new EMTG::integration::rk8713M(num_states);
+	    this->integrator = new EMTG::integration::rk8713M(num_states);
 
-	    current_mass_increment = 0.0;
-	    journey_initial_mass_increment_scale_factor = 1.0;
+	    this->current_mass_increment = 0.0;
+	    this->journey_initial_mass_increment_scale_factor = 1.0;
+        this->mission_initial_mass_multiplier = 1.0;
 
 	    //size the time step vector
-	    time_step_sizes.resize(options->num_timesteps);
+	    this->time_step_sizes.resize(options->num_timesteps);
 
 	    //set derivatives for spirals
 	    this->spiral_escape_dm_after_dm_before = 1.0;
@@ -2338,7 +2339,7 @@ FBLT_phase::FBLT_phase() {
                             * (cumulative_initial_coast_STM(stateindex, 3) * dvx0_dvinf
                             + cumulative_initial_coast_STM(stateindex, 4) * dvy0_dvinf
                             + cumulative_initial_coast_STM(stateindex, 5) * dvz0_dvinf
-                            + cumulative_initial_coast_STM(stateindex, 6) * this->dmdvinf * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
+                            + cumulative_initial_coast_STM(stateindex, 6) * this->dmdvinf * this->mission_initial_mass_multiplier * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
 
                         G[match_point_constraint_G_indices[0][stateindex][1]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][1]]] * Universe->TU / Universe->LU
                             * (cumulative_initial_coast_STM(stateindex, 3) * dvx0_dRA
@@ -2359,7 +2360,7 @@ FBLT_phase::FBLT_phase() {
                             * (forward_cumulative_stripped_STM(stateindex, 3) * dvx0_dvinf
                             + forward_cumulative_stripped_STM(stateindex, 4) * dvy0_dvinf
                             + forward_cumulative_stripped_STM(stateindex, 5) * dvz0_dvinf
-                            + forward_cumulative_stripped_STM(stateindex, 6) * this->dmdvinf * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
+                            + forward_cumulative_stripped_STM(stateindex, 6) * this->dmdvinf * this->mission_initial_mass_multiplier * this->unscaled_phase_initial_mass / options->maximum_mass * Universe->TU / Universe->LU);
 
                         G[match_point_constraint_G_indices[0][stateindex][1]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][stateindex][1]]] * Universe->TU / Universe->LU
                             * (forward_cumulative_stripped_STM(stateindex, 3) * dvx0_dRA
