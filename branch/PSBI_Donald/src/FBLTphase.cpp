@@ -72,7 +72,7 @@ FBLT_phase::FBLT_phase() {
 		this->STMrows = 11;
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
-	    this->integrator = new EMTG::integration::rk8713M(num_states);
+	    integrator = new EMTG::integration::rk8713M(num_states, options);
 
 	    this->current_mass_increment = 0.0;
 	    this->journey_initial_mass_increment_scale_factor = 1.0;
@@ -240,7 +240,7 @@ FBLT_phase::FBLT_phase() {
 
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
                                             spacecraft_state_end_coast,
-										    empty_vector, 
+										    &empty_vector[0], 
 										    (phase_start_epoch) / Universe->TU,
 										    X[0],
                                             initial_coast_duration / Universe->TU,
@@ -712,7 +712,7 @@ FBLT_phase::FBLT_phase() {
 
 		    integrator->adaptive_step_int(	spacecraft_state_backward,
                                             spacecraft_state_end_coast,
-										    empty_vector, 
+										    &empty_vector[0], 
 										    (phase_end_epoch) / Universe->TU,
 										    X[0],
 										    -terminal_coast_duration / Universe->TU, 
@@ -1369,7 +1369,7 @@ FBLT_phase::FBLT_phase() {
 
             integrator->adaptive_step_int(spacecraft_state_propagate,
                 augmented_state_at_initial_coast_midpoint,
-                empty_vector,
+                &empty_vector[0],
                 (phase_start_epoch) / Universe->TU,
                 launchdate,
                 initial_coast_duration / 2.0 / Universe->TU,
@@ -1673,7 +1673,7 @@ FBLT_phase::FBLT_phase() {
 
             integrator->adaptive_step_int(spacecraft_state_propagate,
                 augmented_state_at_terminal_coast_midpoint,
-                empty_vector,
+                &empty_vector[0],
                 (phase_end_epoch + phase_time_elapsed) / Universe->TU,
                 launchdate,
                 terminal_coast_duration / 2.0 / Universe->TU,
@@ -2103,7 +2103,7 @@ FBLT_phase::FBLT_phase() {
 
             this->integrator->adaptive_step_int(current_state,
                                                 temp_state,
-                                                control_step >= 0 ? this->control[control_step].data() : empty_control,
+                                                control_step >= 0 ? this->control[control_step].data() : &empty_control[0],
                                                 current_epoch / Universe.TU,
                                                 (current_epoch - launch_epoch) / Universe.TU,
                                                 step_time / Universe.TU,

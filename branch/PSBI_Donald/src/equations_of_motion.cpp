@@ -14,16 +14,17 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 {	
 	//equations of motion for an object moving in the heliocentric inertial frame with a thrust term
 	void EOM_inertial_continuous_thrust(std::vector <double> & x,
-										std::vector <double> & dxdTOF,
-										const double & t,
-										const double & dtdTOF,
+		                                EMTG::math::Matrix <double> & dxdTOF,
+										const double & epoch_step_left,
+										std::vector <double> & depoch_step_leftdTOF,
 										const double & c,
 										const double & h,
 										const double & dhdTOF,
-										const double & t0,
-										double * u,
+										const double & launch_epoch,
+										std::vector <double> & u,
 										std::vector <double> & f, // EOM gradient vector
-										std::vector <double> & dfdTOF,
+										EMTG::math::Matrix <double> & dfdTOF,
+										const int & phase_num,
 										double * thrust,
 										double * mdot,
 										double * Isp,
@@ -39,12 +40,10 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		missionoptions* options = (missionoptions*) optionsvoidpointer;
 		EMTG::Astrodynamics::universe* Universe = (EMTG::Astrodynamics::universe*) Universepointer;
 		
-		double ForceVector[3];
-		double spacecraft_state[7];
-		double epoch = t * Universe->TU; //FIX THIS....ADD h*c
-		double launch_epoch = t0;
+		std::vector <double> ForceVector (3, 0.0);
+		std::vector <double> spacecraft_state (7, 0.0);
 
-		double dTdP,dmdotdP,dTdIsp,dmdotdIsp,dPdr,dPdt,dFSRPdr;
+		double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt, dFSRPdr;
 		
         static vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks((options->derivative_type > 2) ? 12 : 6);
 
@@ -56,7 +55,6 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 
 		//determine the forces acting on the object 
 		//and calculate the state propagation matrix A
-
 		static EMTG::math::Matrix<double> A (STMrows, STMcolumns, 0.0);
 
 		//The s/c state must be converted to MKS in order to interface with the force and engine models
@@ -77,10 +75,18 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 			EMTG::Astrodynamics::FBLT_force_model(options,
 				Universe,
 				spacecraft_state,
-				&epoch,
-				&launch_epoch,
+				dxdTOF,
+				epoch_step_left,
+				depoch_step_leftdTOF,
+				c,
+				h,
+				dhdTOF,
+				launch_epoch,
 				u,
+				f,
+				dfdTOF,
 				thrust,
+				phase_num,
 				mdot,
 				Isp,
 				power,
@@ -105,17 +111,17 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		{
 			EMTG::Astrodynamics::force_model(options,
 				Universe,
-				spacecraft_state,
-				&epoch,
-				&launch_epoch,
-				u,
+				&spacecraft_state[0],
+				epoch_step_left,
+				launch_epoch,
+				&u[0],
 				thrust,
 				mdot,
 				Isp,
 				power,
 				active_power,
 				number_of_active_engines,
-				ForceVector,
+				&ForceVector[0],
 				false,
 				&dTdP,
 				&dmdotdP,
@@ -159,7 +165,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		f[5] = -mu_normalized*x[2] / (r*r*r) + ForceVector[2] / x[6];
 
 		//mass
-		f[6] = -EMTG::math::norm(u, 3) * (*mdot) * options->engine_duty_cycle;
+		f[6] = -EMTG::math::norm(&u[0], 3) * (*mdot) * options->engine_duty_cycle;
 
 
 
@@ -252,8 +258,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		EMTG::Astrodynamics::force_model(options,
 										Universe,
 										x,
-										&epoch,
-										&launch_epoch,
+										epoch,
+										launch_epoch,
 										u,
 										thrust,
 										mdot,

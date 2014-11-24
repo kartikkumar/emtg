@@ -18,101 +18,45 @@ namespace EMTG {
 	{
 		rk8713M::rk8713M(){} //the default constructor will never be called
 
-		rk8713M::rk8713M(int ns_in) : x_left(ns, 0.0), x_right(ns, 0.0)
+		rk8713M::rk8713M(int ns_in, missionoptions* options) : 
+			f1(ns, 0.0), f2(ns, 0.0), f3(ns, 0.0), f4(ns, 0.0), f5(ns, 0.0), f6(ns, 0.0), f7(ns, 0.0), f8(ns, 0.0), f9(ns, 0.0), f10(ns, 0.0), f11(ns, 0.0), f12(ns, 0.0), f13(ns, 0.0),
+			df1dTOF(7, (options->number_of_phases, 0.0)), df2dTOF(7, (options->number_of_phases, 0.0)), df3dTOF(7, (options->number_of_phases, 0.0)), 
+			df4dTOF(7, (options->number_of_phases, 0.0)), df5dTOF(7, (options->number_of_phases, 0.0)), df6dTOF(7, (options->number_of_phases, 0.0)), 
+			df7dTOF(7, (options->number_of_phases, 0.0)), df8dTOF(7, (options->number_of_phases, 0.0)), df9dTOF(7, (options->number_of_phases, 0.0)), 
+			df10dTOF(7, (options->number_of_phases, 0.0)), df11dTOF(7, (options->number_of_phases, 0.0)), df12dTOF(7, (options->number_of_phases, 0.0)), 
+			df13dTOF(7, (options->number_of_phases, 0.0)),
+			y(ns, 0.0), dydTOF(7, (options->number_of_phases, 0.0)),
+			x_left(ns, 0.0), x_right(ns, 0.0),
+			dx_leftdTOF(7, (options->number_of_phases, 0.0)), dx_rightdTOF(7, (options->number_of_phases, 0.0))
 		{
 			ns = ns_in;
-			
-			//x_left.resize(ns);
-			//x_right.resize(ns);
-			f1.resize(ns);
-			f2.resize(ns);
-			f3.resize(ns);
-			f4.resize(ns);
-			f5.resize(ns);
-			f6.resize(ns);
-			f7.resize(ns);
-			f8.resize(ns);
-			f9.resize(ns);
-			f10.resize(ns);
-			f11.resize(ns);
-			f12.resize(ns);
-			f13.resize(ns);
-			df1dTOF.resize(ns);
-			df2dTOF.resize(ns);
-			df3dTOF.resize(ns);
-			df4dTOF.resize(ns);
-			df5dTOF.resize(ns);
-			df6dTOF.resize(ns);
-			df7dTOF.resize(ns);
-			df8dTOF.resize(ns);
-			df9dTOF.resize(ns);
-			df10dTOF.resize(ns);
-			df11dTOF.resize(ns);
-			df12dTOF.resize(ns);
-			df13dTOF.resize(ns);
-			y.resize(ns);
-			dydTOF.resize(ns);
-			dx_leftdTOF.resize(ns);
-			dx_rightdTOF.resize(ns);
-
-			//x_left = new double[ns];
-			//f1 = new double[ns];
-			//f2 = new double[ns];
-			//f3 = new double[ns];
-			//f4 = new double[ns];
-			//f5 = new double[ns];
-			//f6 = new double[ns];
-			//f7 = new double[ns];
-			//f8 = new double[ns];
-			//f9 = new double[ns];
-			//f10 = new double[ns];
-			//f11 = new double[ns];
-			//f12 = new double[ns];
-			//f13 = new double[ns];
-			//y = new double[ns];
 		}
 
 		//destructor
-		rk8713M::~rk8713M()
-		{
-			//clean everything up
-			//delete[] y;
-			//delete[] f13;
-			//delete[] f12;
-			//delete[] f11;
-			//delete[] f10;
-			//delete[] f9;
-			//delete[] f8;
-			//delete[] f7;
-			//delete[] f6;
-			//delete[] f5;
-			//delete[] f4;
-			//delete[] f3;
-			//delete[] f2;
-			//delete[] f1;
-			//delete[] x_left;
-		}
+		rk8713M::~rk8713M(){}
 
 		void rk8713M::rk8713M_step(
-			double * u, // control 3 vector
+			const int & phase_num,
+			std::vector <double> & u, // control 3 vector
 			const double & t_left_step, // epoch at the LHS of the current RK sub-step
-			const double & dt_left_stepdTOF,
+			std::vector <double> & dt_left_stepdTOF,
 			const double & t_0, // launch epoch
 			const double & h, // RK sub-step size
 			const double & dhdTOF, // TOF derivative of RK sub-step size
 			double * error, // pointer to store error between 7th order and 8th order solutions
 			
 			void(*EOM)(std::vector <double> & x, // spacecraft's current state at left hand side of the current RK sub-step
-			std::vector <double> & dx_dTOF,
+			EMTG::math::Matrix <double> & dx_dTOF,
 			const double & t_left_step, // current epoch in TU's
-			const double & dt_left_stepdTOF,
-			const double & c2,
+			std::vector <double> & dt_left_stepdTOF,
+			const double & c,
 			const double & h,
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
-			double * u, // throttle parameter vector
+			std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
-			std::vector <double> & dfdTOF,
+			EMTG::math::Matrix <double> & dfdTOF,
+			const int & phase_num,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -161,7 +105,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + (h*a21)*f1[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a21*f1[i] + h*a21*df1dTOF[i];
+			}
+			
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a21*f1[i] + h*a21*df1dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -175,6 +126,7 @@ namespace EMTG {
 				   u,
 				   f2,
 				   df2dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -193,7 +145,15 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a31*f1[i] + h*a32*f2[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a31*f1[i] + h*a31*df1dTOF[i] + dhdTOF*a32*f2[i] + h*a32*df2dTOF[i];
+				
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a31*f1[i] + h*a31*df1dTOF(i, p) + dhdTOF*a32*f2[i] + h*a32*df2dTOF(i, p);
+				}
 			}
 
 
@@ -208,6 +168,7 @@ namespace EMTG {
 				   u,
 				   f3,
 				   df3dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -227,7 +188,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + (h*a41)*f1[i] + h*a43*f3[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a41*f1[i] + h*a41*df1dTOF[i] + dhdTOF*a43*f3[i] + h*a43*df3dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a41*f1[i] + h*a41*df1dTOF(i, p) + dhdTOF*a43*f3[i] + h*a43*df3dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -241,6 +209,7 @@ namespace EMTG {
 				   u,
 				   f4,
 				   df4dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -261,7 +230,15 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a51*f1[i] + h*a53*f3[i] + h*a54*f4[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a51*f1[i] + h*a51*df1dTOF[i] + dhdTOF*a53*f3[i] + h*a53*df3dTOF[i] + dhdTOF*a54*f4[i] + h*a54*df4dTOF[i];
+				
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a51*f1[i] + h*a51*df1dTOF(i, p) + dhdTOF*a53*f3[i] + h*a53*df3dTOF(i, p) + dhdTOF*a54*f4[i] + h*a54*df4dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -275,6 +252,7 @@ namespace EMTG {
 				   u,
 				   f5,
 				   df5dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -296,7 +274,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a61*f1[i] + h*a64*f4[i] + h*a65*f5[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a61*f1[i] + h*a61*df1dTOF[i] + dhdTOF*a64*f4[i] + h*a64*df4dTOF[i] + dhdTOF*a65*f5[i] + h*a65*df5dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a61*f1[i] + h*a61*df1dTOF(i, p) + dhdTOF*a64*f4[i] + h*a64*df4dTOF(i, p) + dhdTOF*a65*f5[i] + h*a65*df5dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -310,6 +295,7 @@ namespace EMTG {
 				   u,
 				   f6,
 				   df6dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -332,7 +318,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a71*f1[i] + h*a74*f4[i] + h*a75*f5[i] + h*a76*f6[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a71*f1[i] + h*a71*df1dTOF[i] + dhdTOF*a74*f4[i] + h*a74*df4dTOF[i] + dhdTOF*a75*f5[i] + h*a75*df5dTOF[i] + dhdTOF*a76*f6[i] + h*a76*df6dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a71*f1[i] + h*a71*df1dTOF(i, p) + dhdTOF*a74*f4[i] + h*a74*df4dTOF(i, p) + dhdTOF*a75*f5[i] + h*a75*df5dTOF(i, p) + dhdTOF*a76*f6[i] + h*a76*df6dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -346,6 +339,7 @@ namespace EMTG {
 				   u,
 				   f7,
 				   df7dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -369,7 +363,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a81*f1[i] + h*a84*f4[i] + h*a85*f5[i] + h*a86*f6[i] + h*a87*f7[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a81*f1[i] + h*a81*df1dTOF[i] + dhdTOF*a84*f4[i] + h*a84*df4dTOF[i] + dhdTOF*a85*f5[i] + h*a85*df5dTOF[i] + dhdTOF*a86*f6[i] + h*a86*df6dTOF[i] + dhdTOF*a87*f7[i] + h*a87*df7dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a81*f1[i] + h*a81*df1dTOF(i, p) + dhdTOF*a84*f4[i] + h*a84*df4dTOF(i, p) + dhdTOF*a85*f5[i] + h*a85*df5dTOF(i, p) + dhdTOF*a86*f6[i] + h*a86*df6dTOF(i, p) + dhdTOF*a87*f7[i] + h*a87*df7dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -383,6 +384,7 @@ namespace EMTG {
 				   u,
 				   f8,
 				   df8dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -407,7 +409,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a91*f1[i] + h*a94*f4[i] + h*a95*f5[i] + h*a96*f6[i] + h*a97*f7[i] + h*a98*f8[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a91*f1[i] + h*a91*df1dTOF[i] + dhdTOF*a94*f4[i] + h*a94*df4dTOF[i] + dhdTOF*a95*f5[i] + h*a95*df5dTOF[i] + dhdTOF*a96*f6[i] + h*a96*df6dTOF[i] + dhdTOF*a97*f7[i] + h*a97*df7dTOF[i] + dhdTOF*a98*f8[i] + h*a98*df8dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a91*f1[i] + h*a91*df1dTOF(i, p) + dhdTOF*a94*f4[i] + h*a94*df4dTOF(i, p) + dhdTOF*a95*f5[i] + h*a95*df5dTOF(i, p) + dhdTOF*a96*f6[i] + h*a96*df6dTOF(i, p) + dhdTOF*a97*f7[i] + h*a97*df7dTOF(i, p) + dhdTOF*a98*f8[i] + h*a98*df8dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -421,6 +430,7 @@ namespace EMTG {
 				   u,
 				   f9,
 				   df9dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -446,7 +456,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a10_1*f1[i] + h*a10_4*f4[i] + h*a10_5*f5[i] + h*a10_6*f6[i] + h*a10_7*f7[i] + h*a10_8*f8[i] + h*a10_9*f9[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a10_1*f1[i] + h*a10_1*df1dTOF[i] + dhdTOF*a10_4*f4[i] + h*a10_4*df4dTOF[i] + dhdTOF*a10_5*f5[i] + h*a10_5*df5dTOF[i] + dhdTOF*a10_6*f6[i] + h*a10_6*df6dTOF[i] + dhdTOF*a10_7*f7[i] + h*a10_7*df7dTOF[i] + dhdTOF*a10_8*f8[i] + h*a10_8*df8dTOF[i] + dhdTOF*a10_9*f9[i] + h*a10_9*df9dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a10_1*f1[i] + h*a10_1*df1dTOF(i, p) + dhdTOF*a10_4*f4[i] + h*a10_4*df4dTOF(i, p) + dhdTOF*a10_5*f5[i] + h*a10_5*df5dTOF(i, p) + dhdTOF*a10_6*f6[i] + h*a10_6*df6dTOF(i, p) + dhdTOF*a10_7*f7[i] + h*a10_7*df7dTOF(i, p) + dhdTOF*a10_8*f8[i] + h*a10_8*df8dTOF(i, p) + dhdTOF*a10_9*f9[i] + h*a10_9*df9dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -460,6 +477,7 @@ namespace EMTG {
 				   u,
 				   f10,
 				   df10dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -486,7 +504,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a11_1*f1[i] + h*a11_4*f4[i] + h*a11_5*f5[i] + h*a11_6*f6[i] + h*a11_7*f7[i] + h*a11_8*f8[i] + h*a11_9*f9[i] + h*a11_10*f10[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a11_1*f1[i] + h*a11_1*df1dTOF[i] + dhdTOF*a11_4*f4[i] + h*a11_4*df4dTOF[i] + dhdTOF*a11_5*f5[i] + h*a11_5*df5dTOF[i] + dhdTOF*a11_6*f6[i] + h*a11_6*df6dTOF[i] + dhdTOF*a11_7*f7[i] + h*a11_7*df7dTOF[i] + dhdTOF*a11_8*f8[i] + h*a11_8*df8dTOF[i] + dhdTOF*a11_9*f9[i] + h*a11_9*df9dTOF[i] + dhdTOF*a11_10*f10[i] + h*a11_10*df10dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a11_1*f1[i] + h*a11_1*df1dTOF(i, p) + dhdTOF*a11_4*f4[i] + h*a11_4*df4dTOF(i, p) + dhdTOF*a11_5*f5[i] + h*a11_5*df5dTOF(i, p) + dhdTOF*a11_6*f6[i] + h*a11_6*df6dTOF(i, p) + dhdTOF*a11_7*f7[i] + h*a11_7*df7dTOF(i, p) + dhdTOF*a11_8*f8[i] + h*a11_8*df8dTOF(i, p) + dhdTOF*a11_9*f9[i] + h*a11_9*df9dTOF(i, p) + dhdTOF*a11_10*f10[i] + h*a11_10*df10dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -500,6 +525,7 @@ namespace EMTG {
 				   u,
 				   f11,
 				   df11dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -527,7 +553,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a12_1*f1[i] + h*a12_4*f4[i] + h*a12_5*f5[i] + h*a12_6*f6[i] + h*a12_7*f7[i] + h*a12_8*f8[i] + h*a12_9*f9[i] + h*a12_10*f10[i] + h*a12_11*f11[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a12_1*f1[i] + h*a12_1*df1dTOF[i] + dhdTOF*a12_4*f4[i] + h*a12_4*df4dTOF[i] + dhdTOF*a12_5*f5[i] + h*a12_5*df5dTOF[i] + dhdTOF*a12_6*f6[i] + h*a12_6*df6dTOF[i] + dhdTOF*a12_7*f7[i] + h*a12_7*df7dTOF[i] + dhdTOF*a12_8*f8[i] + h*a12_8*df8dTOF[i] + dhdTOF*a12_9*f9[i] + h*a12_9*df9dTOF[i] + dhdTOF*a12_10*f10[i] + h*a12_10*df10dTOF[i] + dhdTOF*a12_11*f11[i] + h*a12_11*df11dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a12_1*f1[i] + h*a12_1*df1dTOF(i, p) + dhdTOF*a12_4*f4[i] + h*a12_4*df4dTOF(i, p) + dhdTOF*a12_5*f5[i] + h*a12_5*df5dTOF(i, p) + dhdTOF*a12_6*f6[i] + h*a12_6*df6dTOF(i, p) + dhdTOF*a12_7*f7[i] + h*a12_7*df7dTOF(i, p) + dhdTOF*a12_8*f8[i] + h*a12_8*df8dTOF(i, p) + dhdTOF*a12_9*f9[i] + h*a12_9*df9dTOF(i, p) + dhdTOF*a12_10*f10[i] + h*a12_10*df10dTOF(i, p) + dhdTOF*a12_11*f11[i] + h*a12_11*df11dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -541,6 +574,7 @@ namespace EMTG {
 				   u,
 				   f12,
 				   df12dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -568,7 +602,14 @@ namespace EMTG {
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + h*a13_1*f1[i] + h*a13_4*f4[i] + h*a13_5*f5[i] + h*a13_6*f6[i] + h*a13_7*f7[i] + h*a13_8*f8[i] + h*a13_9*f9[i] + h*a13_10*f10[i] + h*a13_11*f11[i];
-				dydTOF[i] = dx_leftdTOF[i] + dhdTOF*a13_1*f1[i] + h*a13_1*df1dTOF[i] + dhdTOF*a13_4*f4[i] + h*a13_4*df4dTOF[i] + dhdTOF*a13_5*f5[i] + h*a13_5*df5dTOF[i] + dhdTOF*a13_6*f6[i] + h*a13_6*df6dTOF[i] + dhdTOF*a13_7*f7[i] + h*a13_7*df7dTOF[i] + dhdTOF*a13_8*f8[i] + h*a13_8*df8dTOF[i] + dhdTOF*a13_9*f9[i] + h*a13_9*df9dTOF[i] + dhdTOF*a13_10*f10[i] + h*a13_10*df10dTOF[i] + dhdTOF*a13_11*f11[i] + h*a13_11*df11dTOF[i];
+			}
+
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < 7; ++i)
+				{
+					dydTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*a13_1*f1[i] + h*a13_1*df1dTOF(i, p) + dhdTOF*a13_4*f4[i] + h*a13_4*df4dTOF(i, p) + dhdTOF*a13_5*f5[i] + h*a13_5*df5dTOF(i, p) + dhdTOF*a13_6*f6[i] + h*a13_6*df6dTOF(i, p) + dhdTOF*a13_7*f7[i] + h*a13_7*df7dTOF(i, p) + dhdTOF*a13_8*f8[i] + h*a13_8*df8dTOF(i, p) + dhdTOF*a13_9*f9[i] + h*a13_9*df9dTOF(i, p) + dhdTOF*a13_10*f10[i] + h*a13_10*df10dTOF(i, p) + dhdTOF*a13_11*f11[i] + h*a13_11*df11dTOF(i, p);
+				}
 			}
 
 			(*EOM)(y,
@@ -582,6 +623,7 @@ namespace EMTG {
 				   u,
 				   f13,
 				   df13dTOF,
+				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -636,39 +678,49 @@ namespace EMTG {
 				//Determine right hand values of states to 7th order
 				x_right[i] = x_left[i] + h*b1lower*f1[i] + h*b6lower*f6[i] + h*b7lower*f7[i] + h*b8lower*f8[i] + h*b9lower*f9[i] + h*b10lower*f10[i] + h*b11lower*f11[i] + h*b12lower*f12[i];
 
-				//these are the TOF derivatives of the right-hand state, they become the derivatives of the left hand state for the next step (or are the final TOF derivatives)
-				dx_rightdTOF[i] = dx_leftdTOF[i] + dhdTOF*b1lower*f1[i] + h*b1lower*df1dTOF[i] + dhdTOF*b6lower*f6[i] + h*b6lower*df6dTOF[i] + dhdTOF*b7lower*f7[i] + h*b7lower*df7dTOF[i] + dhdTOF*b8lower*f8[i] + h*b8lower*df8dTOF[i] + dhdTOF*b9lower*f9[i] + h*b9lower*df9dTOF[i] + dhdTOF*b10lower*f10[i] + h*b10lower*df10dTOF[i] + dhdTOF*b11lower*f11[i] + h*b11lower*df11dTOF[i] + dhdTOF*b12lower*f12[i] + h*b12lower*df12dTOF[i];
-
-
 				//take the 8th order solution as truth and compare it with the 7th order solution to quantify the error for this substep
 				*error = *error > fabs(x_right[i] - y[i]) ? *error : fabs(x_right[i] - y[i]);
 				//*error = max(*error, fabs(x_right[i] - y[i]));
 			}
+
+			//these are the TOF derivatives of the right-hand state, they become the derivatives of the left hand state for the next step (or are the final TOF derivatives)
+			for (int p = 0; p <= phase_num; ++p)
+			{
+				for (int i = 0; i < ns; ++i)
+				{
+					dx_rightdTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*b1lower*f1[i] + h*b1lower*df1dTOF(i, p) + dhdTOF*b6lower*f6[i] + h*b6lower*df6dTOF(i, p) + dhdTOF*b7lower*f7[i] + h*b7lower*df7dTOF(i, p) + dhdTOF*b8lower*f8[i] + h*b8lower*df8dTOF(i, p) + dhdTOF*b9lower*f9[i] + h*b9lower*df9dTOF(i, p) + dhdTOF*b10lower*f10[i] + h*b10lower*df10dTOF(i, p) + dhdTOF*b11lower*f11[i] + h*b11lower*df11dTOF(i, p) + dhdTOF*b12lower*f12[i] + h*b12lower*df12dTOF(i, p);
+				}
+			}
+
 		}
 
 		void rk8713M::adaptive_step_int(double * x_left_in, // spacecraft's state at the left boundary of the current segment (FBLT "step")
-			std::vector <double> & dx_left_indTOF,
+			EMTG::math::Matrix <double> & dx_left_indTOF,
 			double * x_right_out, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
-			const double * uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
+			EMTG::math::Matrix <double> & dx_right_outdTOF,
+			const int & phase_num,
+			std::vector <double> & uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
 			const double & t_left, // current epoch in TU's
-			const double & dt_leftdTOF,
+			std::vector <double> & dt_leftdTOF,
 			const double & t_0, // launch epoch (NOT time at beginning of phase, unless this is a 1 - phase mission)
-			double const & local_step, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
+			double & steptime, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
+			double & dsteptimedTOF,
 			double * resumeH, // NO LONGER USED...in the original implementation we forcibly discretized a priori to the integration
 			double * resumeError, // NO LONGER USED...same reason, the outer for loop around the step do-while is no longer present
 			double const & PRECISION_TARGET, // integration error tolerance, currently 1.0e-8 in EMTG, this is set in FBLTphase.cpp (hard-coded)
 			
 			void(*EOM)(std::vector <double> & x, // spacecraft's current state at left hand side of the current RK sub-step
-			std::vector <double> & dx_dTOF,
+			EMTG::math::Matrix <double> & dx_dTOF,
 			const double & t_left_step, // current epoch in TU's
-			const double & dt_left_stepdTOF, 
-			const double & c2,
+			std::vector <double> & dt_left_stepdTOF,
+			const double & c,
 			const double & h,
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
-			double * u, // throttle parameter vector
+			std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
-			std::vector <double> & dfdTOF,
+			EMTG::math::Matrix <double> & dfdTOF,
+			const int & phase_num,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -681,27 +733,40 @@ namespace EMTG {
 			void * Universepointer, // passes the universe structure through
 			void * ControllerPointer), // I assume Jacob was experimenting with feedback controllers?
 
-			double* thrust,
-			double* mdot,
-			double* Isp,
-			double* power,
-			double* active_power,
-			int* number_of_active_engines,
-			int &STMrows,
-			int &STMcolumns,
-			void* optionspointer, void* Universepointer, void* ControllerPointer)
+			double * thrust,
+			double * mdot,
+			double * Isp,
+			double * power,
+			double * active_power,
+			int * number_of_active_engines,
+			int & STMrows,
+			int & STMcolumns,
+			void * optionspointer, void * Universepointer, void * ControllerPointer)
 		{
 
 			double accumulatedH = 0.0;
+			double daccumulatedHdTOF = 0.0;
 			double effectiveH = *resumeH;
+			double deffectiveHdTOF = 0.0;
 			double precision_error = *resumeError;
 			bool last_substep;
 
-			if (*resumeH > local_step)
-				effectiveH = local_step;
+			double t_left_step = t_left;
+			static std::vector <double> dt_left_stepdTOF = dt_leftdTOF;
 
 			for (int k = 0; k < ns; ++k)
 				x_left[k] = x_left_in[k];
+
+			dx_leftdTOF = dx_left_indTOF;
+
+			if (*resumeH > steptime)
+			{
+				effectiveH = steptime;
+				deffectiveHdTOF = dsteptimedTOF;
+			}
+
+
+			
 
 			last_substep = false; //at the beginning of a segment we are on the FIRST substep
 
@@ -711,9 +776,9 @@ namespace EMTG {
 
 				//-> INSERT EOM 1st call and STORE f1 values. Replace this with your EOM call of choice.	
 				(*EOM)(x_left,
-					   dx_left_indTOF,
-					   t_left,
-					   dt_leftdTOF,
+					   dx_leftdTOF,
+					   t_left_step,
+					   dt_left_stepdTOF,
 					   0.0,
 					   effectiveH,
 					   deffectiveHdTOF,
@@ -721,6 +786,7 @@ namespace EMTG {
 					   uleft, 
 					   f1, 
 					   df1dTOF,
+					   phase_num,
 					   thrust, 
 					   mdot, 
 					   Isp, 
@@ -747,23 +813,31 @@ namespace EMTG {
 							precision_error = 1e-15; //Almost zero!
 						}
 
+						//if we rejected the last sub-step (i.e. the error was too large) shorten the time step
 						if (precision_error >= PRECISION_TARGET)
+						{
 							effectiveH = 0.98*effectiveH*pow(PRECISION_TARGET / precision_error, 0.17);
+							deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
+						}
 
+						//make the sub-step a bit longer to save computation time
 						else
 						{
 							effectiveH = 1.01*effectiveH*pow(PRECISION_TARGET / precision_error, 0.18);
+							deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
 
 							//if our increased step kicks us too long, make it shorter anyway and just run it
-							if (fabs(local_step - accumulatedH) < fabs(effectiveH) && !last_substep)
+							if (fabs(steptime - accumulatedH) < fabs(effectiveH) && !last_substep)
 							{
-								effectiveH = local_step - accumulatedH;
+								effectiveH = steptime - accumulatedH;
+								deffectiveHdTOF = dsteptimedTOF + daccumulatedHdTOF;
 							}
 
 						}
 
+						//if we make the time step too small, kill the integration - h is too small
 						if (fabs(effectiveH) < 1e-14)
-						{//H is too small
+						{
 							cout << "rk8713M: H Got too Small. The integrator has Alexed. Aborting." << endl;
 							throw 13;
 						}
@@ -776,43 +850,58 @@ namespace EMTG {
 						//was too big and not precise enough so we have to shrink it
 						last_substep = false; //not last step after all
 						effectiveH = 0.98*effectiveH*pow(PRECISION_TARGET / precision_error, 0.17);
+						deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
 					}
 
 
-					//rk takes in x1 as the left-hand side, but returns it as the answer (right hand side)
-					//rk8713M (x_left, x_right, uleft, f1, effectiveH, precision_error, segment, ns, nc, nseg, sat_num, *design);
-					rk8713M_step(uleft, t_left + accumulatedH, t_0, effectiveH, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
+					//Take an RK substep
+					rk8713M_step(phase_num, uleft, t_left_step, dt_left_stepdTOF, t_0, effectiveH, deffectiveHdTOF, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
 
 				} while (precision_error > PRECISION_TARGET);
 
-				//trial substep was accurate enough; it becomes the new left
+				//if we got here, then the trial substep was accurate enough; it becomes the new left
 				for (int statenum = 0; statenum < ns; ++statenum)
 				{
 					x_left[statenum] = x_right[statenum];
 				}
 
+				//now that the trial step was accurate enough, this rk step's right state TOF partial derivatives become the next rk step's left hand state TOF partial derivatives
+				dx_leftdTOF = dx_rightdTOF;
 
+				//keep track of our progress through the full RK step
 				accumulatedH += effectiveH;
+				daccumulatedHdTOF += deffectiveHdTOF;
+
+				//move the left hand time for the next substep forward to the correct value
+				t_left_step += accumulatedH;
+				for (size_t p = 0; p < phase_num; ++p)
+					dt_left_stepdTOF[p] += daccumulatedHdTOF;
+
+
 				//if our next step will push us over, reduce it down to be as small as necessary to hit target exactly
-				if (fabs(local_step - accumulatedH) < fabs(effectiveH) && fabs(local_step - accumulatedH) > 0 && !last_substep)
+				if (fabs(steptime - accumulatedH) < fabs(effectiveH) && fabs(steptime - accumulatedH) > 0 && !last_substep)
 				{
 					*resumeH = effectiveH;
 					*resumeError = precision_error;
-					effectiveH = local_step - accumulatedH;
+					effectiveH = steptime - accumulatedH;
+					deffectiveHdTOF = dsteptimedTOF - daccumulatedHdTOF;
 					last_substep = true; //assume that the next substep will be the last substep now
 				}
 
 
-			} while (fabs(accumulatedH) < fabs(local_step));
+			} while (fabs(accumulatedH) < fabs(steptime));
 
 			for (int statenum = 0; statenum < ns; ++statenum)
 			{
 				x_right_out[statenum] = x_right[statenum];
 			}
+			
+			//pass the TOF partial derivatives out of the function
+			dx_right_outdTOF = dx_rightdTOF;
 
-			//end of integration routine
-		}
+			
+		}//end of integration routine
 
 
-	}
-} //namespace EMTG::integration
+	}//end integration namespace
+} //end of EMTG namespace
