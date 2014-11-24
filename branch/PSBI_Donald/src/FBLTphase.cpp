@@ -2218,9 +2218,9 @@ FBLT_phase::FBLT_phase() {
                     this->initial_coast_STM(row, column) = 0.0;
                 }
             }
-
+            
             //construct the cumulative STM for the initial coast
-            cumulative_initial_coast_STM = this->initial_coast_STM * forward_cumulative_stripped_STM;
+            cumulative_initial_coast_STM = forward_cumulative_stripped_STM * this->initial_coast_STM;
         }
 
         if (detect_terminal_coast)
@@ -2235,7 +2235,7 @@ FBLT_phase::FBLT_phase() {
             }
 
             //construct the cumulative STM for the terminal coast
-            cumulative_terminal_coast_STM = this->terminal_coast_STM * backward_cumulative_stripped_STM;
+            cumulative_terminal_coast_STM = backward_cumulative_stripped_STM * this->terminal_coast_STM;
         }
 
         
@@ -2351,7 +2351,7 @@ FBLT_phase::FBLT_phase() {
                             + cumulative_initial_coast_STM(stateindex, 4) * dvy0_dDEC
                             + cumulative_initial_coast_STM(stateindex, 5) * dvz0_dDEC);
                     }
-                }
+                }   
                 else
                 {
                     for (size_t stateindex = 0; stateindex < 7; ++stateindex)
