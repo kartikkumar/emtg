@@ -1194,6 +1194,7 @@ namespace GeneticAlgorithm
 		objective_menu_descriptions.push_back("Final journey arrival C3 (km^2/s^2)");
 		objective_menu_descriptions.push_back("Total delta-v (km/s)");
 		objective_menu_descriptions.push_back("Inner-loop objective (whatever it was)");
+        objective_menu_descriptions.push_back("Point-group value");
 
 		for (size_t objective = 0; objective < options.outerloop_objective_function_choices.size(); ++objective)
 		{
