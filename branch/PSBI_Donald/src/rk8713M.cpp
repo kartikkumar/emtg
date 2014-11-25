@@ -18,16 +18,16 @@ namespace EMTG {
 	{
 		rk8713M::rk8713M(){} //the default constructor will never be called
 
-		rk8713M::rk8713M(int ns_in, missionoptions* options) : 
+		rk8713M::rk8713M(int ns_in, const int & number_of_phases) : 
 			f1(ns, 0.0), f2(ns, 0.0), f3(ns, 0.0), f4(ns, 0.0), f5(ns, 0.0), f6(ns, 0.0), f7(ns, 0.0), f8(ns, 0.0), f9(ns, 0.0), f10(ns, 0.0), f11(ns, 0.0), f12(ns, 0.0), f13(ns, 0.0),
-			df1dTOF(7, (options->number_of_phases, 0.0)), df2dTOF(7, (options->number_of_phases, 0.0)), df3dTOF(7, (options->number_of_phases, 0.0)), 
-			df4dTOF(7, (options->number_of_phases, 0.0)), df5dTOF(7, (options->number_of_phases, 0.0)), df6dTOF(7, (options->number_of_phases, 0.0)), 
-			df7dTOF(7, (options->number_of_phases, 0.0)), df8dTOF(7, (options->number_of_phases, 0.0)), df9dTOF(7, (options->number_of_phases, 0.0)), 
-			df10dTOF(7, (options->number_of_phases, 0.0)), df11dTOF(7, (options->number_of_phases, 0.0)), df12dTOF(7, (options->number_of_phases, 0.0)), 
-			df13dTOF(7, (options->number_of_phases, 0.0)),
-			y(ns, 0.0), dydTOF(7, (options->number_of_phases, 0.0)),
+			df1dTOF(7, (number_of_phases, 0.0)), df2dTOF(7, (number_of_phases, 0.0)), df3dTOF(7, (number_of_phases, 0.0)), 
+			df4dTOF(7, (number_of_phases, 0.0)), df5dTOF(7, (number_of_phases, 0.0)), df6dTOF(7, (number_of_phases, 0.0)), 
+			df7dTOF(7, (number_of_phases, 0.0)), df8dTOF(7, (number_of_phases, 0.0)), df9dTOF(7, (number_of_phases, 0.0)), 
+			df10dTOF(7, (number_of_phases, 0.0)), df11dTOF(7, (number_of_phases, 0.0)), df12dTOF(7, (number_of_phases, 0.0)), 
+			df13dTOF(7, (number_of_phases, 0.0)),
+			y(ns, 0.0), dydTOF(7, (number_of_phases, 0.0)),
 			x_left(ns, 0.0), x_right(ns, 0.0),
-			dx_leftdTOF(7, (options->number_of_phases, 0.0)), dx_rightdTOF(7, (options->number_of_phases, 0.0))
+			dx_leftdTOF(7, (number_of_phases, 0.0)), dx_rightdTOF(7, (number_of_phases, 0.0))
 		{
 			ns = ns_in;
 		}
@@ -37,7 +37,7 @@ namespace EMTG {
 
 		void rk8713M::rk8713M_step(
 			const int & phase_num,
-			std::vector <double> & u, // control 3 vector
+			const std::vector <double> & u, // control 3 vector
 			const double & t_left_step, // epoch at the LHS of the current RK sub-step
 			std::vector <double> & dt_left_stepdTOF,
 			const double & t_0, // launch epoch
@@ -53,7 +53,7 @@ namespace EMTG {
 			const double & h,
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
-			std::vector <double> & u, // throttle parameter vector
+			const std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
 			EMTG::math::Matrix <double> & dfdTOF,
 			const int & phase_num,
@@ -694,20 +694,20 @@ namespace EMTG {
 
 		}
 
-		void rk8713M::adaptive_step_int(double * x_left_in, // spacecraft's state at the left boundary of the current segment (FBLT "step")
+		void rk8713M::adaptive_step_int(std::vector <double> & x_left_in, // spacecraft's state at the left boundary of the current segment (FBLT "step")
 			EMTG::math::Matrix <double> & dx_left_indTOF,
-			double * x_right_out, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
+			std::vector <double> & x_right_out, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
 			EMTG::math::Matrix <double> & dx_right_outdTOF,
 			const int & phase_num,
-			std::vector <double> & uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
-			const double & t_left, // current epoch in TU's
-			std::vector <double> & dt_leftdTOF,
+			const std::vector <double> & uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
+			const double & t_left_in, // current epoch in TU's
+			std::vector <double> & dt_left_indTOF, // partial derivative of current epoch w.r.t. current and previous phase flight times
 			const double & t_0, // launch epoch (NOT time at beginning of phase, unless this is a 1 - phase mission)
-			double & steptime, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
-			double & dsteptimedTOF,
+			const double & segment_time, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
+			double & dsegment_timedTOF,
 			double * resumeH, // NO LONGER USED...in the original implementation we forcibly discretized a priori to the integration
 			double * resumeError, // NO LONGER USED...same reason, the outer for loop around the step do-while is no longer present
-			double const & PRECISION_TARGET, // integration error tolerance, currently 1.0e-8 in EMTG, this is set in FBLTphase.cpp (hard-coded)
+			const double & PRECISION_TARGET, // integration error tolerance, currently 1.0e-8 in EMTG, this is set in FBLTphase.cpp (hard-coded)
 			
 			void(*EOM)(std::vector <double> & x, // spacecraft's current state at left hand side of the current RK sub-step
 			EMTG::math::Matrix <double> & dx_dTOF,
@@ -717,7 +717,7 @@ namespace EMTG {
 			const double & h,
 			const double & dhdTOF,
 			const double & t0, // launch epoch in seconds
-			std::vector <double> & u, // throttle parameter vector
+			const std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
 			EMTG::math::Matrix <double> & dfdTOF,
 			const int & phase_num,
@@ -751,18 +751,18 @@ namespace EMTG {
 			double precision_error = *resumeError;
 			bool last_substep;
 
-			double t_left_step = t_left;
-			static std::vector <double> dt_left_stepdTOF = dt_leftdTOF;
+			double t_left_step = t_left_in;
+			static std::vector <double> dt_left_stepdTOF = dt_left_indTOF;
 
 			for (int k = 0; k < ns; ++k)
 				x_left[k] = x_left_in[k];
 
 			dx_leftdTOF = dx_left_indTOF;
 
-			if (*resumeH > steptime)
+			if (*resumeH > segment_time)
 			{
-				effectiveH = steptime;
-				deffectiveHdTOF = dsteptimedTOF;
+				effectiveH = segment_time;
+				deffectiveHdTOF = dsegment_timedTOF;
 			}
 
 
@@ -817,20 +817,20 @@ namespace EMTG {
 						if (precision_error >= PRECISION_TARGET)
 						{
 							effectiveH = 0.98*effectiveH*pow(PRECISION_TARGET / precision_error, 0.17);
-							deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
+							deffectiveHdTOF = effectiveH / segment_time * dsegment_timedTOF;
 						}
 
 						//make the sub-step a bit longer to save computation time
 						else
 						{
 							effectiveH = 1.01*effectiveH*pow(PRECISION_TARGET / precision_error, 0.18);
-							deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
+							deffectiveHdTOF = effectiveH / segment_time * dsegment_timedTOF;
 
 							//if our increased step kicks us too long, make it shorter anyway and just run it
-							if (fabs(steptime - accumulatedH) < fabs(effectiveH) && !last_substep)
+							if (fabs(segment_time - accumulatedH) < fabs(effectiveH) && !last_substep)
 							{
-								effectiveH = steptime - accumulatedH;
-								deffectiveHdTOF = dsteptimedTOF + daccumulatedHdTOF;
+								effectiveH = segment_time - accumulatedH;
+								deffectiveHdTOF = dsegment_timedTOF + daccumulatedHdTOF;
 							}
 
 						}
@@ -850,7 +850,7 @@ namespace EMTG {
 						//was too big and not precise enough so we have to shrink it
 						last_substep = false; //not last step after all
 						effectiveH = 0.98*effectiveH*pow(PRECISION_TARGET / precision_error, 0.17);
-						deffectiveHdTOF = effectiveH / steptime * dsteptimedTOF;
+						deffectiveHdTOF = effectiveH / segment_time * dsegment_timedTOF;
 					}
 
 
@@ -865,32 +865,34 @@ namespace EMTG {
 					x_left[statenum] = x_right[statenum];
 				}
 
-				//now that the trial step was accurate enough, this rk step's right state TOF partial derivatives become the next rk step's left hand state TOF partial derivatives
+				//same with the state TOF derivatives
 				dx_leftdTOF = dx_rightdTOF;
 
 				//keep track of our progress through the full RK step
 				accumulatedH += effectiveH;
 				daccumulatedHdTOF += deffectiveHdTOF;
 
-				//move the left hand time for the next substep forward to the correct value
-				t_left_step += accumulatedH;
+				//move the left hand epoch for the next substep forward to the correct value
+				t_left_step += effectiveH;
 				for (size_t p = 0; p < phase_num; ++p)
-					dt_left_stepdTOF[p] += daccumulatedHdTOF;
+					dt_left_stepdTOF[p] += deffectiveHdTOF;
 
 
 				//if our next step will push us over, reduce it down to be as small as necessary to hit target exactly
-				if (fabs(steptime - accumulatedH) < fabs(effectiveH) && fabs(steptime - accumulatedH) > 0 && !last_substep)
+				if (fabs(segment_time - accumulatedH) < fabs(effectiveH) && fabs(segment_time - accumulatedH) > 0 && !last_substep)
 				{
 					*resumeH = effectiveH;
 					*resumeError = precision_error;
-					effectiveH = steptime - accumulatedH;
-					deffectiveHdTOF = dsteptimedTOF - daccumulatedHdTOF;
+					effectiveH = segment_time - accumulatedH;
+					deffectiveHdTOF = dsegment_timedTOF - daccumulatedHdTOF;
 					last_substep = true; //assume that the next substep will be the last substep now
 				}
 
 
-			} while (fabs(accumulatedH) < fabs(steptime));
+			} while (fabs(accumulatedH) < fabs(segment_time));
 
+			//If we got here, we made it all of the way through one FBLT segment or coast
+			//pass the right hand state out of the function
 			for (int statenum = 0; statenum < ns; ++statenum)
 			{
 				x_right_out[statenum] = x_right[statenum];

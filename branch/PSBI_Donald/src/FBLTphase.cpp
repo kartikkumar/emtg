@@ -72,7 +72,7 @@ FBLT_phase::FBLT_phase() {
 		this->STMrows = 11;
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
-	    integrator = new EMTG::integration::rk8713M(num_states, options);
+	    integrator = new EMTG::integration::rk8713M(num_states, options->number_of_phases[j]);
 
 	    this->current_mass_increment = 0.0;
 	    this->journey_initial_mass_increment_scale_factor = 1.0;
@@ -179,8 +179,8 @@ FBLT_phase::FBLT_phase() {
 	    //the following array holds the spacecraft state at "half steps," i.e. halfway through each integration segment
 
         //WE MUST CHANGE THIS INTO A C++ VECTOR!!
-        double spacecraft_state_forward[11 + 11 * 11];
-        double spacecraft_state_forward_prop[11 + 11 * 11];
+        std::vector <double> spacecraft_state_forward (11 + 11 * 11, 0.0);
+        std::vector <double> spacecraft_state_forward_prop(11 + 11 * 11, 0.0);
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_forward[k] = state_at_beginning_of_phase[k];
 
@@ -190,9 +190,21 @@ FBLT_phase::FBLT_phase() {
         for (int k = 7; k < this->STMrows; ++k)
             spacecraft_state_forward[k] = 0.0;
 
-        //we want to calculate the STM for every time step, but since we are propagating in half-steps let's do that for now
-        //first make an archive to store all of the STMs
-        //we also need to made a place to store the initial coast STMs if there is an initial coast
+		
+		//MATCH POINT PHASE TOF DERIVATIVE CONTAINERS
+		//These matrices hold the partial derivative of the 7 entries in the state vector
+		//w.r.t. the previous and current phase flight times
+		//each column holds the partials corresponding to a phase flight time
+		//we must obtain these with finite differencing if we are using SPICE in general (although with planets we can get
+		//these derivatives analytically
+		EMTG::math::Matrix <double> dspacecraft_state_forwarddTOF (7, (options->number_of_phases[j], 0.0));
+		EMTG::math::Matrix <double> dspacecraft_state_end_coastdTOF (7, (options->number_of_phases[j], 0.0));
+		EMTG::math::Matrix <double> dspacecraft_state_forward_propdTOF (7, (options->number_of_phases[j], 0.0));
+		//How does the current FBLT segment's starting epoch change w.r.t. changes in the phase flight times
+		std::vector <double> dsegment_starting_epochdTOF (options->number_of_phases[j], 0.0);
+
+		//How does the temporal length of the current FBLT segment change w.r.t. changes in the phase flight times
+		double dsegment_timedTOF;
 
 
 	    //scale the integration state array to LU and TU
@@ -212,8 +224,8 @@ FBLT_phase::FBLT_phase() {
 	    if (detect_initial_coast)
 	    {
 		    //if this is a launch AND we are doing a forced post-launch initial coast
-		    double spacecraft_state_end_coast[11*11+11];
-		    double empty_vector[] = {0.0,0.0,0.0};
+		    std::vector <double> spacecraft_state_end_coast(11*11+11, 0.0);
+			std::vector <double> empty_vector(3, 0.0);
 		    double dummy_parameter = 0.0;
 
 		    if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
@@ -237,13 +249,19 @@ FBLT_phase::FBLT_phase() {
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
 
+			dsegment_timedTOF = 0.0; //A coast is a user-specified FIXED time and is not affected by the decision variables
 
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
+											dspacecraft_state_forwarddTOF,
                                             spacecraft_state_end_coast,
-										    &empty_vector[0], 
+											dspacecraft_state_end_coastdTOF,
+											p,
+										    empty_vector, 
 										    (phase_start_epoch) / Universe->TU,
+											dsegment_starting_epochdTOF,
 										    X[0],
                                             initial_coast_duration / Universe->TU,
+											dsegment_timedTOF,
 										    &resumeH,
 										    &resumeError,
 										    1.0e-8,
@@ -277,6 +295,14 @@ FBLT_phase::FBLT_phase() {
             for (int k = 0; k < 7; ++k)
                 spacecraft_state_forward[k] = spacecraft_state_end_coast[k];
         }
+
+		//////////////////////////////////////////////////////////////////
+		//
+		// PROPAGATE THROUGH FORWARD FBLT SEGMENTS
+		//
+		//////////////////////////////////////////////////////////////////
+
+
 
         for (int step = 0; step < options->num_timesteps / 2; ++step)
         {
@@ -397,27 +423,56 @@ FBLT_phase::FBLT_phase() {
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
 
-            integrator->adaptive_step_int(spacecraft_state_forward,
-                                        spacecraft_state_forward_prop,
-                                        control[step].data(),
-                                        (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
-                                        X[0],
-                                        time_step_sizes[step] / Universe->TU,
-                                        &resumeH,
-                                        &resumeError,
-                                        1.0e-8,
-                                        EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                        &available_thrust[step],
-                                        &available_mass_flow_rate[step],
-                                        &available_Isp[step],
-                                        &available_power[step],
-                                        &active_power[step],
-                                        &number_of_active_engines[step],
-                                        this->STMrows,
-                                        this->STMcolumns,
-                                        (void*)options,
-                                        (void*)Universe,
-                                        DummyControllerPointer);
+            integrator->adaptive_step_int( spacecraft_state_forward,
+				                           dspacecraft_state_forwarddTOF,
+                                           spacecraft_state_forward_prop,
+										   dspacecraft_state_forward_propdTOF,
+                                           control[step].data(),
+                                           (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+                                           X[0],
+                                           time_step_sizes[step] / Universe->TU,
+                                           &resumeH,
+                                           &resumeError,
+                                           1.0e-8,
+                                           EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                           &available_thrust[step],
+                                           &available_mass_flow_rate[step],
+                                           &available_Isp[step],
+                                           &available_power[step],
+                                           &active_power[step],
+                                           &number_of_active_engines[step],
+                                           this->STMrows,
+                                           this->STMcolumns,
+                                           (void*)options,
+                                           (void*)Universe,
+                                           DummyControllerPointer);
+
+			integrator->adaptive_step_int(spacecraft_state_forward,
+				dspacecraft_state_forwarddTOF,
+				spacecraft_state_end_coast,
+				dspacecraft_state_end_coastdTOF,
+				p,
+				empty_vector,
+				(phase_start_epoch) / Universe->TU,
+				dsegment_starting_epochdTOF,
+				X[0],
+				initial_coast_duration / Universe->TU,
+				dsegment_timedTOF,
+				&resumeH,
+				&resumeError,
+				1.0e-8,
+				EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+				&temp_available_thrust,
+				&temp_available_mass_flow_rate,
+				&temp_available_Isp,
+				&temp_available_power,
+				&temp_active_power,
+				&temp_number_of_active_engines,
+				this->STMrows,
+				this->STMcolumns,
+				(void*)options,
+				(void*)Universe,
+				DummyControllerPointer);
 
             //Store this step's STM in the forward archive
             int statecount = this->STMrows;
@@ -666,8 +721,25 @@ FBLT_phase::FBLT_phase() {
 	    resumeError = 1.0e-13;
 	
 	    //first initialize the backward integration
-	    double spacecraft_state_backward[11 + 11*11];
-        double spacecraft_state_backward_prop[11 + 11 * 11];
+	    std::vector <double> spacecraft_state_backward (11 + 11*11, 0.0);
+		std::vector <double> spacecraft_state_backward_prop (11 + 11 * 11, 0.0);
+
+
+		//MATCH POINT PHASE TOF DERIVATIVE CONTAINERS
+		//These matrices hold the partial derivative of the 7 entries in the state vector
+		//w.r.t. the previous and current phase flight times
+		//each column holds the partials corresponding to a phase flight time
+		//we must obtain these with finite differencing if we are using SPICE in general (although with planets we can get
+		//these derivatives analytically
+		EMTG::math::Matrix <double> dspacecraft_state_backwarddTOF(7, (options->number_of_phases[j], 0.0));
+		//Already declared for forward...
+		//EMTG::math::Matrix <double> dspacecraft_state_end_coastdTOF(7, (options->number_of_phases[j], 0.0));
+		EMTG::math::Matrix <double> dspacecraft_state_backward_propdTOF(7, (options->number_of_phases[j], 0.0));
+		//How does the current FBLT segment's starting epoch change w.r.t. changes in the phase flight times
+		std::vector <double> dsegment_starting_epochdTOF(options->number_of_phases[j], 0.0);
+
+
+
 
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_backward[k] = state_at_end_of_phase[k];
@@ -689,11 +761,12 @@ FBLT_phase::FBLT_phase() {
 	    //scale the mass
 	    spacecraft_state_backward[6] /= options->maximum_mass;
 
+
 	    //Step 6.3.0.1 if there is an terminal coast, propagate through it
 	    if (this->detect_terminal_coast)
 	    {
-		    double spacecraft_state_end_coast[11+11*11];
-		    double empty_vector[] = {0.0,0.0,0.0};
+		    std::vector <double> spacecraft_state_end_coast (11 + 11 * 11, 0.0);
+		    std::vector <double> empty_vector (3, 0.0);
 		    double dummy_parameter = 0.0;
 
 		    //initial coast after flyby
@@ -709,6 +782,8 @@ FBLT_phase::FBLT_phase() {
 			for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
 				spacecraft_state_backward[i] = 1.0;
 
+			//A coast is a user-specified FIXED time and is not affected by the decision variables
+			dsegment_timedTOF = 0.0;
 
 		    integrator->adaptive_step_int(	spacecraft_state_backward,
                                             spacecraft_state_end_coast,
@@ -748,6 +823,15 @@ FBLT_phase::FBLT_phase() {
 		    for (int k = 0; k < 7; ++k)
 			    spacecraft_state_backward[k] = spacecraft_state_end_coast[k];
 	    }
+
+
+		//////////////////////////////////////////////////////////////////
+		//
+		// PROPAGATE THROUGH BACKWARD FBLT SEGMENTS
+		//
+		//////////////////////////////////////////////////////////////////
+
+
 
 	    for (int step = 0; step < options->num_timesteps/2; ++step)
 	    {

@@ -21,7 +21,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										const double & h,
 										const double & dhdTOF,
 										const double & launch_epoch,
-										std::vector <double> & u,
+										const std::vector <double> & u,
 										std::vector <double> & f, // EOM gradient vector
 										EMTG::math::Matrix <double> & dfdTOF,
 										const int & phase_num,
@@ -40,12 +40,12 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		missionoptions* options = (missionoptions*) optionsvoidpointer;
 		EMTG::Astrodynamics::universe* Universe = (EMTG::Astrodynamics::universe*) Universepointer;
 		
-		std::vector <double> ForceVector (3, 0.0);
-		std::vector <double> spacecraft_state (7, 0.0);
+		static std::vector <double> ForceVector (3, 0.0);
+		static std::vector <double> spacecraft_state (7, 0.0);
 
 		double dTdP, dmdotdP, dTdIsp, dmdotdIsp, dPdr, dPdt, dFSRPdr;
 		
-        static vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks((options->derivative_type > 2) ? 12 : 6);
+        static std::vector<double> dagravdRvec(3), dagravdtvec(3), central_body_state_mks((options->derivative_type > 2) ? 12 : 6);
 
 		double r = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]); //magnitude of position vector
 		r = fabs(r) < EMTG::math::SMALL ? EMTG::math::sgn(r) * EMTG::math::SMALL : r;
@@ -85,8 +85,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 				u,
 				f,
 				dfdTOF,
-				thrust,
 				phase_num,
+				thrust,
 				mdot,
 				Isp,
 				power,

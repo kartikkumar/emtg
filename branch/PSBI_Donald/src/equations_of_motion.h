@@ -16,7 +16,7 @@ namespace EMTG {namespace Astrodynamics { namespace EOM
 										const double & h,
 										const double & dhdTOF,
 										const double & t0,
-										std::vector <double> & u,
+										const std::vector <double> & u,
 										std::vector <double> & f,
 										EMTG::math::Matrix <double> & dfdTOF,
 										const int & phase_num,

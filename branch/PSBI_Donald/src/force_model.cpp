@@ -199,7 +199,7 @@ namespace EMTG { namespace Astrodynamics {
 		const double & h,
 		const double & dhdTOF,
 		const double & launch_epoch,
-		std::vector <double> & control,
+		const std::vector <double> & control,
 		std::vector <double> & f,
 		EMTG::math::Matrix <double> & dfdTOF,
 		const double & phase_num,
