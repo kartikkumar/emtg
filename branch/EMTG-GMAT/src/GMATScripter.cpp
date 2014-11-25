@@ -12,6 +12,7 @@
 
 #include "GMATScripter.h"
 #include "mission.h"
+#include "Astrodynamics.h"
 
 #include "boost/date_time.hpp"
 #include "boost/date_time/local_time/local_date_time.hpp"
@@ -104,6 +105,9 @@ void gmatscripter::write_GMAT_script(){
 
 	// write out the state inital guess
 	this->write_GMAT_initialconditions();
+
+	// write out the pre-optimization calculations
+	this->write_GMAT_preoptimization_calculations();
 
 	// write out the optimization phase of the mission sequence
 	this->write_GMAT_optimization();
@@ -240,61 +244,16 @@ void gmatscripter::create_GMAT_journeys() {
 		// -----------------------------
 		//       VARIABLE CREATION
 		// -----------------------------
-		//dry mass increment/decrement
-		//if (j == 0 && !(this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 && this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0)) {
-		//	agmatjourney.setVariable(agmatjourney.id + "_DryMass", this->ptr_gmatmission->options.minimum_dry_mass + this->ptr_gmatmission->options.journey_starting_mass_increment[0]);
-		//}
-		//else if (j > 0) {
-		//	agmatjourney.setVariable(agmatjourney.id + "_DryMass");
-		//}
-		////dry mass variation
-		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
-		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
 
-		//	double drymass_scaling = 0.0;
-		//	//find the optimal drymass scaling for journey 'j'
-		//	for (size_t iX = 0; iX < this->ptr_gmatmission->Xdescriptions.size(); ++iX) {
-		//		//find index in Xdescriptions where the launch time bounds are located
-		//		if (this->ptr_gmatmission->Xdescriptions[iX] == "j" + std::to_string(j) + "p0: journey initial mass scale factor") {
-		//			drymass_scaling = this->ptr_gmatmission->Xopt[iX];
-		//			agmatjourney.setVariable(agmatjourney.id + "_DryMassScaling", this->ptr_gmatmission->Xopt[iX]);
-		//			break;
-		//		}
-		//	}
-		//	//drymass window and lowerbound
-		//	agmatjourney.setVariable(agmatjourney.id + "_DryMassWindow", this->ptr_gmatmission->options.journey_starting_mass_increment[j]);
-		//	if (j == 0) {
-		//		agmatjourney.setVariable(agmatjourney.id + "_DryMassLowerBound", this->ptr_gmatmission->options.minimum_dry_mass);
-		//		agmatjourney.setVariable(agmatjourney.id + "_DryMass", this->ptr_gmatmission->options.minimum_dry_mass + drymass_scaling * this->ptr_gmatmission->options.journey_starting_mass_increment[0]);
-		//	}
-		//}
 
 		// -----------------------------
 		//         VARY CREATION
 		// -----------------------------
-		////dry mass increment/decrement and variation
-		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
-		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
-		//	agmatjourney.setVary(agmatjourney.id + "_DryMassScaling", 1e-005, 0.0, 1.0, 0.1);
-		//}
 
 
 		// -----------------------------
 		//      CALCULATE CREATION
 		// -----------------------------
-		////dry mass increment/decrement and variation
-		//if (this->ptr_gmatmission->options.journey_variable_mass_increment[j] == 1 &&
-		//	this->ptr_gmatmission->options.journey_starting_mass_increment[j] > 0.0) {
-		//	if (j == 0) {
-		//		agmatjourney.setCalculate(agmatjourney.id + "_DryMass", agmatjourney.id + "_DryMassLowerBound" + " + " + agmatjourney.id + "_DryMassScaling" + " * " + agmatjourney.id + "_DryMassWindow");
-		//	}
-		//	else {
-		//		agmatjourney.setCalculate(agmatjourney.id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + agmatjourney.id + "_DryMassScaling" + " * " + agmatjourney.id + "_DryMassWindow");
-		//	}
-		//}
-		//else if (j > 0) {
-		//	agmatjourney.setCalculate(agmatjourney.id + "_DryMass", GMATMission.myjourneys[j - 1].id + "_DryMass" + " + " + std::to_string(this->ptr_gmatmission->options.journey_starting_mass_increment[j]));
-		//}
 
 
 		// -----------------------------
@@ -304,7 +263,6 @@ void gmatscripter::create_GMAT_journeys() {
 		if (this->ptr_gmatmission->options.journey_timebounded[j] == 0) {
 			
 		}
-
 
 
 		// -----------------------------
@@ -341,56 +299,289 @@ void gmatscripter::create_GMAT_phases() {
 			else { 
 				fuelwindow = this->ptr_gmatmission->options.maximum_mass - this->ptr_gmatmission->options.minimum_dry_mass;
 			}
+			//dla window and lower bound
+			double dlawindow = (this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0]) * math::PI / 180.0;
+			double dlalowerbound = this->ptr_gmatmission->options.DLA_bounds[0] * math::PI / 180.0;
 			
+
+
 			// -----------------------------
 			//         INSTANTIATION
 			// -----------------------------
 			gmatphase agmatphase(&GMATMission.myjourneys[j], p);
 
 
+
 			// -----------------------------
 			//       VARIABLE CREATION
 			// -----------------------------
-			//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelMass");
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", agmatphase.spacecraft_backward.Thruster.Tank.FuelMass / fuelwindow);
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
-			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", fuellowerbound);
 			//allow the initial mass to vary
 			if (j == 0 && agmatphase.p == 0) {
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelMass"); // , agmatphase.spacecraft_forward.Thruster.Tank.FuelMass);
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelScaling", agmatphase.spacecraft_forward.Thruster.Tank.FuelMass / fuelwindow);
+				//  if an impulsive maneuver is being performed, then the initial fuel mass may be increased to account for the burn
+				//+ only for forward impulsive (an annoying fact of doing impulsive with GMAT and backwards time. note: EDS forward doesn't count either).
+				double Ffuelmass = agmatphase.spacecraft_forward.Thruster.Tank.FuelMass;
+				if (agmatphase.spacecraft_forward.iBurn.UseImpulsive && !agmatphase.spacecraft_forward.iBurn.IsEDS) {
+					Ffuelmass = Ffuelmass*std::exp(sqrt(this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[0].C3_departure) / agmatphase.spacecraft_forward.iBurn.c);
+					agmatphase.spacecraft_forward.Thruster.Tank.FuelMass = Ffuelmass;
+				}
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelScaling", Ffuelmass / fuelwindow);
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelWindow", fuelwindow);
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_FuelLowerBound", fuellowerbound);
 			}
+			//set the backward spacecraft fuelmass as a variable to be varied by the gmat optimizer
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelMass");
+			//  if an impulsive maneuver is being performed, then the initial fuel mass may need to be increased to account for the burn
+			//+ only for forward impulsive (an annoying fact of doing impulsive with GMAT and backwards time. note: EDS forward doesn't count either).
+			double Bfuelmass = agmatphase.spacecraft_backward.Thruster.Tank.FuelMass;
+			//if (agmatphase.spacecraft_backward.iBurn.UseImpulsive) {
+			//	Bfuelmass = Bfuelmass*std::exp(sqrt(this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[0].C3_arrival) / agmatphase.spacecraft_backward.iBurn.c);
+			//	agmatphase.spacecraft_backward.Thruster.Tank.FuelMass = Bfuelmass;
+			//}
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelScaling", Bfuelmass / fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
+			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", fuellowerbound);
+
 			//variation of launch vinf
-			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+			int depart_type = this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j];
+			int lv_type = this->ptr_gmatmission->options.LV_type;
+			//  if using the EDS motor or chemical propulsion (i.e. not LV), to leave from a parking orbit
+			if (agmatphase.isFirstPhase && agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 1) {
+
+				//  create a matrix for the vinf outbound vector
+				double dvdeparture[3] = { this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[0],
+					this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[1],
+					this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[2] };
+				math::Matrix<double> Vinf_out(3, 1, dvdeparture);
+
+				//  compute the r0, v0, dv vectors
+				math::Matrix<double> periapse_state_vector;
+				std::vector<double> v0(3, 0.0);
+				periapse_state_vector = this->ptr_gmatmission->journeys[j].phases[p].calculate_periapse_state_from_asymptote_and_parking_orbit(Vinf_out, v0,
+					this->ptr_gmatmission->options.parking_orbit_inclination * math::PI / 180.0,
+					this->ptr_gmatmission->options.parking_orbit_altitude,
+					this->ptr_gmatmission->journeys[j].phases[p].phase_start_epoch,
+					&this->ptr_gmatmission->TheUniverse[this->ptr_gmatmission->options.number_of_journeys - 1],
+					agmatphase.mybodies[0]);
+
+				//  overwrite the spacecraft position initial conditions
+				for (size_t i = 0; i < 3; i++) {
+					agmatphase.spacecraft_forward.initialconditions[i] = periapse_state_vector(i);
+				}
+
+				//  overwrite the spacecraft velocity initial conditions
+				for (size_t i = 3; i < 6; i++) {
+					agmatphase.spacecraft_forward.initialconditions[i] = v0[i - 3];
+				}
+
+				//  set the impulsive burn for the spacecraft to the correct delta-v vector
+				agmatphase.spacecraft_forward.iBurn.Element1 = periapse_state_vector(3) - v0[0];
+				agmatphase.spacecraft_forward.iBurn.Element2 = periapse_state_vector(4) - v0[1];
+				agmatphase.spacecraft_forward.iBurn.Element3 = periapse_state_vector(5) - v0[2];
+
+				//  set the dv lowerbound and window
+				double dvlowerbound, dvwindow;
+				//  using EDS
+				if (agmatphase.spacecraft_forward.iBurn.IsEDS) {
+					dvlowerbound = -this->ptr_gmatmission->options.journey_initial_impulse_bounds[j][1];
+					dvwindow = 2.0 * this->ptr_gmatmission->options.journey_initial_impulse_bounds[j][1];
+				}
+				//  using Chemical System
+				else {
+					//  window; slighty perturb the 'fuellowerbound' in log() so that we don't use 0.0. 
+					//+ really, if the 'minimum_dry_mass' is set to non-zero for a realistic mission, then this won't be a problem
+					double _perturb = 0.01 * this->ptr_gmatmission->options.maximum_mass;
+					if (this->ptr_gmatmission->options.minimum_dry_mass > _perturb) { _perturb = 0.0; }
+					dvwindow = -2.0 * agmatphase.spacecraft_forward.iBurn.c * std::log((this->ptr_gmatmission->options.minimum_dry_mass + fuellowerbound + _perturb) / (fuelwindow + fuellowerbound));
+					//  lower bound
+					dvlowerbound = -dvwindow / 2.0;
+				}
+
+				//  dVX arrival
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVX");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVXScaling", (agmatphase.spacecraft_forward.iBurn.Element1 - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVXWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVXLowerBound", dvlowerbound);
+				//  dVY arrival
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVY");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVYScaling", (agmatphase.spacecraft_forward.iBurn.Element2 - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVYWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVYLowerBound", dvlowerbound);
+				//  dVZ arrival
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVZ");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVZScaling", (agmatphase.spacecraft_forward.iBurn.Element3 - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVZWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_dVZLowerBound", dvlowerbound);
+
+				if (agmatphase.spacecraft_forward.iBurn.IsEDS) {
+					//  dV norm; will need to constrain within bounds
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_EDS_dV");
+				}
+
+				//  parameters for varying 'f' (true anomaly) and 'RAAN' (right ascension of the ascending node).
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_TA");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_TAScaling");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_TAWindow", 360.0);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_TALowerBound", 0.0);
+				agmatphase.setPreOptimizationCalculation(agmatphase.spacecraft_forward.Name + "_TAScaling", agmatphase.spacecraft_forward.Name + ".TA / " + agmatphase.spacecraft_forward.Name + "_TAWindow");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RAAN");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RAANScaling");
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RAANWindow", 360.0);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RAANLowerBound", 0.0);
+				agmatphase.setPreOptimizationCalculation(agmatphase.spacecraft_forward.Name + "_RAANScaling", agmatphase.spacecraft_forward.Name + ".RAAN / " + agmatphase.spacecraft_forward.Name + "_RAANWindow");
+
+			}
+			//  use of a non-parking orbit departure
+			else if (agmatphase.isFirstPhase && depart_type == 0) {
+
 				//RLA
+				double RLA = this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].RA_departure;
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLA");
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLAScaling", this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].RA_departure / (4*math::PI));
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLAScaling", RLA / (4 * math::PI));
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLAWindow", 4 * math::PI);
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_RLALowerBound", -math::TwoPI);
 				//DLA
+				double DLA = this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].DEC_departure;
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLA");
-				double dlawindow = (this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0]) * math::PI / 180.0;
-				double dlalowerbound = this->ptr_gmatmission->options.DLA_bounds[0] * math::PI / 180.0;
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAScaling", (this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[agmatphase.p].DEC_departure - dlalowerbound) / dlawindow);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAScaling", (DLA - dlalowerbound) / dlawindow);
 				if (agmatphase.myjourney->j == 0) {
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", dlawindow);
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", dlalowerbound);
 				}
-				else {
+				else { //  this is the bounds on the DLA?
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLAWindow", math::PI);
 					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_DLALowerBound", -math::PIover2);
 				}
 				//Vinf
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_Vinf");
+				double vinf = sqrt(this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[0].C3_departure);
 				double vinfwindow = this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][1] - this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][0];
-				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfScaling", sqrt(this->ptr_gmatmission->journeys[agmatphase.myjourney->j].phases[0].C3_departure) / vinfwindow);
+
+				//  "EDS", non-parking orbit
+				if (agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 0) {
+
+					agmatphase.spacecraft_forward.iBurn.Element1 = this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[0];
+					agmatphase.spacecraft_forward.initialconditions[3] -= agmatphase.spacecraft_forward.iBurn.Element1;
+					agmatphase.spacecraft_forward.iBurn.Element2 = this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[1];
+					agmatphase.spacecraft_forward.initialconditions[4] -= agmatphase.spacecraft_forward.iBurn.Element2;
+					agmatphase.spacecraft_forward.iBurn.Element3 = this->ptr_gmatmission->journeys[0].phases[0].dVdeparture[2];
+					agmatphase.spacecraft_forward.initialconditions[5] -= agmatphase.spacecraft_forward.iBurn.Element3;
+
+				}
+				//  compute the initial velocity magnitude. this is used to see if we need an extra boost at the start.
+				double initial_velocity_magnitude = 0.0;
+				for (size_t i = 3; i < 6; i++) { initial_velocity_magnitude += std::pow(agmatphase.spacecraft_forward.initialconditions[i], 2); }
+				initial_velocity_magnitude = std::sqrt(initial_velocity_magnitude);
+				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_Vinf");
+				//  perturb the _vinf initial scaling if it is deemed to small with the current initial velocity
+				//+ (i.e. the LT spacecraft may fall back into the planet after departure...)
+				double C3;
+				if (vinf < 0.1 && initial_velocity_magnitude < 0.1) { 
+					C3 = 0.1*0.1;
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfScaling", 0.1 / vinfwindow); 
+				}
+				else {
+					C3 = vinf*vinf;
+					agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfScaling", vinf / vinfwindow); 
+				}
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfWindow", vinfwindow);
 				agmatphase.setVariable(agmatphase.spacecraft_forward.Name + "_VinfLowerBound", this->ptr_gmatmission->options.journey_initial_impulse_bounds[agmatphase.myjourney->j][0]);
+				//  if a launch vehicle is being used on the first journey and it isn't (-1 or 0) 'i.e. burn with EDS or Fixed Initial Mass'
+				if (j == 0 && (lv_type != -1 && lv_type != 0)) {
+
+					int k = lv_type - 1;
+
+					double a1[] = { 0, 0, -8.00E-05, 0, 0, 0, 0, 0, 0, 0, 0, 0, -3.5649E-08, 0, 8.0e-7, 0, -3.5649E-08, 0, 8.0e-7, 0 };
+					double a2[] = { 2.81E-05, 5.62E-06, -3.88E-05, -2.48E-05, -0.00009382, 0.00006198, 0.00012334, -0.00010901, 0.00006465, 0.00007576, -0.00138695, -0.00004196, 2.31305E-05, 0, -0.0002, 0 };
+					double a3[] = { -0.001517208, -0.00067462, 0.00190765, 0.00211196, 0.00403555, -0.00295026, -0.00712978, 0.00596291, -0.00276635, -0.00405132, 0.03050117, -0.0035373, -0.006458248, 0, 0.0145, 0 };
+					double a4[] = { 0.357956243, 0.44268134, 0.43698409, 0.47075449, 0.26854604, 0.41398944, 0.61102598, 0.37650144, 0.60963424, 0.70733066, 0.30110723, 0.91375291, 1.065903806, 0, 0.5825, 0 };
+					double a5[] = { -64.48375826, -78.8465652, -88.38856438, -98.4962944, -55.39915501, -69.35547443, -83.52984026, -91.90752777, -102.9890546, -111.2601399, -69.96585082, -110.0132867, -114.5157292, 0, -183.69, 0 };
+					double a6[] = { 3034.683258, 3930.871041, 4655.158371, 5235.260181, 2094.89, 3265.42, 4195.86, 4939.98, 5595.09, 6106.14, 1974.88, 3634.59, 6595.738063, 0, 12170, 0 };
+					double C3min[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+					double C3max[] = { 60, 60, 60, 60, 50, 60, 60, 60, 60, 60, 35, 40, 200, 0, 100, 0 };
+
+					//  if a custom LV type, then overwrite the local array entry that will be called at the end 
+					//+ of this if() 
+					if (lv_type == -2) {
+						a1[k] = this->ptr_gmatmission->options.custom_LV_coefficients[0];
+						a2[k] = this->ptr_gmatmission->options.custom_LV_coefficients[1];
+						a3[k] = this->ptr_gmatmission->options.custom_LV_coefficients[2];
+						a4[k] = this->ptr_gmatmission->options.custom_LV_coefficients[3];
+						a5[k] = this->ptr_gmatmission->options.custom_LV_coefficients[4];
+						a6[k] = this->ptr_gmatmission->options.custom_LV_coefficients[5];
+						C3min[k] = this->ptr_gmatmission->options.custom_LV_C3_bounds[0];
+						C3max[k] = this->ptr_gmatmission->options.custom_LV_C3_bounds[1];
+					}
+					
+					double mass, dmdC3;
+					EMTG::Astrodynamics::find_mass_to_orbit(C3, DLA, lv_type, &mass, &dmdC3, &this->ptr_gmatmission->options);
+
+					agmatphase.setVariable("LV_MassCapability", this->ptr_gmatmission->options.LV_margin * mass);
+					agmatphase.setVariable("LV_Margin", this->ptr_gmatmission->options.LV_margin);
+					agmatphase.setVariable("LV_AdapterMass", this->ptr_gmatmission->options.LV_adapter_mass);
+					agmatphase.setVariable("LV_a1", a1[k]);
+					agmatphase.setVariable("LV_a2", a2[k]);
+					agmatphase.setVariable("LV_a3", a3[k]);
+					agmatphase.setVariable("LV_a4", a4[k]);
+					agmatphase.setVariable("LV_a5", a5[k]);
+					agmatphase.setVariable("LV_a6", a6[k]);
+					agmatphase.setVariable("C31", C3);
+					agmatphase.setVariable("C32", std::pow(C3, 2));
+					agmatphase.setVariable("C33", std::pow(C3, 3));
+					agmatphase.setVariable("C34", std::pow(C3, 4));
+					agmatphase.setVariable("C35", std::pow(C3, 5));
+					agmatphase.setVariable(agmatphase.id + "_InitialMass");
+				}
 			}
-			
+
+			//variation of chemical arrival
+			int arrival_type = this->ptr_gmatmission->options.journey_arrival_type[agmatphase.myjourney->j];
+			if (agmatphase.isLastPhase && (arrival_type == 0 || arrival_type == 1)) {
+				//  the dv arrival vector and magnitude
+				double dvarrival[3] = { -this->ptr_gmatmission->journeys[0].phases[0].dVarrival[0],
+										-this->ptr_gmatmission->journeys[0].phases[0].dVarrival[1],
+										-this->ptr_gmatmission->journeys[0].phases[0].dVarrival[2] };
+				//double dvarrival_mag = this->ptr_gmatmission->journeys[0].phases[0].dV_arrival_magnitude;
+				//  set the iBurn and initial conditions for the spacecraft
+				if (agmatphase.spacecraft_backward.iBurn.UseImpulsive) {
+					agmatphase.spacecraft_backward.iBurn.Element1 = dvarrival[0];
+					agmatphase.spacecraft_backward.initialconditions[3] -= agmatphase.spacecraft_backward.iBurn.Element1;
+					agmatphase.spacecraft_backward.iBurn.Element2 = dvarrival[1];
+					agmatphase.spacecraft_backward.initialconditions[4] -= agmatphase.spacecraft_backward.iBurn.Element2;
+					agmatphase.spacecraft_backward.iBurn.Element3 = dvarrival[2];
+					agmatphase.spacecraft_backward.initialconditions[5] -= agmatphase.spacecraft_backward.iBurn.Element3;
+				}
+				//  compute the initial velocity magnitude. this is used to see if we need an extra boost at the start.
+				double _initial_velocity_magnitude = 0.0;
+				for (size_t i = 3; i < 6; i++) { _initial_velocity_magnitude += std::pow(agmatphase.spacecraft_backward.initialconditions[i], 2); }
+				_initial_velocity_magnitude = std::sqrt(_initial_velocity_magnitude);
+				//  window; slighty perturb the 'fuellowerbound' in log() so that we don't use 0.0. 
+				//+ really, if the 'minimum_dry_mass' is set to non-zero for a realistic mission, then this won't be a problem
+				double _perturb = 0.01 * this->ptr_gmatmission->options.maximum_mass;
+				if (this->ptr_gmatmission->options.minimum_dry_mass > _perturb) { _perturb = 0.0; }
+				double dvwindow = -2.0 * agmatphase.spacecraft_backward.iBurn.c * std::log((this->ptr_gmatmission->options.minimum_dry_mass + fuellowerbound + _perturb) / (fuelwindow + fuellowerbound));
+				//  lower bound
+				double dvlowerbound = -dvwindow / 2.0;
+				//  dVX arrival
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVX");
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVXScaling", (dvarrival[0] - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVXWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVXLowerBound", dvlowerbound);
+				//  dVY arrival
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVY");
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVYScaling", (dvarrival[1] - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVYWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVYLowerBound", dvlowerbound);
+				//  dVZ arrival
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVZ");
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVZScaling", (dvarrival[2] - dvlowerbound) / dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVZWindow", dvwindow);
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dVZLowerBound", dvlowerbound);
+				//  dV norm for calculating fuel burn
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_dV");
+				//  'c' for calculating fuel burn
+				agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_c", agmatphase.spacecraft_backward.iBurn.c);
+			}
+
 
 
 			// -----------------------------
@@ -403,10 +594,23 @@ void gmatscripter::create_GMAT_phases() {
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_FuelScaling");
 			}
 			//forward spacecraft at beginning of journey, launch scalings
-			if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+			if (agmatphase.isFirstPhase && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_RLAScaling");
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_DLAScaling");
 				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_VinfScaling");
+			}
+			if (agmatphase.isFirstPhase && agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 1) {
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_dVXScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_dVYScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_dVZScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_TAScaling");
+				agmatphase.setVary(agmatphase.spacecraft_forward.Name + "_RAANScaling");
+			}
+			//backward spacecraft chemical arrivals
+			if (agmatphase.isLastPhase && (arrival_type == 0 || arrival_type == 1)) {
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_dVXScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_dVYScaling");
+				agmatphase.setVary(agmatphase.spacecraft_backward.Name + "_dVZScaling");
 			}
 
 
@@ -461,27 +665,82 @@ void gmatscripter::create_GMAT_phases() {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", GMATMission.myjourneys[j].myphases[p - 1].spacecraft_backward.Name + "_VZ");
 			}
 			//for propulsive departures
-			else if (agmatphase.p == 0 && this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j] == 0) {
+			else if (agmatphase.isFirstPhase && depart_type == 0) {
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_DLA", agmatphase.spacecraft_forward.Name + "_DLAScaling * " + agmatphase.spacecraft_forward.Name + "_DLAWindow + " + agmatphase.spacecraft_forward.Name + "_DLALowerBound");
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_RLA", agmatphase.spacecraft_forward.Name + "_RLAScaling * " + agmatphase.spacecraft_forward.Name + "_RLAWindow + " + agmatphase.spacecraft_forward.Name + "_RLALowerBound");
 				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_Vinf", agmatphase.spacecraft_forward.Name + "_VinfScaling * " + agmatphase.spacecraft_forward.Name + "_VinfWindow + " + agmatphase.spacecraft_forward.Name + "_VinfLowerBound");
-				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", agmatphase.spacecraft_forward.Name + "_Vinf * cos( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
-				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
-				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+				if (agmatphase.spacecraft_forward.iBurn.UseImpulsive) {
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element1", agmatphase.spacecraft_forward.Name + "_Vinf * cos( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element2", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element3", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+				}
+				else {
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VX", agmatphase.spacecraft_forward.Name + "_Vinf * cos( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VY", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_RLA ) * cos( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.CoordinateSystem + ".VZ", agmatphase.spacecraft_forward.Name + "_Vinf * sin( " + agmatphase.spacecraft_forward.Name + "_DLA )");
+				}
+			}
+			//  departures from parking orbits
+			else if (agmatphase.isFirstPhase && agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 1) {
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_dVX", agmatphase.spacecraft_forward.Name + "_dVXScaling * " + agmatphase.spacecraft_forward.Name + "_dVXWindow + " + agmatphase.spacecraft_forward.Name + "_dVXLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_dVY", agmatphase.spacecraft_forward.Name + "_dVYScaling * " + agmatphase.spacecraft_forward.Name + "_dVYWindow + " + agmatphase.spacecraft_forward.Name + "_dVYLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_dVZ", agmatphase.spacecraft_forward.Name + "_dVZScaling * " + agmatphase.spacecraft_forward.Name + "_dVZWindow + " + agmatphase.spacecraft_forward.Name + "_dVZLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element1", agmatphase.spacecraft_forward.Name + "_dVX");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element2", agmatphase.spacecraft_forward.Name + "_dVY");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.iBurn.Name + ".Element3", agmatphase.spacecraft_forward.Name + "_dVZ");
+				if (agmatphase.spacecraft_forward.iBurn.IsEDS) {
+					agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_EDS_dV", "sqrt( " + agmatphase.spacecraft_forward.Name + "_dVX * " + agmatphase.spacecraft_forward.Name + "_dVX + " + agmatphase.spacecraft_forward.Name + "_dVY * " + agmatphase.spacecraft_forward.Name + "_dVY + " + agmatphase.spacecraft_forward.Name + "_dVZ * " + agmatphase.spacecraft_forward.Name + "_dVZ )");
+				}
+				//  'f' and 'RAAN'
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_TA", agmatphase.spacecraft_forward.Name + "_TAScaling * " + agmatphase.spacecraft_forward.Name + "_TAWindow + " + agmatphase.spacecraft_forward.Name + "_TALowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".TA", agmatphase.spacecraft_forward.Name + "_TA");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + "_RAAN", agmatphase.spacecraft_forward.Name + "_RAANScaling * " + agmatphase.spacecraft_forward.Name + "_RAANWindow + " + agmatphase.spacecraft_forward.Name + "_RAANLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_forward.Name + ".RAAN", agmatphase.spacecraft_forward.Name + "_RAAN");
+			}
+			//  C3 and Mass calculation for LV departures
+			if (j == 0 && agmatphase.isFirstPhase && depart_type == 0 && (lv_type != -1 && lv_type != 0)) {
+				//  calculate the C3 power terms
+				agmatphase.setCalculate("C31", agmatphase.spacecraft_forward.Name + "_Vinf * " + agmatphase.spacecraft_forward.Name + "_Vinf");
+				agmatphase.setCalculate("C32", "C31 * C31");
+				agmatphase.setCalculate("C33", "C32 * C31");
+				agmatphase.setCalculate("C34", "C33 * C31");
+				agmatphase.setCalculate("C35", "C34 * C31");
+				agmatphase.setCalculate("LV_MassCapability", "(1.0 - LV_Margin) * (LV_a1 * C35 + LV_a2 * C34 + LV_a3 * C33 + LV_a4 * C32 + LV_a5 * C31 + LV_a6 - LV_AdapterMass)");
+				agmatphase.setCalculate(agmatphase.id + "_InitialMass", agmatphase.spacecraft_forward.Name + ".DryMass + " + agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass");
+			}
+
+			//  chemical arrivals
+			if (agmatphase.isLastPhase && (arrival_type == 0 || arrival_type == 1)) {
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_dVX", agmatphase.spacecraft_backward.Name + "_dVXScaling * " + agmatphase.spacecraft_backward.Name + "_dVXWindow + " + agmatphase.spacecraft_backward.Name + "_dVXLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_dVY", agmatphase.spacecraft_backward.Name + "_dVYScaling * " + agmatphase.spacecraft_backward.Name + "_dVYWindow + " + agmatphase.spacecraft_backward.Name + "_dVYLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_dVZ", agmatphase.spacecraft_backward.Name + "_dVZScaling * " + agmatphase.spacecraft_backward.Name + "_dVZWindow + " + agmatphase.spacecraft_backward.Name + "_dVZLowerBound");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.iBurn.Name + ".Element1", agmatphase.spacecraft_backward.Name + "_dVX");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.iBurn.Name + ".Element2", agmatphase.spacecraft_backward.Name + "_dVY");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.iBurn.Name + ".Element3", agmatphase.spacecraft_backward.Name + "_dVZ");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_dV", "sqrt( " + agmatphase.spacecraft_backward.Name + "_dVX * " + agmatphase.spacecraft_backward.Name + "_dVX + " + agmatphase.spacecraft_backward.Name + "_dVY * " + agmatphase.spacecraft_backward.Name + "_dVY + " + agmatphase.spacecraft_backward.Name + "_dVZ * " + agmatphase.spacecraft_backward.Name + "_dVZ )");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "_FuelMass", "( " + agmatphase.spacecraft_backward.Name + "_FuelMass + " + agmatphase.myjourney->id + "_DryMass ) * exp( " + agmatphase.spacecraft_backward.Name + "_dV / " + agmatphase.spacecraft_backward.Name + "_c ) - " + agmatphase.myjourney->id + "_DryMass");
+				agmatphase.setCalculate(agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass", agmatphase.spacecraft_backward.Name + "_FuelMass");
 			}
 
 
 			// -----------------------------
 			//      CONSTRAINT CREATION
 			// -----------------------------
-			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " X", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.X", " =", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.X");
-			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Y", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.Y", " =", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.Y");
-			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Z", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.Z", " =", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.Z");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " X", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.X", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.X");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Y", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.Y", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.Y");
+			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Z", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.Z", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.Z");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VX", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.VX", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.VX");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VY", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.VY", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.VY");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " VZ", agmatphase.spacecraft_forward.Name + ".SunJ2000Eq.VZ", "=", agmatphase.spacecraft_backward.Name + ".SunJ2000Eq.VZ");
 			agmatphase.setConstraint("MatchPoint " + agmatphase.id + " Mass", agmatphase.spacecraft_forward.Name + "." + agmatphase.spacecraft_forward.Thruster.Tank.Name + ".FuelMass", "=", agmatphase.spacecraft_backward.Name + "." + agmatphase.spacecraft_backward.Thruster.Tank.Name + ".FuelMass");
-
+			//  constrain initial mass within LV capabilities
+			if (j == 0 && agmatphase.isFirstPhase && depart_type == 0 && (lv_type != -1 && lv_type != 0)) {
+				agmatphase.setConstraint("Launch Vehicle Mass Constraint", agmatphase.id + "_InitialMass", "<=", "LV_MassCapability");
+			}
+			//  constraint EDS burn within capabilities
+			if (agmatphase.isFirstPhase && agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 1 && agmatphase.spacecraft_forward.iBurn.IsEDS) {
+				agmatphase.setConstraint("EDS Delta-V Constraint", agmatphase.spacecraft_forward.Name + "_EDS_dV", "<=", this->ptr_gmatmission->options.journey_initial_impulse_bounds[j][1]);
+			}
 
 			// -----------------------------
 			//          PUSH_BACK
@@ -540,8 +799,10 @@ void gmatscripter::create_GMAT_steps() {
 				//Case: [ SOI-SOI ] (i.e. the step is complete contained within the SOI of its body for the entire step time)
 				if (agmatstep.inSOIatStart && agmatstep.inSOIatEnd) {
 					GMATDebug << "SOI-SOI ";
-					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
-					agmatstep.setFMandProp(true);
+					//  set the ForceModel and Propagator Parameters (true: for CloseApproach, i.e. just use central body).
+					//+ if leaving/arriving from/at a parking orbit, then use the larger propagator
+					if (agmatstep.myspacecraft->iBurn.BCisParkingOrbit) { agmatstep.setFMandProp(false); } 
+					else { agmatstep.setFMandProp(true); }
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
@@ -590,8 +851,10 @@ void gmatscripter::create_GMAT_steps() {
 					if (approximate_time_in_SOI > agmatstep.stepsize) { approximate_time_in_SOI = agmatstep.stepsize; }
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
-					agmatstep.setFMandProp(true);
+					//  set the ForceModel and Propagator Parameters (true: for CloseApproach, i.e. just use central body).
+					//+ if leaving/arriving from/at a parking orbit, then use the larger propagator
+					if (agmatstep.myspacecraft->iBurn.BCisParkingOrbit) { agmatstep.setFMandProp(false); }
+					else { agmatstep.setFMandProp(true); }
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
@@ -664,8 +927,10 @@ void gmatscripter::create_GMAT_steps() {
 
 					//reset the stepsize of the 'gmatstep'
 					agmatstep.set_stepsize(approximate_time_in_SOI);
-					//set the ForceModel and Propagator Parameters (true: for CloseApproach)
-					agmatstep.setFMandProp(true);
+					//  set the ForceModel and Propagator Parameters (true: for CloseApproach, i.e. just use central body).
+					//+ if leaving/arriving from/at a parking orbit, then use the larger propagator
+					if (agmatstep.myspacecraft->iBurn.BCisParkingOrbit) { agmatstep.setFMandProp(false); }
+					else { agmatstep.setFMandProp(true); }
 					//append the 'gmatstep' to the 'gmatphase' collector
 					GMATMission.myjourneys[j].myphases[p].append_step(agmatstep);
 					GMATDebug << "gs: " << agmatstep.gs << " id: " << agmatstep.id << "   delta-t: " << agmatstep.stepsize / 86400.0;
@@ -1391,18 +1656,35 @@ void gmatscripter::write_GMAT_propagators(){
 // method to create burn information
 void gmatscripter::write_GMAT_burns(){
 
-	//burn header
+	//finite burn header
 	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
-	GMATfile << "%---------- Burns" << std::endl;
+	GMATfile << "%---------- Finite Burns" << std::endl;
 	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
 	GMATfile << std::endl;
 
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			//write out the forward spacecraft
-			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_forward.Burn);
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_forward.fBurn);
+			GMATfile << std::endl;
 			//write out the backward spacecraft
-			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.Burn);
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.fBurn);
+			GMATfile << std::endl;
+		}
+	}
+
+	//impulsive burn header
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Impulsive Burns" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << std::endl;
+
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			//write out the forward spacecraft
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_forward.iBurn);
+			//write out the backward spacecraft
+			this->create_GMAT_burn(GMATMission.myjourneys[j].myphases[p].spacecraft_backward.iBurn);
 		}
 	}
 	GMATfile << std::endl;
@@ -1534,7 +1816,7 @@ void gmatscripter::write_GMAT_subscribers(){
 	for (int body_index = 0; body_index < GMATMission.missionbodies_unique.size(); ++body_index)
 	{
 		GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[body_index].name << "View" << std::endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ShowPlot               = false" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ShowPlot               = true" << std::endl;
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.SolverIterations       = All" << std::endl;
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.RelativeZOrder         = 501" << std::endl;
 
@@ -1576,7 +1858,7 @@ void gmatscripter::write_GMAT_subscribers(){
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.UseInitialView         = On" << std::endl;
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointReference	  = " << GMATMission.missionbodies_unique[body_index].name << ";" << std::endl;
 		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewDirection		  = " << GMATMission.missionbodies_unique[body_index].name << ";" << std::endl;
-		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 3000000 ];" << std::endl;
+		GMATfile << GMATMission.missionbodies_unique[body_index].name << "View.ViewPointVector		  = [ 0 0 20000 ];" << std::endl;
 		GMATfile << std::endl;
 	}
 	GMATfile << std::endl;
@@ -1798,6 +2080,16 @@ void gmatscripter::write_GMAT_variables(){
 }//end of write_GMAT_variables() method
 
 
+// method to create the beginmissionsequence statement
+void gmatscripter::write_GMAT_beginmissionsequence(){
+
+	GMATfile << "BeginMissionSequence" << std::endl;
+	GMATfile << std::endl;
+	GMATfile << std::endl;
+
+}
+
+
 // method to create the initial conditions for the mission sequence
 void gmatscripter::write_GMAT_initialconditions(){
 
@@ -1831,20 +2123,63 @@ void gmatscripter::write_GMAT_initialconditions(){
 	}
 
 	GMATfile << std::endl;
+	GMATfile << "% --- Additional / Updated Initial Guess" << std::endl;
+	GMATfile << std::endl;
+
+	GMATfile << std::endl;
 	GMATfile << "EndScript" << std::endl;
 	GMATfile << std::endl;
 
 }//end of write_GMAT_initialguess() method
 
 
-// method to create the beginmissionsequence statement
-void gmatscripter::write_GMAT_beginmissionsequence(){
+// method to create the initial conditions for the mission sequence
+void gmatscripter::write_GMAT_preoptimization_calculations(){
 
-	GMATfile << "BeginMissionSequence" << std::endl;
-	GMATfile << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
+	GMATfile << "%---------- Pre-Optimization Calculations" << std::endl;
+	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
 	GMATfile << std::endl;
 
-}
+	GMATfile << "BeginScript 'Pre Optimization Calculations' " << std::endl;
+	GMATfile << std::endl;
+
+	//write out the phase level variables
+	GMATfile << "% --- Mission Level: " << std::endl;
+	GMATMission.printPreOptCalculate(GMATfile);
+	GMATfile << std::endl;
+
+	//write out the phase level variables
+	GMATfile << "% --- Journey Level: " << std::endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		GMATMission.myjourneys[j].printPreOptCalculate(GMATfile);
+	}
+	GMATfile << std::endl;
+
+	//write out the phase level variables
+	GMATfile << "% --- Phase Level: " << std::endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			GMATMission.myjourneys[j].myphases[p].printPreOptCalculate(GMATfile);
+		}
+	}
+	GMATfile << std::endl;
+
+	//write out the phase level variables
+	GMATfile << "% --- Step Level: " << std::endl;
+	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
+		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
+			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printPreOptCalculate(GMATfile);
+			}
+		}
+	}
+
+	GMATfile << std::endl;
+	GMATfile << "EndScript" << std::endl;
+	GMATfile << std::endl;
+
+}//end of write_GMAT_initialguess() method
 
 
 // method to create the optimization sequence for the mission
@@ -1891,6 +2226,8 @@ void gmatscripter::write_GMAT_optimization() {
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
 				//Step ID
 				GMATfile << "   " << "% Step ID: " << GMATMission.myjourneys[j].myphases[p].mysteps[gs].id << std::endl;
+				//Maneuver command if Impulsive Burn is used
+				GMATMission.myjourneys[j].myphases[p].mysteps[gs].printManeuver(GMATfile);
 				//'PenUp' command
 				PenUp();
 				//Step level vary commands
@@ -1942,14 +2279,6 @@ void gmatscripter::write_GMAT_optimization() {
 
 
 
-
-	// if launch or direct departure, can vary launch vector
-	// WITH
-	// constraint on max velocity magnitude
-
-	// vary flyby locations for interphase spacecraft
-
-	// vary spacecraft fuelmass 
 
 	//optimize the user-defined objective function
 	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
@@ -2137,6 +2466,8 @@ void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 	GMATfile << spacecraft.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << std::endl;
 	GMATfile << spacecraft.Name << ".Tanks     = {" << spacecraft.Thruster.Tank.Name << "}" << std::endl;
 	GMATfile << spacecraft.Name << ".Thrusters = {" << spacecraft.Thruster.Name << "}" << std::endl;
+	//  initial conditions
+	create_GMAT_initialconditions(spacecraft, "", false);
 	GMATfile << std::endl;
 
 }
@@ -2176,15 +2507,37 @@ void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 
 
 // method to write a GMAT FiniteBurn Resource
-void gmatscripter::create_GMAT_burn(struct gmat_burn& burn) {
+void gmatscripter::create_GMAT_burn(struct gmat_fburn& burn) {
 
-	if (burn.Type == "FiniteBurn") {
-		GMATfile << "Create FiniteBurn " << burn.Name << std::endl;
-		GMATfile << burn.Name << ".Thrusters = {" << burn.ThrusterName << "};" << std::endl;
-	}
+	GMATfile << "Create FiniteBurn " << burn.Name << std::endl;
+	GMATfile << burn.Name << ".Thrusters = {" << burn.ThrusterName << "};" << std::endl;
 
 }
 
+// method to write a GMAT ImpulsiveBurn Resource
+void gmatscripter::create_GMAT_burn(struct gmat_iburn& burn) {
+
+	if (burn.UseImpulsive) {
+		GMATfile << "Create ImpulsiveBurn " << burn.Name << std::endl;
+		GMATfile << burn.Name << ".CoordinateSystem = " << burn.CoordinateSystem << std::endl;
+		GMATfile << "% " << burn.Name << ".Origin = " << burn.Origin << std::endl;
+		GMATfile << "% " << burn.Name << ".Axes = " << burn.Axes << std::endl;
+		GMATfile << burn.Name << ".Element1 = " << burn.Element1 << std::endl;
+		GMATfile << burn.Name << ".Element2 = " << burn.Element2 << std::endl;
+		GMATfile << burn.Name << ".Element3 = " << burn.Element3 << std::endl;
+
+		GMATfile << burn.Name << ".DecrementMass = ";
+		if (burn.DecrementMass) { GMATfile << "true" << std::endl; }
+		else { GMATfile << "false" << std::endl; }
+
+		GMATfile << burn.Name << ".Isp = " << burn.Isp << std::endl;
+		GMATfile << burn.Name << ".GravitationalAccel = " << burn.g << std::endl;
+		GMATfile << burn.Name << ".Tank = " << burn.TankName << std::endl;
+
+		GMATfile << std::endl;
+	}
+
+}
 
 // method to write a GMAT CoordinateSystem Resource
 void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
@@ -2198,13 +2551,17 @@ void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 
 
 // method to write out a spacecraft's initial conditions
-void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft) {
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".X  = " << spacecraft.initialconditions[0] << std::endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Y  = " << spacecraft.initialconditions[1] << std::endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".Z  = " << spacecraft.initialconditions[2] << std::endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VX = " << spacecraft.initialconditions[3] << std::endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VY = " << spacecraft.initialconditions[4] << std::endl;
-	GMATfile << "   " << spacecraft.Name << "." << spacecraft.CoordinateSystem << ".VZ = " << spacecraft.initialconditions[5] << std::endl;
+void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar, bool WithCoordinateSyst) {
+	
+	std::string CoordinateSyst = "";
+	if (WithCoordinateSyst) { CoordinateSyst = "." + spacecraft.CoordinateSystem; }
+
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".X  = " << spacecraft.initialconditions[0] << std::endl;
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Y  = " << spacecraft.initialconditions[1] << std::endl;
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Z  = " << spacecraft.initialconditions[2] << std::endl;
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VX = " << spacecraft.initialconditions[3] << std::endl;
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VY = " << spacecraft.initialconditions[4] << std::endl;
+	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VZ = " << spacecraft.initialconditions[5] << std::endl;
 	GMATfile << std::endl;
 }
 

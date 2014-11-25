@@ -66,6 +66,7 @@ namespace EMTG {
 																	EMTG::Astrodynamics::body& TheBody);
 
 		math::Matrix<double> calculate_periapse_state_from_asymptote_and_parking_orbit(math::Matrix<double>& V_infinity,
+																					   std::vector<double> & v0,
 																					   double parking_orbit_incination,
 																					   double parking_orbit_altitude,
 																					   double &epoch,

@@ -46,12 +46,6 @@ namespace EMTG {
 	class gmatphase;
 	class gmatstep;
 
-//a struct type for gmat finite burn
-struct gmat_burn {
-	string Name;
-	string Type = "FiniteBurn";
-	string ThrusterName;
-};
 
 //a struct type for gmat tank(s)
 struct gmat_tank {
@@ -65,6 +59,33 @@ struct gmat_thruster {
 	struct gmat_tank Tank;
 };
 
+//a struct type for gmat finite burn
+struct gmat_fburn {
+	string Name;
+	string Type = "FiniteBurn";
+	string ThrusterName;
+};
+
+//a struct type for gmat impulsive burn
+struct gmat_iburn {
+	bool UseImpulsive = false;
+	bool BCisParkingOrbit = false;
+	bool IsEDS = false;
+	string Name;
+	string Type = "ImpulsiveBurn";
+	string CoordinateSystem;
+	string Origin;
+	string Axes = "MJ2000Eq";
+	double Element1 = 0.0;
+	double Element2 = 0.0;
+	double Element3 = 0.0;
+	bool DecrementMass = true;
+	double Isp;
+	double g = 9.81;
+	double c;
+	string TankName;
+};
+
 //a struct type for storing and accessing gmat spacecraft information
 struct gmat_spacecraft {
 	//GMAT Specific Data
@@ -74,7 +95,8 @@ struct gmat_spacecraft {
 	double DryMass = 0.0;
 	string CoordinateSystem;
 	struct gmat_thruster Thruster;
-	struct gmat_burn Burn;
+	struct gmat_fburn fBurn;
+	struct gmat_iburn iBurn;
 	//Auxiliary Data
 	bool isForward;
 	double flyby_distance_lowerbound = 0;
@@ -128,10 +150,11 @@ public:
 	~gmatbaseclass(){};
 
 	//collection members
-	vector <vector<string> > variables;			//collection of 'variables' (n x (1 or 2))
-	vector <struct gmat_vary> vary;				//collection of vary 'variables' to be performed in the optimize sequence.           
-	vector <struct gmat_calculate> calculate;	//collection of calculate 'variables' to be performed in the optimize sequence.  
-	vector <vector<string> > constraints;		//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
+	vector <vector<string> > variables;					//collection of 'variables' (n x (1 or 2))
+	vector <struct gmat_vary> vary;						//collection of vary 'variables' to be performed in the optimize sequence.           
+	vector <struct gmat_calculate> calculate;			//collection of calculate 'variables' to be performed in the optimize sequence.  
+	vector <vector<string> > constraints;				//collection of constraint 'variables' to be performed in the optimize sequence. n x (3 x 1)
+	vector <struct gmat_calculate> preopt_calculate;	//collection of calculate 'variables' to be performed prior to the optimization sequence.  
 
 	//method
 	void setVariable(string avariable) {
@@ -230,6 +253,21 @@ public:
 	}
 
 	//method
+	void setConstraint(string message, string lhs, string relation, double rhs) {
+		//declarations
+		vector <string> tempvector;
+		stringstream tempstream;
+		//function
+		tempstream.precision(25);
+		tempstream << rhs;
+		tempvector.push_back(message);
+		tempvector.push_back(lhs);
+		tempvector.push_back(relation);
+		tempvector.push_back(tempstream.str());
+		this->constraints.push_back(tempvector);
+	}
+	
+	//method
 	void setConstraint(string message, string lhs, string relation, string rhs) {
 		//declarations
 		vector <string> tempvector;
@@ -241,6 +279,30 @@ public:
 		this->constraints.push_back(tempvector);
 	}
 
+	//method
+	void setPreOptimizationCalculation(string lhs, string rhs, bool writeAtTheFront = true) {
+		//declarations
+		struct gmat_calculate astruct;
+		//function
+		astruct.message = lhs;
+		astruct.lhs = lhs;
+		astruct.rhs = rhs;
+		astruct.writeAtTheFront = writeAtTheFront; // not currently being used for PreOpt (2014_11_25)
+		this->preopt_calculate.push_back(astruct);
+	}
+	
+	//method
+	void setPreOptimizationCalculation(string message, string lhs, string rhs, bool writeAtTheFront = true) {
+		//declarations
+		struct gmat_calculate astruct;
+		//function
+		astruct.message = message;
+		astruct.lhs = lhs;
+		astruct.rhs = rhs;
+		astruct.writeAtTheFront = writeAtTheFront; // not currently being used for PreOpt (2014_11_25)
+		this->preopt_calculate.push_back(astruct);
+	}
+	
 	//method to write a GMAT 'Variable' line
 	void printVariable(std::ofstream& File) {
 		for (int index = 0; index < this->variables.size(); ++index) {
@@ -262,9 +324,16 @@ public:
 
 	//method to write a GMAT 'Calculate' line (int mode (1) if printing at "front" and (0) at "end") (see write_GMAT_optimization for e.g.)
 	void printCalculate(std::ofstream& File, int mode = 1) {
-		for (int index = 0; index < this->calculate.size(); ++index){
+		for (int index = 0; index < this->calculate.size(); ++index) {
 			if (mode && this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << std::endl; }
 			else if (!mode && !this->calculate[index].writeAtTheFront) { File << "   " << "'Calculate " << this->calculate[index].message << "' " << this->calculate[index].lhs << " = " << this->calculate[index].rhs << std::endl; }
+		}
+	}
+
+	//method to write a GMAT 'Calculate' line prior to the start of the optimization sequence
+	void printPreOptCalculate(std::ofstream& File) {
+		for (int index = 0; index < this->preopt_calculate.size(); ++index) {
+			File << "   " << "'Calculate " << this->preopt_calculate[index].message << "' " << this->preopt_calculate[index].lhs << " = " << this->preopt_calculate[index].rhs << std::endl;
 		}
 	}
 
@@ -407,6 +476,7 @@ public:
 		this->set_names();
 		this->set_fuelmass_epoch_drymass();
 		this->get_my_bodies();
+		this->set_iBurn();
 		this->get_flyby_data();
 		this->set_initialconditions();
 		this->set_epochs();
@@ -439,15 +509,17 @@ public:
 		spacecraft_forward.Name = "SpaceCraft_" + this->id + "_Forward";
 		spacecraft_forward.Thruster.Name = "Thruster_" + this->id + "_Forward";
 		spacecraft_forward.Thruster.Tank.Name = "FuelTank_" + this->id + "_Forward";
-		spacecraft_forward.Burn.Name = "FiniteBurn_" + this->id + "_Forward";
-		spacecraft_forward.Burn.ThrusterName = spacecraft_forward.Thruster.Name;
+		spacecraft_forward.fBurn.Name = "FiniteBurn_" + this->id + "_Forward";
+		spacecraft_forward.fBurn.ThrusterName = spacecraft_forward.Thruster.Name;
+		spacecraft_forward.iBurn.Name = "ImpulsiveBurn_" + this->id + "_Forward";
 		spacecraft_forward.isForward = true;
 
 		spacecraft_backward.Name = "SpaceCraft_" + this->id + "_Backward";
 		spacecraft_backward.Thruster.Name = "Thruster_" + this->id + "_Backward";
 		spacecraft_backward.Thruster.Tank.Name = "FuelTank_" + this->id + "_Backward";
-		spacecraft_backward.Burn.Name = "FiniteBurn_" + this->id + "_Backward";
-		spacecraft_backward.Burn.ThrusterName = spacecraft_backward.Thruster.Name;
+		spacecraft_backward.fBurn.Name = "FiniteBurn_" + this->id + "_Backward";
+		spacecraft_backward.fBurn.ThrusterName = spacecraft_backward.Thruster.Name;
+		spacecraft_backward.iBurn.Name = "ImpulsiveBurn_" + this->id + "_Backward";
 		spacecraft_backward.isForward = false;
 	}
 
@@ -516,6 +588,65 @@ public:
 		//set the spacecraft coordinate systems
 		spacecraft_forward.CoordinateSystem  = mybodies[0].name + "J2000Eq";
 		spacecraft_backward.CoordinateSystem = mybodies[1].name + "J2000Eq";
+	}
+
+	//method
+	void set_iBurn() {
+		//  if this phase isn't the first nor last, then we do not currently use impulsive maneuvers
+		if (!isFirstPhase && !isLastPhase) { return; }
+		//  get the departure and arrival types for this phase
+		int depart_type = this->myjourney->mymission->emtgmission->options.journey_departure_type[this->myjourney->j];
+		int lv_type = this->myjourney->mymission->emtgmission->options.LV_type;
+		int arrival_type = this->myjourney->mymission->emtgmission->options.journey_arrival_type[this->myjourney->j];
+		double isp_chem = this->myjourney->mymission->emtgmission->options.IspChem;
+		double isp_DS = this->myjourney->mymission->emtgmission->options.IspDS;
+		 
+		if (depart_type == 1) { spacecraft_forward.iBurn.BCisParkingOrbit = true; }
+		if (arrival_type == 0) { spacecraft_backward.iBurn.BCisParkingOrbit = true; }
+
+		//  if this is the first journey and first phase
+		if ((this->myjourney->j == 0) && isFirstPhase) {
+			//  if using launch/direct insertion with the EDS motor
+			//+ OR
+			//+ if using depart from parking orbit with the EDS motor
+			if ((depart_type == 0 && lv_type == -1) || depart_type == 1){
+				spacecraft_forward.iBurn.UseImpulsive = true;
+				spacecraft_forward.iBurn.IsEDS = true;
+				spacecraft_forward.iBurn.CoordinateSystem = spacecraft_forward.CoordinateSystem;
+				spacecraft_forward.iBurn.Origin = mybodies[0].name;
+				spacecraft_forward.iBurn.Isp = isp_DS;
+				spacecraft_forward.iBurn.g = this->myjourney->mymission->emtgmission->options.g0;
+				spacecraft_forward.iBurn.c = isp_DS * (spacecraft_forward.iBurn.g / 1000.0);
+				spacecraft_forward.iBurn.DecrementMass = false;
+				spacecraft_forward.iBurn.TankName = spacecraft_forward.Thruster.Tank.Name;
+			}
+		}
+		//  if not the first journey, but is the first phase and using a direct insertion 
+		//+ or departure from a parking orbit
+		else if (isFirstPhase && (depart_type == 0 || depart_type == 1)) {
+			spacecraft_forward.iBurn.UseImpulsive = true;
+			spacecraft_forward.iBurn.CoordinateSystem = spacecraft_forward.CoordinateSystem;
+			spacecraft_forward.iBurn.Origin = mybodies[0].name;
+			spacecraft_forward.iBurn.Isp = isp_chem;
+			spacecraft_forward.iBurn.g = this->myjourney->mymission->emtgmission->options.g0;
+			spacecraft_forward.iBurn.c = isp_chem * (spacecraft_forward.iBurn.g / 1000.0);
+			spacecraft_forward.iBurn.TankName = spacecraft_forward.Thruster.Tank.Name;
+		}
+
+		//  if the last phase and arrival is either insertion into a parking orbit or rendezvous with chemical
+		if (isLastPhase && (arrival_type == 0 || arrival_type == 1)) {
+			spacecraft_backward.iBurn.UseImpulsive = true;
+			spacecraft_backward.iBurn.CoordinateSystem = spacecraft_backward.CoordinateSystem;
+			spacecraft_backward.iBurn.Origin = mybodies[1].name;
+			spacecraft_backward.iBurn.Isp = isp_chem;
+			spacecraft_backward.iBurn.g = this->myjourney->mymission->emtgmission->options.g0;
+			spacecraft_backward.iBurn.c = isp_chem * (spacecraft_forward.iBurn.g / 1000.0);
+			spacecraft_backward.iBurn.DecrementMass = false;
+			spacecraft_backward.iBurn.TankName = spacecraft_backward.Thruster.Tank.Name;
+		}
+
+		//  need to set the delta-v components
+	
 	}
 
 	//method
@@ -964,13 +1095,20 @@ public:
 	}
 
 	//method
+	void printManeuver(std::ofstream& File) {
+		if (this->myspacecraft->iBurn.UseImpulsive && (this->gs == 0 || this->myphase->mysteps.size() - 1 == this->gs)) {
+			File << "   " << "Maneuver '" << this->myspacecraft->iBurn.Type << " " << this->myspacecraft->iBurn.Name << "' " << this->myspacecraft->iBurn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
+		}
+	}
+	
+	//method
 	void printBeginBurn(std::ofstream& File) {
-		File << "   " << "Begin" << this->myspacecraft->Burn.Type << " 'Begin" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
+		File << "   " << "Begin" << this->myspacecraft->fBurn.Type << " 'Begin" << this->myspacecraft->fBurn.Type << " " << this->myspacecraft->fBurn.Name << "' " << this->myspacecraft->fBurn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
 	}
 
 	//method
 	void printEndBurn(std::ofstream& File) {
-		File << "   " << "End" << this->myspacecraft->Burn.Type << " 'End" << this->myspacecraft->Burn.Type << " " << this->myspacecraft->Burn.Name << "' " << this->myspacecraft->Burn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
+		File << "   " << "End" << this->myspacecraft->fBurn.Type << " 'End" << this->myspacecraft->fBurn.Type << " " << this->myspacecraft->fBurn.Name << "' " << this->myspacecraft->fBurn.Name << "( " << this->myspacecraft->Name << " )" << std::endl;
 	}
 
 };
@@ -1024,6 +1162,7 @@ public:
 	//optimization methods
 	virtual void write_GMAT_beginmissionsequence();
 	virtual void write_GMAT_initialconditions();
+	virtual void write_GMAT_preoptimization_calculations();
 	virtual void write_GMAT_optimization();
 	//write calls
 	virtual void create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft);
@@ -1031,9 +1170,10 @@ public:
 	virtual void create_GMAT_thruster(struct gmat_spacecraft& spacecraft);
 	virtual void create_GMAT_forcemodel(struct gmat_forcemodel& forcemodel);
 	virtual void create_GMAT_propagator(struct gmat_propagator& propagator);
-	virtual void create_GMAT_burn(struct gmat_burn& burn);
+	virtual void create_GMAT_burn(struct gmat_fburn& burn);
+	virtual void create_GMAT_burn(struct gmat_iburn& burn);
 	virtual void create_GMAT_coordinatesystem(string bodyname);
-	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft);
+	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar = "   ", bool WithCoordinateSyst = true);
 
 	//GMAT Command Methods
 	virtual void aux_GMAT_propagate(class gmatstep& agmatstep, bool useZeroPropagate);
