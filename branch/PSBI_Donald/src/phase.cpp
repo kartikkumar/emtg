@@ -306,8 +306,6 @@ namespace EMTG {
 						this->mission_initial_mass_multiplier = X[*Xindex];
 						++(*Xindex);
 					}
-					else
-						this->mission_initial_mass_multiplier = 1.0;
 
 					this->unscaled_phase_initial_mass = options->maximum_mass;
 					this->spiral_escape_state_before_spiral[6] = this->unscaled_phase_initial_mass * this->mission_initial_mass_multiplier;
