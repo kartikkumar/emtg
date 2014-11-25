@@ -747,7 +747,7 @@ namespace EMTG {
 			double accumulatedH = 0.0;
 			double daccumulatedHdTOF = 0.0;
 			double effectiveH = *resumeH;
-			double deffectiveHdTOF = 0.0;
+			double deffectiveHdTOF;
 			double precision_error = *resumeError;
 			bool last_substep;
 
