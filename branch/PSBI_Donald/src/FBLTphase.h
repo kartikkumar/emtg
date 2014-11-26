@@ -104,6 +104,32 @@ public:
 		missionoptions * options,
 		EMTG::Astrodynamics::universe * Universe);
 
+	//state vector containers
+	std::vector <double> spacecraft_state_forward;
+	std::vector <double> spacecraft_state_forward_prop;
+	std::vector <double> spacecraft_state_backward;
+	std::vector <double> spacecraft_state_backward_prop;
+	std::vector <double> spacecraft_state_end_coast;
+	std::vector <double> spacecraft_state_propagate;
+	std::vector <double> spacecraft_state_propagate_next;
+
+	//phase TOF derivative containers
+	EMTG::math::Matrix <double> dspacecraft_state_forwarddTOF;
+	EMTG::math::Matrix <double> dspacecraft_state_forward_propdTOF;
+	EMTG::math::Matrix <double> dspacecraft_state_backwarddTOF;
+	EMTG::math::Matrix <double> dspacecraft_state_backward_propdTOF;
+	EMTG::math::Matrix <double> dspacecraft_state_end_coastdTOF;
+	std::vector <double> dcurrent_epochdTOF;
+
+	//containers for the output method
+	std::vector <double> augmented_state_at_initial_coast_midpoint;
+	std::vector <double> augmented_state_at_terminal_coast_midpoint;
+	EMTG::math::Matrix <double> dummy_state_TOF_derivatives;
+
+	//empty control vector for when we are coasting
+	std::vector <double> empty_vector;
+
+
 	//FBLT STMs
     std::vector < EMTG::math::Matrix< double > > STM_archive_forward;
     std::vector< EMTG::math::Matrix <double> > forward_cumulative_STM_archive;

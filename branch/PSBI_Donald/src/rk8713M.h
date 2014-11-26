@@ -30,8 +30,7 @@ public:
 	~rk8713M();
 
 	//methods
-	void rk8713M_step(const int & phase_num, 
-					  const std::vector <double> & u, 
+	void rk8713M_step(const std::vector <double> & u, 
 		              const double & t_left, 
 		              std::vector <double> & dt_left_stepdTOF, 
 		              const double & t_0, 
@@ -51,7 +50,6 @@ public:
 					  const std::vector <double> & u,
 					  std::vector <double> & f,
 					  EMTG::math::Matrix <double> & dfdTOF,
-					  const int & phase_num,
 					  double * thrust,
 					  double * mdot,
 					  double * Isp,
@@ -78,7 +76,6 @@ public:
 						   EMTG::math::Matrix <double> & dx_left_indTOF, 
 						   std::vector<double> & x_right_out, 
 						   EMTG::math::Matrix <double> & dx_right_outdTOF, 
-						   const int & phase_num, 
 						   const std::vector <double> & uleft, 
 						   const double & t_left_in, 
 						   std::vector <double> & dt_left_indTOF, 
@@ -100,7 +97,6 @@ public:
 						   const std::vector <double> & u,
 						   std::vector <double> & f,
 						   EMTG::math::Matrix <double> & dfdTOF,
-						   const int & phase_num,
 						   double * thrust,
 						   double * mdot,
 						   double * Isp,

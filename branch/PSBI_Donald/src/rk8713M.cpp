@@ -19,15 +19,15 @@ namespace EMTG {
 		rk8713M::rk8713M(){} //the default constructor will never be called
 
 		rk8713M::rk8713M(int ns_in, const int & number_of_phases) : 
-			f1(ns, 0.0), f2(ns, 0.0), f3(ns, 0.0), f4(ns, 0.0), f5(ns, 0.0), f6(ns, 0.0), f7(ns, 0.0), f8(ns, 0.0), f9(ns, 0.0), f10(ns, 0.0), f11(ns, 0.0), f12(ns, 0.0), f13(ns, 0.0),
-			df1dTOF(7, number_of_phases, 0.0), df2dTOF(7, number_of_phases, 0.0), df3dTOF(7, number_of_phases, 0.0), 
-			df4dTOF(7, number_of_phases, 0.0), df5dTOF(7, number_of_phases, 0.0), df6dTOF(7, number_of_phases, 0.0), 
-			df7dTOF(7, number_of_phases, 0.0), df8dTOF(7, number_of_phases, 0.0), df9dTOF(7, number_of_phases, 0.0), 
-			df10dTOF(7, number_of_phases, 0.0), df11dTOF(7, number_of_phases, 0.0), df12dTOF(7, number_of_phases, 0.0), 
-			df13dTOF(7, number_of_phases, 0.0),
-			y(ns, 0.0), dydTOF(7, number_of_phases, 0.0),
-			x_left(ns, 0.0), x_right(ns, 0.0),
-			dx_leftdTOF(7, number_of_phases, 0.0), dx_rightdTOF(7, number_of_phases, 0.0)
+			f1(ns_in, 0.0), f2(ns_in, 0.0), f3(ns_in, 0.0), f4(ns_in, 0.0), f5(ns_in, 0.0), f6(ns_in, 0.0), f7(ns_in, 0.0), f8(ns_in, 0.0), f9(ns_in, 0.0), f10(ns_in, 0.0), f11(ns_in, 0.0), f12(ns_in, 0.0), f13(ns_in, 0.0),
+			df1dTOF(7, 2, 0.0), df2dTOF(7, 2, 0.0), df3dTOF(7, 2, 0.0), 
+			df4dTOF(7, 2, 0.0), df5dTOF(7, 2, 0.0), df6dTOF(7, 2, 0.0), 
+			df7dTOF(7, 2, 0.0), df8dTOF(7, 2, 0.0), df9dTOF(7, 2, 0.0), 
+			df10dTOF(7, 2, 0.0), df11dTOF(7, 2, 0.0), df12dTOF(7, 2, 0.0), 
+			df13dTOF(7, 2, 0.0),
+			y(ns_in, 0.0), dydTOF(7, 2, 0.0),
+			x_left(ns_in, 0.0), x_right(ns_in, 0.0),
+			dx_leftdTOF(7, 2, 0.0), dx_rightdTOF(7, 2, 0.0)
 		{
 			ns = ns_in;
 		}
@@ -36,7 +36,6 @@ namespace EMTG {
 		rk8713M::~rk8713M(){}
 
 		void rk8713M::rk8713M_step(
-			const int & phase_num,
 			const std::vector <double> & u, // control 3 vector
 			const double & t_left_step, // epoch at the LHS of the current RK sub-step
 			std::vector <double> & dt_left_stepdTOF,
@@ -56,7 +55,6 @@ namespace EMTG {
 			const std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
 			EMTG::math::Matrix <double> & dfdTOF,
-			const int & phase_num,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -107,7 +105,7 @@ namespace EMTG {
 				y[i] = x_left[i] + (h*a21)*f1[i];
 			}
 			
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -126,7 +124,6 @@ namespace EMTG {
 				   u,
 				   f2,
 				   df2dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -148,7 +145,7 @@ namespace EMTG {
 				
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -168,7 +165,6 @@ namespace EMTG {
 				   u,
 				   f3,
 				   df3dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -190,7 +186,7 @@ namespace EMTG {
 				y[i] = x_left[i] + (h*a41)*f1[i] + h*a43*f3[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -209,7 +205,6 @@ namespace EMTG {
 				   u,
 				   f4,
 				   df4dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -233,7 +228,7 @@ namespace EMTG {
 				
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -252,7 +247,6 @@ namespace EMTG {
 				   u,
 				   f5,
 				   df5dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -276,7 +270,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a61*f1[i] + h*a64*f4[i] + h*a65*f5[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -295,7 +289,6 @@ namespace EMTG {
 				   u,
 				   f6,
 				   df6dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -320,7 +313,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a71*f1[i] + h*a74*f4[i] + h*a75*f5[i] + h*a76*f6[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -339,7 +332,6 @@ namespace EMTG {
 				   u,
 				   f7,
 				   df7dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -365,7 +357,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a81*f1[i] + h*a84*f4[i] + h*a85*f5[i] + h*a86*f6[i] + h*a87*f7[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -384,7 +376,6 @@ namespace EMTG {
 				   u,
 				   f8,
 				   df8dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -411,7 +402,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a91*f1[i] + h*a94*f4[i] + h*a95*f5[i] + h*a96*f6[i] + h*a97*f7[i] + h*a98*f8[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -430,7 +421,6 @@ namespace EMTG {
 				   u,
 				   f9,
 				   df9dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -458,7 +448,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a10_1*f1[i] + h*a10_4*f4[i] + h*a10_5*f5[i] + h*a10_6*f6[i] + h*a10_7*f7[i] + h*a10_8*f8[i] + h*a10_9*f9[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -477,7 +467,6 @@ namespace EMTG {
 				   u,
 				   f10,
 				   df10dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -506,7 +495,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a11_1*f1[i] + h*a11_4*f4[i] + h*a11_5*f5[i] + h*a11_6*f6[i] + h*a11_7*f7[i] + h*a11_8*f8[i] + h*a11_9*f9[i] + h*a11_10*f10[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -525,7 +514,6 @@ namespace EMTG {
 				   u,
 				   f11,
 				   df11dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -555,7 +543,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a12_1*f1[i] + h*a12_4*f4[i] + h*a12_5*f5[i] + h*a12_6*f6[i] + h*a12_7*f7[i] + h*a12_8*f8[i] + h*a12_9*f9[i] + h*a12_10*f10[i] + h*a12_11*f11[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -574,7 +562,6 @@ namespace EMTG {
 				   u,
 				   f12,
 				   df12dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -604,7 +591,7 @@ namespace EMTG {
 				y[i] = x_left[i] + h*a13_1*f1[i] + h*a13_4*f4[i] + h*a13_5*f5[i] + h*a13_6*f6[i] + h*a13_7*f7[i] + h*a13_8*f8[i] + h*a13_9*f9[i] + h*a13_10*f10[i] + h*a13_11*f11[i];
 			}
 
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
 				{
@@ -623,7 +610,6 @@ namespace EMTG {
 				   u,
 				   f13,
 				   df13dTOF,
-				   phase_num,
 				   thrust,
 				   mdot,
 				   Isp,
@@ -684,9 +670,9 @@ namespace EMTG {
 			}
 
 			//these are the TOF derivatives of the right-hand state, they become the derivatives of the left hand state for the next step (or are the final TOF derivatives)
-			for (int p = 0; p <= phase_num; ++p)
+			for (int p = 0; p < 2; ++p)
 			{
-				for (int i = 0; i < ns; ++i)
+				for (int i = 0; i < 7; ++i)
 				{
 					dx_rightdTOF(i, p) = dx_leftdTOF(i, p) + dhdTOF*b1lower*f1[i] + h*b1lower*df1dTOF(i, p) + dhdTOF*b6lower*f6[i] + h*b6lower*df6dTOF(i, p) + dhdTOF*b7lower*f7[i] + h*b7lower*df7dTOF(i, p) + dhdTOF*b8lower*f8[i] + h*b8lower*df8dTOF(i, p) + dhdTOF*b9lower*f9[i] + h*b9lower*df9dTOF(i, p) + dhdTOF*b10lower*f10[i] + h*b10lower*df10dTOF(i, p) + dhdTOF*b11lower*f11[i] + h*b11lower*df11dTOF(i, p) + dhdTOF*b12lower*f12[i] + h*b12lower*df12dTOF(i, p);
 				}
@@ -698,7 +684,6 @@ namespace EMTG {
 			EMTG::math::Matrix <double> & dx_left_indTOF,
 			std::vector <double> & x_right_out, // pointer to the spacecraft state at the RHS of the segment (for state data archive)
 			EMTG::math::Matrix <double> & dx_right_outdTOF,
-			const int & phase_num,
 			const std::vector <double> & uleft, // 3 vector encoding the three throttle parameters for this FBLT segment
 			const double & t_left_in, // current epoch in TU's
 			std::vector <double> & dt_left_indTOF, // partial derivative of current epoch w.r.t. current and previous phase flight times
@@ -720,7 +705,6 @@ namespace EMTG {
 			const std::vector <double> & u, // throttle parameter vector
 			std::vector <double> & f, // EOM gradient vector
 			EMTG::math::Matrix <double> & dfdTOF,
-			const int & phase_num,
 			double * thrust, // pointer that will extract info from the engine model (for storage in an archive)
 			double * mdot, // pointer that will extract info from the engine model (for storage in an archive)
 			double * Isp, // pointer that will extract info from the engine model (for storage in an archive)
@@ -754,9 +738,8 @@ namespace EMTG {
 			double t_left_step = t_left_in;
 			static std::vector <double> dt_left_stepdTOF = dt_left_indTOF;
 
-			for (int k = 0; k < ns; ++k)
-				x_left[k] = x_left_in[k];
-
+			//receive the segment's left hand states and state phase TOF derivatives
+			x_left = x_left_in;
 			dx_leftdTOF = dx_left_indTOF;
 
 			if (*resumeH > segment_time)
@@ -786,7 +769,6 @@ namespace EMTG {
 					   uleft, 
 					   f1, 
 					   df1dTOF,
-					   phase_num,
 					   thrust, 
 					   mdot, 
 					   Isp, 
@@ -855,7 +837,7 @@ namespace EMTG {
 
 
 					//Take an RK substep
-					rk8713M_step(phase_num, uleft, t_left_step, dt_left_stepdTOF, t_0, effectiveH, deffectiveHdTOF, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
+					rk8713M_step(uleft, t_left_step, dt_left_stepdTOF, t_0, effectiveH, deffectiveHdTOF, &precision_error, EOM, thrust, mdot, Isp, power, active_power, number_of_active_engines, STMrows, STMcolumns, optionspointer, Universepointer, ControllerPointer);
 
 				} while (precision_error > PRECISION_TARGET);
 
@@ -874,7 +856,7 @@ namespace EMTG {
 
 				//move the left hand epoch for the next substep forward to the correct value
 				t_left_step += effectiveH;
-				for (size_t p = 0; p < phase_num; ++p)
+				for (size_t p = 0; p < 2; ++p)
 					dt_left_stepdTOF[p] += deffectiveHdTOF;
 
 

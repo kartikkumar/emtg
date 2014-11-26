@@ -24,7 +24,6 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 										const std::vector <double> & u,
 										std::vector <double> & f, // EOM gradient vector
 										EMTG::math::Matrix <double> & dfdTOF,
-										const int & phase_num,
 										double * thrust,
 										double * mdot,
 										double * Isp,
@@ -85,7 +84,6 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 				u,
 				f,
 				dfdTOF,
-				phase_num,
 				thrust,
 				mdot,
 				Isp,
@@ -107,7 +105,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
                 central_body_state_mks);
 		}
 
-		else
+	/*	else
 		{
 			EMTG::Astrodynamics::force_model(options,
 				Universe,
@@ -133,7 +131,7 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 				dagravdRvec,
                 dagravdtvec,
                 central_body_state_mks);
-		}
+		} */
 
 		//for (int k = 0; k < 3; ++k)
 			//ForceVector[k] /= ( (Universe->LU / (Universe->TU * Universe->TU)) );
@@ -258,8 +256,8 @@ namespace EMTG { namespace Astrodynamics {namespace EOM
 		EMTG::Astrodynamics::force_model(options,
 										Universe,
 										x,
-										epoch,
-										launch_epoch,
+										&epoch,
+										&launch_epoch,
 										u,
 										thrust,
 										mdot,

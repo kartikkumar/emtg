@@ -429,5 +429,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
+	std::cin.ignore();
 	return 0;
+	
 }

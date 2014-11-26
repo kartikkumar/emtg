@@ -202,7 +202,6 @@ namespace EMTG { namespace Astrodynamics {
 		const std::vector <double> & control,
 		std::vector <double> & f,
 		EMTG::math::Matrix <double> & dfdTOF,
-		const double & phase_num,
 		double * max_thrust,
 		double * max_mass_flow_rate,
 		double * Isp,
@@ -734,7 +733,7 @@ namespace EMTG { namespace Astrodynamics {
 
 			//we need to compute phase TOF derivatives for each previous phase and the current one
 			//these are normalized right now.....still have to take care of the MKS case
-			for (size_t p = 0; p <= phase_num; ++p)
+			for (size_t p = 0; p < 2; ++p)
 			{
 				
 				dfdTOF(0, p) = dspacecraft_state_relative_to_central_body_in_LUdTOF(3, p);
