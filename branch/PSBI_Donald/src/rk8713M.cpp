@@ -20,14 +20,14 @@ namespace EMTG {
 
 		rk8713M::rk8713M(int ns_in, const int & number_of_phases) : 
 			f1(ns, 0.0), f2(ns, 0.0), f3(ns, 0.0), f4(ns, 0.0), f5(ns, 0.0), f6(ns, 0.0), f7(ns, 0.0), f8(ns, 0.0), f9(ns, 0.0), f10(ns, 0.0), f11(ns, 0.0), f12(ns, 0.0), f13(ns, 0.0),
-			df1dTOF(7, (number_of_phases, 0.0)), df2dTOF(7, (number_of_phases, 0.0)), df3dTOF(7, (number_of_phases, 0.0)), 
-			df4dTOF(7, (number_of_phases, 0.0)), df5dTOF(7, (number_of_phases, 0.0)), df6dTOF(7, (number_of_phases, 0.0)), 
-			df7dTOF(7, (number_of_phases, 0.0)), df8dTOF(7, (number_of_phases, 0.0)), df9dTOF(7, (number_of_phases, 0.0)), 
-			df10dTOF(7, (number_of_phases, 0.0)), df11dTOF(7, (number_of_phases, 0.0)), df12dTOF(7, (number_of_phases, 0.0)), 
-			df13dTOF(7, (number_of_phases, 0.0)),
-			y(ns, 0.0), dydTOF(7, (number_of_phases, 0.0)),
+			df1dTOF(7, number_of_phases, 0.0), df2dTOF(7, number_of_phases, 0.0), df3dTOF(7, number_of_phases, 0.0), 
+			df4dTOF(7, number_of_phases, 0.0), df5dTOF(7, number_of_phases, 0.0), df6dTOF(7, number_of_phases, 0.0), 
+			df7dTOF(7, number_of_phases, 0.0), df8dTOF(7, number_of_phases, 0.0), df9dTOF(7, number_of_phases, 0.0), 
+			df10dTOF(7, number_of_phases, 0.0), df11dTOF(7, number_of_phases, 0.0), df12dTOF(7, number_of_phases, 0.0), 
+			df13dTOF(7, number_of_phases, 0.0),
+			y(ns, 0.0), dydTOF(7, number_of_phases, 0.0),
 			x_left(ns, 0.0), x_right(ns, 0.0),
-			dx_leftdTOF(7, (number_of_phases, 0.0)), dx_rightdTOF(7, (number_of_phases, 0.0))
+			dx_leftdTOF(7, number_of_phases, 0.0), dx_rightdTOF(7, number_of_phases, 0.0)
 		{
 			ns = ns_in;
 		}

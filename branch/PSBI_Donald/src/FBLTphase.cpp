@@ -197,11 +197,11 @@ FBLT_phase::FBLT_phase() {
 		//each column holds the partials corresponding to a phase flight time
 		//we must obtain these with finite differencing if we are using SPICE in general (although with planets we can get these derivatives analytically)
 		//we need to compute derivatives w.r.t. the current phase flight time and all previous ones, hence p + 1
-		EMTG::math::Matrix <double> dspacecraft_state_forwarddTOF (7, (p + 1, 0.0));
-		EMTG::math::Matrix <double> dspacecraft_state_end_coastdTOF (7, (p + 1, 0.0));
-		EMTG::math::Matrix <double> dspacecraft_state_forward_propdTOF (7, (p + 1, 0.0));
+		EMTG::math::Matrix <double> dspacecraft_state_forwarddTOF (7, 2, 0.0);
+		EMTG::math::Matrix <double> dspacecraft_state_end_coastdTOF (7, 2, 0.0);
+		EMTG::math::Matrix <double> dspacecraft_state_forward_propdTOF (7, 2, 0.0);
 		//How does the current FBLT segment's starting epoch change w.r.t. changes in the phase flight times
-		std::vector <double> dcurrent_epochdTOF (p + 1, 0.0);
+		double dcurrent_epochdTOF = 0.0;
 
 		//How does the temporal length of the current FBLT segment change w.r.t. changes in the phase flight times
 		double dsegment_timedTOF;
