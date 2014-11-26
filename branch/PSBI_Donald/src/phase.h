@@ -504,7 +504,6 @@ namespace EMTG {
 		vector<int> left_boundary_central_body_exclusion_radius_constraint_X_indices;
 		vector<double> left_boundary_central_body_exclusion_radius_constraint_X_scale_ranges;
 
-
 		//right boundary central body exclusion radius constraint
 		vector<int> right_boundary_central_body_exclusion_radius_constraint_G_indices;
 		vector<int> right_boundary_central_body_exclusion_radius_constraint_X_indices;
@@ -543,6 +542,8 @@ namespace EMTG {
 		vector<double> right_boundary_XDOT_G_indices;
 		vector<double> right_boundary_YDOT_G_indices;
 		vector<double> right_boundary_ZDOT_G_indices;
+        vector<double> derivative_of_left_boundary_state_with_respect_to_variable_left_boundary_decision_variables;
+        vector<double> derivative_of_right_boundary_state_with_respect_to_variable_right_boundary_decision_variables;
 	};
 
 } /* namespace EMTG */

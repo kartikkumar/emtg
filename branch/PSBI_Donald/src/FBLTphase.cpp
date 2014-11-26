@@ -186,7 +186,7 @@ FBLT_phase::FBLT_phase() {
 		    time_step_sizes[step] = compute_timestep_width_from_distribution(step + 0.5, options, time_step_distribution_scale_or_stdv);
 		    step_size_normalization_coefficient += time_step_sizes[step];
 	    }
-		
+	
 	    double total_available_thrust_time = TOF;
 	    if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
 			total_available_thrust_time -= options->forced_post_launch_coast;
@@ -216,10 +216,10 @@ FBLT_phase::FBLT_phase() {
         for (int k = 7; k < this->STMrows; ++k)
             spacecraft_state_forward[k] = 0.0;
 
-		
+
 		//WE NEED TO FILL THIS WITH PHASE LEFT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
 		dspacecraft_state_forwarddTOF.assign_zeros();
-		
+
 		
 
 		//How does the temporal length of the current FBLT segment change w.r.t. changes in the phase flight times
@@ -278,7 +278,7 @@ FBLT_phase::FBLT_phase() {
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
 
-			
+
 
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
 											dspacecraft_state_forwarddTOF,
@@ -302,8 +302,8 @@ FBLT_phase::FBLT_phase() {
                                             &temp_number_of_active_engines,
                                             this->STMrows,
                                             this->STMcolumns,
-										    (void *)options,
-										    (void *)Universe,
+										    (void*)options,
+										    (void*)Universe,
 										    DummyControllerPointer      );	
 
             //Store the initial coast's first half STM
@@ -319,12 +319,12 @@ FBLT_phase::FBLT_phase() {
 
 
             phase_time_elapsed_forward += initial_coast_duration;
-			
+
 			for (size_t i = 0; i < 2; ++i)
 				dcurrent_epochdTOF[i] += dsegment_timedTOF;
 
 			//pass on the states and their phase TOF derivatives
-			for (int k = 0; k < 7; ++k)
+            for (int k = 0; k < 7; ++k)
 				spacecraft_state_forward = spacecraft_state_end_coast;
 
 			dspacecraft_state_forwarddTOF = dspacecraft_state_end_coastdTOF;
@@ -748,7 +748,7 @@ FBLT_phase::FBLT_phase() {
 
 
 
-        //first initialize the backward integration
+	    //first initialize the backward integration
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_backward[k] = state_at_end_of_phase[k];
 
@@ -1045,7 +1045,7 @@ FBLT_phase::FBLT_phase() {
             //copy the state over
             for (size_t state = 0; state < 11; ++state)
                 spacecraft_state_backward[state] = spacecraft_state_backward_prop[state];
-			
+
 			dspacecraft_state_backwarddTOF = dspacecraft_state_backward_propdTOF;
 
 		    //step 6.3.4 encode the epoch of the step midpoint
@@ -1485,7 +1485,7 @@ FBLT_phase::FBLT_phase() {
                 spacecraft_state_propagate[i] = 0.0;
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_propagate[i] = 1.0;
-
+            
 			std::fill(augmented_state_at_initial_coast_midpoint.begin(), augmented_state_at_initial_coast_midpoint.end(), 0.0);
 
 			//these are just dummy variables for the output
@@ -1495,31 +1495,31 @@ FBLT_phase::FBLT_phase() {
             
             resumeH = initial_coast_duration * 86400 / 2.0 / Universe->TU;
 
-            integrator->adaptive_step_int(	spacecraft_state_propagate,
+            integrator->adaptive_step_int(spacecraft_state_propagate,
 											dummy_state_TOF_derivatives,
-											augmented_state_at_initial_coast_midpoint,
+                augmented_state_at_initial_coast_midpoint,
 											dummy_state_TOF_derivatives,
 											empty_vector,
-											(phase_start_epoch) / Universe->TU,
+                (phase_start_epoch) / Universe->TU,
 											dcurrent_epochdTOF,
-											launchdate,
-											initial_coast_duration / 2.0 / Universe->TU,
+                launchdate,
+                initial_coast_duration / 2.0 / Universe->TU,
 											dsegment_timedTOF,
-											&resumeH,
-											&resumeError,
-											1.0e-8,
-											EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-											&temp_thrust,
-											&temp_mdot,
-											&temp_Isp,
-											&temp_power,
-											&temp_active_power,
-											&temp_active_thrusters,
-											this->STMrows,
-											this->STMcolumns,
-											(void*)options,
-											(void*)Universe,
-											DummyControllerPointer);
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
 
 
@@ -1534,31 +1534,31 @@ FBLT_phase::FBLT_phase() {
 			dummy_state_TOF_derivatives.assign_zeros();
 
             //propagate forward to the end of the initial coast
-            integrator->adaptive_step_int(  augmented_state_at_initial_coast_midpoint,
+            integrator->adaptive_step_int(augmented_state_at_initial_coast_midpoint,
 											dummy_state_TOF_derivatives,
-                                            spacecraft_state_propagate,
+                spacecraft_state_propagate,
 											dummy_state_TOF_derivatives,
-                                            empty_vector,
-                                            (phase_start_epoch) / Universe->TU,
+                empty_vector,
+                (phase_start_epoch) / Universe->TU,
 											dcurrent_epochdTOF,
-                                            launchdate,
-                                            initial_coast_duration / 2.0 / Universe->TU,
+                launchdate,
+                initial_coast_duration / 2.0 / Universe->TU,
 											dsegment_timedTOF,
-                                            &resumeH,
-                                            &resumeError,
-                                            1.0e-8,
-                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                            &temp_thrust,
-                                            &temp_mdot,
-                                            &temp_Isp,
-                                            &temp_power,
-                                            &temp_active_power,
-                                            &temp_active_thrusters,
-                                            this->STMrows,
-                                            this->STMcolumns,
-                                            (void*)options,
-                                            (void*)Universe,
-                                            DummyControllerPointer);
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
             for (int k = 0; k < 3; ++k)
             {
@@ -1631,31 +1631,31 @@ FBLT_phase::FBLT_phase() {
             resumeH = time_step_sizes[0] / 2.0 / Universe->TU;
 
             //first propagate to get the mid-point state of each step
-            integrator->adaptive_step_int(  spacecraft_state_propagate,
+            integrator->adaptive_step_int(spacecraft_state_propagate,
 				                            dummy_state_TOF_derivatives,
-                                            spacecraft_state_propagate_next,
+                spacecraft_state_propagate_next,
 				                            dummy_state_TOF_derivatives,
                                             this->control[step],
-                                            (phase_start_epoch + phase_time_elapsed) / Universe->TU,
+                (phase_start_epoch + phase_time_elapsed) / Universe->TU,
 				                            dcurrent_epochdTOF,
-                                            launchdate,
-                                            this->time_step_sizes[step] / 2.0 / Universe->TU,
+                launchdate,
+                this->time_step_sizes[step] / 2.0 / Universe->TU,
 				                            dsegment_timedTOF,
-                                            &resumeH,
-                                            &resumeError,
-                                            1.0e-8,
-                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                            &temp_thrust,
-                                            &temp_mdot,
-                                            &temp_Isp,
-                                            &temp_power,
-                                            &temp_active_power,
-                                            &temp_active_thrusters,
-                                            this->STMrows,
-                                            this->STMcolumns,
-                                            (void*)options,
-                                            (void*)Universe,
-                                            DummyControllerPointer);
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
             //save the midpoint state
             for (size_t state = 0; state < 7; ++state)
@@ -1672,31 +1672,31 @@ FBLT_phase::FBLT_phase() {
 			dummy_state_TOF_derivatives.assign_zeros();
 
             //then propagate to the end of the step
-            integrator->adaptive_step_int(  spacecraft_state_propagate_next,
+            integrator->adaptive_step_int(spacecraft_state_propagate_next,
 											dummy_state_TOF_derivatives,
-                                            spacecraft_state_propagate,
+                spacecraft_state_propagate,
 											dummy_state_TOF_derivatives,
                                             this->control[step],
-                                            (phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step]) / Universe->TU,
+                (phase_start_epoch + phase_time_elapsed + 0.5 * this->time_step_sizes[step]) / Universe->TU,
 											dcurrent_epochdTOF,
-                                            launchdate,
-                                            this->time_step_sizes[step] / 2.0 / Universe->TU,
+                launchdate,
+                this->time_step_sizes[step] / 2.0 / Universe->TU,
 											dsegment_timedTOF,
-                                            &resumeH,
-                                            &resumeError,
-                                            1.0e-8,
-                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                            &temp_thrust,
-                                            &temp_mdot,
-                                            &temp_Isp,
-                                            &temp_power,
-                                            &temp_active_power,
-                                            &temp_active_thrusters,
-                                            this->STMrows,
-                                            this->STMcolumns,
-                                            (void*)options,
-                                            (void*)Universe,
-                                            DummyControllerPointer);
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
             double angle1, angle2;
             if (step >= (options->num_timesteps / 2))
@@ -1821,31 +1821,31 @@ FBLT_phase::FBLT_phase() {
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_propagate[i] = 0.0;
 
-            integrator->adaptive_step_int(  spacecraft_state_propagate,
+            integrator->adaptive_step_int(spacecraft_state_propagate,
 											dummy_state_TOF_derivatives,
-                                            augmented_state_at_terminal_coast_midpoint,
+                augmented_state_at_terminal_coast_midpoint,
 											dummy_state_TOF_derivatives,
                                             empty_vector,
-                                            (phase_end_epoch + phase_time_elapsed) / Universe->TU,
+                (phase_end_epoch + phase_time_elapsed) / Universe->TU,
 											dcurrent_epochdTOF,
-                                            launchdate,
-                                            terminal_coast_duration / 2.0 / Universe->TU,
+                launchdate,
+                terminal_coast_duration / 2.0 / Universe->TU,
 											dsegment_timedTOF,
-                                            &resumeH,
-                                            &resumeError,
-                                            1.0e-8,
-                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                            &temp_thrust,
-                                            &temp_mdot,
-                                            &temp_Isp,
-                                            &temp_power,
-                                            &temp_active_power,
-                                            &temp_active_thrusters,
-                                            this->STMrows,
-                                            this->STMcolumns,
-                                            (void*)options,
-                                            (void*)Universe,
-                                            DummyControllerPointer);
+                &resumeH,
+                &resumeError,
+                1.0e-8,
+                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                &temp_thrust,
+                &temp_mdot,
+                &temp_Isp,
+                &temp_power,
+                &temp_active_power,
+                &temp_active_thrusters,
+                this->STMrows,
+                this->STMcolumns,
+                (void*)options,
+                (void*)Universe,
+                DummyControllerPointer);
 
             for (int k = 0; k < 3; ++k)
             {
@@ -2222,17 +2222,17 @@ FBLT_phase::FBLT_phase() {
     }
 
     //method to forward propagate a state for making a daily ephemeris
-    void FBLT_phase::propagate_forward_ephemeris(const missionoptions & options,
-                                                const EMTG::Astrodynamics::universe & Universe,
-                                                const double & launch_epoch,
-                                                double & current_epoch,
-                                                double * current_state,
-                                                const int & control_step,
-                                                vector< vector<string> > & output_line_array,
-                                                const int & j,
-                                                const int & p,
-                                                const double & propagation_time,
-                                                const double & journey_starting_epoch)
+    void FBLT_phase::propagate_forward_ephemeris(const missionoptions& options,
+                                                const EMTG::Astrodynamics::universe& Universe,
+                                                const double& launch_epoch,
+                                                double& current_epoch,
+                                                double* current_state,
+                                                const int& control_step,
+                                                vector< vector<string> >& output_line_array,
+                                                const int& j,
+                                                const int& p,
+                                                const double& propagation_time,
+                                                const double& journey_starting_epoch)
     {
         vector<string> output_line(7);
         double time_remaining = propagation_time;
@@ -2266,29 +2266,29 @@ FBLT_phase::FBLT_phase() {
 			//I DON'T THINK THIS WILL WORK IN IT'S CURRENT FORM....CURRENT STATE MUST BE LENGTH 132
 			this->integrator->adaptive_step_int(  helper_state,
 												  dummy_state_TOF_derivatives,
-                                                  temp_state,
+                                                temp_state,
 												  dummy_state_TOF_derivatives,
                                                   control_step >= 0 ? this->control[control_step] : empty_control,
                                                   current_epoch / Universe.TU,
 												  dcurrent_epochdTOF,
-                                                  (current_epoch - launch_epoch) / Universe.TU,
-                                                  step_time / Universe.TU,
+                                                (current_epoch - launch_epoch) / Universe.TU,
+                                                step_time / Universe.TU,
 												  dsegment_timedTOF,
-                                                  &resumeH,
-                                                  &resumeError,
-                                                  1.0e-8,
-                                                  EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
-                                                  &available_thrust,
-                                                  &available_mass_flow_rate,
-                                                  &available_Isp,
-                                                  &available_power,
-                                                  &active_power,
-                                                  &number_of_active_engines,
-												  this->STMrows,
-												  this->STMcolumns,
-                                                  (void*)&options,
-                                                  (void*)&Universe,
-                                                  this->DummyControllerPointer);
+                                                &resumeH,
+                                                &resumeError,
+                                                1.0e-8,
+                                                EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+                                                &available_thrust,
+                                                &available_mass_flow_rate,
+                                                &available_Isp,
+                                                &available_power,
+                                                &active_power,
+                                                &number_of_active_engines,
+												this->STMrows,
+												this->STMcolumns,
+                                                (void*)&options,
+                                                (void*)&Universe,
+                                                this->DummyControllerPointer);
 
             current_epoch += step_time;
             time_remaining -= step_time;

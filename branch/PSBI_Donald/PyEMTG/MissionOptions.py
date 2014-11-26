@@ -417,7 +417,7 @@ class MissionOptions(object):
                             self.outerloop_point_groups_values.append(int(x))
 
                         #start reading point group members
-                        self.outerloop_point_groups_members
+                        self.outerloop_point_groups_members = []
                         point_group_members_flag = 1
 
                     elif choice == "outerloop_point_groups_number_to_score":
