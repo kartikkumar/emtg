@@ -205,19 +205,23 @@ namespace EMTG {
         statename.push_back("zdot");
         statename.push_back("m");
 
-
         for (int state = 0; state < 7; ++state)
         {
             Flowerbounds->push_back(-math::SMALL);
             Fupperbounds->push_back(math::SMALL);
             Fdescriptions->push_back(prefix + "match point " + statename[state]);
+            //every match point constraint depends on all variables in the phase
             for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
             {
-                iGfun->push_back(Fdescriptions->size() - 1);
-                jGvar->push_back(entry);
-                stringstream EntryNameStream;
-                EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                Gdescriptions->push_back(EntryNameStream.str());
+                //do NOT pick up entries with respect to flight time
+                if (!((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024))
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                }
 
                 if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
                 {
@@ -238,28 +242,26 @@ namespace EMTG {
                     break;
                 }
             }
-            //derivative with respect to times and epochs in previous journeys/phases
-            for (int pj = 0; pj <= j; ++pj)
+            //derivative with respect to times and epochs
+            //the LAST entry is always the current phase flight time
+            vector<int> state_G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables;
+            vector<double> state_X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables;
+            for (int entry = 0; entry <= Xdescriptions->size() - 1; ++entry)
             {
-                for (int pp = 0; pp < (pj == j ? p : options->number_of_phases[pj]); ++pp)
+                if ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024)
                 {
-                    stringstream pprefix_stream;
-                    pprefix_stream << "j" << pj << "p" << pp;
-                    string pprefix = pprefix_stream.str();
-
-                    for (int entry = 0; entry <= first_X_entry_in_phase; ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find(pprefix) < 1024 && ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024))
-                        {
-                            iGfun->push_back(Fdescriptions->size() - 1);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                        }
-                    }
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of " << prefix << " patch point " << statename[state] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    state_G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables.push_back(Gdescriptions->size() - 1);
+                    state_X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                 }
             }
+            this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables.push_back(state_G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables);
+            this->X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables.push_back(state_X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables);
+
             //all match point constraints have a dependency on the BOL power if it is a variable
             if (options->objective_type == 13)
             {

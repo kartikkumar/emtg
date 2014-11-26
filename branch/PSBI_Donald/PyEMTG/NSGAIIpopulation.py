@@ -105,7 +105,7 @@ class NSGAII_outerloop_solution(object):
                     or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)':
                     self.objective_values.append(-float(input_cell[column_index]))
                 elif column_headers[column_index] == 'Point-group value':
-                    self.objective_values.append(-int(input_cell[column_index]))
+                    self.objective_values.append(int(input_cell[column_index]))
                 elif column_headers[column_index].find('Gene ') > 0:
                     self.Xouter.append(int(input_cell[column_index]))
 

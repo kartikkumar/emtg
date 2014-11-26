@@ -219,7 +219,15 @@ FBLT_phase::FBLT_phase() {
 
 		//WE NEED TO FILL THIS WITH PHASE LEFT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
         if (options->derivative_type > 2 && needG)
-            dspacecraft_state_forwarddTOF.assign_all(this->left_boundary_state_derivative);
+        {
+            for (size_t state = 0; state < 6; ++state)
+            {
+                dspacecraft_state_forwarddTOF(state, 0) = this->left_boundary_state_derivative[state];
+                dspacecraft_state_forwarddTOF(state, 1) = this->left_boundary_state_derivative[state];
+            }
+            dspacecraft_state_forwarddTOF(6, 0) = 0.0;
+            dspacecraft_state_forwarddTOF(6, 1) = 0.0;
+        }
 		else
             dspacecraft_state_forwarddTOF.assign_zeros();
 
@@ -736,7 +744,15 @@ FBLT_phase::FBLT_phase() {
 	   
 		//WE NEED TO FILL THIS WITH PHASE RIGHT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
         if (options->derivative_type > 2 && needG)
-            dspacecraft_state_backwarddTOF.assign_all(this->right_boundary_state_derivative);
+        {
+            for (size_t state = 0; state < 6; ++state)
+            {
+                dspacecraft_state_backwarddTOF(state, 0) = this->right_boundary_state_derivative[state];
+                dspacecraft_state_backwarddTOF(state, 1) = this->right_boundary_state_derivative[state];
+            }
+            dspacecraft_state_backwarddTOF(6, 0) = 0.0;
+            dspacecraft_state_backwarddTOF(6, 1) = 0.0;
+        }
         else
             dspacecraft_state_backwarddTOF.assign_zeros();
 
@@ -2598,12 +2614,17 @@ FBLT_phase::FBLT_phase() {
 		//this in turn is dependent on the velocity and acceleration of the left-most body
 		if (options->derivative_type > 2)
 		{
-			
+            for (int stateindex = 0; stateindex < 7; ++stateindex)
+            {
+                for (int timevar = 0; timevar < this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
+                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar]] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar] * this->dspacecraft_state_forwarddTOF(stateindex, 1) / Universe->TU;
+            }
 
 			//the following derivatives are for the current phase flight time ONLY
 			if (options->derivative_type > 3)
 			{
-				
+                for (int stateindex = 0; stateindex < 7; ++stateindex)
+                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back()] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back() * this->dspacecraft_state_forwarddTOF(stateindex, 0) / Universe->TU;
 			}
 		}
 		
@@ -2665,12 +2686,17 @@ FBLT_phase::FBLT_phase() {
 		//this in turn is dependent on the velocity and acceleration of the right-most body
 		if (options->derivative_type > 2)
 		{
-			
+            for (int stateindex = 0; stateindex < 7; ++stateindex)
+            {
+                for (int timevar = 0; timevar < this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
+                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar]] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar] * this->dspacecraft_state_backwarddTOF(stateindex, 1) / Universe->TU;
+            }
 
 			//the following derivatives are for the current phase flight time
 			if (options->derivative_type > 3)
 			{
-				
+                for (int stateindex = 0; stateindex < 7; ++stateindex)
+                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back()] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back() * this->dspacecraft_state_backwarddTOF(stateindex, 0) / Universe->TU;
 			}
 		}
 
