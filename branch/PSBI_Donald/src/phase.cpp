@@ -2388,11 +2388,11 @@ namespace EMTG {
 	
 		double forced_coast_this_phase = 0.0;
 		if (p == 0 && j == 0)
-			forced_coast_this_phase += options->forced_post_launch_coast;
+			forced_coast_this_phase += options->forced_post_launch_coast * 86400.0;
 		else if (p > 0 || (p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)) )
-			forced_coast_this_phase += options->forced_flyby_coast;
+            forced_coast_this_phase += options->forced_flyby_coast * 86400.0;
 		if (p < options->number_of_phases[j] - 1 || (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0)) )
-			forced_coast_this_phase += options->forced_flyby_coast;
+            forced_coast_this_phase += options->forced_flyby_coast * 86400.0;
 
 		if (boundary1_location_code == boundary2_location_code && boundary1_location_code > 0) //if this transfer is a repeat of the same planet, we have special rules
 		{

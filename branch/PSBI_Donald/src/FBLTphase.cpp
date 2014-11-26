@@ -218,13 +218,13 @@ FBLT_phase::FBLT_phase() {
 
 
 		//WE NEED TO FILL THIS WITH PHASE LEFT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
-		dspacecraft_state_forwarddTOF.assign_zeros();
-
-		
+        if (options->derivative_type > 2 && needG)
+            dspacecraft_state_forwarddTOF.assign_all(this->left_boundary_state_derivative);
+		else
+            dspacecraft_state_forwarddTOF.assign_zeros();
 
 		//How does the temporal length of the current FBLT segment change w.r.t. changes in the phase flight times
 		double dsegment_timedTOF;
-
 
 	    //scale the integration state array to LU and TU
 	    for (int k = 0; k < 6; ++k)
@@ -245,14 +245,10 @@ FBLT_phase::FBLT_phase() {
 		//since we are about to seed a forward propagation, the seeding is as follows
 		dcurrent_epochdTOF[0] = 0.0;
 		dcurrent_epochdTOF[1] = 1.0;
-		
-
-		
 
 	    //Step 6.2.0.1 if there is an initial coast, propagate through it
 	    if (detect_initial_coast)
 	    {
-
 			//A coast is a user-specified FIXED time and is not affected by the phase TOF decision variables
 			dsegment_timedTOF = 0.0;
 
@@ -270,15 +266,11 @@ FBLT_phase::FBLT_phase() {
 
             double resumeH = initial_coast_duration * 86400 / Universe->TU;
 
-
-
             //The initial coast STM entries of the state vector must be initialized to the identity
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_forward[i] = 0.0;
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
-
-
 
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
 											dspacecraft_state_forwarddTOF,
@@ -369,8 +361,7 @@ FBLT_phase::FBLT_phase() {
             ++(*Findex);
 
             //step 6.2.3 propagate the spacecraft to the end of the FBLT step using the control unit vector
-
-            
+ 
             //The STM entries of the state vector must be initialized to the identity before every step
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_forward[i] = 0.0;
@@ -744,9 +735,10 @@ FBLT_phase::FBLT_phase() {
 	
 	   
 		//WE NEED TO FILL THIS WITH PHASE RIGHT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
-		dspacecraft_state_backwarddTOF.assign_zeros();
-
-
+        if (options->derivative_type > 2 && needG)
+            dspacecraft_state_backwarddTOF.assign_all(this->right_boundary_state_derivative);
+        else
+            dspacecraft_state_backwarddTOF.assign_zeros();
 
 	    //first initialize the backward integration
 	    for (int k = 0; k < 7; ++k)
