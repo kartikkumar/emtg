@@ -281,7 +281,7 @@ void gmatscripter::create_GMAT_phases() {
 	GMATDebug << "create_GMAT_phases()" << std::endl;
 	GMATDebug << std::endl;
 
-	//declarations
+	//  declarations
 	double fuelwindow;
 	double fuellowerbound = 0.0;
 
@@ -290,19 +290,23 @@ void gmatscripter::create_GMAT_phases() {
 			// -----------------------------
 			//        DATA COLLECTION
 			// -----------------------------
-			//fuellowerbound
+			//  fuellowerbound
 			fuellowerbound = 0.0;
-			//fuel window
+			//  fuel window
 			if (this->ptr_gmatmission->options.enable_maximum_propellant_mass_constraint == 1) { 
 				fuelwindow = this->ptr_gmatmission->options.maximum_propellant_mass; 
 			}
 			else { 
 				fuelwindow = this->ptr_gmatmission->options.maximum_mass - this->ptr_gmatmission->options.minimum_dry_mass;
 			}
-			//dla window and lower bound
+			//  dla window and lower bound
 			double dlawindow = (this->ptr_gmatmission->options.DLA_bounds[1] - this->ptr_gmatmission->options.DLA_bounds[0]) * math::PI / 180.0;
 			double dlalowerbound = this->ptr_gmatmission->options.DLA_bounds[0] * math::PI / 180.0;
-			
+			//  departure type
+			int depart_type = this->ptr_gmatmission->options.journey_departure_type[j];
+			int lv_type = this->ptr_gmatmission->options.LV_type;
+			//  arrival type
+			int arrival_type = this->ptr_gmatmission->options.journey_arrival_type[j];
 
 
 			// -----------------------------
@@ -342,9 +346,15 @@ void gmatscripter::create_GMAT_phases() {
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelWindow", fuelwindow);
 			agmatphase.setVariable(agmatphase.spacecraft_backward.Name + "_FuelLowerBound", fuellowerbound);
 
-			//variation of launch vinf
-			int depart_type = this->ptr_gmatmission->options.journey_departure_type[agmatphase.myjourney->j];
-			int lv_type = this->ptr_gmatmission->options.LV_type;
+			//  enforce left boundary conditions
+			if (depart_type == 0 && j == 0 && p == 0) { agmatphase.reprint_forward_position_IC = true; }
+			//  enforce right boundary conditions
+			if ((arrival_type == 1 || arrival_type == 3) && agmatphase.isLastPhase) {
+				agmatphase.reprint_backward_position_IC = true;
+				agmatphase.reprint_backward_velocity_IC = true;
+			}
+
+			//  variation of launch vinf
 			//  if using the EDS motor or chemical propulsion (i.e. not LV), to leave from a parking orbit
 			if (agmatphase.isFirstPhase && agmatphase.spacecraft_forward.iBurn.UseImpulsive && depart_type == 1) {
 
@@ -534,7 +544,6 @@ void gmatscripter::create_GMAT_phases() {
 			}
 
 			//variation of chemical arrival
-			int arrival_type = this->ptr_gmatmission->options.journey_arrival_type[agmatphase.myjourney->j];
 			if (agmatphase.isLastPhase && (arrival_type == 0 || arrival_type == 1)) {
 				//  the dv arrival vector and magnitude
 				double dvarrival[3] = { -this->ptr_gmatmission->journeys[0].phases[0].dVarrival[0],
@@ -2117,8 +2126,10 @@ void gmatscripter::write_GMAT_initialconditions(){
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			//forward spacecraft
 			this->create_GMAT_initialconditions(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
+			GMATfile << std::endl;
 			//backward spacecraft
 			this->create_GMAT_initialconditions(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
+			GMATfile << std::endl;
 		}
 	}
 
@@ -2222,6 +2233,8 @@ void gmatscripter::write_GMAT_optimization() {
 			//Phase level vary and calculate commands
 			GMATMission.myjourneys[j].myphases[p].printVary(GMATfile);
 			GMATMission.myjourneys[j].myphases[p].printCalculate(GMATfile);
+			//  reprint phase boundary conditions if necessary (could have used the 'Calculate' command as well)
+			this->rewrite_GMAT_initialconditions(GMATMission.myjourneys[j].myphases[p]);
 			GMATfile << std::endl;
 			for (int gs = 0; gs < GMATMission.myjourneys[j].myphases[p].mysteps.size(); ++gs) {
 				//Step ID
@@ -2550,19 +2563,31 @@ void gmatscripter::create_GMAT_coordinatesystem(string bodyname) {
 }
 
 
+// method to rewrite spacecraft initial conditions during the GMAT optimization segment
+void gmatscripter::rewrite_GMAT_initialconditions(class gmatphase& agmatphase) {
+	this->create_GMAT_initialconditions(agmatphase.spacecraft_forward, "   'Reset " + agmatphase.spacecraft_forward.Name + " Boundary Condition' ", true, agmatphase.reprint_forward_position_IC, agmatphase.reprint_forward_velocity_IC);
+	this->create_GMAT_initialconditions(agmatphase.spacecraft_backward, "   'Reset " + agmatphase.spacecraft_backward.Name + " Boundary Condition' ", true, agmatphase.reprint_backward_position_IC, agmatphase.reprint_backward_velocity_IC);
+}
+
+
 // method to write out a spacecraft's initial conditions
-void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar, bool WithCoordinateSyst) {
+void gmatscripter::create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar, bool WithCoordinateSyst, 
+												 bool PrintPosition, bool PrintVelocity) {
 	
 	std::string CoordinateSyst = "";
 	if (WithCoordinateSyst) { CoordinateSyst = "." + spacecraft.CoordinateSystem; }
 
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".X  = " << spacecraft.initialconditions[0] << std::endl;
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Y  = " << spacecraft.initialconditions[1] << std::endl;
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Z  = " << spacecraft.initialconditions[2] << std::endl;
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VX = " << spacecraft.initialconditions[3] << std::endl;
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VY = " << spacecraft.initialconditions[4] << std::endl;
-	GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VZ = " << spacecraft.initialconditions[5] << std::endl;
-	GMATfile << std::endl;
+	if (PrintPosition) {
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".X  = " << spacecraft.initialconditions[0] << std::endl;
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Y  = " << spacecraft.initialconditions[1] << std::endl;
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".Z  = " << spacecraft.initialconditions[2] << std::endl;
+	}
+	if (PrintVelocity) {
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VX = " << spacecraft.initialconditions[3] << std::endl;
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VY = " << spacecraft.initialconditions[4] << std::endl;
+		GMATfile << specialchar << spacecraft.Name << CoordinateSyst << ".VZ = " << spacecraft.initialconditions[5] << std::endl;
+	}
+
 }
 
 

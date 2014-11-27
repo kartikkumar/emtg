@@ -199,18 +199,10 @@ public:
 		astruct.upperbound = upperbound;
 		astruct.maxstep = maxstep;
 		this->vary.push_back(astruct);
-	}
-
-	//method
-	void setCalculate(string lhs, string rhs, bool writeAtTheFront = true) {
-		//declarations
-		struct gmat_calculate astruct;
-		//function
-		astruct.message = lhs;
-		astruct.lhs = lhs;
-		astruct.rhs = rhs;
-		astruct.writeAtTheFront = writeAtTheFront;
-		this->calculate.push_back(astruct);
+		//  GMAT does not have control over a default lower and upper bound with VF13ad,
+		//+ therefore we must create constraints here
+		this->setConstraint(object2vary, ">=", lowerbound);
+		this->setConstraint(object2vary, "<=", upperbound);
 	}
 
 	//method
@@ -223,6 +215,12 @@ public:
 		astruct.rhs = rhs;
 		astruct.writeAtTheFront = writeAtTheFront;
 		this->calculate.push_back(astruct);
+	}
+
+	//method
+	void setCalculate(string lhs, string rhs, bool writeAtTheFront = true) {
+		//  call the other variant of setCalculate()
+		this->setCalculate(lhs, lhs, rhs, writeAtTheFront);
 	}
 
 	//method
@@ -280,18 +278,6 @@ public:
 	}
 
 	//method
-	void setPreOptimizationCalculation(string lhs, string rhs, bool writeAtTheFront = true) {
-		//declarations
-		struct gmat_calculate astruct;
-		//function
-		astruct.message = lhs;
-		astruct.lhs = lhs;
-		astruct.rhs = rhs;
-		astruct.writeAtTheFront = writeAtTheFront; // not currently being used for PreOpt (2014_11_25)
-		this->preopt_calculate.push_back(astruct);
-	}
-	
-	//method
 	void setPreOptimizationCalculation(string message, string lhs, string rhs, bool writeAtTheFront = true) {
 		//declarations
 		struct gmat_calculate astruct;
@@ -301,6 +287,12 @@ public:
 		astruct.rhs = rhs;
 		astruct.writeAtTheFront = writeAtTheFront; // not currently being used for PreOpt (2014_11_25)
 		this->preopt_calculate.push_back(astruct);
+	}
+	
+	//method
+	void setPreOptimizationCalculation(string lhs, string rhs, bool writeAtTheFront = true) {
+		//  call the other variant of setCalculate()
+		this->setPreOptimizationCalculation(lhs, lhs, rhs, writeAtTheFront);
 	}
 	
 	//method to write a GMAT 'Variable' line
@@ -502,6 +494,10 @@ public:
 	double iepoch;
 	double fepoch;
 	vector <gmatstep> mysteps;
+	bool reprint_forward_position_IC = false;
+	bool reprint_forward_velocity_IC = false;
+	bool reprint_backward_position_IC = false;
+	bool reprint_backward_velocity_IC = false;
 
 	//method
 	void set_names() {
@@ -1173,7 +1169,9 @@ public:
 	virtual void create_GMAT_burn(struct gmat_fburn& burn);
 	virtual void create_GMAT_burn(struct gmat_iburn& burn);
 	virtual void create_GMAT_coordinatesystem(string bodyname);
-	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar = "   ", bool WithCoordinateSyst = true);
+	virtual void rewrite_GMAT_initialconditions(class gmatphase& agmatphase);
+	virtual void create_GMAT_initialconditions(struct gmat_spacecraft& spacecraft, string specialchar = "   ", bool WithCoordinateSyst = true,
+											   bool PrintPosition = true, bool PrintVelocity = true);
 
 	//GMAT Command Methods
 	virtual void aux_GMAT_propagate(class gmatstep& agmatstep, bool useZeroPropagate);
