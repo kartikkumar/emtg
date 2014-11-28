@@ -42,7 +42,8 @@ namespace EMTG
 		//default constructor doesn't do anything
 	}
 
-	MGA_DSM_phase::MGA_DSM_phase(int j, int p, missionoptions* options) :
+    MGA_DSM_phase::MGA_DSM_phase(const int& j, const int& p, const missionoptions* options) :
+        phase(j, p, options),
 		time_before_burn(0),
 		time_after_burn(0),
 		b_plane_insertion_angle(0)
@@ -58,18 +59,6 @@ namespace EMTG
 			++size;
 
 		dVmag.resize(size);
-
-		//set the bodies
-		boundary1_location_code = options->sequence[j][p];
-		boundary2_location_code = options->sequence[j][p+1];
-
-		current_mass_increment = 0.0;
-		journey_initial_mass_increment_scale_factor = 1.0;
-
-		V_infinity_in.resize(3,1);
-		V_infinity_out.resize(3,1);
-		BoundaryR.resize(3,1);
-		BoundaryV.resize(3,1);
 	}
 
 	MGA_DSM_phase::~MGA_DSM_phase() 

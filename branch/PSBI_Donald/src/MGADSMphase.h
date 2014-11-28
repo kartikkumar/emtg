@@ -21,7 +21,7 @@ class MGA_DSM_phase: public EMTG::phase {
 public:
 	//constructor
 	MGA_DSM_phase();
-	MGA_DSM_phase(int j, int p, missionoptions* options);
+    MGA_DSM_phase(const int& j, const int& p, const missionoptions* options);
 
 	//destructor
 	virtual ~MGA_DSM_phase();

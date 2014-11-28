@@ -42,6 +42,37 @@ namespace EMTG {
 
 	}
 
+    phase::phase(const int& j, const int& p, const missionoptions* options) :
+        boundary1_location_code(0),
+        boundary2_location_code(0),
+        TOF(0),
+        phase_end_epoch(0),
+        phase_start_epoch(0),
+        flyby_turn_angle(0),
+        flyby_altitude(0),
+        RA_departure(0),
+        RA_arrival(0),
+        DEC_departure(0),
+        DEC_arrival(0),
+        C3_departure(0),
+        C3_arrival(0)
+    {
+        //size the vectors that will be used to calculate the b-plane
+        this->V_infinity_in.resize(3, 1);
+        this->V_infinity_out.resize(3, 1);
+        this->BoundaryR.resize(3, 1);
+        this->BoundaryV.resize(3, 1);
+
+        //set the bodies
+        this->boundary1_location_code = options->sequence[j][p];
+        this->boundary2_location_code = options->sequence[j][p + 1];
+
+        //set up mass increment information
+        this->current_mass_increment = 0.0;
+        this->journey_initial_mass_increment_scale_factor = 1.0;
+        this->mission_initial_mass_multiplier = 1.0;
+    }
+
 	phase::~phase()
 	{
 	// default destructor is never used (I think it is superceded by the daughter class destructors)

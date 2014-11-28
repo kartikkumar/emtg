@@ -22,7 +22,7 @@ namespace EMTG {
 	public:
 		//constructor
 		MGA_LT_phase();
-		MGA_LT_phase(int j, int p, missionoptions* options);
+        MGA_LT_phase(const int& j, const int& p, const missionoptions* options);
 
 		//destructor
 		virtual ~MGA_LT_phase();

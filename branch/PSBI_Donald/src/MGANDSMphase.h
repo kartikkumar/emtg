@@ -23,7 +23,7 @@ namespace EMTG {
 public:
 	//constructor
 	MGA_NDSM_phase();
-	MGA_NDSM_phase(int j, int p, missionoptions* options);
+    MGA_NDSM_phase(const int& j, const int& p, const missionoptions* options);
 
 	//destructor
 	virtual ~MGA_NDSM_phase();

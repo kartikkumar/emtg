@@ -28,8 +28,9 @@ namespace EMTG {
 	//default constructor does nothing
 	}
 
-	MGA_LT_phase::MGA_LT_phase(int j, int p, missionoptions* options) {
-
+	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, const missionoptions* options) :
+        TwoPointShootingPhase(j, p, options)
+    {
 		//must resize all data vectors to the correct length
 		vector<double> state_dummy(7);
 		vector<double> dV_or_control_dummy(3);
@@ -43,8 +44,6 @@ namespace EMTG {
             this->dagravdtvec.push_back(dV_or_control_dummy);
 		}
 
-        this->match_point_state.resize(7);
-
         this->event_epochs.resize(options->num_timesteps);
         this->dVmax.resize(options->num_timesteps);
         this->available_power.resize(options->num_timesteps);
@@ -54,21 +53,6 @@ namespace EMTG {
         this->active_power.resize(options->num_timesteps);
         this->number_of_active_engines.resize(options->num_timesteps);
 		this->throttle.resize(options->num_timesteps);
-
-        //vector to track the state and derivatives of the central body
-        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
-        for (size_t step = 0; step < options->num_timesteps; ++step)
-            this->central_body_state_mks.push_back(central_body_state_dummy);
-
-		//size the vectors that will be used to calculate the b-plane
-        this->V_infinity_in.resize(3, 1);
-        this->V_infinity_out.resize(3, 1);
-        this->BoundaryR.resize(3, 1);
-        this->BoundaryV.resize(3, 1);
-
-		//set the bodies
-        this->boundary1_location_code = options->sequence[j][p];
-        this->boundary2_location_code = options->sequence[j][p + 1];
 
 		//size the vectors of state transition matrices
         this->Forward_STM.resize(options->num_timesteps / 2 + 1);
@@ -90,9 +74,6 @@ namespace EMTG {
         this->Propagation_Step_Time_Fraction_Derivative_Forward.resize(options->num_timesteps / 2 + 1);
         this->Propagation_Step_Time_Fraction_Derivative_Backward.resize(options->num_timesteps / 2 + 1);
 
-        this->current_mass_increment = 0.0;
-        this->journey_initial_mass_increment_scale_factor = 1.0;
-
 		//size the time step vector
         this->time_step_sizes.resize(options->num_timesteps);
 
@@ -108,6 +89,10 @@ namespace EMTG {
 		//set derivatives for spirals
 		this->spiral_escape_dm_after_dm_before = 1.0;
 
+        //vector to track the state and derivatives of the central body
+        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options->num_timesteps; ++step)
+            this->central_body_state_mks.push_back(central_body_state_dummy);
 	}
 
 	MGA_LT_phase::~MGA_LT_phase() {
@@ -714,88 +699,21 @@ namespace EMTG {
 
 		//******************************************************************
 		//Step 7: process the arrival, if applicable
-		if (p == options->number_of_phases[j] - 1)
-		{
-			if (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 5)
-				dV_arrival_magnitude = 0.0;
-		
-			//note that "3" for journey_arrival_type indicates a "low-thrust rendezvous," which means we are there already and we don't need to do anything
-			else
-			{
-				//compute the arrival deltaV
-				if (boundary2_location_code > 0) //ending at body
-					dV_arrival_magnitude = process_arrival(	state_at_end_of_phase+3,
-															boundary2_state, 
-															current_state+3,
-															current_epoch,
-															Body2->mu,
-															Body2->r_SOI,
-															F,
-															Findex,
-															j, 
-															options, 
-															Universe);
-				else //ending at point on central body SOI, fixed point, or fixed orbit
-					dV_arrival_magnitude = process_arrival(	state_at_end_of_phase+3,
-															boundary2_state, 
-															current_state+3,
-															current_epoch,
-															Universe->mu, 
-															Universe->r_SOI,
-															F,
-															Findex,
-															j,
-															options,
-															Universe);
-	
-				//drop the electric propulsion stage
-				state_at_end_of_phase[6] -= options->EP_dry_mass;
-
-				//apply the arrival burn
-				state_at_end_of_phase[6] *= exp(-dV_arrival_magnitude * 1000/ ((options->IspChem > 0 ? options->IspChem : 1e-6)* options->g0));
-				*current_deltaV += dV_arrival_magnitude;
-
-				//if this is a terminal intercept, we need to compute derivatives
-				if (needG && options->journey_arrival_type[j] == 2)
-				{
-					double C3_desired = options->journey_final_velocity[j][1] * options->journey_final_velocity[j][1];
-					//derivative with respect to x component of terminal velocity
-					G[terminal_velocity_constraint_G_indices[0]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[0] * X[terminal_velocity_constraint_X_indices[0]] / C3_desired;
-
-					//derivative with respect to y component of terminal velocity
-					G[terminal_velocity_constraint_G_indices[1]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[1] * X[terminal_velocity_constraint_X_indices[1]] / C3_desired;
-
-					//derivative with respect to z component of terminal velocity
-					G[terminal_velocity_constraint_G_indices[2]] = 2.0 * terminal_velocity_constraint_X_scale_ranges[2] * X[terminal_velocity_constraint_X_indices[2]] / C3_desired;
-				}
-				else if (needG && options->journey_arrival_type[j] == 6)
-				{
-					double r = math::norm(boundary2_state, 3) / Universe->LU;
-					double denominator = r * r * r * Universe->LU * Universe->LU;
-					double LUTU2 = (Universe->TU / Universe->LU) * (Universe->TU / Universe->LU);
-					double sqLU = sqrt(Universe->LU);
-
-					//derivative with respect to x component of position
-					G[escape_constraint_G_indices[0]] = escape_constraint_X_scale_ranges[0] * X[escape_constraint_X_indices[0]] / denominator;
-
-					//derivative with respect to x component of position
-					G[escape_constraint_G_indices[1]] = escape_constraint_X_scale_ranges[1] * X[escape_constraint_X_indices[1]] / denominator;
-
-					//derivative with respect to x component of position
-					G[escape_constraint_G_indices[2]] = escape_constraint_X_scale_ranges[2] * X[escape_constraint_X_indices[2]] / denominator;
-
-					//derivative with respect to x component of terminal velocity
-					G[escape_constraint_G_indices[3]] = escape_constraint_X_scale_ranges[3] * X[escape_constraint_X_indices[3]] * LUTU2;
-
-					//derivative with respect to y component of terminal velocity
-					G[escape_constraint_G_indices[4]] = escape_constraint_X_scale_ranges[4] * X[escape_constraint_X_indices[4]] * LUTU2;
-
-					//derivative with respect to z component of terminal velocity
-					G[escape_constraint_G_indices[5]] = escape_constraint_X_scale_ranges[5] * X[escape_constraint_X_indices[5]] * LUTU2;
-				}
-			}
-			
-		}
+        if (p == options->number_of_phases[j] - 1)
+            this->process_arrival(  current_state,
+                                    current_deltaV,
+                                    boundary2_state,
+                                    current_epoch,
+                                    X,
+                                    Xindex,
+                                    F,
+                                    Findex,
+                                    G,
+                                    j,
+                                    p,
+                                    needG,
+                                    options,
+                                    Universe);
 	
 		//******************************************************************
 		//Step 8: update the current epoch

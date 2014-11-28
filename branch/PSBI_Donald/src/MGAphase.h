@@ -23,7 +23,7 @@ class MGA_phase: public EMTG::phase {
 public:
 	//constructor
 	MGA_phase();
-	MGA_phase(int j, int p, missionoptions* options);
+    MGA_phase(const int& j, const int& p, const missionoptions* options);
 
 	//destructor
 	virtual ~MGA_phase();

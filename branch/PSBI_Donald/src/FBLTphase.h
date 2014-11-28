@@ -23,7 +23,7 @@ namespace EMTG {
 public:
 	//constructor
 	FBLT_phase();
-	FBLT_phase(int j, int p, missionoptions* options);
+    FBLT_phase(const int& j, const int& p, const missionoptions* options);
 
 	//destructor
 	virtual ~FBLT_phase();

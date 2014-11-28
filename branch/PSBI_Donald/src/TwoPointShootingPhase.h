@@ -17,6 +17,7 @@ namespace EMTG {
     public:
         //constructor
         TwoPointShootingPhase();
+        TwoPointShootingPhase(const int& j, const int& p, const missionoptions* options);
 
         //destructor
         virtual ~TwoPointShootingPhase();
@@ -180,6 +181,21 @@ namespace EMTG {
                                             int p,
                                             EMTG::Astrodynamics::universe* Universe,
                                             missionoptions* options);
+        
+        void process_arrival(double* current_state,
+                            double* current_deltaV,
+                            double* boundary2_state,
+                            double* current_epoch,
+                            double* X,
+                            int* Xindex,
+                            double* F,
+                            int* Findex,
+                            double* G,
+                            const int& j,
+                            const int& p,
+                            const bool& needG,
+                            missionoptions* options,
+                            EMTG::Astrodynamics::universe* Universe);
 
         //time information
         vector <double> event_epochs;
