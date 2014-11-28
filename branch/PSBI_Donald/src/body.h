@@ -18,7 +18,21 @@ namespace EMTG {namespace Astrodynamics {
 	public:
 		//constructor
 		body(); //default constructor
-		body(const int& ibody_code, const string& iname, const string& ishortname, const int& ispice_ID, const double& imininum_altitude, const double& imass, const double& iradius, const double& iepoch, vector<double>& ireference_angles, vector<double>& iclassical_orbit_elements, const double& iuniverse_mu, const int& icentral_body_SPICE_ID, const string& icentral_body_name, const double& icentral_body_radius, missionoptions* options);
+		body(const int& ibody_code, 
+            const string& iname, 
+            const string& ishortname,
+            const int& ispice_ID,
+            const double& imininum_altitude,
+            const double& imass, 
+            const double& iradius,
+            const double& iepoch,
+            vector<double>& ireference_angles, 
+            vector<double>& iclassical_orbit_elements,
+            const double& iuniverse_mu, 
+            const int& icentral_body_SPICE_ID,
+            const string& icentral_body_name, 
+            const double& icentral_body_radius,
+            missionoptions* options);
 
 		//destructor
 		virtual ~body();
@@ -27,20 +41,39 @@ namespace EMTG {namespace Astrodynamics {
 		//methods
 		
 		//function to load new data into the body
-		void load_body_data(const int& ibody_code, const string& iname, const string& ishortname, const int& ispice_ID, const double& imininum_altitude, const double& imass, const double& iradius, const double& iepoch, vector<double>& ireference_angles, vector<double>& iclassical_orbit_elements, const double& iuniverse_mu, const int& icentral_body_SPICE_ID, const string& icentral_body_name, const double& icentral_body_radius, missionoptions* options);
+		void load_body_data(const int& ibody_code,
+            const string& iname, 
+            const string& ishortname, 
+            const int& ispice_ID, 
+            const double& imininum_altitude,
+            const double& imass, 
+            const double& iradius, 
+            const double& iepoch, 
+            vector<double>& ireference_angles,
+            vector<double>& iclassical_orbit_elements,
+            const double& iuniverse_mu, 
+            const int& icentral_body_SPICE_ID,
+            const string& icentral_body_name, 
+            const double& icentral_body_radius,
+            missionoptions* options);
 
 		//function to find the body state vector at epoch
-		int locate_body(const double& epoch, double* state, const bool& need_deriv, missionoptions* options);
+		int locate_body(const double& epoch, 
+            double* state,
+            const bool& need_deriv,
+            missionoptions* options) const;
 
 		//function to locate a point on the sphere of influence in cartesian coordinates (Earth Equatorial J2000, measured from central body of current universe)
-		int locate_point_on_SOI(const double& theta, const double& phi, double* point_relative_to_body);
+		int locate_point_on_SOI(const double& theta,
+            const double& phi,
+            double* point_relative_to_body) const;
 
 		//function to print body to screen, for debug purposes
-		void print_body_to_screen(string filename);
+        void print_body_to_screen(string filename) const;
 
 		//comparisons
-		virtual bool operator== (const body& OtherBody);
-		virtual bool operator!= (const body& OtherBody);
+        virtual bool operator== (const body& OtherBody) const;
+        virtual bool operator!= (const body& OtherBody) const;
 
 		//**************************************
 		//fields
@@ -62,7 +95,6 @@ namespace EMTG {namespace Astrodynamics {
 		double RAAN; //in radians, convert this from input degrees
 		double AOP; //in radians, convert this from input degrees
 		double MA; //in radians, convert this from input degrees
-		double true_anomaly;
 		double universe_mu; //gravitational constant for the local universe
 		double minimum_safe_flyby_altitude; //in km, if this number is <= 0, then the object will not be a member of the flyby menu
 

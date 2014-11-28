@@ -162,7 +162,7 @@ namespace EMTG {namespace Astrodynamics {
 	int universe::locate_central_body(  const double& epoch,
                                         double* state, 
                                         missionoptions* options,
-                                        const bool& need_deriv)
+                                        const bool& need_deriv) const
 	{
 		if (!(boost::to_upper_copy(this->central_body_name) == "SUN"))
 		{
@@ -214,7 +214,7 @@ namespace EMTG {namespace Astrodynamics {
 	}
 
 	//function to print the flyby menu
-	void universe::print_flyby_and_perturbation_menus(string filename, missionoptions* options)
+    void universe::print_flyby_and_perturbation_menus(string filename, missionoptions* options) const
 	{
 		ofstream outputfile (filename.c_str(), ios::app);
 
@@ -257,7 +257,7 @@ namespace EMTG {namespace Astrodynamics {
 	}
 
 	//function to print the universe to a file
-	void universe::print_universe(string filename, missionoptions* options)
+    void universe::print_universe(string filename, missionoptions* options) const
 	{
 		ofstream outputfile(filename.c_str(), ios::trunc);
 

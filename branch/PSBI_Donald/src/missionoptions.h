@@ -29,7 +29,7 @@ public:
 	//methods
 	int parse_options_file(string filename);
 	int parse_options_line(ifstream& inputfile, string& choice, double& value, char* dump_buffer, int& linenumber);
-	int print_options_file(string filename);
+	int print_options_file(const string& filename) const;
 	void construct_thruster_launch_vehicle_name_arrays();
 
 	//check for success
