@@ -4,7 +4,7 @@
 // Version     :
 // Copyright   : 
 // Description : Main launch function for EMTG_v8
-// Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
+// Description : EMTG_v8 is a generic optimizer that handles all mission types
 //============================================================================
 
 #include <iostream>

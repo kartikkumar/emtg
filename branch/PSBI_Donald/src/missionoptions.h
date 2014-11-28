@@ -21,13 +21,13 @@ class missionoptions
 public:
 	//constructor
 	missionoptions();
-	missionoptions(string optionsfile);
+	missionoptions(const string& optionsfile);
 
 	//destructor
 	virtual ~missionoptions();
 
 	//methods
-	int parse_options_file(string filename);
+	int parse_options_file(const string& filename);
 	int parse_options_line(ifstream& inputfile, string& choice, double& value, char* dump_buffer, int& linenumber);
 	int print_options_file(const string& filename) const;
 	void construct_thruster_launch_vehicle_name_arrays();

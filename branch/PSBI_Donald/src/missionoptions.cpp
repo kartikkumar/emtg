@@ -23,6 +23,11 @@ using namespace std;
 namespace EMTG {
 
     missionoptions::missionoptions() :
+        missionoptions("options.emtgopt")
+    {
+    }
+
+    missionoptions::missionoptions(const string& optionsfile) :
         outerloop_warmstart(0),
 
         outerloop_vary_power(false),
@@ -87,14 +92,6 @@ namespace EMTG {
         background_mode(true),
         output_dormant_journeys(false)
     {
-	    this->file_status = parse_options_file("options.emtgopt");
-
-	    this->construct_thruster_launch_vehicle_name_arrays();
-    }
-
-    missionoptions::missionoptions(string optionsfile) :
-        missionoptions() 
-    {
 	    this->file_status = parse_options_file(optionsfile);
 
 	    this->construct_thruster_launch_vehicle_name_arrays();
@@ -105,7 +102,7 @@ namespace EMTG {
     }
 
     //function to parse an options file
-    int missionoptions::parse_options_file(string optionsfile) {
+    int missionoptions::parse_options_file(const string& optionsfile) {
 	    ifstream inputfile(optionsfile.c_str());
 	    int linenumber = 0;
 	    string choice;
@@ -1830,7 +1827,8 @@ namespace EMTG {
 
     }
 
-    int missionoptions::print_options_file(const string& filename) const {
+    int missionoptions::print_options_file(const string& filename) const 
+    {
 	    //options print function should print out the entire options file including the automatically generated parameters
 	    //this allows us to check to make sure the options file was read in and processed correctly
 
