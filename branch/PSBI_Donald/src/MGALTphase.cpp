@@ -22,13 +22,14 @@
 
 
 
-namespace EMTG {
+namespace EMTG 
+{
 
 	MGA_LT_phase::MGA_LT_phase() {
 	//default constructor does nothing
 	}
 
-	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, const missionoptions* options) :
+	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, missionoptions* options) :
         TwoPointShootingPhase(j, p, options)
     {
 		//must resize all data vectors to the correct length
@@ -101,7 +102,22 @@ namespace EMTG {
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int MGA_LT_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) 
+    int MGA_LT_phase::evaluate(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//declare some local variables
 		int errcode = 0;
@@ -110,11 +126,11 @@ namespace EMTG {
 
 		//******************************************************************
 		//Steps 1-4: Process the left boundary condition
-		process_left_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+		this->process_left_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
 	
 		//******************************************************************
 		//Step 5: For MGA-LT, we need to know the state of the spacecraft at the right hand side (end) of the phase in order to propagate backward
-		process_right_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
+        this->process_right_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
 
 		//******************************************************************
 		//Step 6: thrust and propagate forward and back
@@ -317,8 +333,8 @@ namespace EMTG {
 			EMTG::Astrodynamics::force_model(options,
 											Universe,
 											spacecraft_state[step].data(),
-											&event_epochs[step],
-											X,
+											event_epochs[step],
+											X[0],
 											control[step].data(),
 											&available_thrust[step],
 											&available_mass_flow_rate[step],
@@ -564,8 +580,8 @@ namespace EMTG {
 			EMTG::Astrodynamics::force_model(options, 
 											Universe,
 											spacecraft_state[backstep].data(),
-											&event_epochs[backstep], 
-											X, 
+											event_epochs[backstep], 
+											X[0], 
 											control[backstep].data(),
 											&available_thrust[backstep],
 											&available_mass_flow_rate[backstep],
@@ -739,7 +755,23 @@ namespace EMTG {
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	void MGA_LT_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void MGA_LT_phase::calcbounds(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-LT
 		//create a prefix string with journey and phase information
@@ -786,7 +818,12 @@ namespace EMTG {
 
 	//output function
 	//return 0 if successful, 1 if failure
-	int MGA_LT_phase::output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount)
+    int MGA_LT_phase::output(missionoptions* options,
+        const double& launchdate,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        int* eventcount)
 	{
 		//Step 1: store data that will be used for the printing
 		double empty_vector[] = {0,0,0};

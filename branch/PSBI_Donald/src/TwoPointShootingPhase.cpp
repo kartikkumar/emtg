@@ -16,7 +16,7 @@ namespace EMTG {
 
     }
 
-    TwoPointShootingPhase::TwoPointShootingPhase(const int& j, const int& p, const missionoptions* options) :
+    TwoPointShootingPhase::TwoPointShootingPhase(const int& j, const int& p, missionoptions* options) :
         phase(j, p, options)
     {
         this->match_point_state.resize(7);
@@ -28,7 +28,7 @@ namespace EMTG {
     }
 
     void TwoPointShootingPhase::calcbounds_step_distribution_scale_factor(const string& prefix,
-        int first_X_entry_in_phase,
+        const int& first_X_entry_in_phase,
         vector<double>* Xupperbounds,
         vector<double>* Xlowerbounds,
         vector<double>* Fupperbounds,
@@ -41,8 +41,8 @@ namespace EMTG {
         vector<int>* jGvar,
         vector<string>* Adescriptions,
         vector<string>* Gdescriptions,
-        int j,
-        int p,
+        const int& j,
+        const int& p,
         EMTG::Astrodynamics::universe* Universe,
         missionoptions* options)
     {
@@ -436,23 +436,23 @@ namespace EMTG {
     }
 
     void TwoPointShootingPhase::calcbounds_arrival_constraints(const string& prefix,
-        int first_X_entry_in_phase,
-        vector<double>* Xupperbounds,
-        vector<double>* Xlowerbounds,
-        vector<double>* Fupperbounds,
-        vector<double>* Flowerbounds,
-        vector<string>* Xdescriptions,
-        vector<string>* Fdescriptions,
-        vector<int>* iAfun,
-        vector<int>* jAvar,
-        vector<int>* iGfun,
-        vector<int>* jGvar,
-        vector<string>* Adescriptions,
-        vector<string>* Gdescriptions,
-        int j,
-        int p,
-        EMTG::Astrodynamics::universe* Universe,
-        missionoptions* options)
+                                                                const int& first_X_entry_in_phase,
+                                                                vector<double>* Xupperbounds,
+                                                                vector<double>* Xlowerbounds,
+                                                                vector<double>* Fupperbounds,
+                                                                vector<double>* Flowerbounds,
+                                                                vector<string>* Xdescriptions,
+                                                                vector<string>* Fdescriptions,
+                                                                vector<int>* iAfun,
+                                                                vector<int>* jAvar,
+                                                                vector<int>* iGfun,
+                                                                vector<int>* jGvar,
+                                                                vector<string>* Adescriptions,
+                                                                vector<string>* Gdescriptions,
+                                                                const int& j,
+                                                                const int& p,
+                                                                EMTG::Astrodynamics::universe* Universe,
+                                                                missionoptions* options)
     {
         if (p == options->number_of_phases[j] - 1)
         {
@@ -473,9 +473,9 @@ namespace EMTG {
                         stringstream EntryNameStream;
                         EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
-                        terminal_velocity_constraint_G_indices.push_back(iGfun->size() - 1);
-                        terminal_velocity_constraint_X_indices.push_back(entry);
-                        terminal_velocity_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                        this->terminal_velocity_constraint_G_indices.push_back(iGfun->size() - 1);
+                        this->terminal_velocity_constraint_X_indices.push_back(entry);
+                        this->terminal_velocity_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                     }
                 }
             }
@@ -497,9 +497,9 @@ namespace EMTG {
                         stringstream EntryNameStream;
                         EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
-                        arrival_declination_constraint_G_indices.push_back(iGfun->size() - 1);
-                        arrival_declination_constraint_X_indices.push_back(entry);
-                        arrival_declination_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                        this->arrival_declination_constraint_G_indices.push_back(iGfun->size() - 1);
+                        this->arrival_declination_constraint_X_indices.push_back(entry);
+                        this->arrival_declination_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                     }
                 }
             }
@@ -522,9 +522,9 @@ namespace EMTG {
                         stringstream EntryNameStream;
                         EntryNameStream << "Derivative of " << prefix << " escape constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                         Gdescriptions->push_back(EntryNameStream.str());
-                        escape_constraint_G_indices.push_back(iGfun->size() - 1);
-                        escape_constraint_X_indices.push_back(entry);
-                        escape_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                        this->escape_constraint_G_indices.push_back(iGfun->size() - 1);
+                        this->escape_constraint_X_indices.push_back(entry);
+                        this->escape_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
                     }
                 }
             }
@@ -728,7 +728,7 @@ namespace EMTG {
                                                 double* current_deltaV,
                                                 double* boundary2_state,
                                                 double* current_epoch,
-                                                double* X,
+                                                const double* X,
                                                 int* Xindex,
                                                 double* F,
                                                 int* Findex,

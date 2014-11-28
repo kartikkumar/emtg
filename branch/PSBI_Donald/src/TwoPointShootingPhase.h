@@ -17,22 +17,58 @@ namespace EMTG {
     public:
         //constructor
         TwoPointShootingPhase();
-        TwoPointShootingPhase(const int& j, const int& p, const missionoptions* options);
+        TwoPointShootingPhase(const int& j, const int& p, missionoptions* options);
 
         //destructor
         virtual ~TwoPointShootingPhase();
 
         //evaluate function
         //return 0 if successful, 1 if failure
-        virtual int evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
+        virtual int evaluate(const double* X,
+                            int* Xindex,
+                            double* F,
+                            int* Findex,
+                            double* G,
+                            int* Gindex,
+                            const int& needG,
+                            double* current_epoch,
+                            double* current_state,
+                            double* current_deltaV,
+                            double* boundary1_state,
+                            double* boundary2_state,
+                            const int& j,
+                            const int& p,
+                            EMTG::Astrodynamics::universe* Universe,
+                            missionoptions* options) = 0;
 
         //output function
         //return 0 if successful, 1 if failure
-        virtual int output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount) = 0;
+        virtual int output(missionoptions* options,
+            const double& launchdate,
+            const int& j,
+            const int& p,
+            EMTG::Astrodynamics::universe* Universe,
+            int* eventcount) = 0;
 
         //bounds calculation function
         //return 0 if successful, 1 if failure
-        virtual void calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
+        virtual void calcbounds(vector<double>* Xupperbounds,
+                                vector<double>* Xlowerbounds,
+                                vector<double>* Fupperbounds,
+                                vector<double>* Flowerbounds,
+                                vector<string>* Xdescriptions,
+                                vector<string>* Fdescriptions,
+                                vector<int>* iAfun,
+                                vector<int>* jAvar,
+                                vector<int>* iGfun,
+                                vector<int>* jGvar,
+                                vector<string>* Adescriptions,
+                                vector<string>* Gdescriptions,
+                                vector<double>* synodic_periods,
+                                const int& j,
+                                const int& p,
+                                EMTG::Astrodynamics::universe* Universe,
+                                missionoptions* options) = 0;
 
         //top-level function to calculate the match point derivatives
         virtual void calculate_match_point_derivatives(double* G,
@@ -107,7 +143,7 @@ namespace EMTG {
         //functions that only exist for phases of this type
     protected:
         void calcbounds_step_distribution_scale_factor(const string& prefix,
-                                                        int first_X_entry_in_phase,
+                                                        const int& first_X_entry_in_phase,
                                                         vector<double>* Xupperbounds,
                                                         vector<double>* Xlowerbounds,
                                                         vector<double>* Fupperbounds,
@@ -120,8 +156,8 @@ namespace EMTG {
                                                         vector<int>* jGvar,
                                                         vector<string>* Adescriptions,
                                                         vector<string>* Gdescriptions,
-                                                        int j,
-                                                        int p,
+                                                        const int& j,
+                                                        const int& p,
                                                         EMTG::Astrodynamics::universe* Universe,
                                                         missionoptions* options);
 
@@ -164,7 +200,7 @@ namespace EMTG {
                                         missionoptions* options);
 
         void calcbounds_arrival_constraints(const string& prefix,
-                                            int first_X_entry_in_phase,
+                                            const int& first_X_entry_in_phase,
                                             vector<double>* Xupperbounds,
                                             vector<double>* Xlowerbounds,
                                             vector<double>* Fupperbounds,
@@ -177,8 +213,8 @@ namespace EMTG {
                                             vector<int>* jGvar,
                                             vector<string>* Adescriptions,
                                             vector<string>* Gdescriptions,
-                                            int j,
-                                            int p,
+                                            const int& j,
+                                            const int& p,
                                             EMTG::Astrodynamics::universe* Universe,
                                             missionoptions* options);
         
@@ -186,7 +222,7 @@ namespace EMTG {
                             double* current_deltaV,
                             double* boundary2_state,
                             double* current_epoch,
-                            double* X,
+                            const double* X,
                             int* Xindex,
                             double* F,
                             int* Findex,

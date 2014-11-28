@@ -29,7 +29,7 @@ namespace EMTG
     //default constructor does nothing
     }
 
-    MGA_NDSM_phase::MGA_NDSM_phase(const int& j, const int& p, const missionoptions* options) :
+    MGA_NDSM_phase::MGA_NDSM_phase(const int& j, const int& p, missionoptions* options) :
         TwoPointShootingPhase(j, p, options)
     {
 
@@ -60,7 +60,22 @@ namespace EMTG
 
     //evaluate function
     //return 0 if successful, 1 if failure
-    int MGA_NDSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options) 
+    int MGA_NDSM_phase::evaluate(const double* X,
+                                int* Xindex,
+                                double* F,
+                                int* Findex,
+                                double* G,
+                                int* Gindex,
+                                const int& needG,
+                                double* current_epoch,
+                                double* current_state,
+                                double* current_deltaV,
+                                double* boundary1_state,
+                                double* boundary2_state,
+                                const int& j,
+                                const int& p,
+                                EMTG::Astrodynamics::universe* Universe,
+                                missionoptions* options)
     {
 	    //declare some local variables
 	    int errcode = 0;
@@ -241,7 +256,23 @@ namespace EMTG
 
     //bounds calculation function
     //return 0 if successful, 1 if failure
-    void MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void MGA_NDSM_phase::calcbounds(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
     {
 	    //this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-NDSM
 	    //create a prefix string with journey and phase information
@@ -627,7 +658,12 @@ namespace EMTG
 
     //output function
     //return 0 if successful, 1 if failure
-    int MGA_NDSM_phase::output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount)
+    int MGA_NDSM_phase::output(missionoptions* options,
+        const double& launchdate,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        int* eventcount)
     {
 	    //Step 1: store data that will be used for the printing
 	    double empty_vector[] = {0,0,0};

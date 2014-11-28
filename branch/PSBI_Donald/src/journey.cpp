@@ -331,7 +331,7 @@ namespace EMTG
 	}
 
 	//output functions
-    void journey::output_journey_header(const missionoptions* options,
+    void journey::output_journey_header(missionoptions* options,
                                         EMTG::Astrodynamics::universe& Universe,
                                         const int& j,
                                         int& jprint,
@@ -542,7 +542,7 @@ namespace EMTG
     }
 
     //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
-    void journey::output_journey_prologue(const missionoptions* options,
+    void journey::output_journey_prologue(missionoptions* options,
                                         const double& launchdate,
                                         const int& j,
                                         int& jprint,
@@ -784,7 +784,7 @@ namespace EMTG
 
     }
 
-    void journey::output_journey_postlogue( const missionoptions* options,
+    void journey::output_journey_postlogue( missionoptions* options,
                                             const double& launchdate,
                                             const int& j,
                                             int& jprint,

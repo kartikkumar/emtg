@@ -128,22 +128,22 @@ namespace EMTG
 
     //bounds calculation method
     void PSBIphase::calcbounds(vector<double>* Xupperbounds,
-                                vector<double>* Xlowerbounds,
-                                vector<double>* Fupperbounds,
-                                vector<double>* Flowerbounds,
-                                vector<string>* Xdescriptions,
-                                vector<string>* Fdescriptions,
-                                vector<int>* iAfun,
-                                vector<int>* jAvar,
-                                vector<int>* iGfun,
-                                vector<int>* jGvar,
-                                vector<string>* Adescriptions,
-                                vector<string>* Gdescriptions,
-                                vector<double>* synodic_periods,
-                                int j,
-                                int p,
-                                EMTG::Astrodynamics::universe* Universe,
-                                missionoptions* options)
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
     {
         //this function calculates the upper and lower bounds for the decision and constraint vectors for PSBI
         //create a prefix string with journey and phase information
@@ -164,11 +164,42 @@ namespace EMTG
 
         //**************************************************************************
         //calculate bounds on variables and constraints governing the left boundary
-        this->calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_left_boundary( prefix,
+                                        first_X_entry_in_phase,
+                                        Xupperbounds, 
+                                        Xlowerbounds, 
+                                        Fupperbounds, 
+                                        Flowerbounds, 
+                                        Xdescriptions,
+                                        Fdescriptions, iAfun,
+                                        jAvar, 
+                                        iGfun, 
+                                        jGvar, 
+                                        Adescriptions,
+                                        Gdescriptions, 
+                                        j, 
+                                        p, 
+                                        Universe, options);
 
         //**************************************************************************
         //if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-        this->calcbounds_phase_thruster_parameters(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_phase_thruster_parameters(prefix,
+            first_X_entry_in_phase,
+            Xupperbounds, 
+            Xlowerbounds, 
+            Fupperbounds, 
+            Flowerbounds, 
+            Xdescriptions, 
+            Fdescriptions, 
+            iAfun,
+            jAvar, 
+            iGfun, 
+            jGvar,
+            Adescriptions, 
+            Gdescriptions,
+            j,
+            p, 
+            Universe, options);
 
         //**************************************************************************
         //next, we need to encode the phase flight time
@@ -897,20 +928,20 @@ namespace EMTG
 
     //evaluate function
     //return 0 if successful, 1 if failure
-    int PSBIphase::evaluate(double* X,
+    int PSBIphase::evaluate(const double* X,
                             int* Xindex,
                             double* F,
                             int* Findex,
                             double* G,
                             int* Gindex,
-                            int needG,
+                            const int& needG,
                             double* current_epoch,
                             double* current_state,
                             double* current_deltaV,
                             double* boundary1_state,
                             double* boundary2_state,
-                            int j,
-                            int p,
+                            const int& j,
+                            const int& p,
                             EMTG::Astrodynamics::universe* Universe,
                             missionoptions* options)
     {
@@ -1121,8 +1152,8 @@ namespace EMTG
             EMTG::Astrodynamics::force_model(options,
                                             Universe,
                                             this->spacecraft_state[step].data(),
-                                            &event_epochs[step],
-                                            X,
+                                            event_epochs[step],
+                                            X[0],
                                             control[step].data(),
                                             &available_thrust[step],
                                             &available_mass_flow_rate[step],
@@ -1346,8 +1377,8 @@ namespace EMTG
     //return 0 if successful, 1 if failure
     int PSBIphase::output(missionoptions* options,
         const double& launchdate,
-        int j,
-        int p,
+        const int& j,
+        const int& p,
         EMTG::Astrodynamics::universe* Universe,
         int* eventcount)
     {

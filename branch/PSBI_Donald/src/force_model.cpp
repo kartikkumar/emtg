@@ -10,8 +10,8 @@ namespace EMTG { namespace Astrodynamics {
 	int force_model(EMTG::missionoptions * options,
 					EMTG::Astrodynamics::universe * Universe,
 					double * spacecraft_state,
-					double * epoch,
-					double * launch_epoch,
+					const double& epoch,
+					const double& launch_epoch,
 					double * control,
 					double * max_thrust,
 					double * max_mass_flow_rate,
@@ -40,7 +40,7 @@ namespace EMTG { namespace Astrodynamics {
 
 		if (!(Universe->central_body_SPICE_ID == 10))
 		{
-            Universe->locate_central_body(*epoch, central_body_state_mks.data(), options, generate_derivatives);
+            Universe->locate_central_body(epoch, central_body_state_mks.data(), options, generate_derivatives);
 
             position_relative_to_sun_in_AU[0] = (central_body_state_mks[0] + spacecraft_state[0]) / options->AU;
             position_relative_to_sun_in_AU[1] = (central_body_state_mks[1] + spacecraft_state[1]) / options->AU;
@@ -58,7 +58,7 @@ namespace EMTG { namespace Astrodynamics {
 		//compute the thrust available from the engine
 		EMTG::Astrodynamics::find_engine_parameters(options,
 													distance_from_sun_in_AU,
-													*epoch - *launch_epoch,
+													epoch - launch_epoch,
 													max_thrust,
 													max_mass_flow_rate,
 													Isp, 
@@ -143,7 +143,7 @@ namespace EMTG { namespace Astrodynamics {
 				double spacecraft_position_relative_to_body_in_km[3];
 				double distance_from_body_in_km;
 
-				Universe->bodies[Universe->perturbation_menu[b]].locate_body(*epoch,
+				Universe->bodies[Universe->perturbation_menu[b]].locate_body(epoch,
 																			body_state_in_km,
 																			generate_derivatives && options->derivative_type > 2,
 																			options);

@@ -42,7 +42,7 @@ namespace EMTG {
 
 	}
 
-    phase::phase(const int& j, const int& p, const missionoptions* options) :
+    phase::phase(const int& j, const int& p, missionoptions* options) :
         boundary1_location_code(0),
         boundary2_location_code(0),
         TOF(0),
@@ -78,7 +78,22 @@ namespace EMTG {
 	// default destructor is never used (I think it is superceded by the daughter class destructors)
 	}
 
-	void phase::process_left_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::process_left_boundary_condition(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		double vinf_out;
 		double vinf_in;
@@ -726,7 +741,22 @@ namespace EMTG {
 		this->phase_start_epoch = *current_epoch;
 	}
 
-	void phase::process_right_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::process_right_boundary_condition(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{		
 		//Step 5.1: if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
 		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 4))
@@ -766,7 +796,21 @@ namespace EMTG {
 		phase_end_epoch = *current_epoch + TOF;
 
 		//Step 5.3: locate the second body
-		locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
+		locate_boundary_point(boundary2_location_code,
+                                options->journey_arrival_type[j],
+                                false, Universe, boundary2_state,
+                                current_state+3,
+                                *current_epoch + TOF,
+                                X,
+                                Xindex, 
+                                F,
+                                Findex,
+                                G, 
+                                Gindex,
+                                needG,
+                                j,
+                                p,
+                                options);
 	
 		//Step 5.4: if this is not a terminal rendezvous, extract the terminal velocity increment
 		//otherwise, the terminal state is the body state or the terminal v-infinity
@@ -898,7 +942,23 @@ namespace EMTG {
 			//Step 4.3.1 advance time (not required)
 
 			//Step 4.3.2 find the position of the body at the new phase start time and store it in spiral_capture_state_after_spiral
-			locate_boundary_point(boundary2_location_code, options->journey_departure_type[j], true, Universe, this->spiral_capture_state_after_spiral, current_state+3, *current_epoch + this->TOF + this->spiral_capture_time, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
+			locate_boundary_point(  boundary2_location_code, 
+                                    options->journey_departure_type[j],
+                                    true, 
+                                    Universe,
+                                    this->spiral_capture_state_after_spiral,
+                                    current_state+3,
+                                    *current_epoch + this->TOF + this->spiral_capture_time,
+                                    X, 
+                                    Xindex,
+                                    F, 
+                                    Findex,
+                                    G, 
+                                    Gindex, 
+                                    needG, 
+                                    j, 
+                                    p, 
+                                    options);
 
 			//Step 4.3.3 fill in the new mass
 			this->spiral_capture_state_after_spiral[6] = this->spiral_capture_mass_after;
@@ -906,17 +966,17 @@ namespace EMTG {
 
 	}
 
-	double phase::process_arrival(	double* incoming_velocity,
-									double* boundary_state,
-									double* X_infinity,
-									double* current_epoch,
-									double mu,
-									double r_SOI, 
-									double* F,
-									int* Findex, 
-									int j, 
-									missionoptions* options, 
-									Astrodynamics::universe* Universe)
+    double phase::process_arrival(double* incoming_velocity,
+        double* boundary_state,
+        double* X_infinity,
+        double* current_epoch,
+        double mu,
+        double r_SOI,
+        double* F,
+        int* Findex,
+        const int& j,
+        missionoptions* options,
+        EMTG::Astrodynamics::universe* Universe)
 	{
 		switch (options->journey_arrival_type[j])
 			{
@@ -1047,7 +1107,23 @@ namespace EMTG {
 	}
 
 	//function to locate boundary points
-	int phase::locate_boundary_point(int location, int boundary_type, bool left_boundary, EMTG::Astrodynamics::universe* Universe, double* boundary_state, double* V_infinity, double epoch, double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, int j, int p,  missionoptions* options)
+    int phase::locate_boundary_point(const int& location,
+        const int& boundary_type,
+        const bool& left_boundary,
+        EMTG::Astrodynamics::universe* Universe,
+        double* boundary_state,
+        double* V_infinity,
+        double epoch,
+        const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		if (left_boundary) //this is the left boundary of the phase
 		{
@@ -1831,7 +1907,24 @@ namespace EMTG {
 
 	
 
-	void phase::calcbounds_left_boundary(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_left_boundary(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//if applicable, vary the journey initial mass increment
 		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j] && p == 0)
@@ -2324,7 +2417,25 @@ namespace EMTG {
 		}
 	}
 
-	void phase::calcbounds_flight_time(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_flight_time(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		if (boundary1_location_code > 0)
 		{
@@ -2461,7 +2572,24 @@ namespace EMTG {
         synodic_periods->push_back(1.0 / (fabs(1.0 / this->T1 - 1.0 / this->T2)));
 	}
 
-	void phase::calcbounds_right_boundary(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_right_boundary(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//if we are the last phase in the journey, then encode any variables necessary for the right hand boundary condition
 		if (p == (options->number_of_phases[j] - 1))
@@ -2692,7 +2820,21 @@ namespace EMTG {
 	}
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the beginning of any preceeding journey
-	void phase::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, missionoptions* options)
+    void phase::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj <= j; ++jj)
@@ -2848,7 +2990,21 @@ namespace EMTG {
 	}
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the end of any preceeding journey
-	void phase::find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, missionoptions* options)
+    void phase::find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj < j; ++jj)
@@ -2959,7 +3115,24 @@ namespace EMTG {
 		}//end loop over journeys
 	}
 
-    void phase::calcbounds_phase_thruster_parameters(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_phase_thruster_parameters(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
     {
         if (options->engine_type == 1 && (j == 0 && p == 0))
         {

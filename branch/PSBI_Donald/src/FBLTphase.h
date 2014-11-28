@@ -23,56 +23,56 @@ namespace EMTG {
 public:
 	//constructor
 	FBLT_phase();
-    FBLT_phase(const int& j, const int& p, const missionoptions* options);
+    FBLT_phase(const int& j, const int& p, missionoptions* options);
 
 	//destructor
 	virtual ~FBLT_phase();
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int evaluate(double* X,
-                int* Xindex,
-                double* F,
-                int* Findex, 
-                double* G, 
-                int* Gindex,
-                int needG, 
-                double* current_epoch, 
-                double* current_state,
-                double* current_deltaV,
-                double* boundary1_state,
-                double* boundary2_state, 
-                int j, 
-                int p, 
-                EMTG::Astrodynamics::universe* Universe, 
-                missionoptions* options);
+    int evaluate(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options);
 
 	//output function
 	//return 0 if successful, 1 if failure
-	int output(missionoptions* options,
+    int output( missionoptions* options,
                 const double& launchdate,
-                int j,
-                int p,
+                const int& j,
+                const int& p,
                 EMTG::Astrodynamics::universe* Universe,
                 int* eventcount);
 
 	//bounds calculation function
 	//return 0 if successful, 1 if failure
-	void calcbounds(vector<double>* Xupperbounds,
-                    vector<double>* Xlowerbounds, 
-                    vector<double>* Fupperbounds, 
-                    vector<double>* Flowerbounds, 
-                    vector<string>* Xdescriptions, 
-                    vector<string>* Fdescriptions, 
-                    vector<int>* iAfun, 
-                    vector<int>* jAvar, 
-                    vector<int>* iGfun, 
-                    vector<int>* jGvar, 
-                    vector<string>* Adescriptions, 
-                    vector<string>* Gdescriptions, 
+    void calcbounds(vector<double>* Xupperbounds,
+                    vector<double>* Xlowerbounds,
+                    vector<double>* Fupperbounds,
+                    vector<double>* Flowerbounds,
+                    vector<string>* Xdescriptions,
+                    vector<string>* Fdescriptions,
+                    vector<int>* iAfun,
+                    vector<int>* jAvar,
+                    vector<int>* iGfun,
+                    vector<int>* jGvar,
+                    vector<string>* Adescriptions,
+                    vector<string>* Gdescriptions,
                     vector<double>* synodic_periods,
-                    int j,
-                    int p,
+                    const int& j,
+                    const int& p,
                     EMTG::Astrodynamics::universe* Universe,
                     missionoptions* options);
 

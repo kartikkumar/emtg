@@ -25,29 +25,29 @@ namespace EMTG {
 	public:
 		//constructor
 		phase();
-        phase(const int& j, const int& p, const missionoptions* options);
+        phase(const int& j, const int& p, missionoptions* options);
 
 		//destructor
 		virtual ~phase();
 
 		//methods
-		int locate_boundary_point(int location,
-								  int boundary_type,
-								  bool left_boundary, 
-								  EMTG::Astrodynamics::universe* Universe, 
-								  double* state, 
-								  double* X_infinity, 
+		int locate_boundary_point(const int& location,
+								  const int& boundary_type,
+								  const bool& left_boundary, 
+                                  EMTG::Astrodynamics::universe* Universe,
+                                  double* boundary_state,
+								  double* V_infinity, 
 								  double epoch, 
-								  double* X, 
+								  const double* X, 
 								  int* Xindex, 
 								  double* F, 
 								  int* Findex, 
 								  double* G, 
 								  int* Gindex, 
 								  const int& needG, 
-								  int j, 
-								  int p,
-								  missionoptions* options);
+                                  const int& j,
+                                  const int& p,
+                                  missionoptions* options);
 
 		double process_arrival(double* incoming_velocity,
 							   double* boundary_state, 
@@ -57,9 +57,9 @@ namespace EMTG {
 							   double r_SOI, 
 							   double* F, 
 							   int* Findex, 
-							   int j, 
-							   missionoptions* options, 
-							   EMTG::Astrodynamics::universe* Universe);
+							   const int& j, 
+                               missionoptions* options,
+                               EMTG::Astrodynamics::universe* Universe);
 
 		virtual math::Matrix<double> calculate_flyby_periapse_state(math::Matrix<double>& Vinf_in,
 																	math::Matrix<double>& Vinf_out, 
@@ -75,8 +75,8 @@ namespace EMTG {
 
 		double compute_timestep_width_from_distribution(double step, missionoptions* options, double& scale_or_stdv);
 
-		void write_summary_line(missionoptions* options,
-								EMTG::Astrodynamics::universe* Universe,
+        void write_summary_line(missionoptions* options,
+                                EMTG::Astrodynamics::universe* Universe,
 								int* eventcount,
 								double current_epoch_MJD,
 								string event_type,
@@ -99,7 +99,7 @@ namespace EMTG {
 								int number_of_active_engines,
 								double active_power);
 
-		void process_left_boundary_condition(double* X,
+        void process_left_boundary_condition(const double* X,
 											 int* Xindex,
 											 double* F,
 											 int* Findex,
@@ -111,30 +111,30 @@ namespace EMTG {
 											 double* current_deltaV,
 											 double* boundary1_state,
 											 double* boundary2_state,
-											 int j,
-											 int p,
-											 EMTG::Astrodynamics::universe* Universe,
-											 missionoptions* options);
+                                             const int& j,
+                                             const int& p,
+                                             EMTG::Astrodynamics::universe* Universe,
+                                             missionoptions* options);
 
-		void process_right_boundary_condition(double* X,
-												int* Xindex,
-												double* F,
-												int* Findex,
-												double* G,
-												int* Gindex,
-												const int& needG,
-												double* current_epoch,
-												double* current_state,
-												double* current_deltaV,
-												double* boundary1_state,
-												double* boundary2_state,
-												int j,
-												int p,
-												EMTG::Astrodynamics::universe* Universe,
-												missionoptions* options);
+        void process_right_boundary_condition(  const double* X,
+                                                int* Xindex,
+                                                double* F,
+                                                int* Findex,
+                                                double* G,
+                                                int* Gindex,
+                                                const int& needG,
+                                                double* current_epoch,
+                                                double* current_state,
+                                                double* current_deltaV,
+                                                double* boundary1_state,
+                                                double* boundary2_state,
+                                                const int& j,
+                                                const int& p,
+                                                EMTG::Astrodynamics::universe* Universe,
+                                                missionoptions* options);
 
-		void calcbounds_flight_time(const string& prefix,
-									 int first_X_entry_in_phase,
+		void calcbounds_flight_time( const string& prefix,
+                                     const int& first_X_entry_in_phase,
 									 vector<double>* Xupperbounds,
 									 vector<double>* Xlowerbounds,
 									 vector<double>* Fupperbounds,
@@ -148,13 +148,13 @@ namespace EMTG {
 									 vector<string>* Adescriptions,
 									 vector<string>* Gdescriptions,
 									 vector<double>* synodic_periods,
-									 int j,
-									 int p,
-									 EMTG::Astrodynamics::universe* Universe,
-									 missionoptions* options);
+                                     const int& j,
+                                     const int& p,
+                                     EMTG::Astrodynamics::universe* Universe,
+                                     missionoptions* options);
 
-		void calcbounds_left_boundary(const string& prefix,
-										 int first_X_entry_in_phase,
+		void calcbounds_left_boundary(   const string& prefix,
+                                         const int& first_X_entry_in_phase,
 										 vector<double>* Xupperbounds,
 										 vector<double>* Xlowerbounds,
 										 vector<double>* Fupperbounds,
@@ -167,13 +167,13 @@ namespace EMTG {
 										 vector<int>* jGvar,
 										 vector<string>* Adescriptions,
 										 vector<string>* Gdescriptions,
-										 int j,
-										 int p,
-										 EMTG::Astrodynamics::universe* Universe,
-										 missionoptions* options);
+                                         const int& j,
+                                         const int& p,
+                                         EMTG::Astrodynamics::universe* Universe,
+                                         missionoptions* options);
 
-		void calcbounds_right_boundary(const string& prefix,
-										 int first_X_entry_in_phase,
+		void calcbounds_right_boundary(  const string& prefix,
+                                         const int& first_X_entry_in_phase,
 										 vector<double>* Xupperbounds,
 										 vector<double>* Xlowerbounds,
 										 vector<double>* Fupperbounds,
@@ -186,10 +186,10 @@ namespace EMTG {
 										 vector<int>* jGvar,
 										 vector<string>* Adescriptions,
 										 vector<string>* Gdescriptions,
-										 int j,
-										 int p,
-										 EMTG::Astrodynamics::universe* Universe,
-										 missionoptions* options);
+                                         const int& j,
+                                         const int& p,
+                                         EMTG::Astrodynamics::universe* Universe,
+                                         missionoptions* options);
 
 		void find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
 													vector<double>* Xlowerbounds,
@@ -203,9 +203,9 @@ namespace EMTG {
 													vector<int>* jGvar,
 													vector<string>* Adescriptions,
 													vector<string>* Gdescriptions,
-													int j,
-													int p,
-													missionoptions* options);
+                                                    const int& j,
+                                                    const int& p,
+                                                    missionoptions* options);
 
 		void find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds,
 													vector<double>* Xlowerbounds,
@@ -219,12 +219,12 @@ namespace EMTG {
 													vector<int>* jGvar,
 													vector<string>* Adescriptions,
 													vector<string>* Gdescriptions,
-													int j,
-													int p,
-													missionoptions* options);
+                                                    const int& j,
+                                                    const int& p,
+                                                    missionoptions* options);
 
         void calcbounds_phase_thruster_parameters(const string& prefix,
-                                                int first_X_entry_in_phase,
+                                                const int& first_X_entry_in_phase,
                                                 vector<double>* Xupperbounds,
                                                 vector<double>* Xlowerbounds,
                                                 vector<double>* Fupperbounds,
@@ -237,8 +237,8 @@ namespace EMTG {
                                                 vector<int>* jGvar,
                                                 vector<string>* Adescriptions,
                                                 vector<string>* Gdescriptions,
-                                                int j,
-                                                int p,
+                                                const int& j,
+                                                const int& p,
                                                 EMTG::Astrodynamics::universe* Universe,
                                                 missionoptions* options);
 
@@ -285,31 +285,31 @@ namespace EMTG {
 															std::ofstream& GMATfile);
 
 		//virtual method templates
-		virtual int evaluate(	double* X,
+		virtual int evaluate(	const double* X,
 								int* Xindex, 
 								double* F, 
 								int* Findex,
 								double* G, 
 								int* Gindex,
-								int needG, 
+                                const int& needG,
 								double* current_epoch,
 								double* current_state, 
 								double* current_deltaV,
 								double* boundary1_state, 
 								double* boundary2_state, 
-								int j, 
-								int p,
+                                const int& j,
+                                const int& p,
 								EMTG::Astrodynamics::universe* Universe,
 								missionoptions* options) = 0;
 
-		virtual int output(	missionoptions* options,
+        virtual int output( missionoptions* options,
 							const double& launchdate,
-							int j,
-							int p,
-							EMTG::Astrodynamics::universe* Universe, 
+                            const int& j,
+                            const int& p,
+                            EMTG::Astrodynamics::universe* Universe,
 							int* eventcount) = 0;
 
-		virtual void calcbounds(	vector<double>* Xupperbounds,
+		virtual void calcbounds(vector<double>* Xupperbounds,
 								vector<double>* Xlowerbounds,
 								vector<double>* Fupperbounds,
 								vector<double>* Flowerbounds,
@@ -322,9 +322,10 @@ namespace EMTG {
 								vector<string>* Adescriptions,
 								vector<string>* Gdescriptions,
 								vector<double>* synodic_periods,
-								int j, 
-								int p, 
-								EMTG::Astrodynamics::universe* Universe, missionoptions* options) = 0;
+                                const int& j,
+                                const int& p,
+                                EMTG::Astrodynamics::universe* Universe,
+                                missionoptions* options) = 0;
 
 		virtual void create_initial_guess(	const int& desired_mission_type, 
 											const bool& VSI,

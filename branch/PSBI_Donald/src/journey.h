@@ -58,7 +58,7 @@ namespace EMTG
                    int* eventcount);
 
         //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
-        void output_journey_prologue(const missionoptions* options,
+        void output_journey_prologue(missionoptions* options,
                                     const double& launchdate,
                                     const int& j,
                                     int& jprint,
@@ -66,7 +66,7 @@ namespace EMTG
                                     int* eventcount);
 
         //method to output additional stay time at the target body
-        void output_journey_postlogue(  const missionoptions* options,
+        void output_journey_postlogue(  missionoptions* options,
                                         const double& launchdate,
                                         const int& j,
                                         int& jprint,
@@ -74,7 +74,7 @@ namespace EMTG
                                         int* eventcount);
 
         //method to output journey header
-        void output_journey_header(const missionoptions* options,
+        void output_journey_header(missionoptions* options,
                                     EMTG::Astrodynamics::universe& Universe,
                                     const int& j,
                                     int& jprint,
