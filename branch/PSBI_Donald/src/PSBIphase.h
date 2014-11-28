@@ -20,7 +20,7 @@ namespace EMTG
     public:
         //constructor
         PSBIphase();
-        PSBIphase(int j, int p, missionoptions* options);
+        PSBIphase(const int& j, const int& p, const missionoptions& options);
 
         //destructor
         virtual ~PSBIphase();

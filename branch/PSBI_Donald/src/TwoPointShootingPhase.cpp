@@ -16,7 +16,7 @@ namespace EMTG {
 
     }
 
-    TwoPointShootingPhase::TwoPointShootingPhase(const int& j, const int& p, missionoptions* options) :
+    TwoPointShootingPhase::TwoPointShootingPhase(const int& j, const int& p, const missionoptions& options) :
         phase(j, p, options)
     {
         this->match_point_state.resize(7);

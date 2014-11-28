@@ -23,13 +23,14 @@ namespace EMTG
     PSBIphase::PSBIphase() {}
 
     //main constructor
-    PSBIphase::PSBIphase(int j, int p, missionoptions* options)
+    PSBIphase::PSBIphase(const int& j, const int& p, const missionoptions& options) :
+        phase(j, p, options)
     {
         //must resize all data vectors to the correct length
         vector<double> state_dummy(7);
         vector<double> dV_or_control_dummy(3);
 
-        for (size_t step = 0; step < options->num_timesteps; ++step)
+        for (size_t step = 0; step < options.num_timesteps; ++step)
         {
             this->left_hand_state.push_back(state_dummy);
             this->spacecraft_state.push_back(state_dummy);
@@ -41,76 +42,63 @@ namespace EMTG
             this->dagravdtvec.push_back(dV_or_control_dummy);
         }
 
-        this->event_epochs.resize(options->num_timesteps);
-        this->dVmax.resize(options->num_timesteps);
-        this->available_power.resize(options->num_timesteps);
-        this->available_mass_flow_rate.resize(options->num_timesteps);
-        this->available_thrust.resize(options->num_timesteps);
-        this->available_Isp.resize(options->num_timesteps);
-        this->active_power.resize(options->num_timesteps);
-        this->number_of_active_engines.resize(options->num_timesteps);
-        this->throttle.resize(options->num_timesteps);
+        this->event_epochs.resize(options.num_timesteps);
+        this->dVmax.resize(options.num_timesteps);
+        this->available_power.resize(options.num_timesteps);
+        this->available_mass_flow_rate.resize(options.num_timesteps);
+        this->available_thrust.resize(options.num_timesteps);
+        this->available_Isp.resize(options.num_timesteps);
+        this->active_power.resize(options.num_timesteps);
+        this->number_of_active_engines.resize(options.num_timesteps);
+        this->throttle.resize(options.num_timesteps);
 
         //vector to track the state and derivatives of the central body
-        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
-        for (size_t step = 0; step < options->num_timesteps; ++step)
+        vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options.num_timesteps; ++step)
             this->central_body_state_mks.push_back(central_body_state_dummy);
 
-        //size the vectors that will be used to calculate the b-plane
-        this->V_infinity_in.resize(3, 1);
-        this->V_infinity_out.resize(3, 1);
-        this->BoundaryR.resize(3, 1);
-        this->BoundaryV.resize(3, 1);
-
-        //set the bodies
-        this->boundary1_location_code = options->sequence[j][p];
-        this->boundary2_location_code = options->sequence[j][p + 1];
-
         //size the vectors of state transition matrices
-        this->STM.resize(options->num_timesteps * 2);
-        this->Kepler_F.resize(options->num_timesteps * 2);
-        this->Kepler_Fdot.resize(options->num_timesteps * 2);
-        this->Kepler_G.resize(options->num_timesteps * 2);
-        this->Kepler_Gdot.resize(options->num_timesteps * 2);
-        this->Kepler_Fdotdot.resize(options->num_timesteps * 2);
-        this->Kepler_Gdotdot.resize(options->num_timesteps * 2);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
+        this->STM.resize(options.num_timesteps * 2);
+        this->Kepler_F.resize(options.num_timesteps * 2);
+        this->Kepler_Fdot.resize(options.num_timesteps * 2);
+        this->Kepler_G.resize(options.num_timesteps * 2);
+        this->Kepler_Gdot.resize(options.num_timesteps * 2);
+        this->Kepler_Fdotdot.resize(options.num_timesteps * 2);
+        this->Kepler_Gdotdot.resize(options.num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options.num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options.num_timesteps * 2);
 
         //if there are initial and/or terminal coasts, instantiate the relevant STMs
         this->initial_coast = false;
         this->terminal_coast = false;
-        if (j == 0 && p == 0 && options->forced_post_launch_coast > math::SMALL)
+        if (j == 0 && p == 0 && options.forced_post_launch_coast > math::SMALL)
         {
             this->initial_coast_STM = new Kepler::STM;
             this->initial_coast = true;
         }
-        else if ((p > 0 || options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)
-            && options->forced_flyby_coast > math::SMALL)
+        else if ((p > 0 || options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)
+            && options.forced_flyby_coast > math::SMALL)
         {
             this->initial_coast_STM = new Kepler::STM;
             this->initial_coast = true;
         }
-        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5))
-            && options->forced_flyby_coast > math::SMALL)
+        if ((p < options.number_of_phases[j] - 1 || (options.journey_arrival_type[j] == 2 || options.journey_arrival_type[j] == 5))
+            && options.forced_flyby_coast > math::SMALL)
         {
             this->terminal_coast_STM = new Kepler::STM;
             this->terminal_coast = true;
         }
 
-        this->current_mass_increment = 0.0;
-        this->journey_initial_mass_increment_scale_factor = 1.0;
-
         //size the time step vector
-        this->time_step_sizes.resize(options->num_timesteps);
+        this->time_step_sizes.resize(options.num_timesteps);
 
-        this->dTdP.resize(options->num_timesteps);
-        this->dmdotdP.resize(options->num_timesteps);
-        this->dTdIsp.resize(options->num_timesteps);
-        this->dmdotdIsp.resize(options->num_timesteps);
-        this->dPdr.resize(options->num_timesteps);
-        this->dPdt.resize(options->num_timesteps);
-        this->dFSRPdr.resize(options->num_timesteps);
+        this->dTdP.resize(options.num_timesteps);
+        this->dmdotdP.resize(options.num_timesteps);
+        this->dTdIsp.resize(options.num_timesteps);
+        this->dmdotdIsp.resize(options.num_timesteps);
+        this->dPdr.resize(options.num_timesteps);
+        this->dPdt.resize(options.num_timesteps);
+        this->dFSRPdr.resize(options.num_timesteps);
 
         //set derivatives for spirals
         this->spiral_escape_dm_after_dm_before = 1.0;

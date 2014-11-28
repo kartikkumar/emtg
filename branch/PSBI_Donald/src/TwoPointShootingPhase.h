@@ -17,7 +17,7 @@ namespace EMTG {
     public:
         //constructor
         TwoPointShootingPhase();
-        TwoPointShootingPhase(const int& j, const int& p, missionoptions* options);
+        TwoPointShootingPhase(const int& j, const int& p, const missionoptions& options);
 
         //destructor
         virtual ~TwoPointShootingPhase();

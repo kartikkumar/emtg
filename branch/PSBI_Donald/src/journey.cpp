@@ -33,21 +33,21 @@ namespace EMTG
 		// default constructor does nothing (is never used)
 	}
 
-	journey::journey(missionoptions* options, int j, EMTG::Astrodynamics::universe& Universe)
+	journey::journey(const missionoptions& options, int j)
 	{
 		//designate a central body
-		central_body_name = options->journey_central_body[j];
+		central_body_name = options.journey_central_body[j];
 
 		//initialize the boundary states array
 		vector<double> state_dummy(12);
 		boundary_states.push_back(state_dummy);
 
 		//create the phases
-		number_of_phases = options->number_of_phases[j];
+		number_of_phases = options.number_of_phases[j];
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
-			switch (options->phase_type[j][p])
+			switch (options.phase_type[j][p])
 			{
 				case 0:
 					{
@@ -91,10 +91,10 @@ namespace EMTG
 		}
 
 		//which journey am I?
-		journey_index = j;
+		this->journey_index = j;
 
 		//initialize the journey initial mass increment multiplier
-		journey_initial_mass_increment_scale_factor = 1.0;
+		this->journey_initial_mass_increment_scale_factor = 1.0;
 	}
 
 	journey::~journey()
@@ -225,7 +225,19 @@ namespace EMTG
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int journey::evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, int j, double* current_epoch, double* current_state, double* current_deltaV, EMTG::Astrodynamics::universe& Universe, missionoptions* options)
+	int journey::evaluate(  const double* X,
+                            int* Xindex, 
+                            double* F, 
+                            int* Findex, 
+                            double* G, 
+                            int* Gindex,
+                            const int& needG, 
+                            const int& j,
+                            double* current_epoch,
+                            double* current_state,
+                            double* current_deltaV,
+                            EMTG::Astrodynamics::universe& Universe,
+                            missionoptions* options)
 	{
 		int errcode = 0;
 

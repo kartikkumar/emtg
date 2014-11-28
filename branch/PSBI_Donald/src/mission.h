@@ -23,8 +23,8 @@ class mission: public EMTG::problem
 public:
 	//constructor
 	mission();
-	mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in, int thread_ID_assigned, int problem_ID_assigned);
-	mission(missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in);
+    mission(int* Xouter, const missionoptions& options_in, const boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in);
+    mission(const missionoptions& options_in, const boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in);
 
 	//destructor
 	virtual ~mission();
@@ -32,7 +32,12 @@ public:
 	//methods
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	virtual int evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar);
+	virtual int evaluate(double* X, 
+                        double* F,
+                        double* G, 
+                        int needG, 
+                        const vector<int>& iGfun,
+                        const vector<int>& jGvar);
 
 	//output function
 	//return 0 if successful, 1 if failure

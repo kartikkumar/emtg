@@ -26,7 +26,7 @@ namespace EMTG
     public:
 	    //constructor
 	    journey();
-	    journey(missionoptions* options, int j, EMTG::Astrodynamics::universe& Universe);
+	    journey(const missionoptions& options, int j);
 
 	    //destructor
 	    virtual ~journey();
@@ -34,14 +34,14 @@ namespace EMTG
 	    //methods
 	    //evaluate function
 	    //return 0 if successful, 1 if failure
-	    int evaluate(   double* X,
+	    int evaluate(   const double* X,
                         int* Xindex, 
                         double* F, 
                         int* Findex, 
                         double* G, 
                         int* Gindex, 
-                        int needG, 
-                        int j, 
+                        const int& needG, 
+                        const int& j, 
                         double* current_epoch,
                         double* current_state,
                         double* current_deltaV, 

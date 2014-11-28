@@ -25,7 +25,7 @@ namespace EMTG {
 	public:
 		//constructor
 		phase();
-        phase(const int& j, const int& p, missionoptions* options);
+        phase(const int& j, const int& p, const missionoptions& options);
 
 		//destructor
 		virtual ~phase();

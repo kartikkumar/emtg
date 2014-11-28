@@ -29,7 +29,7 @@ namespace EMTG
     //default constructor does nothing
     }
 
-    MGA_NDSM_phase::MGA_NDSM_phase(const int& j, const int& p, missionoptions* options) :
+    MGA_NDSM_phase::MGA_NDSM_phase(const int& j, const int& p, const missionoptions& options) :
         TwoPointShootingPhase(j, p, options)
     {
 

@@ -42,7 +42,7 @@ namespace EMTG
 		//default constructor doesn't do anything
 	}
 
-    MGA_DSM_phase::MGA_DSM_phase(const int& j, const int& p, missionoptions* options) :
+    MGA_DSM_phase::MGA_DSM_phase(const int& j, const int& p, const missionoptions& options) :
         phase(j, p, options),
 		time_before_burn(0),
 		time_after_burn(0),
@@ -55,7 +55,7 @@ namespace EMTG
 			++size;
 
 		//if this phase ends with an arrival, then there is an additional burn
-		if (p == options->number_of_phases[j] - 1)
+		if (p == options.number_of_phases[j] - 1)
 			++size;
 
 		dVmag.resize(size);

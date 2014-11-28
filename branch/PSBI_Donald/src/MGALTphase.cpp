@@ -29,14 +29,14 @@ namespace EMTG
 	//default constructor does nothing
 	}
 
-	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, missionoptions* options) :
+	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, const missionoptions& options) :
         TwoPointShootingPhase(j, p, options)
     {
 		//must resize all data vectors to the correct length
 		vector<double> state_dummy(7);
 		vector<double> dV_or_control_dummy(3);
 
-		for (int step = 0; step < options->num_timesteps; ++step) {
+		for (int step = 0; step < options.num_timesteps; ++step) {
             this->spacecraft_state.push_back(state_dummy);
             this->dV.push_back(dV_or_control_dummy);
             this->control.push_back(dV_or_control_dummy);
@@ -45,54 +45,54 @@ namespace EMTG
             this->dagravdtvec.push_back(dV_or_control_dummy);
 		}
 
-        this->event_epochs.resize(options->num_timesteps);
-        this->dVmax.resize(options->num_timesteps);
-        this->available_power.resize(options->num_timesteps);
-        this->available_mass_flow_rate.resize(options->num_timesteps);
-        this->available_thrust.resize(options->num_timesteps);
-        this->available_Isp.resize(options->num_timesteps);
-        this->active_power.resize(options->num_timesteps);
-        this->number_of_active_engines.resize(options->num_timesteps);
-		this->throttle.resize(options->num_timesteps);
+        this->event_epochs.resize(options.num_timesteps);
+        this->dVmax.resize(options.num_timesteps);
+        this->available_power.resize(options.num_timesteps);
+        this->available_mass_flow_rate.resize(options.num_timesteps);
+        this->available_thrust.resize(options.num_timesteps);
+        this->available_Isp.resize(options.num_timesteps);
+        this->active_power.resize(options.num_timesteps);
+        this->number_of_active_engines.resize(options.num_timesteps);
+		this->throttle.resize(options.num_timesteps);
 
 		//size the vectors of state transition matrices
-        this->Forward_STM.resize(options->num_timesteps / 2 + 1);
-        this->Backward_STM.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_F_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Fdot_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_G_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Gdot_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_F_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Fdot_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_G_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Gdot_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Fdotdot_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Gdotdot_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Fdotdot_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Kepler_Gdotdot_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Propagation_Step_Time_Fraction_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Propagation_Step_Time_Fraction_Backward.resize(options->num_timesteps / 2 + 1);
-        this->Propagation_Step_Time_Fraction_Derivative_Forward.resize(options->num_timesteps / 2 + 1);
-        this->Propagation_Step_Time_Fraction_Derivative_Backward.resize(options->num_timesteps / 2 + 1);
+        this->Forward_STM.resize(options.num_timesteps / 2 + 1);
+        this->Backward_STM.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_F_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Fdot_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_G_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Gdot_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_F_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Fdot_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_G_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Gdot_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Fdotdot_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Gdotdot_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Fdotdot_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Kepler_Gdotdot_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Backward.resize(options.num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Derivative_Forward.resize(options.num_timesteps / 2 + 1);
+        this->Propagation_Step_Time_Fraction_Derivative_Backward.resize(options.num_timesteps / 2 + 1);
 
 		//size the time step vector
-        this->time_step_sizes.resize(options->num_timesteps);
+        this->time_step_sizes.resize(options.num_timesteps);
 
 		//size the vectors necessary to compute the patch-point derivatives
-		this->dTdP.resize(options->num_timesteps);
-        this->dmdotdP.resize(options->num_timesteps);
-        this->dTdIsp.resize(options->num_timesteps);
-        this->dmdotdIsp.resize(options->num_timesteps);
-        this->dPdr.resize(options->num_timesteps);
-        this->dPdt.resize(options->num_timesteps);
-        this->dFSRPdr.resize(options->num_timesteps);
+		this->dTdP.resize(options.num_timesteps);
+        this->dmdotdP.resize(options.num_timesteps);
+        this->dTdIsp.resize(options.num_timesteps);
+        this->dmdotdIsp.resize(options.num_timesteps);
+        this->dPdr.resize(options.num_timesteps);
+        this->dPdt.resize(options.num_timesteps);
+        this->dFSRPdr.resize(options.num_timesteps);
 
 		//set derivatives for spirals
 		this->spiral_escape_dm_after_dm_before = 1.0;
 
         //vector to track the state and derivatives of the central body
-        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
-        for (size_t step = 0; step < options->num_timesteps; ++step)
+        vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options.num_timesteps; ++step)
             this->central_body_state_mks.push_back(central_body_state_dummy);
 	}
 

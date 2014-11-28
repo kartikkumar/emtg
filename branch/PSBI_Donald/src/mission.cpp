@@ -36,11 +36,11 @@ mission::mission()  :
 
 }
 
-mission::mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in, int thread_ID_assigned, int problem_ID_assigned)
+mission::mission(int* Xouter, const missionoptions& options_in, const boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in)
 {
 
 	//first make a local copy of the options structure
-	this->options = *options_in;
+	this->options = options_in;
 
 	//make a local copy of the Universe vector
 	this->TheUniverse = TheUniverse_in;
@@ -53,7 +53,7 @@ mission::mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astr
 
 	for (int j = 0; j < number_of_journeys; ++j) 
 	{
-		this->journeys.push_back(new journey(&options, j, this->TheUniverse[j]));
+		this->journeys.push_back(new journey(options, j));
 	}
 
 	//calculate the upper and lower bounds on the decision variables and the constraints
@@ -76,10 +76,10 @@ mission::mission(int* Xouter, missionoptions* options_in, boost::ptr_vector<Astr
 		this->max_TU = max(this->max_TU, this->TheUniverse[j].TU);
 }
 
-mission::mission(missionoptions* options_in, boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in)
+mission::mission(const missionoptions& options_in, const boost::ptr_vector<Astrodynamics::universe>& TheUniverse_in)
 {
 	//first make a local copy of the options structure
-	this->options = *options_in;
+	this->options = options_in;
 
 	//make a local copy of the Universe vector
 	this->TheUniverse = TheUniverse_in;
@@ -89,7 +89,7 @@ mission::mission(missionoptions* options_in, boost::ptr_vector<Astrodynamics::un
 
 	for (int j = 0; j < number_of_journeys; ++j) 
 	{
-		this->journeys.push_back(new journey(&options, j, this->TheUniverse[j]));
+		this->journeys.push_back(new journey(options, j));
 	}
 
 	//calculate the upper and lower bounds on the decision variables and the constraints
@@ -969,7 +969,12 @@ void mission::calcbounds()
 
 //evaluate function
 //return 0 if successful, 1 if failure
-int mission::evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar)
+int mission::evaluate(  double* X,
+                        double* F, 
+                        double* G, 
+                        int needG, 
+                        const vector<int>& iGfun,
+                        const vector<int>& jGvar)
 {
 	int Xindex = 0;
 	int Findex = 1; //F[0] is reserved for the objective function
@@ -1548,97 +1553,6 @@ int mission::output_mission_tree(string filename)
 	return 1;
 }
 
-void mission::create_initial_guess(const int& desired_mission_type, const bool& VSI)
-{
-	//first we want to calculate a new set of bounds for the new mission, mostly so that we can get the descriptions vector
-	missionoptions newoptions = this->options;
-	newoptions.mission_type = desired_mission_type;
-	for (int j = 0; j < newoptions.number_of_journeys; ++j)
-		for (int p = 0; p < newoptions.number_of_phases[j]; ++p)
-			newoptions.phase_type[j][p] = newoptions.mission_type;
-
-	mission newmission(&newoptions, this->TheUniverse);
-
-	//create a vector to hold the new decision vector
-	vector<double> NewX;
-	int NewXIndex = 0;
-	double current_epoch = 0.0;
-
-	//first apply any variables which exist at the mission level
-	//(currently, as of 8-29-2014, there are no such variables)
-
-	//next loop over journeys
-	for (int j = 0; j < this->number_of_journeys; ++j)
-		this->journeys[j].create_initial_guess(	desired_mission_type,
-												VSI, 
-												current_epoch,
-												j,
-												NewX,
-												NewXIndex,
-												newmission.Xdescriptions,
-												options,
-                                                TheUniverse[j]);
-
-	//finally, write out the upper bounds, decision vector, lower bounds, and descriptions
-	string new_mission_type_string;
-	switch (desired_mission_type)
-	{
-	case 0:
-		new_mission_type_string = "MGA";
-		break;
-	case 1:
-		new_mission_type_string = "MGADSM";
-		break;
-	case 2:
-		new_mission_type_string = "MGALT";
-		break;
-	case 3:
-		new_mission_type_string = "FBLT";
-		break;
-	case 4:
-		new_mission_type_string = "MGANDSM";
-		break;
-    case 5:
-        new_mission_type_string = "PSBI";
-        break;
-	}
-
-	string initialguesssfilestring = this->options.working_directory + "//" + this->options.mission_name + "_" + new_mission_type_string + ".emtg_initialguess";
-	std::ofstream initialguessfile(initialguesssfilestring.c_str(), ios::trunc);
-
-	initialguessfile << "#EMTG initial guess file" << endl;
-	initialguessfile << "#Written by EMTG_v8 core program compiled " << __DATE__<< " " << __TIME__ << endl;
-	initialguessfile << "#for mission type:" << endl;
-	initialguessfile << new_mission_type_string << endl;
-    initialguessfile << "#Number of time steps:" << endl;
-    initialguessfile << options.num_timesteps << endl;
-	initialguessfile << endl;
-
-	initialguessfile.precision(20);
-
-	initialguessfile << newmission.Xupperbounds[0];
-	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
-		initialguessfile << ", " << newmission.Xupperbounds[k];
-	initialguessfile << std::endl;
-
-	initialguessfile << NewX[0];
-	for (size_t k = 1; k < NewX.size(); ++k)
-		initialguessfile << ", " << NewX[k];
-	initialguessfile << std::endl;
-
-	initialguessfile << newmission.Xlowerbounds[0];
-	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
-		initialguessfile << ", " << newmission.Xlowerbounds[k];
-	initialguessfile << std::endl;
-
-	initialguessfile << newmission.Xdescriptions[0];
-	for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
-		initialguessfile << ", " << newmission.Xdescriptions[k];
-	initialguessfile << std::endl;
-
-	return;
-}
-
 //function to interpolate an initial guess
 void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 {
@@ -1647,11 +1561,11 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 	//the only values that should be interpolated are the unit control vectors and Isps (in the case of VSI propulsion)
 
 	//Step 1: create a new options file that mimics the original, pre-interpolation problem
-	missionoptions* OldOptions = new missionoptions(options);
-	OldOptions->num_timesteps = options.initial_guess_num_timesteps;
+	missionoptions OldOptions = options;
+	OldOptions.num_timesteps = options.initial_guess_num_timesteps;
 
 	//Step 2: create a temporary mission object that mimics the original, pre-interpolation problem
-	mission* OldMission = new mission(Xouter, OldOptions, TheUniverse, 0, 0);
+	mission OldMission = mission(Xouter, OldOptions, TheUniverse);
 
 	//Step 3: construct the interpolated decision vector
 	int XOldEntry = 0;
@@ -1662,13 +1576,13 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 
 	while (XOldEntry < Xold.size())
 	{
-		if (!(OldMission->Xdescriptions[XOldEntry].find("step") < 1024))
+		if (!(OldMission.Xdescriptions[XOldEntry].find("step") < 1024))
 		{
 			//for all non-control parameters, just copy them to the new decision vector unaltered
 			Xnew.push_back(Xold[XOldEntry]);
 
 			//we need to keep track of the current time, so that we can use it to index our control tables
-			if (strcmp(OldMission->Xdescriptions[XOldEntry].c_str(), "time") < 1024 || strcmp(OldMission->Xdescriptions[XOldEntry].c_str(), "epoch") < 1024)
+			if (strcmp(OldMission.Xdescriptions[XOldEntry].c_str(), "time") < 1024 || strcmp(OldMission.Xdescriptions[XOldEntry].c_str(), "epoch") < 1024)
 			{
 				most_recent_time_increment = Xold[XOldEntry];
 			}
@@ -1679,9 +1593,9 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 		else
 		{
 			//first get the prefix for the current entry, which tells us which phase and journey we are in
-			stringstream prefixstream(OldMission->Xdescriptions[XOldEntry]);
+			stringstream prefixstream(OldMission.Xdescriptions[XOldEntry]);
 			vector<string> parsed_description;
-			boost::split(parsed_description, OldMission->Xdescriptions[XOldEntry], boost::is_any_of(":"));
+			boost::split(parsed_description, OldMission.Xdescriptions[XOldEntry], boost::is_any_of(":"));
 			most_recent_prefix = parsed_description[0];
 
 			//construct a data table of all control values
@@ -1701,7 +1615,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 
 			//first encode the left hand side of the phase
             int offset;
-            if (OldOptions->mission_type == 5)
+            if (OldOptions.mission_type == 5)
             {
                 Oldx.push_back(std::make_pair(0.0, Xold[XOldEntry]));
                 Oldy.push_back(std::make_pair(0.0, Xold[XOldEntry + 1]));
@@ -1718,39 +1632,39 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			OldUx.push_back(std::make_pair(0.0, Xold[XOldEntry + offset]));
 			OldUy.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 1]));
 			OldUz.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 2]));
-			if (OldOptions->engine_type == 4 || OldOptions->engine_type == 12 || OldOptions->engine_type == 13)
+			if (OldOptions.engine_type == 4 || OldOptions.engine_type == 12 || OldOptions.engine_type == 13)
 			{
 				OldIsp.push_back(std::make_pair(0.0, Xold[XOldEntry + offset + 3]));
 			}
 
 			//then each step
-			for (int step = 0; step < OldOptions->num_timesteps; ++step)
+			for (int step = 0; step < OldOptions.num_timesteps; ++step)
 			{
-                if (OldOptions->mission_type == 5)
+                if (OldOptions.mission_type == 5)
                 {
-                    Oldx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry]));
-                    Oldy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 1]));
-                    Oldz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 2]));
-                    Oldxdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 3]));
-                    Oldydot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 4]));
-                    Oldzdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 5]));
-                    Oldmass.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + 6]));
+                    Oldx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry]));
+                    Oldy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 1]));
+                    Oldz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 2]));
+                    Oldxdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 3]));
+                    Oldydot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 4]));
+                    Oldzdot.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 5]));
+                    Oldmass.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + 6]));
                 }
-				OldUx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset]));
-				OldUy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset + 1]));
-				OldUz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry + offset + 2]));
+				OldUx.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + offset]));
+				OldUy.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + offset + 1]));
+				OldUz.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry + offset + 2]));
 				XOldEntry += 3 + offset;
 
 				//for variable specific impulse engine types, we must also encode an Isp
-				if (OldOptions->engine_type == 4 || OldOptions->engine_type == 12 || OldOptions->engine_type == 13)
+				if (OldOptions.engine_type == 4 || OldOptions.engine_type == 12 || OldOptions.engine_type == 13)
 				{
-					OldIsp.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions->num_timesteps, Xold[XOldEntry]));
+					OldIsp.push_back(std::make_pair(most_recent_time_increment * (step + 0.5) / OldOptions.num_timesteps, Xold[XOldEntry]));
 					++XOldEntry;
 				}
 			}
 
 			//and finally the right-hand side
-            if (OldOptions->mission_type == 5)
+            if (OldOptions.mission_type == 5)
             {
                 Oldx.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 11]));
                 Oldy.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry - 10]));
@@ -1763,7 +1677,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			OldUx.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-4]));
 			OldUy.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-3]));
 			OldUz.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-2]));
-			if (OldOptions->engine_type == 4 || OldOptions->engine_type == 12 || OldOptions->engine_type == 13)
+			if (OldOptions.engine_type == 4 || OldOptions.engine_type == 12 || OldOptions.engine_type == 13)
 			{
 				OldIsp.push_back(std::make_pair(most_recent_time_increment, Xold[XOldEntry-1]));
 			}
@@ -1788,7 +1702,7 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 				stepstream << step;
 
                 //if applicable, interpolate and encode the state vector
-                if (OldOptions->mission_type == 5)
+                if (OldOptions.mission_type == 5)
                 {
                     Xnew.push_back(x_interpolator.interpolate(current_time));
                     Xnew.push_back(y_interpolator.interpolate(current_time));
@@ -1820,10 +1734,6 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 	} //end while loop to create new decision vector
 
 	options.current_trialX = Xnew;
-	
-	//delete the temporary objects
-	delete[] OldOptions;
-	delete[] OldMission;
 
 	return;
 }
@@ -2453,6 +2363,97 @@ void mission::interpolate(int* Xouter, const vector<double>& initialguess)
 			}
 		}
 	}
+
+    void mission::create_initial_guess(const int& desired_mission_type, const bool& VSI)
+    {
+        //first we want to calculate a new set of bounds for the new mission, mostly so that we can get the descriptions vector
+        missionoptions newoptions = this->options;
+        newoptions.mission_type = desired_mission_type;
+        for (int j = 0; j < newoptions.number_of_journeys; ++j)
+            for (int p = 0; p < newoptions.number_of_phases[j]; ++p)
+                newoptions.phase_type[j][p] = newoptions.mission_type;
+
+        mission newmission(newoptions, this->TheUniverse);
+
+        //create a vector to hold the new decision vector
+        vector<double> NewX;
+        int NewXIndex = 0;
+        double current_epoch = 0.0;
+
+        //first apply any variables which exist at the mission level
+        //(currently, as of 8-29-2014, there are no such variables)
+
+        //next loop over journeys
+        for (int j = 0; j < this->number_of_journeys; ++j)
+            this->journeys[j].create_initial_guess(desired_mission_type,
+            VSI,
+            current_epoch,
+            j,
+            NewX,
+            NewXIndex,
+            newmission.Xdescriptions,
+            options,
+            TheUniverse[j]);
+
+        //finally, write out the upper bounds, decision vector, lower bounds, and descriptions
+        string new_mission_type_string;
+        switch (desired_mission_type)
+        {
+        case 0:
+            new_mission_type_string = "MGA";
+            break;
+        case 1:
+            new_mission_type_string = "MGADSM";
+            break;
+        case 2:
+            new_mission_type_string = "MGALT";
+            break;
+        case 3:
+            new_mission_type_string = "FBLT";
+            break;
+        case 4:
+            new_mission_type_string = "MGANDSM";
+            break;
+        case 5:
+            new_mission_type_string = "PSBI";
+            break;
+        }
+
+        string initialguesssfilestring = this->options.working_directory + "//" + this->options.mission_name + "_" + new_mission_type_string + ".emtg_initialguess";
+        std::ofstream initialguessfile(initialguesssfilestring.c_str(), ios::trunc);
+
+        initialguessfile << "#EMTG initial guess file" << endl;
+        initialguessfile << "#Written by EMTG_v8 core program compiled " << __DATE__ << " " << __TIME__ << endl;
+        initialguessfile << "#for mission type:" << endl;
+        initialguessfile << new_mission_type_string << endl;
+        initialguessfile << "#Number of time steps:" << endl;
+        initialguessfile << options.num_timesteps << endl;
+        initialguessfile << endl;
+
+        initialguessfile.precision(20);
+
+        initialguessfile << newmission.Xupperbounds[0];
+        for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
+            initialguessfile << ", " << newmission.Xupperbounds[k];
+        initialguessfile << std::endl;
+
+        initialguessfile << NewX[0];
+        for (size_t k = 1; k < NewX.size(); ++k)
+            initialguessfile << ", " << NewX[k];
+        initialguessfile << std::endl;
+
+        initialguessfile << newmission.Xlowerbounds[0];
+        for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
+            initialguessfile << ", " << newmission.Xlowerbounds[k];
+        initialguessfile << std::endl;
+
+        initialguessfile << newmission.Xdescriptions[0];
+        for (size_t k = 1; k < newmission.Xdescriptions.size(); ++k)
+            initialguessfile << ", " << newmission.Xdescriptions[k];
+        initialguessfile << std::endl;
+
+        return;
+    }
 
     //method to output an STK-compatible forward ephemeris
     void mission::write_ephemeris_file()

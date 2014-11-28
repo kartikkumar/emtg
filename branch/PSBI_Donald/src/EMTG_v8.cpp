@@ -312,7 +312,7 @@ int main(int argc, char* argv[])
 			{
 				if (options.problem_type == 0) //regular EMTG missions
 				{
-					EMTG::mission TrialMission(&Xouterloop_trial[0], &options, TheUniverse, 0, 0);
+					EMTG::mission TrialMission(&Xouterloop_trial[0], options, TheUniverse);
 
 					//and now, as a demo, print the mission tree
 					TrialMission.output_mission_tree(options.working_directory + "//" + TrialMission.options.mission_name + "_" + TrialMission.options.description + "_missiontree.emtgtree");
@@ -429,7 +429,6 @@ int main(int argc, char* argv[])
     }
 #endif
 
-	std::cin.ignore();
 	return 0;
 	
 }

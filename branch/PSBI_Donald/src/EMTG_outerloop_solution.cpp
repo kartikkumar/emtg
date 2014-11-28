@@ -304,7 +304,7 @@ namespace GeneticAlgorithm
 		EMTG::missionoptions options = this->parse_outer_loop_decision_vector();
 
 		//Step 2: instantiate a mission
-		EMTG::mission TrialMission(&options, *Universe);
+		EMTG::mission TrialMission(options, *Universe);
 
 		//Step 3: run the inner-loop
 		options.print_options_file(options.working_directory + "//" + this->description + ".emtgopt");

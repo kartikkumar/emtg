@@ -30,7 +30,7 @@ namespace EMTG
 
     }
 
-    FBLT_phase::FBLT_phase(const int& j, const int& p, missionoptions* options) :
+    FBLT_phase::FBLT_phase(const int& j, const int& p, const missionoptions& options) :
         TwoPointShootingPhase(j, p, options)
     {
 	    //must resize all data vectors to the correct length
@@ -67,23 +67,24 @@ namespace EMTG
 		//empty control vector for when we are coasting
 		this->empty_vector = std::vector <double>(3, 0.0);
 
-	    for (int step = 0; step < options->num_timesteps; ++step) {
+	    for (int step = 0; step < options.num_timesteps; ++step) 
+        {
             this->spacecraft_state.push_back(state_dummy);
             this->control.push_back(dV_or_control_dummy);
 	    }
 
 
-        this->event_epochs.resize(options->num_timesteps);
-        this->available_power.resize(options->num_timesteps);
-        this->available_thrust.resize(options->num_timesteps);
-        this->available_mass_flow_rate.resize(options->num_timesteps);
-        this->available_Isp.resize(options->num_timesteps);
-        this->active_power.resize(options->num_timesteps);
-        this->number_of_active_engines.resize(options->num_timesteps);
+        this->event_epochs.resize(options.num_timesteps);
+        this->available_power.resize(options.num_timesteps);
+        this->available_thrust.resize(options.num_timesteps);
+        this->available_mass_flow_rate.resize(options.num_timesteps);
+        this->available_Isp.resize(options.num_timesteps);
+        this->active_power.resize(options.num_timesteps);
+        this->number_of_active_engines.resize(options.num_timesteps);
 
         //vector to track the state and derivatives of the central body
-        vector<double> central_body_state_dummy(options->derivative_type > 2 ? 12 : 6);
-        for (size_t step = 0; step < options->num_timesteps; ++step)
+        vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options.num_timesteps; ++step)
             this->central_body_state_mks.push_back(central_body_state_dummy);
 
 	    //set up the integrator
@@ -93,16 +94,16 @@ namespace EMTG
 		this->STMrows = 11;
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
-	    integrator = new EMTG::integration::rk8713M(num_states, options->number_of_phases[j]);
+	    integrator = new EMTG::integration::rk8713M(num_states, options.number_of_phases[j]);
 
 	    //size the time step vector
-	    this->time_step_sizes.resize(options->num_timesteps);
+	    this->time_step_sizes.resize(options.num_timesteps);
 
 	    //set derivatives for spirals
 	    this->spiral_escape_dm_after_dm_before = 1.0;
 
         //set up STMS
-        for (size_t step = 0; step < options->num_timesteps / 2; ++step)
+        for (size_t step = 0; step < options.num_timesteps / 2; ++step)
         {
             this->STM_archive_forward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
             this->STM_archive_backward.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
@@ -110,7 +111,7 @@ namespace EMTG
             this->backward_cumulative_STM_archive.push_back(EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0));
         }
 
-        if ((j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)) && options->forced_flyby_coast > 1.0e-6))
+        if ((j == 0 && p == 0 && options.forced_post_launch_coast > 1.0e-6) || ((p > 0 || p == 0 && (options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)) && options.forced_flyby_coast > 1.0e-6))
         {
             this->detect_initial_coast = true;
             this->initial_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);
@@ -118,7 +119,7 @@ namespace EMTG
         else
             this->detect_initial_coast = false;
 
-        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5)) && options->forced_flyby_coast > 1.0e-6)
+        if ((p < options.number_of_phases[j] - 1 || (options.journey_arrival_type[j] == 2 || options.journey_arrival_type[j] == 5)) && options.forced_flyby_coast > 1.0e-6)
         {
             this->detect_terminal_coast = true;
             this->terminal_coast_STM = EMTG::math::Matrix< double >(this->STMrows, this->STMcolumns, 0.0);

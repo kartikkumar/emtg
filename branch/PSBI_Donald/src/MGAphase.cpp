@@ -39,12 +39,12 @@ namespace EMTG
 	    //default constructor doesn't do anything
     }
 
-    MGA_phase::MGA_phase(const int& j, const int& p, missionoptions* options) :
+    MGA_phase::MGA_phase(const int& j, const int& p, const missionoptions& options) :
         phase(j, p, options)
     {
 	    //if this is a terminal phase, there are two burns
 	    //otherwise there is only one
-	    if (p < (options->number_of_phases[j] - 1))
+	    if (p < (options.number_of_phases[j] - 1))
 		    dVmag.resize(1,0);
 	    else
 		    dVmag.resize(2,0);
