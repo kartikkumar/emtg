@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
 						TrialMission.options.current_trialX = options.trialX[trial];
 
 						//if we are interpolating an initial guess to change the resolution
-						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
+						if (options.interpolate_initial_guess && options.run_inner_loop > 0 && !(options.num_timesteps == options.initial_guess_num_timesteps))
 						{
 							TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
 						}
@@ -341,7 +341,7 @@ int main(int argc, char* argv[])
 					{
 						TrialMission.options.current_trialX = options.trialX[trial];
 
-						if (options.interpolate_initial_guess && options.seed_MBH)
+                        if (options.interpolate_initial_guess && options.seed_MBH && !(options.num_timesteps == options.initial_guess_num_timesteps))
 							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
 
 						//convert coordinate systems if applicable

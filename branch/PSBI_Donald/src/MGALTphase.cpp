@@ -1816,7 +1816,7 @@ namespace EMTG {
 				dydotdu = Forward_STM[0](4,3) * (cRA*cDEC) + Forward_STM[0](4,4) * (sRA*cDEC) + Forward_STM[0](4,5) * sDEC;
 				dzdotdu = Forward_STM[0](5,3) * (cRA*cDEC) + Forward_STM[0](5,4) * (sRA*cDEC) + Forward_STM[0](5,5) * sDEC;
 
-				dmdu = this->dmdvinf;
+                dmdu = this->dmdvinf * this->mission_initial_mass_multiplier;
 				dPdu = 0.0;
 
 				//loop over later steps
@@ -1849,7 +1849,7 @@ namespace EMTG {
 				G[match_point_constraint_G_indices[0][3][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][3][0]]] * dxdotdu / Universe->LU * Universe->TU;
 				G[match_point_constraint_G_indices[0][4][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][4][0]]] * dydotdu / Universe->LU * Universe->TU;
 				G[match_point_constraint_G_indices[0][5][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][5][0]]] * dzdotdu / Universe->LU * Universe->TU;
-				G[match_point_constraint_G_indices[0][6][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][6][0]]] * dmdu  / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+				G[match_point_constraint_G_indices[0][6][0]] = -options->X_scale_ranges[options->jGvar[match_point_constraint_G_indices[0][6][0]]] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
 
 				//Step 2: derivative of match point constraints with respect to right ascension of launch asymptote
 				dxdu = v_infinity * ( Forward_STM[0](0,3) * (-sRA*cDEC) + Forward_STM[0](0,4) * (cRA*cDEC) );
