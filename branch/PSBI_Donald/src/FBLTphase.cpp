@@ -45,6 +45,7 @@ namespace EMTG
 		this->spacecraft_state_backward_prop = std::vector <double>(11 + 11 * 11, 0.0);
 		this->spacecraft_state_propagate = std::vector <double>(11 + 11 * 11, 0.0);
 		this->spacecraft_state_propagate_next = std::vector <double>(11 + 11 * 11, 0.0);
+		this->match_point_state = std::vector <double>(7, 0.0);
 
 		//phase TOF derivative containers
 		this->dspacecraft_state_forwarddTOF = EMTG::math::Matrix <double> (7, 2, 0.0);
@@ -161,7 +162,7 @@ namespace EMTG
 	    double temp_available_power;
 	    double temp_active_power;
 	    int temp_number_of_active_engines;
-
+		
 	    //******************************************************************
 	    //Steps 1-4: Process the left boundary condition
 	    process_left_boundary_condition(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary1_state, boundary2_state, j, p, Universe, options);
@@ -222,10 +223,12 @@ namespace EMTG
 		//WE NEED TO FILL THIS WITH PHASE LEFT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
         if (options->derivative_type > 2 && needG)
         {
-            for (size_t state = 0; state < 6; ++state)
+            for (size_t state = 0; state < 3; ++state)
             {
-                dspacecraft_state_forwarddTOF(state, 0) = this->left_boundary_state_derivative[state];
-                dspacecraft_state_forwarddTOF(state, 1) = this->left_boundary_state_derivative[state];
+                dspacecraft_state_forwarddTOF(state, 0) = 0.0;
+				dspacecraft_state_forwarddTOF(state + 3, 0) = 0.0;
+				dspacecraft_state_forwarddTOF(state, 1) = this->left_boundary_state_derivative[state] / Universe->LU * Universe->TU;
+				dspacecraft_state_forwarddTOF(state + 3, 1) = this->left_boundary_state_derivative[state + 3] / Universe->LU * Universe->TU * Universe->TU;
             }
             dspacecraft_state_forwarddTOF(6, 0) = 0.0;
             dspacecraft_state_forwarddTOF(6, 1) = 0.0;
@@ -545,10 +548,10 @@ namespace EMTG
 			//advance the clock for the next FBLT segment
             phase_time_elapsed_forward += time_step_sizes[step];
 			
-			for (size_t i = 0; i < p + 1; ++i)
+			for (size_t i = 0; i < 2; ++i)
 				dcurrent_epochdTOF[i] += dsegment_timedTOF;
         }
-
+		
         /*
         //now let's repeat the integration inside a finite difference loop to check the multiplication of the STMs
         double control_perturbation = 1.0e-6;
@@ -747,10 +750,12 @@ namespace EMTG
 		//WE NEED TO FILL THIS WITH PHASE RIGHT HAND BOUNDARY STATE DERIVATIVES (SPICE FINITE DIFFERENCED)
         if (options->derivative_type > 2 && needG)
         {
-            for (size_t state = 0; state < 6; ++state)
+            for (size_t state = 0; state < 3; ++state)
             {
-                dspacecraft_state_backwarddTOF(state, 0) = this->right_boundary_state_derivative[state];
-                dspacecraft_state_backwarddTOF(state, 1) = this->right_boundary_state_derivative[state];
+                dspacecraft_state_backwarddTOF(state, 0) = this->right_boundary_state_derivative[state] / Universe->LU * Universe->TU;
+				dspacecraft_state_backwarddTOF(state + 3, 0) = this->right_boundary_state_derivative[state + 3] / Universe->LU * Universe->TU * Universe->TU;
+				dspacecraft_state_backwarddTOF(state, 1) = this->right_boundary_state_derivative[state] / Universe->LU * Universe->TU;
+				dspacecraft_state_backwarddTOF(state + 3, 1) = this->right_boundary_state_derivative[state + 3] / Universe->LU * Universe->TU * Universe->TU;
             }
             dspacecraft_state_backwarddTOF(6, 0) = 0.0;
             dspacecraft_state_backwarddTOF(6, 1) = 0.0;
@@ -1068,7 +1073,7 @@ namespace EMTG
 			for (size_t i = 0; i < 2; ++i)
 				dcurrent_epochdTOF[i] += dsegment_timedTOF;
 	    }
-
+		
 	    //step Xindex back to the end of the arc
 	    if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
 		    (*Xindex) += 4 * options->num_timesteps/2;
@@ -2555,15 +2560,18 @@ namespace EMTG
 		{
             for (int stateindex = 0; stateindex < 7; ++stateindex)
             {
-                for (int timevar = 0; timevar < this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
-                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar]] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar] * this->dspacecraft_state_forwarddTOF(stateindex, 1) / Universe->TU;
+				for (int timevar = 0; timevar < this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[0].size() - 1; ++timevar)
+					G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar]] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex][timevar] * this->dspacecraft_state_forwarddTOF(stateindex, 1) / Universe->TU;				
             }
+
 
 			//the following derivatives are for the current phase flight time ONLY
 			if (options->derivative_type > 3)
 			{
-                for (int stateindex = 0; stateindex < 7; ++stateindex)
-                    G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back()] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back() * this->dspacecraft_state_forwarddTOF(stateindex, 0) / Universe->TU;
+				for (int stateindex = 0; stateindex < 7; ++stateindex)
+				{
+					G[this->G_index_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back()] = -X_scale_range_of_derivative_of_match_point_with_respect_to_flight_time_variables[stateindex].back() * this->dspacecraft_state_forwarddTOF(stateindex, 0) / Universe->TU;
+				}
 			}
 		}
 		

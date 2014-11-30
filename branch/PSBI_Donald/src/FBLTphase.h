@@ -112,6 +112,7 @@ public:
 	std::vector <double> spacecraft_state_end_coast;
 	std::vector <double> spacecraft_state_propagate;
 	std::vector <double> spacecraft_state_propagate_next;
+	std::vector <double> match_point_state;
 
 	//phase TOF derivative containers
 	EMTG::math::Matrix <double> dspacecraft_state_forwarddTOF;
@@ -145,9 +146,6 @@ public:
 	
 	//time information
 	vector <double> event_epochs;
-
-	//state information
-	vector<double> match_point_state;
 
 	//integrator
 	EMTG::integration::rk8713M *integrator;
