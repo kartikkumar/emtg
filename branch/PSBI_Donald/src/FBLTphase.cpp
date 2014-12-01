@@ -36,6 +36,7 @@ namespace EMTG
 	    //must resize all data vectors to the correct length
 	    std::vector<double> state_dummy(7);
 	    std::vector<double> dV_or_control_dummy(3);
+        this->match_point_state.resize(7);
 
 		//state vector containers
 		this->spacecraft_state_forward = std::vector <double> (11 + 11 * 11, 0.0);
@@ -1084,7 +1085,7 @@ namespace EMTG
 	    (*Findex) += options->num_timesteps/2;
 
 	    //Step 6.4: enforce match point constraint
-	    for (size_t k=0; k<3; ++k)
+	    for (size_t k = 0; k < 3; ++k)
 	    {
 		    //position
             F[*Findex + k] = (spacecraft_state_backward_prop[k] - spacecraft_state_forward_prop[k]);
@@ -1093,15 +1094,15 @@ namespace EMTG
             F[*Findex + k + 3] = (spacecraft_state_backward_prop[k + 3] - spacecraft_state_forward_prop[k + 3]);
 
 		    //unscale the match point state (normalized to mks)
-            match_point_state[k] = spacecraft_state_forward_prop[k] * Universe->LU;
-            match_point_state[k + 3] = spacecraft_state_forward_prop[k + 3] * Universe->LU / Universe->TU;
+            this->match_point_state[k] = spacecraft_state_forward_prop[k] * Universe->LU;
+            this->match_point_state[k + 3] = spacecraft_state_forward_prop[k + 3] * Universe->LU / Universe->TU;
 	    }
 	    //mass
         F[*Findex + 6] = (spacecraft_state_backward_prop[6] - spacecraft_state_forward_prop[6]);
 	    (*Findex) += 7;
 
 		//unscale the match point mass
-        match_point_state[6] = spacecraft_state_forward_prop[6] * options->maximum_mass;
+        this->match_point_state[6] = spacecraft_state_forward_prop[6] * options->maximum_mass;
 
 
 		//CALCULATE MATCH POINT DERIVATIVES HERE

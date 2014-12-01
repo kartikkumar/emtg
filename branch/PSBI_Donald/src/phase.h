@@ -545,7 +545,9 @@ namespace EMTG {
 		vector<double> right_boundary_YDOT_G_indices;
 		vector<double> right_boundary_ZDOT_G_indices;
         vector<double> derivative_of_left_boundary_state_with_respect_to_variable_left_boundary_decision_variables;
+        int number_of_left_boundary_variables;
         vector<double> derivative_of_right_boundary_state_with_respect_to_variable_right_boundary_decision_variables;
+        int number_of_right_boundary_variables;
 	};
 
 } /* namespace EMTG */

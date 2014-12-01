@@ -29,12 +29,13 @@ namespace EMTG
 	//default constructor does nothing
 	}
 
-	MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, const missionoptions& options) :
+    MGA_LT_phase::MGA_LT_phase(const int& j, const int& p, const missionoptions& options) :
         TwoPointShootingPhase(j, p, options)
     {
 		//must resize all data vectors to the correct length
 		vector<double> state_dummy(7);
 		vector<double> dV_or_control_dummy(3);
+        this->match_point_state.resize(7);
 
 		for (int step = 0; step < options.num_timesteps; ++step) {
             this->spacecraft_state.push_back(state_dummy);

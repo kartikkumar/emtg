@@ -67,6 +67,27 @@ namespace EMTG {
         this->V_infinity_out.resize(3, 1);
         this->BoundaryR.resize(3, 1);
         this->BoundaryV.resize(3, 1);
+
+        //size the vector of derivatives of boundary states with respect to boundary state variables
+        if (options.derivative_type > 1)
+        {
+            if (options.destination_list[j][0] == -1)
+            {
+                this->number_of_left_boundary_variables = 0;
+                for (int state = 0; state < 6; ++state)
+                    if (options.journey_departure_elements_vary_flag[j][state])
+                        ++this->number_of_left_boundary_variables;
+                this->derivative_of_left_boundary_state_with_respect_to_variable_left_boundary_decision_variables.resize(this->number_of_left_boundary_variables, 0.0);
+            }
+            if (options.destination_list[j][1] == -1)
+            {
+                this->number_of_right_boundary_variables = 0;
+                for (int state = 0; state < 6; ++state)
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                        ++this->number_of_right_boundary_variables;
+                this->derivative_of_right_boundary_state_with_respect_to_variable_right_boundary_decision_variables.resize(this->number_of_right_boundary_variables, 0.0);
+            }
+        }
     }
 
 	phase::~phase()
@@ -1149,6 +1170,7 @@ namespace EMTG {
 			{
 				//if we are starting this journey at a non-body point AND this is not the first journey then the starting location is wherever we ended the last journey
 				//here we take advantage of the fact that the "V_infinity" field is actually the 4th, 5th, and 6th entries of a 7-vector containing the spacecraft state at the end of the previous journey
+                
 				double boundary_state_copy[6];
 				for (int k = 0; k < 6; ++k)
 					boundary_state_copy[k] = V_infinity[k - 3];
@@ -1163,6 +1185,12 @@ namespace EMTG {
 													&Gdummy,
 													&Ftdummy,
 													&Gtdummy);
+
+                //derivatives with respect to boundary decision variables for this case are the same as the right-hand side of the previous phase
+                if (options->derivative_type > 1 && needG)
+                {
+                    //TODO pass in derivatives with respect to boundary decision variables in previous phase/journey
+                }
 			}
 			else if (location == -1 && j == 0) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{

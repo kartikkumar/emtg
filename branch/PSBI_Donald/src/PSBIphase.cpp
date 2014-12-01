@@ -1655,11 +1655,9 @@ namespace EMTG
             state[6] = spacecraft_state[step][6];
             for (int k = 0; k < 6; ++k)
                 state[k] = spacecraft_state[step][k];
-            if (step < options->num_timesteps / 2)
-            {
-                for (int k = 0; k < 3; ++k)
-                    state[k + 3] -= dV[step][k];
-            }
+            //adjust to "state before burn"
+            for (int k = 0; k < 3; ++k)
+                state[k + 3] -= dV[step][k];
 
             write_summary_line(options,
                 Universe,

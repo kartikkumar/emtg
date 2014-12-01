@@ -1028,7 +1028,7 @@ int mission::evaluate(  double* X,
 		double final_spacecraft_mass = FinalPhase->current_mass_increment > 0 ? final_system_mass - FinalJourney->phases.begin()->journey_initial_mass_increment_scale_factor * FinalPhase->current_mass_increment : final_system_mass;
 
 		//apply the post-mission delta-v to determine the remaining mass of the spacecraft
-		double expfun = exp(-1000 * options.post_mission_delta_v / (options.g0 * options.post_mission_Isp));
+		const double expfun = exp(-1000.0 * options.post_mission_delta_v / (options.g0 * options.post_mission_Isp));
 		double system_mass_after_post_mission_delta_v = final_system_mass * expfun;
 		double spacecraft_mass_after_post_mission_delta_v = final_spacecraft_mass - (final_system_mass - system_mass_after_post_mission_delta_v);
 
