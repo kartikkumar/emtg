@@ -708,6 +708,7 @@ class PyEMTG_interface(wx.Frame):
     #event handlers for global mission options    
     def ChangeMissionName(self, e):
         self.missionoptions.mission_name = self.optionsnotebook.tabGlobal.txtMissionName.GetValue()
+        self.missionoptions.update_all_panels(self.optionsnotebook)
         
     def ChangeMissionType(self, e):
         self.missionoptions.mission_type = self.optionsnotebook.tabGlobal.cmbMissionType.GetSelection()

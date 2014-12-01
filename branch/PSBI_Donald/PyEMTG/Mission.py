@@ -211,15 +211,7 @@ class Mission(object):
             l1 = []
             l2 = []
             
-            if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat or PlotOptions.PlotEarthDistance:
-                h1, l1 = self.DataAxesLeft.get_legend_handles_labels()
-                self.DataAxesLeft.set_ylabel('Scalar Metric')
-                self.DataAxesLeft.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
-                #self.DataAxesLeft.grid(b=True, ls='-')
-            else:
-                yticks = self.DataAxesLeft.yaxis.get_major_ticks()
-                for tick in yticks:
-                    tick.set_visible(False)
+            
             if PlotOptions.PlotGamma or PlotOptions.PlotDelta or PlotOptions.PlotCB_thrust_angle or PlotOptions.PlotSunEarthSpacecraftAngle:
                 h2, l2 = self.DataAxesRight.get_legend_handles_labels()
                 self.DataAxesRight.set_ylabel('Angle Metric')
@@ -227,6 +219,16 @@ class Mission(object):
                 #self.DataAxesRight.grid(b=True, ls='-')
             else:
                 yticks = self.DataAxesRight.yaxis.get_major_ticks()
+                for tick in yticks:
+                    tick.set_visible(False)
+
+            if PlotOptions.PlotR or PlotOptions.PlotV or PlotOptions.PlotThrust or PlotOptions.PlotIsp or PlotOptions.PlotMdot or PlotOptions.PlotEfficiency or PlotOptions.PlotThrottle or PlotOptions.PlotPower or PlotOptions.PlotMass or PlotOptions.PlotNumberOfEngines or PlotOptions.PlotActivePower or PlotOptions.PlotWasteHeat or PlotOptions.PlotEarthDistance:
+                h1, l1 = self.DataAxesLeft.get_legend_handles_labels()
+                self.DataAxesLeft.set_ylabel('Scalar Metric')
+                self.DataAxesLeft.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(format_date))
+                #self.DataAxesLeft.grid(b=True, ls='-')
+            else:
+                yticks = self.DataAxesLeft.yaxis.get_major_ticks()
                 for tick in yticks:
                     tick.set_visible(False)
 

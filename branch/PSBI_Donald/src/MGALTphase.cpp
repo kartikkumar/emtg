@@ -1082,7 +1082,7 @@ namespace EMTG
 			double current_Isp, current_thrust, current_power;
 			if (options->engine_type == 0) //fixed thrust/Isp
 			{
-				current_thrust = options->Thrust * 1000.0;
+				current_thrust = options->Thrust;
 				current_Isp = options->IspLT;
 				current_power = -1;
 				current_mass_flow_rate = current_thrust / current_Isp / options->g0;
