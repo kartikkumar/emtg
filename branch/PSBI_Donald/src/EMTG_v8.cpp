@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 
 	//if we are running in parallel, start MPI
 #ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
+	boost::mpi::environment MPIEnvironment(argc, argv, true);
 	boost::mpi::communicator MPIWorld;
 #endif
 
