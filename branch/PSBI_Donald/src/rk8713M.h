@@ -1,6 +1,6 @@
 // Dormand-Prince (DOPRI) 8th(7th) order 13 step algorithm
 // DOPRI constants are from Numerical Recipies
-// Jacob Englander 9/10/2012
+// Donald Ellison 11/25/2014
 
 #include "missionoptions.h"
 #include "universe.h"
@@ -40,7 +40,6 @@ public:
 
 					  void(*EOM)(std::vector <double> & x,
 					  EMTG::math::Matrix <double> & dx_dTOF,
-					  //std::vector <double> & dx_dTOF,
 					  const double & t_left_step,
 					  std::vector <double> & dt_left_stepdTOF,
 					  const double & c,

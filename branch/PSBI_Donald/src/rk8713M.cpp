@@ -1,6 +1,6 @@
 // Dormand-Prince (DOPRI) 8th(7th) order 13 step algorithm
 // DOPRI constants are from Numerical Recipies
-// Jacob Englander 9/10/2012
+// Donald Ellison 11/25/2014
 
 #include <cmath>
 #include <algorithm>
@@ -61,8 +61,8 @@ namespace EMTG {
 			double * power, // pointer that will extract info from the engine model (for storage in an archive)
 			double * active_power, // pointer that will extract info from the engine model (for storage in an archive)
 			int * number_of_active_engines, // pointer that will extract info from the engine model (for storage in an archive)
-			int & STMrows,
-			int & STMcolumns,
+			int & STMrows, 
+			int & STMcolumns, 
 			void * optionsvoidpointer, // passes the options structure through
 			void * Universepointer, // passes the universe structure through
 			void * ControllerPointer), // I assume Jacob was experimenting with feedback controllers?
@@ -73,8 +73,8 @@ namespace EMTG {
 			double * power, // pointer to extract total power available to the spacecraft
 			double * active_power, // total power used by ALL engines (if there are multiple)
 			int * number_of_active_engines, // pointer to extract the number of engines that can fire
-			int & STMrows,
-			int & STMcolumns,
+			int & STMrows, //row dimension of the spacecraft state transition matrix
+			int & STMcolumns, //column dimension of the spacecraft state transition matrix
 			void * optionspointer, // pass in options
 			void * Universepointer, // pass in universe
 			void * ControllerPointer // pass in controller
@@ -100,11 +100,13 @@ namespace EMTG {
 
 			const static double a21 = 1.0 / 18.0;
 
+			//state integration for the first stage
 			for (int i = 0; i < ns; ++i)
 			{
 				y[i] = x_left[i] + (h*a21)*f1[i];
 			}
 			
+			//time of fligt derivative integration for the first stage
 			for (int p = 0; p < 2; ++p)
 			{
 				for (int i = 0; i < 7; ++i)
@@ -134,7 +136,7 @@ namespace EMTG {
 				   STMcolumns,
 				   optionspointer,
 				   Universepointer,
-				   ControllerPointer); //This is the call to the EOM function, replace this call with the call to your EOM function of choice.
+				   ControllerPointer);
 
 			const static double a31 = 1.0 / 48.0;
 			const static double a32 = 1.0 / 16.0;
@@ -623,7 +625,7 @@ namespace EMTG {
 				   ControllerPointer);
 
 
-			//8th order solution -- do this first because we need x_left unchanged; when I did 5th order first I was then accumulating on the value of x_left twice for y
+			//8th order solution -- do this first because we need x_left unchanged
 			const static double b1upper = 14005451.0 / 335480064.0;
 			//const static double b2upper = 0;
 			//const static double b3upper = 0;
@@ -689,7 +691,7 @@ namespace EMTG {
 			std::vector <double> & dt_left_indTOF, // partial derivative of current epoch w.r.t. current and previous phase flight times
 			const double & t_0, // launch epoch (NOT time at beginning of phase, unless this is a 1 - phase mission)
 			const double & segment_time, // rough guess at how big the integration step size should be (FBLT segment time / 2) in TU's
-			double & dsegment_timedTOF,
+			double & dsegment_timedTOF, //derivative of the current FBLT segment with respect to phase TOF
 			double * resumeH, // NO LONGER USED...in the original implementation we forcibly discretized a priori to the integration
 			double * resumeError, // NO LONGER USED...same reason, the outer for loop around the step do-while is no longer present
 			const double & PRECISION_TARGET, // integration error tolerance, currently 1.0e-8 in EMTG, this is set in FBLTphase.cpp (hard-coded)
@@ -717,14 +719,14 @@ namespace EMTG {
 			void * Universepointer, // passes the universe structure through
 			void * ControllerPointer), // I assume Jacob was experimenting with feedback controllers?
 
-			double * thrust,
-			double * mdot,
-			double * Isp,
-			double * power,
-			double * active_power,
-			int * number_of_active_engines,
-			int & STMrows,
-			int & STMcolumns,
+			double * thrust, //empty pointer to be passed into the EOM
+			double * mdot, //empty pointer to be passed into the EOM
+			double * Isp, //empty pointer to be passed into the EOM
+			double * power, //empty pointer to be passed into the EOM
+			double * active_power, //empty pointer to be passed into the EOM
+			int * number_of_active_engines, //empty pointer to be passed into the EOM
+			int & STMrows, //row dimension of the spacecraft state transition matrix
+			int & STMcolumns, //column dimension of the spacecraft state transition matrix
 			void * optionspointer, void * Universepointer, void * ControllerPointer)
 		{
 
@@ -755,7 +757,7 @@ namespace EMTG {
 
 			//Forward Integration of the states
 			do
-			{ //loop until we get all the way through a full h (a full segment)
+			{ //loop until we get all the way through a full h (a full RK step)
 
 				//-> INSERT EOM 1st call and STORE f1 values. Replace this with your EOM call of choice.	
 				(*EOM)(x_left,
