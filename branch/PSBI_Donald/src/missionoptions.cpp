@@ -22,84 +22,87 @@ using namespace std;
 
 namespace EMTG {
 
-    missionoptions::missionoptions() :
-        missionoptions("options.emtgopt")
+    missionoptions::missionoptions()
     {
+        this->initialize();
+        this->file_status = parse_options_file("options.emtgopt");
+        this->construct_thruster_launch_vehicle_name_arrays();
     }
 
-    missionoptions::missionoptions(const string& optionsfile) :
-        outerloop_warmstart(0),
-
-        outerloop_vary_power(false),
-        outerloop_vary_launch_epoch(false),
-        outerloop_vary_flight_time_upper_bound(false),
-        outerloop_vary_thruster_type(false),
-        outerloop_vary_number_of_thrusters(false),
-        outerloop_vary_launch_vehicle(false),
-        outerloop_vary_departure_C3(false),
-        outerloop_vary_arrival_C3(false),
-        outerloop_restrict_flight_time_lower_bound(false),
-        outerloop_reevaluate_full_population(false),
-        outerloop_warm_population("none"),
-        outerloop_warm_archive("none"),
-        quiet_outerloop(1),
-        quiet_basinhopping(false),
-        MBH_two_step(false),
-        FD_stepsize(1.5e-8),
-        FD_stepsize_coarse(1.5e-3),
-        control_coordinate_system(0),
-        initial_guess_control_coordinate_system(0),
-        enable_maximum_propellant_mass_constraint(false),
-        maximum_propellant_mass(1000.0),
-        maximum_number_of_lambert_revolutions(0),
-
-        spiral_model_type(1),
-        problem_type(0),
-        IspLT_minimum(3000),
-        LV_adapter_mass(0.0),
-        NLP_solver_type(0),
-        NLP_solver_mode(true),
-        quiet_NLP(false),
-        ACE_feasible_point_finder(false),
-        MBH_hop_distribution(1),
-        MBH_Pareto_alpha(3.0),
-        MBH_time_hop_probability(0.2),
-        interpolate_initial_guess(false),
-        seed_MBH(false),
-        MBH_zero_control_initial_guess(1),
-        AU(1.49597870691e+8),
-        snopt_max_run_time(3600),
-        power_decay_rate(0.0),
-        throttle_logic_mode(0),
-        throttle_sharpness(100.0),
-        post_mission_delta_v(0.0),
-        post_mission_Isp(3000.0),
-        propellant_margin(0.0),
-        create_GMAT_script(0),
-        forced_flyby_coast(0.0),
-        forced_post_launch_coast(0.0),
-        power_margin(0.0),
-        number_of_journeys(1),
-
-        LambertSolver(0),
-
-        post_mission_wait_time(0.0),
-        generate_initial_guess_file(false),
-        mission_type_for_initial_guess_file(2),
-        override_working_directory(false),
-        forced_working_directory("..//EMTGv8_Results"),
-        generate_forward_integrated_ephemeris(false),
-        background_mode(true),
-        output_dormant_journeys(false)
+    missionoptions::missionoptions(const string& optionsfile)        
     {
+        this->initialize();
 	    this->file_status = parse_options_file(optionsfile);
-
 	    this->construct_thruster_launch_vehicle_name_arrays();
     }
 
-    missionoptions::~missionoptions() {
+    void missionoptions::initialize()
+    {
+        outerloop_warmstart = 0;
+        outerloop_vary_power = false;
+        outerloop_vary_launch_epoch = false;
+        outerloop_vary_flight_time_upper_bound = false;
+        outerloop_vary_thruster_type = false;
+        outerloop_vary_number_of_thrusters = false;
+        outerloop_vary_launch_vehicle = false;
+        outerloop_vary_departure_C3 = false;
+        outerloop_vary_arrival_C3 = false;
+        outerloop_restrict_flight_time_lower_bound = false;
+        outerloop_reevaluate_full_population = false;
+        outerloop_warm_population = "none";
+        outerloop_warm_archive = "none";
+        quiet_outerloop = 1;
+        quiet_basinhopping = false;
+        MBH_two_step = false;
+        FD_stepsize = 1.5e-8;
+        FD_stepsize_coarse = 1.5e-3;
+        control_coordinate_system = 0;
+        initial_guess_control_coordinate_system = 0;
+        enable_maximum_propellant_mass_constraint = false;
+        maximum_propellant_mass = 1000.0;
+        maximum_number_of_lambert_revolutions = 0;
 
+        spiral_model_type = 1;
+        problem_type = 0;
+        IspLT_minimum = 3000;
+        LV_adapter_mass = 0.0;
+        NLP_solver_type = 0;
+        NLP_solver_mode = true;
+        quiet_NLP = false;
+        ACE_feasible_point_finder = false;
+        MBH_hop_distribution = 1;
+        MBH_Pareto_alpha = 3.0;
+        MBH_time_hop_probability = 0.2;
+        interpolate_initial_guess = false;
+        seed_MBH = false;
+        MBH_zero_control_initial_guess = 1;
+        AU = 1.49597870691e+8;
+        snopt_max_run_time = 3600;
+        power_decay_rate = 0.0;
+        throttle_logic_mode = 0;
+        throttle_sharpness = 100.0;
+        post_mission_delta_v = 0.0;
+        post_mission_Isp = 3000.0;
+        propellant_margin = 0.0;
+        create_GMAT_script = 0;
+        forced_flyby_coast = 0.0;
+        forced_post_launch_coast = 0.0;
+        power_margin = 0.0;
+        number_of_journeys = 1;
+
+        LambertSolver = 0;
+
+        post_mission_wait_time = 0.0;
+        generate_initial_guess_file = false;
+        mission_type_for_initial_guess_file = 2;
+        override_working_directory = false;
+        forced_working_directory = "..//EMTGv8_Results";
+        generate_forward_integrated_ephemeris = false;
+        background_mode = true;
+        output_dormant_journeys = false;
     }
+
+    missionoptions::~missionoptions() {}
 
     //function to parse an options file
     int missionoptions::parse_options_file(const string& optionsfile) {

@@ -43,11 +43,13 @@ namespace EMTG
 	}
 
     MGA_DSM_phase::MGA_DSM_phase(const int& j, const int& p, const missionoptions& options) :
-        phase(j, p, options),
 		time_before_burn(0),
 		time_after_burn(0),
 		b_plane_insertion_angle(0)
 	{
+        //call phase initialize method
+        this->initialize(j, p, options);
+
 		//every phase has at least one burn
 		int size = 1;
 		//if this phase begins with a departure, then there is an additional burn
@@ -698,7 +700,7 @@ namespace EMTG
 
 	//output function
 	//return 0 if successful, 1 if failure
-    int MGA_DSM_phase::output(missionoptions* options,
+    void MGA_DSM_phase::output(missionoptions* options,
         const double& launchdate,
         const int& j,
         const int& p,
@@ -1014,12 +1016,9 @@ namespace EMTG
 							0,
 							0);
 		}
-
-		return 0;
 	}
 
 	//bounds calculation function
-	//return 0 if successful, 1 if failure
     void MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds,
         vector<double>* Xlowerbounds,
         vector<double>* Fupperbounds,

@@ -33,17 +33,17 @@ namespace EMTG
 		// default constructor does nothing (is never used)
 	}
 
-	journey::journey(const missionoptions& options, int j)
+    journey::journey(const int& j, const missionoptions& options)
 	{
 		//designate a central body
-		central_body_name = options.journey_central_body[j];
+        this->central_body_name = options.journey_central_body[j];
 
 		//initialize the boundary states array
 		vector<double> state_dummy(12);
-		boundary_states.push_back(state_dummy);
+        this->boundary_states.push_back(state_dummy);
 
 		//create the phases
-		number_of_phases = options.number_of_phases[j];
+        this->number_of_phases = options.number_of_phases[j];
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
@@ -52,42 +52,42 @@ namespace EMTG
 				case 0:
 					{
 						//this phase is an MGA phase
-						phases.push_back(new MGA_phase(j, p, options));
+						this->phases.push_back(new MGA_phase(j, p, options));
 					}
 				break;
 				case 1:
 					{
 						//this phase is an MGA-DSM phase
-						phases.push_back(new MGA_DSM_phase(j, p, options));
+						this->phases.push_back(new MGA_DSM_phase(j, p, options));
 					}
 				break;
 				case 2:
 					{
 						//this phase is an MGA-LT phase
-						phases.push_back(new MGA_LT_phase(j, p, options));
+                        this->phases.push_back(new MGA_LT_phase(j, p, options));
 					}
 				break;
 				case 3:
 					{
 						//this phase is an FBLT phase
-						phases.push_back(new FBLT_phase(j, p, options));
+                        this->phases.push_back(new FBLT_phase(j, p, options));
 					}
 				break;
 				case 4:
 					{
 						//this phase is an MGA-NDSM phase
-						phases.push_back(new MGA_NDSM_phase(j, p, options));
+                        this->phases.push_back(new MGA_NDSM_phase(j, p, options));
 					}
 				break;
 				case 5:
 					{
 						//this phase is a PSBI phase
-                        phases.push_back(new PSBIphase(j, p, options));
+                        this->phases.push_back(new PSBIphase(j, p, options));
 					}
 				break;
 			}
 
-			boundary_states.push_back(state_dummy);
+            this->boundary_states.push_back(state_dummy);
 		}
 
 		//which journey am I?
@@ -977,14 +977,13 @@ namespace EMTG
 
     }
 
-	int journey::output(missionoptions* options, 
+	void journey::output(missionoptions* options, 
                         const double& launchdate,
                         const int& j,
                         int& jprint,
                         EMTG::Astrodynamics::universe& Universe,
                         int* eventcount)
 	{
-		int errcode = 0;
 
         //if applicable, print the journey prologue
         if (options->output_dormant_journeys && j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
@@ -1005,9 +1004,7 @@ namespace EMTG
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
-			errcode = this->phases[p].output(options, launchdate, j, p, &Universe, eventcount);
-			if (!(errcode == 0))
-				return errcode;
+			this->phases[p].output(options, launchdate, j, p, &Universe, eventcount);
 		}
 
 		//print journey end information
@@ -1091,9 +1088,6 @@ namespace EMTG
             ++jprint;
             this->output_journey_postlogue(options, launchdate, j, jprint, Universe, eventcount);
         }
-	
-
-		return 0;
 	}
 
 	//function to find constraint dependecies due to an escape spiral in this or a previous journey

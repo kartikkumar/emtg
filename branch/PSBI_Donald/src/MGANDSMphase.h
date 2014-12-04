@@ -49,7 +49,7 @@ public:
 
 	//output function
 	//return 0 if successful, 1 if failure
-    int output(missionoptions* options,
+    void output(missionoptions* options,
         const double& launchdate,
         const int& j,
         const int& p,

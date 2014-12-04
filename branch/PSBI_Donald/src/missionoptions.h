@@ -27,6 +27,7 @@ public:
 	virtual ~missionoptions();
 
 	//methods
+    void initialize();
 	int parse_options_file(const string& filename);
 	int parse_options_line(ifstream& inputfile, string& choice, double& value, char* dump_buffer, int& linenumber);
 	int print_options_file(const string& filename) const;

@@ -23,9 +23,11 @@ namespace EMTG
     PSBIphase::PSBIphase() {}
 
     //main constructor
-    PSBIphase::PSBIphase(const int& j, const int& p, const missionoptions& options) :
-        phase(j, p, options)
+    PSBIphase::PSBIphase(const int& j, const int& p, const missionoptions& options)
     {
+        //call phase initialize method
+        this->initialize(j, p, options);
+
         //must resize all data vectors to the correct length
         vector<double> state_dummy(7);
         vector<double> dV_or_control_dummy(3);
@@ -1362,8 +1364,7 @@ namespace EMTG
     }
 
     //output function
-    //return 0 if successful, 1 if failure
-    int PSBIphase::output(missionoptions* options,
+    void PSBIphase::output(missionoptions* options,
         const double& launchdate,
         const int& j,
         const int& p,
@@ -1870,8 +1871,6 @@ namespace EMTG
                     this->spiral_capture_active_power);
             }
         }
-
-        return 0;
     }
 
     //method to calculate defect constraint derivatives

@@ -53,15 +53,21 @@ namespace EMTG {
         DEC_departure(0),
         DEC_arrival(0),
         C3_departure(0),
-        C3_arrival(0),
-        //set the bodies
-        boundary1_location_code(options.sequence[j][p]),
-        boundary2_location_code(options.sequence[j][p + 1]),
-        //set up mass increment information
-        current_mass_increment(0.0),
-        journey_initial_mass_increment_scale_factor(1.0),
-        mission_initial_mass_multiplier(1.0)
+        C3_arrival(0)
     {
+        this->initialize(j, p, options);
+    }
+
+    void phase::initialize(const int& j, const int& p, const missionoptions& options)
+    {
+        //set the bodies
+        this->boundary1_location_code = options.sequence[j][p],
+        this->boundary2_location_code = options.sequence[j][p + 1];
+        //set up mass increment information
+        this->current_mass_increment = 0.0;
+        this->journey_initial_mass_increment_scale_factor = 1.0;
+        this->mission_initial_mass_multiplier = 1.0;
+
         //size the vectors that will be used to calculate the b-plane
         this->V_infinity_in.resize(3, 1);
         this->V_infinity_out.resize(3, 1);

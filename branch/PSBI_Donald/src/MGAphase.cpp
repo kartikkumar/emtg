@@ -39,9 +39,11 @@ namespace EMTG
 	    //default constructor doesn't do anything
     }
 
-    MGA_phase::MGA_phase(const int& j, const int& p, const missionoptions& options) :
-        phase(j, p, options)
+    MGA_phase::MGA_phase(const int& j, const int& p, const missionoptions& options)
     {
+        //call phase initialize method
+        this->initialize(j, p, options);
+
 	    //if this is a terminal phase, there are two burns
 	    //otherwise there is only one
 	    if (p < (options.number_of_phases[j] - 1))
@@ -487,7 +489,7 @@ namespace EMTG
 
     //output function
     //return 0 if successful, 1 if failure
-    int MGA_phase::output(missionoptions* options,
+    void MGA_phase::output(missionoptions* options,
                             const double& launchdate,
                             const int& j,
                             const int& p,
@@ -725,8 +727,6 @@ namespace EMTG
 						    0,
 						    0);
 	    }
-
-	    return 0;
     }
 
     //bounds calculation function

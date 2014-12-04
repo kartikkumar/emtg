@@ -41,7 +41,7 @@ public:
 
 	//output function
 	//return 0 if successful, 1 if failure
-	virtual int output();
+	virtual void output();
 
     //method to output a forward-integrated ephemeris
     virtual void write_ephemeris_file();
@@ -51,7 +51,7 @@ public:
 	void extract_objective_function_values(std::vector<double>& objective_functions);
 
 	//output mission structure
-	virtual int output_mission_tree(string filename);
+	virtual void output_mission_tree(string filename);
 
 	//bounds calculation function
 	//return 0 for success, 1 for failure

@@ -53,7 +53,7 @@ mission::mission(int* Xouter, const missionoptions& options_in, const boost::ptr
 
 	for (int j = 0; j < number_of_journeys; ++j) 
 	{
-		this->journeys.push_back(new journey(options, j));
+		this->journeys.push_back(new journey(j, this->options));
 	}
 
 	//calculate the upper and lower bounds on the decision variables and the constraints
@@ -89,7 +89,7 @@ mission::mission(const missionoptions& options_in, const boost::ptr_vector<Astro
 
 	for (int j = 0; j < number_of_journeys; ++j) 
 	{
-		this->journeys.push_back(new journey(options, j));
+		this->journeys.push_back(new journey(j, options));
 	}
 
 	//calculate the upper and lower bounds on the decision variables and the constraints
@@ -124,27 +124,27 @@ int mission::parse_outer_loop(int* Xouter)
 
 
 	//parse the outer loop vector
-	options.total_number_of_phases = 0;
+	this->options.total_number_of_phases = 0;
 
 
 	//if we have specified the mission type (all MGA, MGA-DSM, or MGA-LT) then it only takes one decision variable to encode a phase
 	//if we have NOT specified the mission type, it takes two decision variables to encode a phase
-	int phase_encode_length = (options.mission_type > 5 ? 2 : 1);
+	int phase_encode_length = (this->options.mission_type > 5 ? 2 : 1);
 
 	//loop through the journeys and figure out how many phases and what type they are
-	for (int j = 0; j < options.number_of_journeys; ++j)
+    for (int j = 0; j < this->options.number_of_journeys; ++j)
 	{
 		//first, encode in the description the name of the current journey's central body
 		if (j > 0) //if not the first journey, insert an underscore
-			options.description.append("_");
-		options.description.append(TheUniverse[j].central_body_name + "(");
-		options.number_of_phases[j] = 1;
+            this->options.description.append("_");
+        this->options.description.append(TheUniverse[j].central_body_name + "(");
+        this->options.number_of_phases[j] = 1;
 		vector<int> temp_sequence;
 		vector<int> temp_phase_type;
 
-		if (options.destination_list[j][0] > (int) TheUniverse[j].bodies.size())
+        if (this->options.destination_list[j][0] > (int) this->TheUniverse[j].bodies.size())
 		{
-			std::cout << "ERROR: Journey " << j << " first body index " << options.destination_list[j][0] << " exceeds size of universe body list.Aborting." << std::endl;
+            std::cout << "ERROR: Journey " << j << " first body index " << this->options.destination_list[j][0] << " exceeds size of universe body list.Aborting." << std::endl;
 			throw 888;
 		}
 
@@ -155,112 +155,112 @@ int mission::parse_outer_loop(int* Xouter)
 		{
 			case -3: //begin at point on orbit
 				{
-					options.description.append("o");
+                    this->options.description.append("o");
 					break;
 				}
 			case -2: //begin at fixed point
 				{
-					options.description.append("p");
+                    this->options.description.append("p");
 					break;
 				}
 			case -1: //begin at SOI
 				{
-					options.description.append("s");
+                    this->options.description.append("s");
 					break;
 				}
 			default:
-				options.description.append(TheUniverse[j].bodies[temp_sequence[0]-1].short_name);
+                this->options.description.append(this->TheUniverse[j].bodies[temp_sequence[0] - 1].short_name);
 		}
 		
 
-		for (int p = 0; p < options.max_phases_per_journey; ++p)
+        for (int p = 0; p < this->options.max_phases_per_journey; ++p)
 		{
-			if (phase_encode_length == 2 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2*options.max_phases_per_journey + 1) + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
+            if (phase_encode_length == 2 && Xouter[j*(2 * this->options.max_phases_per_journey + 1) + p] > 0 && Xouter[j*(2 * this->options.max_phases_per_journey + 1) + p] < (this->TheUniverse[j].size_of_flyby_menu / 2) + 1) //this is a legitimate flyby
 			{
-				if (Xouter[j * (2 * options.max_phases_per_journey + 1) + p] - 1 > TheUniverse[j].flyby_menu.size())
+                if (Xouter[j * (2 * this->options.max_phases_per_journey + 1) + p] - 1 > this->TheUniverse[j].flyby_menu.size())
 				{
-					std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
+                    std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * this->options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
 					throw 888;
 				}
 
 				//update the sequence array with a code for the next body
-				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * (2*options.max_phases_per_journey + 1) + p] - 1]].body_code);
+                temp_sequence.push_back(this->TheUniverse[j].bodies[this->TheUniverse[j].flyby_menu[Xouter[j * (2 * this->options.max_phases_per_journey + 1) + p] - 1]].body_code);
 
 				//if the outer-loop is choosing phase type, then extract the phase type
-				temp_phase_type.push_back(Xouter[(2*j + 1) * options.max_phases_per_journey + j + p] - 1);
+				temp_phase_type.push_back(Xouter[(2*j + 1) * this->options.max_phases_per_journey + j + p] - 1);
 
 				//update the mission description
-				options.description.append(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[temp_sequence[temp_sequence.size() - 1]] - 1].short_name);
+                this->options.description.append(this->TheUniverse[j].bodies[this->TheUniverse[j].flyby_menu[temp_sequence[temp_sequence.size() - 1]] - 1].short_name);
 
 				//keep track of the number of phases
-				++options.number_of_phases[j];
+                ++this->options.number_of_phases[j];
 			}
-			else if (phase_encode_length == 1 && Xouter[j * options.max_phases_per_journey + p] > 0 && Xouter[j * options.max_phases_per_journey + p] < (TheUniverse[j].size_of_flyby_menu/2) + 1) //this is a legitimate flyby
+            else if (phase_encode_length == 1 && Xouter[j * this->options.max_phases_per_journey + p] > 0 && Xouter[j * this->options.max_phases_per_journey + p] < (this->TheUniverse[j].size_of_flyby_menu / 2) + 1) //this is a legitimate flyby
 			{
-				if (Xouter[j * options.max_phases_per_journey + p] - 1 > TheUniverse[j].flyby_menu.size())
+                if (Xouter[j * this->options.max_phases_per_journey + p] - 1 > this->TheUniverse[j].flyby_menu.size())
 				{
-					std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
+                    std::cout << "ERROR: Journey " << j << " phase " << p << " body index " << Xouter[j * this->options.max_phases_per_journey + p] << " exceeds size of flyby menu. Aborting." << std::endl;
 					throw 888;
 				}
 
 				//update the sequence array with a code for the next body
-				temp_sequence.push_back(TheUniverse[j].bodies[TheUniverse[j].flyby_menu[Xouter[j * options.max_phases_per_journey + p] - 1]].body_code);
+                temp_sequence.push_back(this->TheUniverse[j].bodies[this->TheUniverse[j].flyby_menu[Xouter[j * this->options.max_phases_per_journey + p] - 1]].body_code);
 
 				//otherwise use the global phase type specified by the user
-				temp_phase_type.push_back(options.mission_type);
+                temp_phase_type.push_back(this->options.mission_type);
 
 				//update the mission description
-				options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1] - 1].short_name);
+                this->options.description.append(this->TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1] - 1].short_name);
 
 				//keep track of the number of phases
-				++options.number_of_phases[j];
+                ++this->options.number_of_phases[j];
 			}
 		}
 
 		//encode the last phase of the journey
-		if (options.destination_list[j][1] > (int) TheUniverse[j].bodies.size())
+        if (this->options.destination_list[j][1] > (int) this->TheUniverse[j].bodies.size())
 		{
-			std::cout << "ERROR: Journey " << j << " final body index " << options.destination_list[j][1] << " exceeds size of universe body list. Aborting." << std::endl;
+            std::cout << "ERROR: Journey " << j << " final body index " << this->options.destination_list[j][1] << " exceeds size of universe body list. Aborting." << std::endl;
 			throw 888;
 		}
-		temp_sequence.push_back(options.destination_list[j][1]);
+        temp_sequence.push_back(this->options.destination_list[j][1]);
 
 		//if the outer-loop is choosing phase type, then extract the phase type for the last phase
 		//otherwise use the global phase type specified by the user
 		if (phase_encode_length == 2)
-			temp_phase_type.push_back(Xouter[(2*j + 2) * options.max_phases_per_journey + j]);
+            temp_phase_type.push_back(Xouter[(2 * j + 2) * this->options.max_phases_per_journey + j]);
 		else
-			temp_phase_type.push_back(options.mission_type);
+            temp_phase_type.push_back(this->options.mission_type);
 
 		//update the mission description
 		switch (temp_sequence[temp_sequence.size() - 1])
 		{
 			case -3: //begin at point on orbit
 				{
-					options.description.append("o");
+                    this->options.description.append("o");
 					break;
 				}
 			case -2: //begin at fixed point
 				{
-					options.description.append("p");
+                    this->options.description.append("p");
 					break;
 				}
 			case -1: //begin at SOI
 				{
-					options.description.append("s");
+                    this->options.description.append("s");
 					break;
 				}
 			default:
-				options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1]-1].short_name);
+                this->options.description.append(TheUniverse[j].bodies[temp_sequence[temp_sequence.size() - 1] - 1].short_name);
 		}
-		options.description.append(")");
+        this->options.description.append(")");
 
 		//store this information in the options structure
-		options.sequence.push_back(temp_sequence);
-		options.phase_type.push_back(temp_phase_type);
+        this->options.sequence.push_back(temp_sequence);
+        this->options.phase_type.push_back(temp_phase_type);
 
 		//track the total number of phases
-		options.total_number_of_phases += options.number_of_phases[j];
+        this->options.total_number_of_phases += options.number_of_phases[j];
 	}
 
 	return errcode;
@@ -271,20 +271,20 @@ int mission::parse_outer_loop(int* Xouter)
 void mission::calcbounds()
 {
 	//bounds on the objective function
-	Flowerbounds.push_back(-math::LARGE);
-	Fupperbounds.push_back(math::LARGE);
-	Fdescriptions.push_back("objective function");
+    this->Flowerbounds.push_back(-math::LARGE);
+    this->Fupperbounds.push_back(math::LARGE);
+    this->Fdescriptions.push_back("objective function");
 
 	//call the calcbounds() function for each journey
 	for (int j = 0; j < number_of_journeys; ++j)
-		journeys[j].calcbounds(&Xupperbounds, &Xlowerbounds, &Fupperbounds, &Flowerbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &A, &Adescriptions, &Gdescriptions, &synodic_periods, j, TheUniverse[j], &options);
+        this->journeys[j].calcbounds(&Xupperbounds, &Xlowerbounds, &Fupperbounds, &Flowerbounds, &Xdescriptions, &Fdescriptions, &iAfun, &jAvar, &iGfun, &jGvar, &A, &Adescriptions, &Gdescriptions, &synodic_periods, j, TheUniverse[j], &options);
 
 	//one final constraint, if applicable, for total time bounds
-	if (options.global_timebounded)
+    if (this->options.global_timebounded)
 	{
-		Flowerbounds.push_back(options.total_flight_time_bounds[0] / options.total_flight_time_bounds[1] - 1);
-		Fupperbounds.push_back(0.0);
-		Fdescriptions.push_back("Mission flight time bounds");
+        this->Flowerbounds.push_back(options.total_flight_time_bounds[0] / options.total_flight_time_bounds[1] - 1);
+        this->Fupperbounds.push_back(0.0);
+        this->Fdescriptions.push_back("Mission flight time bounds");
 
 		//Generate the Jacobian entries for the mission flight time constraint
 		//note:
@@ -1357,7 +1357,7 @@ int mission::evaluate(  double* X,
 
 //output function
 //return 0 if successful, 1 if failure
-int mission::output()
+void mission::output()
 {
 	ofstream outputfile(options.outputfile.c_str(), ios::out | ios::trunc);
 	outputfile << "Mission: " << options.mission_name << endl;
@@ -1371,9 +1371,7 @@ int mission::output()
 	try
 	{
 		for (int j = 0; j < number_of_journeys; ++j) {
-			errcode = journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, jprint, TheUniverse[j], &eventcount);
-			if (!(errcode == 0))
-				return errcode;
+			this->journeys[j].output(&options, journeys[0].phases[0].phase_start_epoch, j, jprint, TheUniverse[j], &eventcount);
 		}
 	}
 	catch (int e)
@@ -1490,12 +1488,10 @@ int mission::output()
 
 	outputfile.close();
 
-	return 0;
 }
 
 //function to output the mission tree
-//return 0 if successful, 1 if failure
-int mission::output_mission_tree(string filename)
+void mission::output_mission_tree(string filename)
 {
 	vector<string> phase_type_codes;
 	phase_type_codes.push_back("MGA");
@@ -1546,11 +1542,9 @@ int mission::output_mission_tree(string filename)
 		}
 
 		std::cout << "Mission tree printed to '" << filename << "'" << endl;
-		return 0;
 	}
 
 	std::cout << "Failure to print mission tree" << endl;
-	return 1;
 }
 
 //function to interpolate an initial guess

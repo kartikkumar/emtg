@@ -19,7 +19,8 @@
 #ifndef PHASE_H_
 #define PHASE_H_
 
-namespace EMTG {
+namespace EMTG 
+{
 	class phase
 	{
 	public:
@@ -31,6 +32,7 @@ namespace EMTG {
 		virtual ~phase();
 
 		//methods
+        void initialize(const int& j, const int& p, const missionoptions& options);
 		int locate_boundary_point(const int& location,
 								  const int& boundary_type,
 								  const bool& left_boundary, 
@@ -285,47 +287,47 @@ namespace EMTG {
 															std::ofstream& GMATfile);
 
 		//virtual method templates
-		virtual int evaluate(	const double* X,
-								int* Xindex, 
-								double* F, 
-								int* Findex,
-								double* G, 
-								int* Gindex,
-                                const int& needG,
-								double* current_epoch,
-								double* current_state, 
-								double* current_deltaV,
-								double* boundary1_state, 
-								double* boundary2_state, 
-                                const int& j,
-                                const int& p,
-								EMTG::Astrodynamics::universe* Universe,
-								missionoptions* options) = 0;
+        virtual int evaluate(const double* X,
+            int* Xindex,
+            double* F,
+            int* Findex,
+            double* G,
+            int* Gindex,
+            const int& needG,
+            double* current_epoch,
+            double* current_state,
+            double* current_deltaV,
+            double* boundary1_state,
+            double* boundary2_state,
+            const int& j,
+            const int& p,
+            EMTG::Astrodynamics::universe* Universe,
+            missionoptions* options) {return 0;};
 
-        virtual int output( missionoptions* options,
-							const double& launchdate,
-                            const int& j,
-                            const int& p,
-                            EMTG::Astrodynamics::universe* Universe,
-							int* eventcount) = 0;
+        virtual void output(missionoptions* options,
+            const double& launchdate,
+            const int& j,
+            const int& p,
+            EMTG::Astrodynamics::universe* Universe,
+            int* eventcount) {};
 
-		virtual void calcbounds(vector<double>* Xupperbounds,
-								vector<double>* Xlowerbounds,
-								vector<double>* Fupperbounds,
-								vector<double>* Flowerbounds,
-								vector<string>* Xdescriptions,
-								vector<string>* Fdescriptions,
-								vector<int>* iAfun, 
-								vector<int>* jAvar, 
-								vector<int>* iGfun, 
-								vector<int>* jGvar, 
-								vector<string>* Adescriptions,
-								vector<string>* Gdescriptions,
-								vector<double>* synodic_periods,
-                                const int& j,
-                                const int& p,
-                                EMTG::Astrodynamics::universe* Universe,
-                                missionoptions* options) = 0;
+        virtual void calcbounds(vector<double>* Xupperbounds,
+            vector<double>* Xlowerbounds,
+            vector<double>* Fupperbounds,
+            vector<double>* Flowerbounds,
+            vector<string>* Xdescriptions,
+            vector<string>* Fdescriptions,
+            vector<int>* iAfun,
+            vector<int>* jAvar,
+            vector<int>* iGfun,
+            vector<int>* jGvar,
+            vector<string>* Adescriptions,
+            vector<string>* Gdescriptions,
+            vector<double>* synodic_periods,
+            const int& j,
+            const int& p,
+            EMTG::Astrodynamics::universe* Universe,
+            missionoptions* options)  {};
 
 		virtual void create_initial_guess(	const int& desired_mission_type, 
 											const bool& VSI,

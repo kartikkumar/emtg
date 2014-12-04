@@ -26,7 +26,7 @@ namespace EMTG
     public:
 	    //constructor
 	    journey();
-	    journey(const missionoptions& options, int j);
+	    journey(const int& j, const missionoptions& options);
 
 	    //destructor
 	    virtual ~journey();
@@ -50,7 +50,7 @@ namespace EMTG
 
 	    //output functions
 	    //main output function
-	    int output(missionoptions* options,
+	    void output(missionoptions* options,
                    const double& launchdate,
                    const int& j, 
                    int& jprint,

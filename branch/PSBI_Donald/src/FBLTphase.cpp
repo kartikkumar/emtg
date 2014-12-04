@@ -30,9 +30,11 @@ namespace EMTG
 
     }
 
-    FBLT_phase::FBLT_phase(const int& j, const int& p, const missionoptions& options) :
-        TwoPointShootingPhase(j, p, options)
+    FBLT_phase::FBLT_phase(const int& j, const int& p, const missionoptions& options)
     {
+        //call phase initialize method
+        this->initialize(j, p, options);
+        
 	    //must resize all data vectors to the correct length
 	    std::vector<double> state_dummy(7);
 	    std::vector<double> dV_or_control_dummy(3);
@@ -1215,7 +1217,7 @@ namespace EMTG
 
     //output function
     //return 0 if successful, 1 if failure
-    int FBLT_phase::output(missionoptions* options,
+    void FBLT_phase::output(missionoptions* options,
         const double& launchdate,
         const int& j,
         const int& p,
@@ -1976,8 +1978,6 @@ namespace EMTG
                     this->spiral_capture_active_power);
             }
         }
-
-        return 0;
     }
 
 

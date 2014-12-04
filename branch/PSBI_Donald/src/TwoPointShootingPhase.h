@@ -43,7 +43,7 @@ namespace EMTG {
 
         //output function
         //return 0 if successful, 1 if failure
-        virtual int output(missionoptions* options,
+        virtual void output(missionoptions* options,
             const double& launchdate,
             const int& j,
             const int& p,

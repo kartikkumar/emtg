@@ -43,12 +43,12 @@ public:
 	virtual int parse_outer_loop(int* Xouter, int n_outer_loop);
 
 	//function to output X and F bounds, descriptions
-	int output_problem_bounds_and_descriptions();
-	int output_problem_bounds_and_descriptions(string filestring);
+	void output_problem_bounds_and_descriptions();
+	void output_problem_bounds_and_descriptions(string filestring);
 	
 
 	//function to output the Jacobian sparsity information
-	virtual int output_Jacobian_sparsity_information(string filestring);
+	virtual void output_Jacobian_sparsity_information(string filestring);
 
 	//function to check the derivatives via central differencing
 	int check_and_print_derivatives();
@@ -57,7 +57,7 @@ public:
 
 	//virtual function templates
 	virtual int evaluate(double* X, double* F, double* G, int needG, const vector<int>& iGfun, const vector<int>& jGvar) = 0;
-	virtual int output() = 0;
+	virtual void output() = 0;
 	virtual void create_initial_guess(const int& desired_mission_type, const bool& VSI) = 0;
 	virtual void interpolate(int* Xouter, const vector<double>& initialguess) = 0;
 	virtual void convert_cartesian_solution_to_polar(const vector<double>& initialguess) = 0;
