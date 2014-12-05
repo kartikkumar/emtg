@@ -1626,6 +1626,8 @@ void mission::output_mission_tree(string filename)
 		}
 
 		std::cout << "Mission tree printed to '" << filename << "'" << endl;
+
+		return;
 	}
 
 	std::cout << "Failure to print mission tree" << endl;
