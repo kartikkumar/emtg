@@ -32,16 +32,16 @@ namespace EMTG {namespace Astrodynamics {
 		int load_universe_data(const int& j, string universefile, missionoptions* options);
 
 		//function to find the central body state vector relative to the sun at epoch
-		int locate_central_body(const double& epoch, double* state, missionoptions* options);
+		int locate_central_body(const double& epoch, double* state, missionoptions* options, const bool& need_deriv) const;
 
 		//function to create the flyby menu - creates a list of bodies, by SPICE ID, which are flyby capable
 		void create_flyby_and_perturbation_menus(const int& j, missionoptions* options);
 
 		//function to print the flyby menu
-		void print_flyby_and_perturbation_menus(string filename, missionoptions* options);
+        void print_flyby_and_perturbation_menus(string filename, missionoptions* options) const;
 
 		//function to print the universe
-		void print_universe(string filename, missionoptions* options);
+        void print_universe(string filename, missionoptions* options) const;
 
 		//**************************************
 		//fields

@@ -222,12 +222,12 @@ namespace EMTG {
 
 
 	//function to output X and F bounds, descriptions
-	int problem::output_problem_bounds_and_descriptions()
+	void problem::output_problem_bounds_and_descriptions()
 	{
 		this->output_problem_bounds_and_descriptions("XFfile.csv");
-		return 0;
+
 	}
-	int problem::output_problem_bounds_and_descriptions(string filestring)
+	void problem::output_problem_bounds_and_descriptions(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
 
@@ -238,12 +238,10 @@ namespace EMTG {
 			outputfile << k << "," << Fdescriptions[k] << "," << Flowerbounds[k] << "," << Fupperbounds[k] << "," << F[k] << endl;
 
 		outputfile.close();
-
-		return 0;
 	}
 
 	//function to output the Jacobian sparsity information
-	int problem::output_Jacobian_sparsity_information(string filestring)
+	void problem::output_Jacobian_sparsity_information(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
 
@@ -258,8 +256,6 @@ namespace EMTG {
 			outputfile << iGfun[k] << "," << jGvar[k] << "," << k << "," << Gdescriptions[k] << endl;
 
 		outputfile.close();
-
-		return 0;
 	}
 
 	int problem::check_and_print_derivatives()
@@ -297,8 +293,12 @@ namespace EMTG {
 
 			//compute the central-difference forward step value of the constraint
 			double perturbation_step;
-			if ( this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024 )
-				perturbation_step = 10.0;
+            if (this->Gdescriptions[gIndex].find("time") < 1024 || this->Gdescriptions[gIndex].find("epoch") < 1024)
+                perturbation_step = 10.0;
+            else if (this->Gdescriptions[gIndex].find(" x") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024)
+                || (this->Gdescriptions[gIndex].find(" y") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024))
+                || (this->Gdescriptions[gIndex].find(" z") < 1024 && !(this->Gdescriptions[gIndex].find("dot") < 1024)))
+                perturbation_step = 1.0;
 			else
 				perturbation_step = 1.0e-6;
 			X_perturbed[jGvar[gIndex]] += perturbation_step;

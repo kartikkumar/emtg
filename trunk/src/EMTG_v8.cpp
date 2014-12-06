@@ -4,7 +4,7 @@
 // Version     :
 // Copyright   : 
 // Description : Main launch function for EMTG_v8
-// Description : EMTG_v8 is a generic optimizer that hands MGA, MGADSM, MGALT, and FBLT mission types
+// Description : EMTG_v8 is a generic optimizer that handles all mission types
 //============================================================================
 
 #include <iostream>
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 
 	//if we are running in parallel, start MPI
 #ifdef EMTG_MPI
-	boost::mpi::environment MPIEnvironment;
+	boost::mpi::environment MPIEnvironment(argc, argv, true);
 	boost::mpi::communicator MPIWorld;
 #endif
 
@@ -312,7 +312,7 @@ int main(int argc, char* argv[])
 			{
 				if (options.problem_type == 0) //regular EMTG missions
 				{
-					EMTG::mission TrialMission(&Xouterloop_trial[0], &options, TheUniverse, 0, 0);
+					EMTG::mission TrialMission(&Xouterloop_trial[0], options, TheUniverse);
 
 					//and now, as a demo, print the mission tree
 					TrialMission.output_mission_tree(options.working_directory + "//" + TrialMission.options.mission_name + "_" + TrialMission.options.description + "_missiontree.emtgtree");
@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
 						TrialMission.options.current_trialX = options.trialX[trial];
 
 						//if we are interpolating an initial guess to change the resolution
-						if (options.interpolate_initial_guess && options.run_inner_loop > 0)
+						if (options.interpolate_initial_guess && options.run_inner_loop > 0 && !(options.num_timesteps == options.initial_guess_num_timesteps))
 						{
 							TrialMission.interpolate(Xouterloop_trial.data(), TrialMission.options.current_trialX);
 						}
@@ -341,7 +341,7 @@ int main(int argc, char* argv[])
 					{
 						TrialMission.options.current_trialX = options.trialX[trial];
 
-						if (options.interpolate_initial_guess && options.seed_MBH)
+                        if (options.interpolate_initial_guess && options.seed_MBH && !(options.num_timesteps == options.initial_guess_num_timesteps))
 							TrialMission.interpolate(Xouterloop_trial.data(), options.current_trialX);
 
 						//convert coordinate systems if applicable

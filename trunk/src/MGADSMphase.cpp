@@ -42,11 +42,14 @@ namespace EMTG
 		//default constructor doesn't do anything
 	}
 
-	MGA_DSM_phase::MGA_DSM_phase(int j, int p, missionoptions* options) :
+    MGA_DSM_phase::MGA_DSM_phase(const int& j, const int& p, const missionoptions& options) :
 		time_before_burn(0),
 		time_after_burn(0),
 		b_plane_insertion_angle(0)
 	{
+        //call phase initialize method
+        this->initialize(j, p, options);
+
 		//every phase has at least one burn
 		int size = 1;
 		//if this phase begins with a departure, then there is an additional burn
@@ -54,22 +57,10 @@ namespace EMTG
 			++size;
 
 		//if this phase ends with an arrival, then there is an additional burn
-		if (p == options->number_of_phases[j] - 1)
+		if (p == options.number_of_phases[j] - 1)
 			++size;
 
 		dVmag.resize(size);
-
-		//set the bodies
-		boundary1_location_code = options->sequence[j][p];
-		boundary2_location_code = options->sequence[j][p+1];
-
-		current_mass_increment = 0.0;
-		journey_initial_mass_increment_scale_factor = 1.0;
-
-		V_infinity_in.resize(3,1);
-		V_infinity_out.resize(3,1);
-		BoundaryR.resize(3,1);
-		BoundaryV.resize(3,1);
 	}
 
 	MGA_DSM_phase::~MGA_DSM_phase() 
@@ -79,7 +70,22 @@ namespace EMTG
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int MGA_DSM_phase::evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    int MGA_DSM_phase::evaluate(const double* X,
+                                int* Xindex,
+                                double* F,
+                                int* Findex,
+                                double* G,
+                                int* Gindex,
+                                const int& needG,
+                                double* current_epoch,
+                                double* current_state,
+                                double* current_deltaV,
+                                double* boundary1_state,
+                                double* boundary2_state,
+                                const int& j,
+                                const int& p,
+                                EMTG::Astrodynamics::universe* Universe,
+                                missionoptions* options)
 	{
 		//declare some local variables
 		int errcode = 0;
@@ -694,7 +700,12 @@ namespace EMTG
 
 	//output function
 	//return 0 if successful, 1 if failure
-	int MGA_DSM_phase::output(missionoptions* options, const double& launchdate, int j, int p, EMTG::Astrodynamics::universe* Universe, int* eventcount)
+    void MGA_DSM_phase::output(missionoptions* options,
+        const double& launchdate,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        int* eventcount)
 	{
 	
 		//Step 1: store data that will be used for the printing
@@ -1005,13 +1016,26 @@ namespace EMTG
 							0,
 							0);
 		}
-
-		return 0;
 	}
 
 	//bounds calculation function
-	//return 0 if successful, 1 if failure
-	void MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void MGA_DSM_phase::calcbounds(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//this function calculates the upper and lower bounds for the decision and constraint vectors for MGA-DSM
 
@@ -1513,7 +1537,8 @@ namespace EMTG
 												vector<double>& NewX,
 												int& NewXIndex,
 												const vector<string>& NewXDescriptions,
-												const missionoptions& options)
+                                                const missionoptions& options,
+                                                const Astrodynamics::universe& Universe)
 	{
 		if (p == 0)
 		{
@@ -1530,13 +1555,47 @@ namespace EMTG
 				NewX.push_back((this->phase_start_epoch - current_epoch) / 86400.0);
 				++NewXIndex;
 
-				//should add code to copy variable boundary conditions here
+                //variable left boundary conditions
+                if (options.destination_list[j][0] == -1)
+                {
+                    if (options.journey_departure_elements_type[j] == 0) //Cartesian
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_local_frame_state[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                    else //COE
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_orbit_elements[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                }
+                //then encode the departure asymptote (three variables)
+                if (!(options.journey_departure_type[j] == 5 || options.journey_departure_type[j] == 2))
+                {
+                    NewX.push_back(sqrt(this->C3_departure));
+                    NewX.push_back(this->RA_departure);
+                    NewX.push_back(this->DEC_departure);
+                    NewXIndex += 3;
 
-				//then encode the departure asymptote (three variables)
-				NewX.push_back(this->C3_departure);
-				NewX.push_back(this->RA_departure);
-				NewX.push_back(this->DEC_departure);
-				NewXIndex += 3;
+                    //mission initial mass multiplier if applicable
+                    if (j == 0 && options.allow_initial_mass_to_vary)
+                    {
+                        NewX.push_back(this->mission_initial_mass_multiplier);
+                        ++NewXIndex;
+                    }
+                }
 			}
 		}
 		else
@@ -1563,8 +1622,35 @@ namespace EMTG
 		NewX.push_back(this->TOF / 86400.0);
 		++NewXIndex;
 
-		//MGALT, FBLT, MGANDSM phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
-		if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4)
+        //variable right-hand boundary
+        if (options.destination_list[j][1] == -1)
+        {
+            if (options.journey_arrival_elements_type[j] == 0) //Cartesian
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_local_frame_state[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+            else //COE
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_orbit_elements[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+        }
+
+		//MGALT, FBLT, MGANDSM, and PSBI phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
 		{
 			if (p < options.number_of_phases[j] - 1 || options.journey_arrival_type[j] == 2)
 			{
@@ -1587,13 +1673,26 @@ namespace EMTG
 			++NewXIndex;
 		}
 
-		//MGALT and FBLT phases want the control values next
-		if (desired_mission_type == 2 || desired_mission_type == 3)
+		//MGALT, FBLT, and PSBI phases want the control values (and sometimes state values) next
+        if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 5)
 		{
 			//set all of the control parameters to 0 for now
 			//maybe later introduce some delta-v smoothing
 			for (int step = 0; step < options.num_timesteps; ++step)
 			{
+                if (desired_mission_type == 5)
+                {
+                    double state_left[6];
+                    Kepler::Kepler_Lagrange_Laguerre_Conway_Der(this->spacecraft_state[step].data(),
+                        state_left,
+                        Universe.mu,
+                        Universe.LU,
+                        -this->time_step_sizes[step] / 2.0);
+                    for (size_t state = 0; state < 6; ++state)
+                        NewX.push_back(state_left[state]);
+                    NewX.push_back(this->spacecraft_state[step][6]);
+                    NewXIndex += 7;
+                }
 				NewX.push_back(0.0);
 				NewX.push_back(0.0);
 				NewX.push_back(0.0);

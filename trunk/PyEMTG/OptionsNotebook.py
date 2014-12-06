@@ -14,7 +14,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtMissionName = wx.TextCtrl(self, -1, "mission_name", size=(500,-1))
 
         self.lblMissionType = wx.StaticText(self, -1, "Mission Type")
-        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT','4: MGA-NDSM (experimental)']#,'6: DTLT']
+        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT','4: MGA-NDSM (experimental)','5: PSBI']
                     #,'6: solver chooses (MGA, MGA-DSM)','7: solver chooses (MGA, MGA-LT)',
                     #'8: solver chooses (MGA-DSM, MGA-LT)','9: solver chooses (MGA, MGA-DSM, MGA-LT)']
         self.cmbMissionType = wx.ComboBox(self, -1, choices=phasetypes, style=wx.CB_READONLY)
@@ -1019,12 +1019,18 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbloutput_units = wx.StaticText(self, -1, "Output units")
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
+        
+        self.lbloutput_dormant_journeys = wx.StaticText(self, -1, "Output journey entries for wait times at intermediate and final target?")
+        self.chkoutput_dormant_journeys = wx.CheckBox(self, -1)
+
+        self.lblpost_mission_wait_time = wx.StaticText(self, -1, "Stay time at the final target")
+        self.txtpost_mission_wait_time = wx.TextCtrl(self, -1, "post_mission_wait_time")
 
         self.lblgenerate_initial_guess_file = wx.StaticText(self, -1, "Generate initial guess file? (experimental!)")
         self.chkgenerate_initial_guess_file = wx.CheckBox(self, -1)
 
         self.lblmission_type_for_initial_guess_file = wx.StaticText(self, -1, "Mission type for initial guess file")
-        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM"]
+        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM","PSBI"]
         self.cmbmission_type_for_initial_guess_file = wx.ComboBox(self, -1, choices=initial_guess_file_choices, style=wx.CB_READONLY)
 
         self.lbloverride_working_directory = wx.StaticText(self, -1, "Override working directory?")
@@ -1042,14 +1048,16 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
         self.chkbackground_mode = wx.CheckBox(self, -1)
 
-        self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
-                           self.lbloutput_units, self.cmboutput_units,
-                           self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
-                           self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
-                           self.lbloverride_working_directory, self.chkoverride_working_directory,
-                           self.lblforced_working_directory, working_directory_sizer,
-                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
-                           self.lblbackground_mode, self.chkbackground_mode])
+        self.mainbox.AddMany([  self.lbloutput_dormant_journeys, self.chkoutput_dormant_journeys,
+                                self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
+                                self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
+                                self.lbloutput_units, self.cmboutput_units,
+                                self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
+                                self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
+                                self.lbloverride_working_directory, self.chkoverride_working_directory,
+                                self.lblforced_working_directory, working_directory_sizer,
+                                self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
+                                self.lblbackground_mode, self.chkbackground_mode])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()

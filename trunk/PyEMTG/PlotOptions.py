@@ -20,6 +20,8 @@ class PlotOptions(object):
         self.PlotActivePower = False
         self.PlotWasteHeat = False
         self.PlotCriticalEvents = False
+        self.PlotEarthDistance = False
+        self.PlotSunEarthSpacecraftAngle = False
         self.FontSize = 10
 
     def update_mission_panel(self, missionpanel):
@@ -42,6 +44,8 @@ class PlotOptions(object):
         missionpanel.chkPlotDelta.SetValue(self.PlotDelta)
         missionpanel.chkPlotCB_thrust_angle.SetValue(self.PlotCB_thrust_angle)
         missionpanel.chkPlotMass.SetValue(self.PlotMass)
+        missionpanel.chkPlotEarthDistance.SetValue(self.PlotEarthDistance)
+        missionpanel.chkPlotSunEarthSpacecraftAngle.SetValue(self.PlotSunEarthSpacecraftAngle)
 
         #format options
         missionpanel.spnctrlFontSizeControl.SetValue(self.FontSize)

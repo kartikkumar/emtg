@@ -104,7 +104,12 @@ namespace EMTG { namespace Solvers {
 		this->SNOPTproblem->setUserFun(SNOPT_user_function);
 		this->SNOPTproblem->setIntParameter("Iterations limit", 100 * Problem->options.snopt_major_iterations);
 		this->SNOPTproblem->setIntParameter("Major iterations limit", Problem->options.snopt_major_iterations);
-		this->SNOPTproblem->setIntParameter("Derivative option", 0);
+        //if (Problem->options.mission_type == 5)
+            //this->SNOPTproblem->setIntParameter("Scale option", 2);
+        if (Problem->options.derivative_type == 4)
+            this->SNOPTproblem->setIntParameter("Derivative option", 1);
+        else
+		    this->SNOPTproblem->setIntParameter("Derivative option", 0);
 		this->SNOPTproblem->setIntParameter("Minor print level", 0);
 		this->SNOPTproblem->setRealParameter("Major feasibility tolerance", Problem->options.snopt_feasibility_tolerance);
 		
@@ -114,6 +119,7 @@ namespace EMTG { namespace Solvers {
 		{
 			this->SNOPTproblem->setIntParameter("Print file", 1);
 			this->SNOPTproblem->setIntParameter("Summary file", 1);
+            this->SNOPTproblem->setIntParameter("System information", 1);
 			this->SNOPTproblem->setIntParameter("Verify level", 3); //0 = cheap test 1 = individual gradients checked (OK or BAD) 2 = Individual columns of the Jacobian are checked 3 = 1 and 2 happen -1 = Derivative checking is disabled
 		}
 		if (Problem->options.quiet_NLP)
@@ -421,12 +427,15 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		/* uncomment these lines to re-enable MBH clipping. Currently we let SNOPT self-clip
-		if (Xtrial_scaled[k] > 1.0)
-			Xtrial_scaled[k] = 1.0;
-		else if (Xtrial_scaled[k] < 0.0)
-			Xtrial_scaled[k] = 0.0;
-			*/
+		//MBH clipping
+        for (size_t k = 0; k < Xtrial_scaled.size(); ++k)
+        {
+            if (Xtrial_scaled[k] > 1.0)
+                Xtrial_scaled[k] = 1.0;
+            else if (Xtrial_scaled[k] < 0.0)
+                Xtrial_scaled[k] = 0.0;
+        }
+
 
 		return 0;
 	}
@@ -437,7 +446,7 @@ namespace EMTG { namespace Solvers {
 		//loop through any time variables and if (uniform random < threshold) then add/subtract a synodic period
 		for (int timeindex = 0; timeindex < time_variable_indices.size(); ++timeindex)
 		{
-			if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
+            if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
 			{
 				int k = time_variable_indices[timeindex];
 				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
@@ -644,7 +653,7 @@ namespace EMTG { namespace Solvers {
 				//Step 1 (alternate): perturb the existing point
 				this->hop();
 
-				if (Problem->options.MBH_time_hop_probability > 0.0)
+                if (Problem->options.MBH_time_hop_probability > 0.0  && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
 					this->time_hop();
 			}
 			

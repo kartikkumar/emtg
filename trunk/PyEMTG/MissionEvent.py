@@ -95,13 +95,13 @@ class MissionEvent(object):
             GraphicsObject.scatter(self.SpacecraftState[0], self.SpacecraftState[1], self.SpacecraftState[2], s=4, c='r', marker=r'$\circlearrowleft$')
         elif self.EventType == "chem_burn":
             GraphicsObject.scatter(self.SpacecraftState[0], self.SpacecraftState[1], self.SpacecraftState[2], s=4, c='r', marker='o')
-        elif self.EventType == "SFthrust" or self.EventType == "coast" or self.EventType == "force-coast":
+        elif self.EventType == "SFthrust" or self.EventType == "PSBIthrust" or self.EventType == "coast" or self.EventType == "force-coast":
             color = ''
             if self.EventType == "coast":
                 linestyle = '--'
                 color = 'k'
                 weight = 1
-            elif self.EventType == "SFthrust":
+            elif self.EventType == "SFthrust" or self.EventType == "PSBIthrust":
                 linestyle = '-'
                 color = 'k'
                 weight = 2
@@ -123,7 +123,7 @@ class MissionEvent(object):
                 CenterPointStateAfterManeuver = copy.deepcopy(CenterPointState)
                 CenterPointStateAfterManeuver[3:6] += np.array(self.DeltaVorThrustVectorControl) * TU /LU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body, jac=EOM.EOM_jacobian_intertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 ForwardIntegrateObject.set_initial_value(CenterPointStateAfterManeuver).set_f_params(1.0).set_jac_params(1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -132,7 +132,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body, jac=EOM.EOM_jacobian_intertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2body).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(1.0).set_jac_params(1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -173,7 +173,7 @@ class MissionEvent(object):
                 ScaledThrust = np.array(self.Thrust) * TU * TU / 1000.0 / self.Mass / LU
                 ScaledMdot = self.MassFlowRate / self.Mass * TU
 
-                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust, jac=EOM.EOM_jacobian_intertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                ForwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 ForwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0).set_jac_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -182,7 +182,7 @@ class MissionEvent(object):
                     ForwardIntegrateObject.integrate(ForwardIntegrateObject.t + dt)
                     StateHistoryForward.append(ForwardIntegrateObject.y * LU)
 
-                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust, jac=EOM.EOM_jacobian_intertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
+                BackwardIntegrateObject = ode(EOM.EOM_inertial_2bodyconstant_thrust).set_integrator('dop853', atol=1.0e-6, rtol=1.0e-6)
                 BackwardIntegrateObject.set_initial_value(CenterPointState).set_f_params(ScaledThrust, ScaledMdot, 1.0).set_jac_params(ScaledThrust, ScaledMdot, 1.0)
 
                 dt = self.TimestepLength * 86400.0 / TU / 10
@@ -220,7 +220,7 @@ class MissionEvent(object):
         elif self.EventType == "match_point":
             GraphicsObject.scatter(self.SpacecraftState[0], self.SpacecraftState[1], self.SpacecraftState[2], s=4, c='k', marker='s')
 
-        if PlotOptions.ShowTextDescriptions and not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "FBLTSthrust" or self.EventType == "match_point"):
+        if PlotOptions.ShowTextDescriptions and not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point" or self.EventType == "waiting"):
             self.LabelEvent(GraphicsObject, PlotOptions)
 
     def LabelEvent(self, GraphicsObject, PlotOptions):
@@ -237,6 +237,8 @@ class MissionEvent(object):
             EventTypeFormatted = 'begin spiral'
         elif EventTypeFormatted == 'end_spiral':
             EventTypeFormatted = 'end spiral'
+        elif EventTypeFormatted == 'mission_end':
+            EventTypeFormatted = 'end of mission'
 
         description = EventTypeFormatted + '\n' + self.Location + '\n' + self.GregorianDate
 
@@ -285,7 +287,7 @@ class MissionEvent(object):
             self.rcid = GraphicsObject.figure.canvas.mpl_connect('button_release_event', self.ReleaseAnnotation)
 
     def UpdateLabelPosition(self, Figure, Axes):
-        if not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "FBLTSthrust" or self.EventType == "match_point" or (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001)):
+        if not (self.EventType == 'zeroflyby' or self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point" or self.EventType == "waiting" or (self.EventType == "chem_burn" and self.DVmagorThrottle < 0.001)):
             x2, y2, _ = proj3d.proj_transform(self.SpacecraftState[0],self.SpacecraftState[1],self.SpacecraftState[2], Axes.get_proj())
             self.eventlabel.xy = x2,y2
             self.eventlabel.update_positions(Figure.canvas.renderer)
@@ -305,7 +307,7 @@ class MissionEvent(object):
         self.eventlabel.axes.mouse_init()
 
     def OutputEphemerisData(self, LU, TU, mu, timehistory, statehistory, accelhistory):
-        if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "FBLTSthrust" or self.EventType == "match_point":
+        if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "FBLTthrust" or self.EventType == "PSBIthrust" or self.EventType == "match_point":
 
             #propagate the state forward and back
             CenterPointState = []
@@ -314,9 +316,9 @@ class MissionEvent(object):
             CenterPointState[3:6] *= TU
             CenterPointState[6] = 1.0
 
-            if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust":
+            if self.EventType == 'coast' or self.EventType == 'force-coast' or self.EventType == "SFthrust" or self.EventType == "PSBIthrust":
                 CenterPointState = np.array(copy.deepcopy(self.SpacecraftState))
-                if self.EventType == "SFthrust":
+                if self.EventType == "SFthrust" or event.EventType == "PSBIthrust":
                     CenterPointState[3:6] += np.array(self.DeltaVorThrustVectorControl)
                 CenterPointState /= LU
                 CenterPointState[3:6] *= TU
