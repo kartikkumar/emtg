@@ -206,7 +206,7 @@ class NSGAII_outerloop_population(object):
     #method to plot the population
     #input is an ordered list of objectives, [x, y, z, color]. If there are two objectives, a monochrome 2D plot will be shown. If there are three objectives, a monochrome 3D plot will be shown.
     #if there are four, a colored 3D plot will be shown. If there are more than four there will be an error message.
-    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1):
+    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1, FontSize = 10):
         self.ordered_list_of_objectives = ordered_list_of_objectives
         self.LowerBounds = LowerBounds
         self.UpperBounds = UpperBounds
@@ -218,6 +218,7 @@ class NSGAII_outerloop_population(object):
             return
 
         self.PopulationFigure = matplotlib.pyplot.figure()
+        matplotlib.rcParams.update({'font.size': FontSize})
         self.PopulationFigure.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99)
         if len(ordered_list_of_objectives) == 2:
             self.PopulationAxes = self.PopulationFigure.add_subplot(111)

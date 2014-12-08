@@ -9,6 +9,7 @@ class NSGAIIPlotOptions:
         self.LowerBounds = []
         self.TimeUnit = 0
         self.EpochUnit = 0
+        self.FontSize = 10.0
 
 class NSGAIIpanel(wx.Panel):
     def __init__(self, parent, Population):
@@ -114,13 +115,22 @@ class NSGAIIpanel(wx.Panel):
         EpochUnitSizer = wx.BoxSizer(wx.HORIZONTAL)
         EpochUnitSizer.AddMany([self.lblEpochUnit, self.cmbEpochUnit])
 
+        #font size control
+        FormatBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.lblFontSize = wx.StaticText(self, -1, "Font size")
+        self.spnctrlFontSizeControl = wx.SpinCtrl(self, -1, min=1, max=100, initial=10, name="Font size")
+        FormatBoxSizer.AddMany([self.lblFontSize, self.spnctrlFontSizeControl])
+        self.spnctrlFontSizeControl.Bind(wx.EVT_SPINCTRL, self.ChangeFontSize)
+
 
         self.PlotOptionsBox = wx.StaticBox(self, -1, "Plot Options", size = (300, 300))
         font = self.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.PlotOptionsBox.SetFont(font)
         PlotOptionsSizer = wx.StaticBoxSizer(self.PlotOptionsBox, wx.VERTICAL)
-        PlotOptionsSizer.AddMany([TimeUnitSizer, EpochUnitSizer])
+        PlotOptionsSizer.AddMany([TimeUnitSizer, EpochUnitSizer, FormatBoxSizer])
+
+        
         
         #finally we want a button to make the plot
         self.btnPlotPopulation = wx.Button(self, -1, "Plot Population")
@@ -177,6 +187,9 @@ class NSGAIIpanel(wx.Panel):
     def ChangeEpochUnit(self, event):
         self.plotoptions.EpochUnit = self.cmbEpochUnit.GetSelection()
 
+    def ChangeFontSize(self, e):
+        self.plotoptions.FontSize = self.spnctrlFontSizeControl.GetValue()
+
     def ClickPlotPopulation(self, event):
         #first assemble the ordered list of objectives
         #note that if C is set but not Z, throw an error
@@ -203,4 +216,4 @@ class NSGAIIpanel(wx.Panel):
                 errordlg.Destroy()
             
             else:
-                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit)
+                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit, FontSize = self.plotoptions.FontSize)
