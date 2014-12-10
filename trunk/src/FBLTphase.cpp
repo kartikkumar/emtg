@@ -1993,8 +1993,14 @@ namespace EMTG
         //Step 1: get the initial state of the spacecraft and write it out
         //recall that STK wants m and m/s, not km and km/s
         vector<string> output_line(7);
-        double current_state[7];
+        vector<double> current_state(11*11+11);
         double current_epoch;
+
+        //The STM entries of the current_state vector must be initialized to the identity
+        for (size_t i = this->STMrows; i < this->num_states; ++i)
+            current_state[i] = 0.0;
+        for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
+            current_state[i] = 1.0;
 
         //Step 1a: if there is a spiral
         if (p == 0 && options.journey_departure_type[j] == 5)
@@ -2179,7 +2185,7 @@ namespace EMTG
                                                 const EMTG::Astrodynamics::universe& Universe,
                                                 const double& launch_epoch,
                                                 double& current_epoch,
-                                                double* current_state,
+                                                vector<double>& current_state,
                                                 const int& control_step,
                                                 vector< vector<string> >& output_line_array,
                                                 const int& j,
@@ -2190,8 +2196,7 @@ namespace EMTG
         vector<string> output_line(7);
         double time_remaining = propagation_time;
         std::vector <double> empty_control (3, 0.0);
-        std::vector <double> temp_state(7);
-		std::vector <double> helper_state(7);
+        std::vector <double> temp_state(11 * 11 + 11);
 		double dsegment_timedTOF = 0.0;
 
         double available_thrust, available_mass_flow_rate, available_Isp, available_power, active_power;
@@ -2203,10 +2208,6 @@ namespace EMTG
             current_state[k+3] *= Universe.TU / Universe.LU;
         }
         current_state[6] /= options.maximum_mass;
-
-
-		for (size_t k = 0; k < 7; ++k)
-			helper_state[k] = current_state[k];
 		
 		dummy_state_TOF_derivatives.assign_zeros();
 
@@ -2217,7 +2218,7 @@ namespace EMTG
             double resumeH = step_time / Universe.TU;
 
 			//I DON'T THINK THIS WILL WORK IN IT'S CURRENT FORM....CURRENT STATE MUST BE LENGTH 132
-			this->integrator->adaptive_step_int(  helper_state,
+            this->integrator->adaptive_step_int(current_state,
 												  dummy_state_TOF_derivatives,
                                                 temp_state,
 												  dummy_state_TOF_derivatives,
@@ -2247,7 +2248,7 @@ namespace EMTG
             time_remaining -= step_time;
 
             //copy temp_state to current_state
-            for (size_t k = 0; k < 7; ++k)
+            for (size_t k = 0; k < 11*11+11; ++k)
                 current_state[k] = temp_state[k];
 
             //create a text output line

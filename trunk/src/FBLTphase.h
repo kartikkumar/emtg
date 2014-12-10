@@ -89,7 +89,7 @@ public:
                                     const EMTG::Astrodynamics::universe& Universe,
                                     const double& launch_epoch,
                                     double& current_epoch,
-                                    double* current_state,
+                                    vector<double>& current_state,
                                     const int& control_step,
                                     vector< vector<string> >& output_line_array,
                                     const int& j,
