@@ -9,10 +9,10 @@ from kepler import kepler
 from numpy import array
 
 class SmallBody(object):
-    def __init__(self, name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, H, Diameter):
-        self.set_values(name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, H, Diameter)
+    def __init__(self, name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, SMASSII, H, Diameter):
+        self.set_values(name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, SMASSII, H, Diameter)
 
-    def set_values(self, name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, H, Diameter):
+    def set_values(self, name, SPICEID, ReferenceEpoch, SMA, ECC, INC, RAAN, AOP, MA, Tholen, SMASSII, H, Diameter):
         self.name = name
         self.SPICEID = SPICEID
         self.ReferenceEpoch = ReferenceEpoch
@@ -23,6 +23,7 @@ class SmallBody(object):
         self.AOP = AOP
         self.MA = MA
         self.Tholen = Tholen
+        self.SMASSII = SMASSII
         self.H = H
         self.Diameter = Diameter
 
@@ -59,7 +60,7 @@ class SmallBodyList(object):
                     linecell[i] = '-1'
             if linecell[-1] == '\n':
                 linecell.pop()
-            while len(linecell) < 12:
+            while len(linecell) < 13:
                 linecell.append('-1')
             linecell[-1] = linecell[-1] + '\n'
 
@@ -75,8 +76,9 @@ class SmallBodyList(object):
                                                 float(linecell[7]) * math.pi/180.0, #AOP
                                                 float(linecell[8]) * math.pi/180.0, #MA
                                                 linecell[9],  #Tholen spectral type
-                                                float(linecell[10]), #absolute magnitude
-                                                float(linecell[11]))) #diameter (km)
+                                                linecell[10], #SMASSII spectral type
+                                                float(linecell[11]), #absolute magnitude
+                                                float(linecell[12]))) #diameter (km)
 
 
     #function to find bodies that are near a reference state at a reference epoch
