@@ -283,6 +283,9 @@ namespace EMTG { namespace Solvers {
 				Xtrial_scaled[k] = DoubleDistribution(RNG);
 		}
 
+        this->Problem->evaluate(seed_vector.data(), this->F, Problem->G.data(), 0, this->Problem->iGfun, this->Problem->jGvar);
+        double Ccurrent = this->check_feasibility();
+
 		fcurrent = EMTG::math::LARGE;
 
 		return 0;

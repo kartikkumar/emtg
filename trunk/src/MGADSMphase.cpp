@@ -101,7 +101,7 @@ namespace EMTG
 			Body2 = &Universe->bodies[boundary2_location_code - 1];
 
 		//we need to know if we are the first phase of the journey and the journey does not start with a flyby
-		if (p == 0 && !(options->journey_departure_type[j] == 3))
+        if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
 		{
 			//Step 1: extract the journey start epoch
 			//if this is the first journey, the first decision variable is the starting epoch
@@ -352,12 +352,6 @@ namespace EMTG
 
 				F[*Findex] = (this->V_infinity_out(k) - v_infinity_in_k) / v_infinity_in_k;
 				++(*Findex);
-
-				if (options->derivative_type > 0 && needG)
-				{
-					G[flyby_velocity_magnitude_constraint_G_indices[k * 2]] = 1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2];
-					G[flyby_velocity_magnitude_constraint_G_indices[k * 2 + 1]] = -1.0 / v_infinity_in_k * flyby_constraints_X_scale_ranges[k * 2 + 1];
-				}
 			}
 
 			this->flyby_outgoing_v_infinity = this->V_infinity_out.norm();

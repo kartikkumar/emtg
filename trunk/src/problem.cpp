@@ -89,10 +89,12 @@ namespace EMTG {
 
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 
+                this->X = this->Xopt;
+                this->output_problem_bounds_and_descriptions(this->options.working_directory + "//" + this->options.mission_name + "_" + this->options.description + "XFfile.csv");
+
 				if (options.check_derivatives)
 				{
 					this->X = this->options.current_trialX;
-					this->output_problem_bounds_and_descriptions(this->options.working_directory + "//" + this->options.mission_name + "_" + this->options.description + "XFfile.csv");
 					this->check_and_print_derivatives(options.working_directory + "//" + options.mission_name + "_" + options.description + "derivcheck.csv");
 				}
 
