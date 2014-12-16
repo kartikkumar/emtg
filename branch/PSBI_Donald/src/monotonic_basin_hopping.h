@@ -84,6 +84,10 @@ public:
 	int number_of_failures_since_last_improvement;
 	int Jacobian_offset;
 
+    //track the worst constraint violation
+    int worst_constraint;
+    double max_constraint_violation;
+
 	//track the step size
 	double step_size;
 

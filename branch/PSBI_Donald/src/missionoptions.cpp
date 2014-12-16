@@ -2129,6 +2129,8 @@ namespace EMTG {
 		    outputfile << "#1: maximum thrust" << endl;
 		    outputfile << "#2: maximum Isp" << endl;
 		    outputfile << "#3: maximum efficiency" << endl;
+            outputfile << "#4: maximum number of thrusters" << endl;
+            outputfile << "#5: minimum number of thrusters" << endl;
 		    outputfile << "throttle_logic_mode " << this->throttle_logic_mode << endl;
 		    outputfile << "#Throttle sharpness (higher means more precise, lower means smoother)" << endl;
 		    outputfile << "throttle_sharpness " << throttle_sharpness << endl;

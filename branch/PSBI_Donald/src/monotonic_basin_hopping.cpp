@@ -797,8 +797,12 @@ namespace EMTG { namespace Solvers {
 				//then we should see if this point is "more feasible" than best one we have so far
 				if (feasibility < best_feasibility)
 				{
-					if (!Problem->options.quiet_basinhopping)
-						std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+                    if (!Problem->options.quiet_basinhopping)
+                    {
+                        std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+                        std::cout << "Worst constraint is F[" << this->worst_constraint << "]: " << this->Problem->Fdescriptions[this->worst_constraint] << std::endl;
+                        std::cout << "with abs(violation) " << this->max_constraint_violation << std::endl;
+                    }
 					fcurrent = F[0];
 					Xcurrent_scaled = Xtrial_scaled;
 					best_feasibility = feasibility;
@@ -905,8 +909,7 @@ namespace EMTG { namespace Solvers {
 	//function to check feasibility of a solution
 	double MBH::check_feasibility()
 	{
-		double max_constraint_violation = 0.0;
-		int worst_constraint;
+		max_constraint_violation = 0.0;
 		for (int k = 1; k < Problem->total_number_of_constraints; ++k)
 		{
 			if (F[k] > Fupp[k])

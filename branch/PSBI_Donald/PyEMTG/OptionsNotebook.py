@@ -273,7 +273,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtnumber_of_engines = wx.TextCtrl(self, -1, "number_of_engines")
 
         self.lblthrottle_logic_mode = wx.StaticText(self, -1, "Throttle logic mode")
-        throttle_logic_types = ['maximum power use','maximum thrust','maximum Isp','maximum efficiency']
+        throttle_logic_types = ['maximum power use','maximum thrust','maximum Isp','maximum efficiency','maximum number of thrusters','minimum number of thrusters']
         self.cmbthrottle_logic_mode = wx.ComboBox(self, -1, choices = throttle_logic_types, style = wx.CB_READONLY)
 
         self.lblthrottle_sharpness = wx.StaticText(self, -1, "Throttle sharpness")
