@@ -22,6 +22,8 @@ class Universe(object):
     perturbation_indices = []
     destination_menu = []
     destination_indices = []
+    distance_constraint_menu = []
+    distance_indices = []
     number_of_bodies = 0
 
     #success flag
@@ -32,6 +34,7 @@ class Universe(object):
         self.generate_flyby_menu()
         self.generate_perturbation_menu()
         self.generate_destination_menu()
+        self.generate_distance_constraint_menu()
 
     def parse_universe_file(self, input_file_name):
         #Step 1: open the file
@@ -135,6 +138,18 @@ class Universe(object):
         for b in range(0, self.number_of_bodies):
             self.destination_indices.append(b)
             self.destination_menu.append(self.bodies[b].name)
+
+    def generate_distance_constraint_menu(self):
+        self.distance_menu = []
+        self.distance_indices = []
+        
+        #add the central body to the beginning of the list
+        self.distance_menu.append(self.central_body_name)
+        self.distance_indices.append(-2)
+
+        for b in range(0, self.number_of_bodies):
+            self.distance_indices.append(b)
+            self.distance_menu.append(self.bodies[b].name)
 
     def write_universe_file(self, output_file_name):
         #write out the universe file

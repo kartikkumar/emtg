@@ -26,13 +26,27 @@ namespace EMTG {
     {
         this->initialize();
         this->file_status = parse_options_file("options.emtgopt");
+
+        if (this->journey_distance_constraint_number_of_bodies.size() == 0)
+        {
+            for (int j = 0; j < this->number_of_journeys; ++j)
+                journey_distance_constraint_number_of_bodies.push_back(0);
+        }
+
         this->construct_thruster_launch_vehicle_name_arrays();
     }
 
     missionoptions::missionoptions(const string& optionsfile)        
     {
         this->initialize();
-	    this->file_status = parse_options_file(optionsfile);
+        this->file_status = parse_options_file(optionsfile);
+
+        if (this->journey_distance_constraint_number_of_bodies.size() == 0)
+        {
+            for (int j = 0; j < this->number_of_journeys; ++j)
+                journey_distance_constraint_number_of_bodies.push_back(0);
+        }
+
 	    this->construct_thruster_launch_vehicle_name_arrays();
     }
 
@@ -1656,6 +1670,44 @@ namespace EMTG {
 		    }
 		    return 0;
 	    }
+        if (choice == "journey_distance_constraint")
+        {
+            this->journey_distance_constraint_number_of_bodies.push_back((int)value);
+
+            for (int j = 1; j < this->number_of_journeys; ++j)
+            {
+                inputfile >> value;
+                this->journey_distance_constraint_number_of_bodies.push_back((int)value);
+            }
+
+            //next read the bodies line for each journey
+            vector<int> temp_distance_bodies_list;
+            vector< vector <double> > temp_distance_bounds_list;
+            for (int j = 0; j < this->number_of_journeys; ++j)
+            {
+                temp_distance_bodies_list.clear();
+                temp_distance_bounds_list.clear();
+                for (int b = 0; b < this->journey_distance_constraint_number_of_bodies[j]; ++b)
+                {
+                    //first get the body ID number
+                    inputfile >> value;
+                    temp_distance_bodies_list.push_back((int)value);
+                    
+                    //then get the bounds
+                    vector<double> temp_bounds;
+                    inputfile >> value;
+                    temp_bounds.push_back(value);
+                    inputfile >> value;
+                    temp_bounds.push_back(value);
+                    temp_distance_bounds_list.push_back(temp_bounds);
+                }
+                this->journey_distance_constraint_bodies.push_back(temp_distance_bodies_list);
+                this->journey_distance_constraint_bounds.push_back(temp_distance_bounds_list);
+                ++linenumber;
+            }
+
+            return 0;
+        }
 				
 	    //output format settings
 	    if (choice == "output_units") {
@@ -2465,6 +2517,24 @@ namespace EMTG {
 		    for (int j = 0; j < this->number_of_journeys; ++j)
 			    outputfile << " " << this->journey_maximum_DSM_magnitude_constraint[j];
 		    outputfile << endl;
+            outputfile << "#Journey distance constraint" << endl;
+            outputfile << "#The first line lists the number of bodies for each journey" << endl;
+            outputfile << "#Successive lines list the bodies and distance bounds as [body ID, r_min(km), r_max(km)]" << endl;
+            outputfile << "#There is one line for each journey" << endl;
+            outputfile << "journey_distance_constraint";
+            for (int j = 0; j < this->number_of_journeys; ++j)
+                outputfile << " " << this->journey_distance_constraint_number_of_bodies[j];
+            outputfile << endl;
+            for (int j = 0; j < this->number_of_journeys; ++j)
+            {
+                for (int b = 0; b < this->journey_distance_constraint_number_of_bodies[j]; ++b)
+                {
+                    outputfile << " " << this->journey_distance_constraint_bodies[j][b];
+                    outputfile << " " << this->journey_distance_constraint_bounds[j][b][0];
+                    outputfile << " " << this->journey_distance_constraint_bounds[j][b][1];
+                }
+                outputfile << endl;
+            }
 		    outputfile << endl;
 
 		    outputfile << "##Perturbation settings" << endl;

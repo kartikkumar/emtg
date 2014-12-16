@@ -29,6 +29,9 @@ class JourneyOptions(object):
     journey_capture_spiral_final_radius = 6678#in km
     journey_maximum_DSM_magnitude_constraint_flag = 0
     journey_maximum_DSM_magnitude_constraint = 2.0 #in km/s
+    journey_distance_constraint_number_of_bodies = 0
+    journey_distance_constraint_bodies = []
+    journey_distance_constraint_bounds = [[]]
         
     #sequence information
     number_of_phases = []

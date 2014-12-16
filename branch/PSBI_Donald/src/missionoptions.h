@@ -285,6 +285,9 @@ public:
 	vector<double> journey_capture_spiral_final_radius; //in km
 	vector<bool> journey_maximum_DSM_magnitude_constraint_flag;
 	vector<double> journey_maximum_DSM_magnitude_constraint; //in km/s
+    vector<int> journey_distance_constraint_number_of_bodies;
+    vector< vector<int> > journey_distance_constraint_bodies;
+    vector< vector< vector<double> > > journey_distance_constraint_bounds; //in km
 
 	//output format settings
 	int output_units; //0: km and km/s, 1: LU and LU/day

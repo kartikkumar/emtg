@@ -628,7 +628,8 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabJourney.btndestination_list.Bind(wx.EVT_BUTTON,self.Clickdestination_list)
         self.optionsnotebook.tabJourney.btnjourney_central_body.Bind(wx.EVT_BUTTON,self.Clickjourney_central_body)
         self.optionsnotebook.tabJourney.btnsequence.Bind(wx.EVT_BUTTON,self.Clicksequence)
-        self.optionsnotebook.tabJourney.btnjourney_perturbation_bodies.Bind(wx.EVT_BUTTON,self.Clickjourney_perturbation_bodies)
+        self.optionsnotebook.tabJourney.btnjourney_perturbation_bodies.Bind(wx.EVT_BUTTON, self.Clickjourney_perturbation_bodies)
+        self.optionsnotebook.tabJourney.btnEditJourneyDistanceConstraints.Bind(wx.EVT_BUTTON, self.ClickEditJourneyDistanceConstraints)
 
         
         #solver options
@@ -1514,7 +1515,24 @@ class PyEMTG_interface(wx.Frame):
         dlg.Destroy()
         self.missionoptions.update_journey_options_panel(self.optionsnotebook)
 
+    def ClickEditJourneyDistanceConstraints(self, e):
+        #call dialog to choose distance constraints
+        self.universe = Universe.Universe(os.path.join(self.missionoptions.universe_folder, self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_central_body + ".emtg_universe"))
+        dlg = BodyPicker.DistanceConstraintBodyPicker(self, 
+                                                      -1,
+                                                      self.universe, 
+                                                      self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_number_of_bodies,
+                                                      self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_bodies, 
+                                                      self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_bounds)
+        dlg.ShowModal()
 
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_number_of_bodies = dlg.journey_distance_constraint_number_of_bodies
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_bodies = dlg.journey_distance_constraint_bodies
+        self.missionoptions.Journeys[self.missionoptions.ActiveJourney].journey_distance_constraint_bounds = dlg.journey_distance_constraint_bounds
+
+        dlg.Destroy()
+
+     
     #event handlers for solver options
     def ChangeInnerLoopSolver(self, e):
         self.missionoptions.run_inner_loop = self.optionsnotebook.tabSolver.cmbInnerLoopSolver.GetSelection()

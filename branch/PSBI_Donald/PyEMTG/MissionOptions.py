@@ -240,6 +240,7 @@ class MissionOptions(object):
         trialX_line_flag = 0
         flyby_choice_line_flag = 0
         destination_choice_line_flag = 0
+        distance_constraint_bodies_flag = 0
 
 
         #Step 2: scan through the file
@@ -257,7 +258,7 @@ class MissionOptions(object):
                     choice = linecell[0]
 
                     if perturb_line_flag > 0:
-                        perturb_line_flag = perturb_line_flag + 1
+                        perturb_line_flag += 1
                         self.Journeys[j].journey_perturbation_bodies = []
                         for x in linecell:
                             self.Journeys[j].journey_perturbation_bodies.append(int(x))
@@ -301,6 +302,13 @@ class MissionOptions(object):
                         for entry in linecell[1:]:
                             self.Journeys[destination_choice_line_flag - 1].outerloop_journey_destination_choices.append(int(entry))
                         destination_choice_line_flag = destination_choice_line_flag + 1
+
+                    elif distance_constraint_bodies_flag > 0:
+                        distance_constraint_bodies_flag += 1
+                        self.Journeys[j].journey_distance_constraint_bodies = []
+                        for counter in range(0, len(linecell) / 3):
+                            self.Journeys[j].journey_distance_constraint_bodies.append(int(linecell[3 * counter]))
+                            self.Journeys[j].journey_distance_constraint_bounds.append([float(linecell[3 * counter + 1]), float(linecell[3 * counter + 2])])
 
                     elif choice == "problem_type":
                         self.problem_type = int(linecell[1])
@@ -750,6 +758,12 @@ class MissionOptions(object):
                     elif choice == "journey_maximum_DSM_magnitude_constraint":
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].journey_maximum_DSM_magnitude_constraint = float(linecell[j+1])
+                    elif choice == "journey_distance_constraint":
+                        #first get the number of distance constraint bodies for each journey
+                        for j in range(0, self.number_of_journeys):
+                            self.Journeys[j].journey_distance_constraint_number_of_bodies = int(linecell[j+1])
+                        #next read the bodies line for each journey
+                        distance_constraint_bodies_flag = 1
                     
                         
                     #perturbation-related quantities    
@@ -823,6 +837,7 @@ class MissionOptions(object):
                     trialX_line_flag = 0
                     flyby_choice_line_flag = 0
                     destination_choice_line_flag = 0
+                    distance_constraint_bodies_flag = 0
             else:
                 perturb_line_flag = 0
                 point_group_members_flag = 0
@@ -830,6 +845,7 @@ class MissionOptions(object):
                 trialX_line_flag = 0
                 flyby_choice_line_flag = 0
                 destination_choice_line_flag = 0
+                distance_constraint_bodies_flag = 0
         inputfile.close()
 
     def write_options_file(self, output_file_name):
@@ -1419,6 +1435,25 @@ class MissionOptions(object):
         for j in range(0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_maximum_DSM_magnitude_constraint))
         outputfile.write("\n")
+        outputfile.write("#Journey distance constraint\n")
+        outputfile.write("#The first line lists the number of bodies for each journey\n")
+        outputfile.write("#Successive lines list the bodies and distance bounds as [body ID, r_min(km), r_max(km)]\n")
+        outputfile.write("#There is one line for each journey\n")
+        outputfile.write("journey_distance_constraint")
+        
+        for j in range(0, self.number_of_journeys):
+            outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_number_of_bodies))
+        outputfile.write("\n")
+        for j in range(0, self.number_of_journeys):
+            if self.Journeys[j].journey_distance_constraint_number_of_bodies > 0:
+                outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bodies[0]))
+                outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bounds[0][0]))
+                outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bounds[0][1]))
+                for b in range(1, self.Journeys[j].journey_distance_constraint_number_of_bodies):
+                    outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bodies[b]))
+                    outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bounds[b][0]))
+                    outputfile.write(" " + str(self.Journeys[j].journey_distance_constraint_bounds[b][1]))
+            outputfile.write("\n")
         outputfile.write("\n")
             
         outputfile.write("##Perturbation settings\n")

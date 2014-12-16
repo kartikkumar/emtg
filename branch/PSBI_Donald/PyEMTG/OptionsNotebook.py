@@ -548,6 +548,8 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         journey_perturbation_bodies_box.AddSpacer(5)
         journey_perturbation_bodies_box.Add(self.btnjourney_perturbation_bodies)
 
+        self.btnEditJourneyDistanceConstraints = wx.Button(self, -1, "Edit journey distance constraints")
+
         
 
         JourneyInformationGrid = wx.FlexGridSizer(40,2,5,5)
@@ -575,7 +577,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                         self.lbljourney_perturbation_bodies, journey_perturbation_bodies_box])
 
         JourneyInformationStacker = wx.BoxSizer(wx.VERTICAL)
-        JourneyInformationStacker.AddMany([JourneySelectionSizer, JourneyInformationGrid])
+        JourneyInformationStacker.AddMany([JourneySelectionSizer, JourneyInformationGrid, self.btnEditJourneyDistanceConstraints])
 
         #custom departure elements
         self.boxjourney_departure_elements = wx.StaticBox(self, -1, "Journey departure elements")

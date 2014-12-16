@@ -307,3 +307,183 @@ class SequencePicker(wx.Dialog):
         self.UpdateLists()
         self.UpdateListBoxes()
         self.CurrentSequencePicker.SetSelection(self.ActivePhase)
+
+class DistanceConstraintBodyPicker(wx.Dialog):
+    #fields
+    universe = []
+    list_of_constraints = []
+    list_of_constraint_strings = []
+
+    def __init__(self,
+                 parent,
+                 id,
+                 universe, 
+                 journey_distance_constraint_number_of_bodies,
+                 journey_distance_constraint_bodies,
+                 journey_distance_constraint_bounds):
+
+        wx.Dialog.__init__(self, parent, id)
+        self.SetTitle("Distance Constraint Body Picker")
+
+        self.universe = universe
+
+        self.lblChosenBodiesPicker = wx.StaticText(self, -1, "Active constraints")
+        self.lblNewBodiesPicker = wx.StaticText(self, -1, "Body choices")
+        self.ChosenBodiesPicker = wx.ListBox(self, -1, choices=self.list_of_constraint_strings, size=(300,-1), style=wx.LB_SINGLE)
+        self.NewBodiesPicker = wx.ListBox(self, -1, choices=self.universe.distance_menu, size=(300,-1), style=wx.LB_SINGLE)
+        self.lblMinDistance = wx.StaticText(self, -1, "Minimum Distance (km)")
+        self.lblMaxDistance = wx.StaticText(self, -1, "Maximum Distance (km)")
+        self.txtMinDistance = wx.TextCtrl(self, -1, "Minimum Distance (km)")
+        self.txtMaxDistance = wx.TextCtrl(self, -1, "Maximum Distance (km)")
+
+        self.btnAdd = wx.Button(self, -1, "Add")
+        self.btnDelete = wx.Button(self, -1, "Delete")
+        self.btnOK = wx.Button(self, -1, "OK")
+        self.btnCancel = wx.Button(self, -1, "Cancel")
+
+        leftbox = wx.BoxSizer(wx.VERTICAL)
+        midbox = wx.BoxSizer(wx.VERTICAL)
+        rightbox = wx.BoxSizer(wx.VERTICAL)
+        topbox = wx.BoxSizer(wx.HORIZONTAL)
+        bottombox = wx.BoxSizer(wx.HORIZONTAL)
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        mindistancebox = wx.BoxSizer(wx.HORIZONTAL)
+        maxdistancebox = wx.BoxSizer(wx.HORIZONTAL)
+
+        leftbox.AddMany([self.lblChosenBodiesPicker, self.ChosenBodiesPicker])
+        mindistancebox.AddMany([self.lblMinDistance, self.txtMinDistance])
+        maxdistancebox.AddMany([self.lblMaxDistance, self.txtMaxDistance])
+        midbox.AddMany([self.btnAdd, mindistancebox, maxdistancebox, self.btnDelete])
+        rightbox.AddMany([self.lblNewBodiesPicker, self.NewBodiesPicker])
+        topbox.AddMany([leftbox, midbox, rightbox])
+        bottombox.AddMany([self.btnOK, self.btnCancel])
+        mainbox.AddMany([topbox, bottombox])
+
+        self.SetSizerAndFit(mainbox)
+
+        self.journey_distance_constraint_number_of_bodies = journey_distance_constraint_number_of_bodies
+        self.journey_distance_constraint_bodies = journey_distance_constraint_bodies
+        self.journey_distance_constraint_bounds = journey_distance_constraint_bounds
+        self.ActiveConstraint = 0
+        self.ActiveBody = 0
+        self.InitializeConstraintList()
+        self.UpdateConstraintStrings()
+        self.UpdateListBoxes()
+
+        font = self.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        self.lblChosenBodiesPicker.SetFont(font)
+        self.lblNewBodiesPicker.SetFont(font)
+
+
+        self.ChosenBodiesPicker.Bind(wx.EVT_LISTBOX, self.PickFromChosenBodies)
+        self.NewBodiesPicker.Bind(wx.EVT_LISTBOX, self.PickFromNewBodies)
+        self.txtMinDistance.Bind(wx.EVT_KILL_FOCUS, self.ChangeMinDistance)
+        self.txtMaxDistance.Bind(wx.EVT_KILL_FOCUS, self.ChangeMaxDistance)
+
+        self.btnAdd.Bind(wx.EVT_BUTTON, self.ClickAdd)
+        self.btnDelete.Bind(wx.EVT_BUTTON, self.ClickDelete)
+        self.btnOK.Bind(wx.EVT_BUTTON, self.ClickOK)
+        self.btnCancel.Bind(wx.EVT_BUTTON, self.ClickCancel)
+
+    def InitializeConstraintList(self):
+        self.list_of_constraints = []
+        for b in range(0, self.journey_distance_constraint_number_of_bodies):
+            if self.journey_distance_constraint_bodies[b] == -2:
+                self.list_of_constraints.append([-1, self.journey_distance_constraint_bounds[b][0], self.journey_distance_constraint_bounds[b][1]])
+            else:
+                self.list_of_constraints.append([self.journey_distance_constraint_bodies[b], self.journey_distance_constraint_bounds[b][0], self.journey_distance_constraint_bounds[b][1]])
+
+    def UpdateConstraintStrings(self):
+        self.list_of_constraint_strings = []
+        for constraint in self.list_of_constraints:
+            bodyname = []
+            if constraint[0] == -1:
+                bodyname = self.universe.central_body_name
+            else:
+                bodyname = self.universe.bodies[constraint[0]].name
+            self.list_of_constraint_strings.append(bodyname + ', minR = ' + str(constraint[1]) + ', maxR = ' + str(constraint[2]))
+
+    def UpdateListBoxes(self):
+        self.ChosenBodiesPicker.SetItems(self.list_of_constraint_strings)
+        if len(self.list_of_constraints) > 0:
+            self.ChosenBodiesPicker.SetSelection(self.ActiveConstraint)
+            self.txtMinDistance.SetValue(str(self.list_of_constraints[self.ActiveConstraint][1]))
+            self.txtMaxDistance.SetValue(str(self.list_of_constraints[self.ActiveConstraint][2]))
+
+    def PickFromChosenBodies(self, e):
+        if len(self.list_of_constraints) > 0:
+            self.ActiveConstraint = self.ChosenBodiesPicker.GetSelection()
+            self.UpdateListBoxes()
+
+    def PickFromNewBodies(self, e):
+        self.ActiveBody = self.NewBodiesPicker.GetSelection()
+        self.txtMinDistance.SetValue(str(0.0))
+        self.txtMaxDistance.SetValue(str(1.0e+20))
+
+    def ChangeMinDistance(self, e):
+        distancestring = self.txtMinDistance.GetValue()
+        distancecell = distancestring.split(' ')
+        distance = abs(eval(distancecell[0]))
+        if len(distancecell) > 1:
+            if distancecell[1].lower() == 'lu':
+                distance *= self.universe.LU
+            elif distancecell[1].lower() == 'au':
+                distance *= 1.49597870691e+8
+            elif distancecell[1].lower() == 'rcb':
+                distance *= self.universe.central_body_radius
+            elif distancecell[1].lower() == 'rb' and self.ActiveBody > 0:
+                distance *= self.universe.bodies[self.ActiveBody - 1].radius
+
+        self.txtMinDistance.SetValue(str(distance))
+
+    def ChangeMaxDistance(self, e):
+        distancestring = self.txtMaxDistance.GetValue()
+        distancecell = distancestring.split(' ')
+        distance = abs(eval(distancecell[0]))
+        if len(distancecell) > 1:
+            if distancecell[1].lower() == 'lu':
+                distance *= self.universe.LU
+            elif distancecell[1].lower() == 'au':
+                distance *= 1.49597870691e+8
+            elif distancecell[1].lower() == 'rcb':
+                distance *= self.universe.central_body_radius
+            elif distancecell[1].lower() == 'rb' and self.ActiveBody > 0:
+                distance *= self.universe.bodies[self.ActiveBody - 1].radius
+
+        self.txtMaxDistance.SetValue(str(distance))
+
+    def ClickAdd(self, e):
+        #first check to make sure that the body being added is not already in the constraints list
+        for constraint in self.list_of_constraints:
+            if constraint[0] == self.ActiveBody - 1:
+                errordlg = wx.MessageDialog(self, "Cannot add two distance constraints to the same body in the same journey.", "EMTG Error", wx.OK)
+                errordlg.ShowModal()
+                errordlg.Destroy()
+                return
+        #if we got this far, add to the list of constraints
+        self.list_of_constraints.append([self.ActiveBody - 1, float(self.txtMinDistance.GetValue()), float(self.txtMaxDistance.GetValue())])
+        self.UpdateConstraintStrings()
+        self.UpdateListBoxes()
+
+    def ClickDelete(self, e):
+        self.list_of_constraints.pop(self.ActiveConstraint)
+        self.ActiveConstraint -= 1
+        self.UpdateConstraintStrings()
+        self.UpdateListBoxes()
+
+    def ClickOK(self, e):
+        self.journey_distance_constraint_number_of_bodies = len(self.list_of_constraints)
+        self.journey_distance_constraint_bodies = []
+        self.journey_distance_constraint_bounds = []
+        for constraint in self.list_of_constraints:
+            if (constraint[0] == -1):
+                    self.journey_distance_constraint_bodies.append(-2)
+            else:
+                self.journey_distance_constraint_bodies.append(constraint[0])
+            self.journey_distance_constraint_bounds.append([constraint[1], constraint[2]])
+
+        self.Close()
+
+    def ClickCancel(self, e):
+        self.Close()
