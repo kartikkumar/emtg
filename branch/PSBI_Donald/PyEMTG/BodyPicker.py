@@ -419,7 +419,7 @@ class DistanceConstraintBodyPicker(wx.Dialog):
     def PickFromNewBodies(self, e):
         self.ActiveBody = self.NewBodiesPicker.GetSelection()
         self.txtMinDistance.SetValue(str(0.0))
-        self.txtMaxDistance.SetValue(str(1.0e+20))
+        self.txtMaxDistance.SetValue(str(1.0e+11))
 
     def ChangeMinDistance(self, e):
         distancestring = self.txtMinDistance.GetValue()

@@ -553,6 +553,30 @@ namespace EMTG
 			
 			for (size_t i = 0; i < 2; ++i)
 				dcurrent_epochdTOF[i] += dsegment_timedTOF;
+
+            //step 6.2.5 apply the forward body distance constraints
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+            {
+                //step 6.2.5.1 compute the distance from the spacecraft to the body
+                //(this is a different procedure if the body is the central body)
+                double distance_from_body;
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                    distance_from_body = math::norm(this->spacecraft_state[step].data(), 3);
+                else
+                {
+                    double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
+                    Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[step], body_state, false, options);
+                    double relative_position[3];
+                    relative_position[0] = this->spacecraft_state[step][0] - body_state[0];
+                    relative_position[1] = this->spacecraft_state[step][1] - body_state[1];
+                    relative_position[2] = this->spacecraft_state[step][2] - body_state[2];
+                    distance_from_body = math::norm(relative_position, 3);
+                }
+
+                //step 6.2.5.2 apply the constraint
+                F[*Findex] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                ++(*Findex);
+            }
         }
 		
         /*
@@ -904,7 +928,7 @@ namespace EMTG
 		    }
 
 		    //step 6.3.2 apply the control unit vector magnitude constraint
-		    F[*Findex + (backstep - options->num_timesteps/2)] = throttle;
+            F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j])] = throttle;
 		
 
 			//The STM entries of the state vector must be initialized to the identity before every step
@@ -1075,6 +1099,29 @@ namespace EMTG
 
 			for (size_t i = 0; i < 2; ++i)
 				dcurrent_epochdTOF[i] += dsegment_timedTOF;
+
+            //step 6.3.5 apply the backward body distance constraints
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+            {
+                //step 6.3.5.1 compute the distance from the spacecraft to the body
+                //(this is a different procedure if the body is the central body)
+                double distance_from_body;
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                    distance_from_body = math::norm(this->spacecraft_state[backstep].data(), 3);
+                else
+                {
+                    double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
+                    Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[backstep], body_state, false, options);
+                    double relative_position[3];
+                    relative_position[0] = this->spacecraft_state[backstep][0] - body_state[0];
+                    relative_position[1] = this->spacecraft_state[backstep][1] - body_state[1];
+                    relative_position[2] = this->spacecraft_state[backstep][2] - body_state[2];
+                    distance_from_body = math::norm(relative_position, 3);
+                }
+
+                //step 6.3.5.2 apply the constraint
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+            }
 	    }
 		
 	    //step Xindex back to the end of the arc
@@ -1084,7 +1131,7 @@ namespace EMTG
 		    (*Xindex) += 3 * options->num_timesteps/2;
 
 	    //step Findex back to the end of the arc
-	    (*Findex) += options->num_timesteps/2;
+        (*Findex) += options->num_timesteps / 2 * (1 + options->journey_distance_constraint_number_of_bodies[j]);
 
 	    //Step 6.4: enforce match point constraint
 	    for (size_t k = 0; k < 3; ++k)

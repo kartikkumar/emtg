@@ -428,9 +428,32 @@ namespace EMTG
 			//step 6.2.8 update the spacecraft mass
 			spacecraft_state[step][6] -= local_throttle * options->engine_duty_cycle * available_mass_flow_rate[step] * (time_step_sizes[step]);
 
+            //step 6.2.9 apply the forward body distance constraints
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+            {
+                //step 6.2.9.1 compute the distance from the spacecraft to the body
+                //(this is a different procedure if the body is the central body)
+                double distance_from_body;
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                    distance_from_body = math::norm(this->spacecraft_state[step].data(), 3);
+                else
+                {
+                    double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
+                    Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[step], body_state, false, options);
+                    double relative_position[3];
+                    relative_position[0] = this->spacecraft_state[step][0] - body_state[0];
+                    relative_position[1] = this->spacecraft_state[step][1] - body_state[1];
+                    relative_position[2] = this->spacecraft_state[step][2] - body_state[2];
+                    distance_from_body = math::norm(relative_position, 3);
+                }
+
+                //step 6.2.9.2 apply the constraint
+                F[*Findex] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                ++(*Findex);
+            }
 		}
 	
-		//Step 6.2.9 copy the final forward propagation mass to the match point
+		//Step 6.2.10 copy the final forward propagation mass to the match point
 		spacecraft_state_forward[6] = spacecraft_state[options->num_timesteps / 2 - 1][6];
 
 		//Step 6.3: propagate backward
@@ -567,7 +590,7 @@ namespace EMTG
 					G[control_vector_G_indices[backstep][2]] = 2.0 * control[backstep][0] / local_throttle;
 					(*Gindex) += 3;
 				}
-				F[*Findex + (backstep - options->num_timesteps / 2)] = local_throttle;
+				F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j])] = local_throttle;
 			}
 
 			//step 6.3.4 encode the burn epoch
@@ -676,9 +699,31 @@ namespace EMTG
 			}
 			this->phase_time_elapsed_backward += propagation_time;
 
+            //step 6.3.9 apply the backward body distance constraints
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+            {
+                //step 6.3.9.1 compute the distance from the spacecraft to the body
+                //(this is a different procedure if the body is the central body)
+                double distance_from_body;
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                    distance_from_body = math::norm(this->spacecraft_state[backstep].data(), 3);
+                else
+                {
+                    double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
+                    Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[backstep], body_state, false, options);
+                    double relative_position[3];
+                    relative_position[0] = this->spacecraft_state[backstep][0] - body_state[0];
+                    relative_position[1] = this->spacecraft_state[backstep][1] - body_state[1];
+                    relative_position[2] = this->spacecraft_state[backstep][2] - body_state[2];
+                    distance_from_body = math::norm(relative_position, 3);
+                }
+
+                //step 6.3.9.2 apply the constraint
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+            }
 		}
 
-		//Step 6.2.9 copy the final backward propagation mass to the match point
+		//Step 6.3.10 copy the final backward propagation mass to the match point
 		spacecraft_state_backward[6] = this->spacecraft_state[options->num_timesteps / 2][6];
 
 		//step Xindex back to the end of the arc
@@ -690,7 +735,7 @@ namespace EMTG
 		if (options->control_coordinate_system == 0)
 		{
 			//step Findex back to the end of the arc
-			(*Findex) += options->num_timesteps / 2;
+            (*Findex) += options->num_timesteps / 2 * (1 + options->journey_distance_constraint_number_of_bodies[j]);
 		}
 
 		//Step 6.4: enforce match point constraint

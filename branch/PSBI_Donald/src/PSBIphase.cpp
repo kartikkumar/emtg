@@ -448,7 +448,7 @@ namespace EMTG
                 if (step == 0)
                 {
                     //if applicable, variable left hand boundary condition
-                    if (p == 0 && state < 6 &&
+                    if (p == 0 && options->destination_list[j][0] == -1 && state < 6 &&
                                     (options->journey_departure_elements_vary_flag[j][0]
                                     || options->journey_departure_elements_vary_flag[j][1]
                                     || options->journey_departure_elements_vary_flag[j][2]

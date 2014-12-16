@@ -261,6 +261,22 @@ namespace EMTG {
         vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_mission_initial_mass_multiplier;
         vector<int> G_index_of_derivative_of_match_point_constraints_with_respect_to_journey_initial_mass_increment_multiplier;
         vector<int> G_index_of_derivative_of_match_point_with_respect_to_BOL_power;
+
+        //distance from body constraints
+        vector<double> distance_from_body;
+        vector< vector<int> > F_index_of_distance_constraint; //step, constraint
+        vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass; //step, constraint
+        vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass; //step, constraint
+        vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier; //step, constraint
+        vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier; //step, constraint
+        vector< vector<int> > G_index_of_derivative_of_distance_from_body_with_respect_to_BOL_power; //step, constraint
+        vector< vector< vector<int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_flight_time_variables; //step, constraint, time variable
+        vector< vector< vector< int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary; //step, constraint, boundary variable
+        vector< vector< vector< int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary; //step, constraint, boundary variable
+        vector< vector< vector< int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary; //step, constraint, boundary variable
+        vector< vector< vector< int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity;//step, constraint, velocity variable
+        vector< vector< vector< int> > > G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity;//step, constraint, velocity variable
+        vector< vector< vector< vector<int> > > > G_index_of_derivative_of_distance_from_body_with_respect_to_Control; //step, constraint, control step, control index
     };
 }
 
