@@ -499,6 +499,32 @@ int find_engine_parameters(	EMTG::missionoptions* options,
 					}
 					P_eff = min(*power / *number_of_active_engines, maxP);
 				}
+                else if (options->throttle_logic_mode == 4)
+                {//maximum number of thrusters
+                    for (int n = options->number_of_engines; n > 0; --n)
+                    {
+                        if (*power / n > minP)
+                        {
+                            P_eff = min(*power / n, maxP);
+                            *number_of_active_engines = n;
+
+                            break;
+                        }
+                    }
+                }
+                else if (options->throttle_logic_mode == 5)
+                {//minimum number of thrusters
+                    for (int n = 1; n < options->number_of_engines + 1; ++n)
+                    {
+                        if (*power / n <= maxP && *power / n > minP)
+                        {
+                            P_eff = *power / n;
+                            *number_of_active_engines = n;
+
+                            break;
+                        }
+                    }
+                }
 			}
 			else
 				*number_of_active_engines = 0;

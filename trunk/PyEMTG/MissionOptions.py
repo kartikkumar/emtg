@@ -26,7 +26,7 @@ class MissionOptions(object):
     outerloop_ntrials = 1 #how many times to run the outer loop
     outerloop_elitecount = 1 #how many elite individuals to retain
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
-    outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
+    outerloop_warmstart = 0 #this will be the number of generations that have elapsed in the prior run of the GA
     outerloop_warm_population = "none"
     outerloop_warm_archive = "none"
     outerloop_reevaluate_full_population = 0
@@ -1129,6 +1129,8 @@ class MissionOptions(object):
         outputfile.write("#1: maximum thrust\n")
         outputfile.write("#2: maximum Isp\n")
         outputfile.write("#3: maximum efficiency\n")
+        outputfile.write("#4: maximum number of thrusters\n")
+        outputfile.write("#4: minimum number of thrusters\n")
         outputfile.write("throttle_logic_mode " + str(self.throttle_logic_mode) + "\n")
         outputfile.write("#Throttle sharpness (higher means more precise, lower means smoother)\n")
         outputfile.write("throttle_sharpness " + str(self.throttle_sharpness) + "\n")
