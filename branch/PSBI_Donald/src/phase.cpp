@@ -2851,20 +2851,21 @@ namespace EMTG {
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the beginning of any preceeding journey
     void phase::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
-        vector<double>* Xlowerbounds,
-        vector<double>* Fupperbounds,
-        vector<double>* Flowerbounds,
-        vector<string>* Xdescriptions,
-        vector<string>* Fdescriptions,
-        vector<int>* iAfun,
-        vector<int>* jAvar,
-        vector<int>* iGfun,
-        vector<int>* jGvar,
-        vector<string>* Adescriptions,
-        vector<string>* Gdescriptions,
-        const int& j,
-        const int& p,
-        missionoptions* options)
+                                                        vector<double>* Xlowerbounds,
+                                                        vector<double>* Fupperbounds,
+                                                        vector<double>* Flowerbounds,
+                                                        vector<string>* Xdescriptions,
+                                                        vector<string>* Fdescriptions,
+                                                        const int& Findex,
+                                                        vector<int>* iAfun,
+                                                        vector<int>* jAvar,
+                                                        vector<int>* iGfun,
+                                                        vector<int>* jGvar,
+                                                        vector<string>* Adescriptions,
+                                                        vector<string>* Gdescriptions,
+                                                        const int& j,
+                                                        const int& p,
+                                                        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj <= j; ++jj)
@@ -2896,10 +2897,10 @@ namespace EMTG {
 					{
 						if ( (*Xdescriptions)[Xentry].find("initial mass multiplier (0-1)") < 1024)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
+							iGfun->push_back(Findex);
 							jGvar->push_back(Xentry);
 							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							EntryNameStream << "Derivative of " << (*Fdescriptions)[Findex] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 							Gdescriptions->push_back(EntryNameStream.str());
 							break;
 						}
@@ -2915,7 +2916,7 @@ namespace EMTG {
 							//first check for duplicates
 							bool duplicateflag = false;
 							stringstream entry_tag_stream;
-							entry_tag_stream << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							entry_tag_stream << "F[" << Findex << "] with respect to X[" << Xentry << "]";
 							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
 							{
 								if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
@@ -2926,10 +2927,10 @@ namespace EMTG {
 							}
 							if (!duplicateflag)
 							{
-								iGfun->push_back(Fdescriptions->size() - 1);
+								iGfun->push_back(Findex);
 								jGvar->push_back(Xentry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Findex] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								break;
 							}
@@ -2947,7 +2948,7 @@ namespace EMTG {
 						for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
 						{
 							stringstream tempstream;
-							tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							tempstream << "constraint F[" << Findex << "] with respect to X[" << Xentry << "]";
 							if ( (*Xdescriptions)[XXentry].find("journey initial mass scale factor") < 1024)
 							{
 								duplicateflag = true;
@@ -2956,10 +2957,10 @@ namespace EMTG {
 						}
 						if (!duplicateflag)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
+							iGfun->push_back(Findex);
 							jGvar->push_back(Xentry);
 							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							EntryNameStream << "Derivative of " << (*Fdescriptions)[Findex] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 							Gdescriptions->push_back(EntryNameStream.str());
 							break;
 						}
@@ -2974,10 +2975,10 @@ namespace EMTG {
 					{
 						if ( (*Xdescriptions)[Xentry].find("Escape spiral Isp") < 1024)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
+							iGfun->push_back(Findex);
 							jGvar->push_back(Xentry);
 							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 							Gdescriptions->push_back(EntryNameStream.str());
 							break;
 						}
@@ -2993,7 +2994,7 @@ namespace EMTG {
 						{
 							bool duplicateflag = false;
 							stringstream entry_tag_stream;
-							entry_tag_stream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							entry_tag_stream << "constraint F[" << Findex << "] with respect to X[" << Xentry << "]";
 
 							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
 							{
@@ -3005,10 +3006,10 @@ namespace EMTG {
 							}
 							if (!duplicateflag)
 							{
-								iGfun->push_back(Fdescriptions->size() - 1);
+								iGfun->push_back(Findex);
 								jGvar->push_back(Xentry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								break;
 							}
@@ -3021,20 +3022,21 @@ namespace EMTG {
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the end of any preceeding journey
     void phase::find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds,
-        vector<double>* Xlowerbounds,
-        vector<double>* Fupperbounds,
-        vector<double>* Flowerbounds,
-        vector<string>* Xdescriptions,
-        vector<string>* Fdescriptions,
-        vector<int>* iAfun,
-        vector<int>* jAvar,
-        vector<int>* iGfun,
-        vector<int>* jGvar,
-        vector<string>* Adescriptions,
-        vector<string>* Gdescriptions,
-        const int& j,
-        const int& p,
-        missionoptions* options)
+                                                        vector<double>* Xlowerbounds,
+                                                        vector<double>* Fupperbounds,
+                                                        vector<double>* Flowerbounds,
+                                                        vector<string>* Xdescriptions,
+                                                        vector<string>* Fdescriptions,
+                                                        const int&Findex,
+                                                        vector<int>* iAfun,
+                                                        vector<int>* jAvar,
+                                                        vector<int>* iGfun,
+                                                        vector<int>* jGvar,
+                                                        vector<string>* Adescriptions,
+                                                        vector<string>* Gdescriptions,
+                                                        const int& j,
+                                                        const int& p,
+                                                        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj < j; ++jj)
@@ -3070,7 +3072,7 @@ namespace EMTG {
 							//first check for duplicates
 							bool duplicateflag = false;
 							stringstream entry_tag_stream;
-							entry_tag_stream << "F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+							entry_tag_stream << "F[" << Findex << "] with respect to X[" << Xentry << "]";
 							for (int Gentry = Gdescriptions->size()-1; Gentry >=0; --Gentry)
 							{
 								if ( (*Gdescriptions)[Gentry].find(entry_tag_stream.str()) < 1024)
@@ -3081,10 +3083,10 @@ namespace EMTG {
 							}
 							if (!duplicateflag)
 							{
-								iGfun->push_back(Fdescriptions->size() - 1);
+								iGfun->push_back(Findex);
 								jGvar->push_back(Xentry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								break;
 							}
@@ -3099,10 +3101,10 @@ namespace EMTG {
 					{
 						if ( (*Xdescriptions)[Xentry].find("Capture spiral Isp") < 1024)
 						{
-							iGfun->push_back(Fdescriptions->size() - 1);
+							iGfun->push_back(Findex);
 							jGvar->push_back(Xentry);
 							stringstream EntryNameStream;
-							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+							EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 							Gdescriptions->push_back(EntryNameStream.str());
 							break;
 						}
@@ -3120,7 +3122,7 @@ namespace EMTG {
 							for (int XXentry = Xdescriptions->size() - 1; XXentry > 0; --XXentry)
 							{
 								stringstream tempstream;
-								tempstream << "constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]";
+								tempstream << "constraint F[" << Findex << "] with respect to X[" << Xentry << "]";
 								if ( (*Xdescriptions)[XXentry].find("engine input power (kW)") < 1024)
 								{
 									duplicateflag = true;
@@ -3129,10 +3131,10 @@ namespace EMTG {
 							}
 							if (!duplicateflag)
 							{
-								iGfun->push_back(Fdescriptions->size() - 1);
+								iGfun->push_back(Findex);
 								jGvar->push_back(Xentry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
+								EntryNameStream << "Derivative of " << (*Fdescriptions)[Fdescriptions->size()-1] << " constraint F[" << Findex << "] with respect to X[" << Xentry << "]: " << (*Xdescriptions)[Xentry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								break;
 							}

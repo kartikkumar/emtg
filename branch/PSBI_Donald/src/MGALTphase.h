@@ -74,6 +74,14 @@ namespace EMTG {
                         EMTG::Astrodynamics::universe* Universe,
                         missionoptions* options);
 
+        //top-level function to calculate the derivatives of the distance constraints
+        void calculate_distance_constraint_derivatives( double* G,
+                                                        int* Gindex,
+                                                        const int& j,
+                                                        const int& p,
+                                                        missionoptions* options,
+                                                        EMTG::Astrodynamics::universe* Universe);
+
 		//top-level function to calculate the match point derivatives
 		void calculate_match_point_derivatives(	double* G,
 												int* Gindex,

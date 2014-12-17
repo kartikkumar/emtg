@@ -761,6 +761,10 @@ namespace EMTG
 		if (options->derivative_type > 1 && needG)
 			this->calculate_match_point_derivatives(G, Gindex, j, p, options, Universe);
 
+        //Step 6.6: If required, compute the distance constraint derivatives
+        if (options->derivative_type > 1 && options->journey_distance_constraint_number_of_bodies[j] > 0 && needG)
+            this->calculate_distance_constraint_derivatives(G, Gindex, j, p, options, Universe);
+
 		//******************************************************************
 		//Step 7: process the arrival, if applicable
         if (p == options->number_of_phases[j] - 1)
@@ -1402,6 +1406,53 @@ namespace EMTG
 			}
 		}
 	}
+
+    //function to calculate the distance constraint derivatives
+    void MGA_LT_phase::calculate_distance_constraint_derivatives(double* G,
+        int* Gindex,
+        const int& j,
+        const int& p,
+        missionoptions* options,
+        EMTG::Astrodynamics::universe* Universe)
+    {
+        double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu, dPdu, dtotal_available_thrust_time_du;
+        //note that for each of these constraints the derivatives are built up recursively as you propagate away from the end points
+        
+        for (int step = 0; step < options->num_timesteps; ++step)
+        {
+
+            //initial mass this phase
+            //***********************************
+            //arrival mass this phase
+            //***********************************
+            //this phase initial velocity
+            //***********************************
+            //this phase terminal velocity
+            //***********************************
+            //variable left boundary this phase
+            //***********************************
+            //if applicable variable right boundary previous phase
+            //***********************************
+            //variable right boundary this phase
+            //***********************************
+            //mission initial mass multiplier
+            //***********************************
+            //journey initial mass increment multiplier
+            //***********************************
+            //ALL flight time variables
+            //***********************************
+            if (options->derivative_type > 2)
+            {
+
+            }
+            //mission/journey global Isp and/or power variables
+            //***********************************
+            //control variables preceding this constraint in the propagation (note this is different for forward propagation than backward propagation)
+            //forward control
+            //***********************************
+            //derivatives with respect to spiral variables
+        }//end loop over steps
+    }
 
 	//function to calculate the patch point derivatives
 	void MGA_LT_phase::calculate_match_point_derivatives(	double* G,

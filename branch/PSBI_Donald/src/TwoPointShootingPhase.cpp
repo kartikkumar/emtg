@@ -195,6 +195,7 @@ namespace EMTG {
         //ALL flight time variables
         //mission/journey global Isp and/or power variables
         //control variables preceding this constraint in the propagation (note this is different for forward propagation than backward propagation)
+        //derivatives with respect to spiral variables
         for (int step = 0; step < options->num_timesteps; ++step)
         {
             //declare step-temporary vectors
@@ -222,238 +223,7 @@ namespace EMTG {
                 vector< vector<int> > body_G_index_of_derivative_of_distance_from_body_with_respect_to_Control; //control step, control index
 
                 //*****************************entries common to forward and backward steps
-
-                //previous phase arrival mass, if this is NOT the first phase in the mission
-                if (j > 0 || p > 0)
-                {
-                    for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass.push_back(Gdescriptions->size() - 1);
-                            break;
-                        }
-                    }
-                }//end block for previous phase arrival mass
-
-                //arrival mass this phase
-                {
-                    for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass;
-                            break;
-                        }
-                    }
-                }
                 
-                //if applicable, current phase initial v-infinity (which for the first phase is in polar, successive phases in cartesian)
-                //note this is applicable whenever we are not in the first phase of a journey beginning with a free direct departure or departure spiral
-                if (!(p == 0 && (options->journey_departure_type[j] == 2 || options->journey_departure_type[j] == 5)))
-                {
-                    //the first phase of the journey has velocity given in polar coordinates
-                    if (p == 0)
-                    {
-                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                        {
-                            if ((*Xdescriptions)[entry].find("magnitude of outgoing velocity asymptote") < 1024)
-                            {
-                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                                jGvar->push_back(entry);
-                                stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                                Gdescriptions->push_back(EntryNameStream.str());
-                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
-                            }
-                            else if ((*Xdescriptions)[entry].find("RA of departure asymptote") < 1024)
-                            {
-                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                                jGvar->push_back(entry);
-                                stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                                Gdescriptions->push_back(EntryNameStream.str());
-                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
-                            }
-                            else if ((*Xdescriptions)[entry].find("DEC of departure asymptote") < 1024)
-                            {
-                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                                jGvar->push_back(entry);
-                                stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                                Gdescriptions->push_back(EntryNameStream.str());
-                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
-                            }
-                        }
-                    }
-                    //successive phases have velocity given in cartesian coordinates
-                    else
-                    {
-                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                        {
-                            if ((*Xdescriptions)[entry].find("initial velocity increment") < 1024)
-                            {
-                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                                jGvar->push_back(entry);
-                                stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                                Gdescriptions->push_back(EntryNameStream.str());
-                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
-                            }
-                        }
-                    }
-                }//end block for current phase initial v-infinity
-
-                //final v-infinity vector (no dependency exists for the mass defect
-                //there is always a final v-infinity vector in the decision vector unless:
-                //a) this phase ends in a low-thrust rendezvous (option 3)
-                //b) this phase ends in a low-thrust fixed v-infinity intercept (option 5)
-                //c) this phase ends in a capture spiral (option 7)
-                if (!(p == options->number_of_phases[j] - 1
-                    && (options->journey_arrival_type[j] == 3
-                    || options->journey_arrival_type[j] == 5
-                    || options->journey_arrival_type[j] == 7)))
-                {
-                    vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
-                    vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
-                    for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("terminal velocity increment") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity.push_back(Gdescriptions->size() - 1);
-                        }
-                    }
-                }
-
-                //this phase terminal velocity
-                //variable left boundary this phase
-                if (p == 0 && options->destination_list[j][0] == -1 &&
-                    (options->journey_departure_elements_vary_flag[j][0]
-                    || options->journey_departure_elements_vary_flag[j][1]
-                    || options->journey_departure_elements_vary_flag[j][2]
-                    || options->journey_departure_elements_vary_flag[j][3]
-                    || options->journey_departure_elements_vary_flag[j][4]
-                    || options->journey_departure_elements_vary_flag[j][5]))
-                {
-                    for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("left boundary point") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            body_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary.push_back(Gdescriptions->size() - 1);
-                        }
-                    }
-                }//end  block for variable left-hand boundary
-
-                //if applicable, previous journey variable right-hand boundary condition
-                //this occurs for first phase of successive journeys where previous journey ended in a variable boundary condition
-                if (p == 0 && j > 0)
-                {
-                    if (options->destination_list[j][0] == -1 && options->destination_list[j - 1][1] == -1 &&
-                        (options->journey_arrival_elements_vary_flag[j - 1][0]
-                        || options->journey_arrival_elements_vary_flag[j - 1][1]
-                        || options->journey_arrival_elements_vary_flag[j - 1][2]
-                        || options->journey_arrival_elements_vary_flag[j - 1][3]
-                        || options->journey_arrival_elements_vary_flag[j - 1][4]
-                        || options->journey_arrival_elements_vary_flag[j - 1][5]))
-                    {
-                        for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
-                        {
-                            stringstream previous_journey_prefix_stream;
-                            previous_journey_prefix_stream << "j" << j - 1 << "p" << options->number_of_phases[j - 1] - 1 << ": ";
-                            if ((*Xdescriptions)[entry].find(previous_journey_prefix_stream.str()) < 1024 && (*Xdescriptions)[entry].find("right boundary point") < 1024)
-                            {
-                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                                jGvar->push_back(entry);
-                                stringstream EntryNameStream;
-                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                                Gdescriptions->push_back(EntryNameStream.str());
-                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary.push_back(Gdescriptions->size() - 1);
-                            }
-                        }
-                    }
-                }//end block for previous journey variable right-hand boundary condition
-
-                //if applicable, variable right hand boundary condition
-                if (p == options->number_of_phases[j] - 1 && 
-                    (options->journey_arrival_elements_vary_flag[j][0]
-                    || options->journey_arrival_elements_vary_flag[j][1]
-                    || options->journey_arrival_elements_vary_flag[j][2]
-                    || options->journey_arrival_elements_vary_flag[j][3]
-                    || options->journey_arrival_elements_vary_flag[j][4]
-                    || options->journey_arrival_elements_vary_flag[j][5]))
-                {
-                    for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("right boundary point") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            body_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary.push_back(Gdescriptions->size() - 1);
-                        }
-                    }
-                }//end  block for variable right-hand boundary
-                
-                //if applicable, variable mission initial mass
-                //note that this can only happen in the first journey and phase because phases are separable
-                if (p == 0 && j == 0 && options->allow_initial_mass_to_vary)
-                {
-                    //step forward through the decision vector until you hit the initial mass multiplier
-                    for (size_t entry = 0; entry < Xdescriptions->size() - 1; ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("initial mass multiplier") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier.push_back(Gdescriptions->size() - 1);
-                            break;
-                        }
-                    }
-                }//close if block for variable initial mass
-
-                //journey initial mass increment multiplier
-                //if applicable, variable journey initial mass increment scale factor
-                if (p == 0 && options->journey_variable_mass_increment[j])
-                {
-                    for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
-                    {
-                        if ((*Xdescriptions)[entry].find("journey initial mass scale factor") < 1024)
-                        {
-                            iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
-                            jGvar->push_back(entry);
-                            stringstream EntryNameStream;
-                            EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                            Gdescriptions->push_back(EntryNameStream.str());
-                            step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier.push_back(Gdescriptions->size() - 1);
-                        }
-                    }
-                }//end distance constraint dependence on journey initial mass multiplier
-
                 //ALL flight time variables
                 //  ALL previous time variables including the current phase flight time
                 //  note that the FIRST entry in the list of time derivatives is with respect to the CURRENT phase flight time
@@ -494,12 +264,176 @@ namespace EMTG {
                 }
                 //end mission power variables block
 
-                //*****************************control entries
-                //always go u_x, u_y, u_z, (Isp)
-
                 //*****************************entries for forward steps only
                 if (step < options->num_timesteps / 2)
                 {
+                    //previous phase arrival mass, if this is NOT the first phase in the mission
+                    if (j > 0 || p > 0)
+                    {
+                        for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass.push_back(Gdescriptions->size() - 1);
+                                break;
+                            }
+                        }
+                    }//end block for previous phase arrival mass
+
+                    //if applicable, variable mission initial mass
+                    //note that this can only happen in the first journey and phase because phases are separable
+                    if (p == 0 && j == 0 && options->allow_initial_mass_to_vary)
+                    {
+                        //step forward through the decision vector until you hit the initial mass multiplier
+                        for (size_t entry = 0; entry < Xdescriptions->size() - 1; ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("initial mass multiplier") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier.push_back(Gdescriptions->size() - 1);
+                                break;
+                            }
+                        }
+                    }//close if block for variable initial mass
+
+                    //variable left boundary this phase
+                    if (p == 0 && options->destination_list[j][0] == -1 &&
+                        (options->journey_departure_elements_vary_flag[j][0]
+                        || options->journey_departure_elements_vary_flag[j][1]
+                        || options->journey_departure_elements_vary_flag[j][2]
+                        || options->journey_departure_elements_vary_flag[j][3]
+                        || options->journey_departure_elements_vary_flag[j][4]
+                        || options->journey_departure_elements_vary_flag[j][5]))
+                    {
+                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("left boundary point") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary.push_back(Gdescriptions->size() - 1);
+                            }
+                        }
+                    }//end  block for variable left-hand boundary
+
+                    //if applicable, previous journey variable right-hand boundary condition
+                    //this occurs for first phase of successive journeys where previous journey ended in a variable boundary condition
+                    if (p == 0 && j > 0)
+                    {
+                        if (options->destination_list[j][0] == -1 && options->destination_list[j - 1][1] == -1 &&
+                            (options->journey_arrival_elements_vary_flag[j - 1][0]
+                            || options->journey_arrival_elements_vary_flag[j - 1][1]
+                            || options->journey_arrival_elements_vary_flag[j - 1][2]
+                            || options->journey_arrival_elements_vary_flag[j - 1][3]
+                            || options->journey_arrival_elements_vary_flag[j - 1][4]
+                            || options->journey_arrival_elements_vary_flag[j - 1][5]))
+                        {
+                            for (int entry = first_X_entry_in_phase; entry >= 0; --entry)
+                            {
+                                stringstream previous_journey_prefix_stream;
+                                previous_journey_prefix_stream << "j" << j - 1 << "p" << options->number_of_phases[j - 1] - 1 << ": ";
+                                if ((*Xdescriptions)[entry].find(previous_journey_prefix_stream.str()) < 1024 && (*Xdescriptions)[entry].find("right boundary point") < 1024)
+                                {
+                                    iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    body_G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary.push_back(Gdescriptions->size() - 1);
+                                }
+                            }
+                        }
+                    }//end block for previous journey variable right-hand boundary condition
+
+                    //if applicable, current phase initial v-infinity (which for the first phase is in polar, successive phases in cartesian)
+                    //note this is applicable whenever we are not in the first phase of a journey beginning with a free direct departure or departure spiral
+                    if (!(p == 0 && (options->journey_departure_type[j] == 2 || options->journey_departure_type[j] == 5)))
+                    {
+                        //the first phase of the journey has velocity given in polar coordinates
+                        if (p == 0)
+                        {
+                            for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                            {
+                                if ((*Xdescriptions)[entry].find("magnitude of outgoing velocity asymptote") < 1024)
+                                {
+                                    iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
+                                }
+                                else if ((*Xdescriptions)[entry].find("RA of departure asymptote") < 1024)
+                                {
+                                    iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
+                                }
+                                else if ((*Xdescriptions)[entry].find("DEC of departure asymptote") < 1024)
+                                {
+                                    iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
+                                }
+                            }
+                        }
+                        //successive phases have velocity given in cartesian coordinates
+                        else
+                        {
+                            for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                            {
+                                if ((*Xdescriptions)[entry].find("initial velocity increment") < 1024)
+                                {
+                                    iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                    jGvar->push_back(entry);
+                                    stringstream EntryNameStream;
+                                    EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                    Gdescriptions->push_back(EntryNameStream.str());
+                                    body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(Gdescriptions->size() - 1);
+                                }
+                            }
+                        }
+                    }//end block for current phase initial v-infinity
+
+                    //journey initial mass increment multiplier
+                    //if applicable, variable journey initial mass increment scale factor
+                    if (p == 0 && options->journey_variable_mass_increment[j])
+                    {
+                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("journey initial mass scale factor") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier.push_back(Gdescriptions->size() - 1);
+                            }
+                        }
+                    }//end distance constraint dependence on journey initial mass multiplier
+
+                    //*****************************control entries
+                    //always go u_x, u_y, u_z, (Isp)
+
                     for (int cstep = 0; cstep < step; ++cstep)
                     {
                         vector<int> cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control;
@@ -521,10 +455,80 @@ namespace EMTG {
 
                         body_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control);
                     }
-                }
+                }//end block for forward step distance constraint derivatives
                 //*****************************entries for backward steps only
                 else
                 {
+
+                    //arrival mass this phase
+                    {
+                        for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("arrival mass") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass;
+                                break;
+                            }
+                        }
+                    }
+
+                    //final v-infinity vector
+                    //there is always a final v-infinity vector in the decision vector unless:
+                    //a) this phase ends in a low-thrust rendezvous (option 3)
+                    //b) this phase ends in a low-thrust fixed v-infinity intercept (option 5)
+                    //c) this phase ends in a capture spiral (option 7)
+                    if (!(p == options->number_of_phases[j] - 1
+                        && (options->journey_arrival_type[j] == 3
+                        || options->journey_arrival_type[j] == 5
+                        || options->journey_arrival_type[j] == 7)))
+                    {
+                        vector<int> state_G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
+                        vector<double> state_X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_phase_terminal_velocity;
+                        for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("terminal velocity increment") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity.push_back(Gdescriptions->size() - 1);
+                            }
+                        }
+                    }//end phase terminal velocity
+
+                    //if applicable, variable right hand boundary condition
+                    if (p == options->number_of_phases[j] - 1 &&
+                        (options->journey_arrival_elements_vary_flag[j][0]
+                        || options->journey_arrival_elements_vary_flag[j][1]
+                        || options->journey_arrival_elements_vary_flag[j][2]
+                        || options->journey_arrival_elements_vary_flag[j][3]
+                        || options->journey_arrival_elements_vary_flag[j][4]
+                        || options->journey_arrival_elements_vary_flag[j][5]))
+                    {
+                        for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                        {
+                            if ((*Xdescriptions)[entry].find("right boundary point") < 1024)
+                            {
+                                iGfun->push_back(this->F_index_of_distance_constraint[step][body]);
+                                jGvar->push_back(entry);
+                                stringstream EntryNameStream;
+                                EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                                Gdescriptions->push_back(EntryNameStream.str());
+                                body_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary.push_back(Gdescriptions->size() - 1);
+                            }
+                        }
+                    }//end  block for variable right-hand boundary
+
+
+                    //*****************************control entries
+                    //always go u_x, u_y, u_z, (Isp)
                     for (int cstep = options->num_timesteps - 1; cstep > step; --cstep)
                     {
                         vector<int> cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control;
@@ -545,8 +549,8 @@ namespace EMTG {
                         }
 
                         body_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control);
-                    }
-                }
+                    }//end block for backward control
+                }//end block for backward step distance constraint derivatives
 
                 //load things into step vectors
                 step_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary.push_back(body_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary);
@@ -571,6 +575,11 @@ namespace EMTG {
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity);
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_flight_time_variables.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_flight_time_variables);
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_Control);
+
+            //finally, derivatives with respect to spiral variables
+            //check for derivatives with respect to escape and capture spirals in this journey and previous journeys
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
 
         }//end loop over steps
     }
@@ -737,8 +746,8 @@ namespace EMTG {
             }//end if (options->journey_variable_mass_increment[j])
 
             //check for derivatives with respect to escape and capture spirals in this journey and previous journeys
-            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
-            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state variables
 
         //Construct a helper array "rectangular prism" of G indices for match point derivatives with respect to state variables within the phase

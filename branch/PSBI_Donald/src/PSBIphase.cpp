@@ -433,8 +433,8 @@ namespace EMTG
                     }
                 }
                 //  if applicable, spiral things affect every defect constraint
-                this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
-                this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+                this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+                this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
 
                 //for the first defect in the phase only
                 
@@ -833,8 +833,8 @@ namespace EMTG
             }//end  block for variable right-hand boundary
 
             //if applicable, spiral things affect the right-hand defect constraint (time is mass and mass is time)
-            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
-            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state for right-hand defect constraint
 
         //***************************************************************************
