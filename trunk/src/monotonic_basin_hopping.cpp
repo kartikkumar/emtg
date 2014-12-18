@@ -244,6 +244,10 @@ namespace EMTG { namespace Solvers {
 		//increment the number of global resets
 		++this->number_of_resets;
 
+        //turn on the feasible point finder if it is enabled
+        if (this->Problem->options.ACE_feasible_point_finder)
+            this->feasible_point_finder_active = true;
+
 		//generate a new random trial point
 		if (Problem->options.MBH_zero_control_initial_guess > 0)
 		{
@@ -680,7 +684,7 @@ namespace EMTG { namespace Solvers {
 			//Step 3: determine if the new trial point is feasible and if so, operate on it
 			double feasibility = this->check_feasibility();
 
-			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
+			//Step 3.01 if two-step MBH is enabled, make the finite differencing step tight and run again
 			if (Problem->options.MBH_two_step && (inform <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
 				if (!Problem->options.quiet_basinhopping)
@@ -722,7 +726,8 @@ namespace EMTG { namespace Solvers {
 			//note: I do not trust SNOPT's "requested accuracy could not be achieved" return state - I prefer my own feasibility check
 			if ((inform <= 2 && inform >= 0)|| feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
-				//Step 3.1: if the trial point is feasible, add it to the archive
+				//Step 3.1: if the trial point is feasible, add it to the archive. Also disable the feasible point finder
+                this->feasible_point_finder_active = false;
 				Problem->unscale(Xtrial_scaled.data());
 				archive.push_back(Problem->X);
 				archive_scores.push_back(F[0]);
@@ -791,7 +796,7 @@ namespace EMTG { namespace Solvers {
 				}
 
 			}
-			else if (this->Problem->options.ACE_feasible_point_finder && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
+			else if (this->feasible_point_finder_active && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
 			{
 				//if we have not yet found our first feasible point and the ACE feasible point finder is enabled
 				//then we should see if this point is "more feasible" than best one we have so far
