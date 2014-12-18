@@ -306,9 +306,10 @@ class MissionOptions(object):
                     elif distance_constraint_bodies_flag > 0:
                         distance_constraint_bodies_flag += 1
                         self.Journeys[j].journey_distance_constraint_bodies = []
-                        for counter in range(0, len(linecell) / 3):
-                            self.Journeys[j].journey_distance_constraint_bodies.append(int(linecell[3 * counter]))
-                            self.Journeys[j].journey_distance_constraint_bounds.append([float(linecell[3 * counter + 1]), float(linecell[3 * counter + 2])])
+                        self.Journeys[j].journey_distance_bounds = []
+                        for counter in range(0, (len(linecell) - 1)/ 3):
+                            self.Journeys[j].journey_distance_constraint_bodies.append(int(linecell[3 * counter + 1]))
+                            self.Journeys[j].journey_distance_constraint_bounds.append([float(linecell[3 * counter + 2]), float(linecell[3 * counter + 3])])
 
                     elif choice == "problem_type":
                         self.problem_type = int(linecell[1])
@@ -2556,6 +2557,12 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblspacecraft_power_model_type.Show(False)
             optionsnotebook.tabSpacecraft.lblspacecraft_power_coefficients.Show(False)
             optionsnotebook.tabSpacecraft.lblpower_decay_rate.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+            optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
             optionsnotebook.tabSpacecraft.txtIspChem.Show(True)
             optionsnotebook.tabSpacecraft.txtpower_margin.Show(False)
             optionsnotebook.tabSpacecraft.cmbengine_type.Show(False)
@@ -2622,6 +2629,13 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.lblspacecraft_power_model_type.Show(False)
                 optionsnotebook.tabSpacecraft.lblspacecraft_power_coefficients.Show(False)
                 optionsnotebook.tabSpacecraft.lblpower_decay_rate.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                 optionsnotebook.tabSpacecraft.txtIspChem.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_margin.Show(False)
                 optionsnotebook.tabSpacecraft.txtnumber_of_engines.Show(False)
@@ -2681,6 +2695,13 @@ class MissionOptions(object):
                 optionsnotebook.tabSpacecraft.lblspacecraft_power_model_type.Show(False)
                 optionsnotebook.tabSpacecraft.lblspacecraft_power_coefficients.Show(False)
                 optionsnotebook.tabSpacecraft.lblpower_decay_rate.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                 optionsnotebook.tabSpacecraft.txtIspChem.Show(False)
                 optionsnotebook.tabSpacecraft.txtpower_margin.Show(False)
                 optionsnotebook.tabSpacecraft.txtnumber_of_engines.Show(False)
