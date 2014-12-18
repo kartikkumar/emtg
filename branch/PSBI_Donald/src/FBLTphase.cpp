@@ -36,8 +36,8 @@ namespace EMTG
         this->initialize(j, p, options);
         
 	    //must resize all data vectors to the correct length
-	    std::vector<double> state_dummy(7);
-	    std::vector<double> dV_or_control_dummy(3);
+	    std::vector<double> vector7_dummy(7, 0.0);
+        std::vector<double> vector3_dummy(3, 0.0);
         this->match_point_state.resize(7);
 
 		//state vector containers
@@ -69,12 +69,10 @@ namespace EMTG
 
 
 		//empty control vector for when we are coasting
-		this->empty_vector = std::vector <double>(3, 0.0);
-
 	    for (int step = 0; step < options.num_timesteps; ++step) 
         {
-            this->spacecraft_state.push_back(state_dummy);
-            this->control.push_back(dV_or_control_dummy);
+            this->spacecraft_state.push_back(vector7_dummy);
+            this->control.push_back(vector3_dummy);
 	    }
 
 
@@ -131,6 +129,14 @@ namespace EMTG
         else
             this->detect_terminal_coast = false;
 		
+        //vector to track the distance from the central body for each step
+        vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
+        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummy);
+        for (int step = 0; step < options.num_timesteps; ++step)
+        {
+            this->distance_from_body.push_back(dummy_distance_vector);
+            this->distance_constraint_relative_position.push_back(body_position_dummy);
+        }
     }
 
     FBLT_phase::~FBLT_phase() {
@@ -559,22 +565,24 @@ namespace EMTG
             {
                 //step 6.2.5.1 compute the distance from the spacecraft to the body
                 //(this is a different procedure if the body is the central body)
-                double distance_from_body;
                 if (options->journey_distance_constraint_bodies[j][body] == -2)
-                    distance_from_body = math::norm(this->spacecraft_state[step].data(), 3);
+                {
+                    this->distance_constraint_relative_position[step][body][0] = this->spacecraft_state[step][0];
+                    this->distance_constraint_relative_position[step][body][1] = this->spacecraft_state[step][1];
+                    this->distance_constraint_relative_position[step][body][2] = this->spacecraft_state[step][2];
+                }
                 else
                 {
                     double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
                     Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[step], body_state, false, options);
-                    double relative_position[3];
-                    relative_position[0] = this->spacecraft_state[step][0] - body_state[0];
-                    relative_position[1] = this->spacecraft_state[step][1] - body_state[1];
-                    relative_position[2] = this->spacecraft_state[step][2] - body_state[2];
-                    distance_from_body = math::norm(relative_position, 3);
+                    this->distance_constraint_relative_position[step][body][0] = this->spacecraft_state[step][0] - body_state[0];
+                    this->distance_constraint_relative_position[step][body][1] = this->spacecraft_state[step][1] - body_state[1];
+                    this->distance_constraint_relative_position[step][body][2] = this->spacecraft_state[step][2] - body_state[2];
                 }
+                this->distance_from_body[step][body] = math::norm(this->distance_constraint_relative_position[step][body].data(), 3);
 
                 //step 6.2.5.2 apply the constraint
-                F[*Findex] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex] = (this->distance_from_body[step][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
                 ++(*Findex);
             }
         }
@@ -1105,22 +1113,24 @@ namespace EMTG
             {
                 //step 6.3.5.1 compute the distance from the spacecraft to the body
                 //(this is a different procedure if the body is the central body)
-                double distance_from_body;
                 if (options->journey_distance_constraint_bodies[j][body] == -2)
-                    distance_from_body = math::norm(this->spacecraft_state[backstep].data(), 3);
+                {
+                    this->distance_constraint_relative_position[backstep][body][0] = this->spacecraft_state[backstep][0];
+                    this->distance_constraint_relative_position[backstep][body][1] = this->spacecraft_state[backstep][1];
+                    this->distance_constraint_relative_position[backstep][body][2] = this->spacecraft_state[backstep][2];
+                }
                 else
                 {
                     double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
                     Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[backstep], body_state, false, options);
-                    double relative_position[3];
-                    relative_position[0] = this->spacecraft_state[backstep][0] - body_state[0];
-                    relative_position[1] = this->spacecraft_state[backstep][1] - body_state[1];
-                    relative_position[2] = this->spacecraft_state[backstep][2] - body_state[2];
-                    distance_from_body = math::norm(relative_position, 3);
+                    this->distance_constraint_relative_position[backstep][body][0] = this->spacecraft_state[backstep][0] - body_state[0];
+                    this->distance_constraint_relative_position[backstep][body][1] = this->spacecraft_state[backstep][1] - body_state[1];
+                    this->distance_constraint_relative_position[backstep][body][2] = this->spacecraft_state[backstep][2] - body_state[2];
                 }
+                this->distance_from_body[backstep][body] = math::norm(this->distance_constraint_relative_position[backstep][body].data(), 3);
 
                 //step 6.3.5.2 apply the constraint
-                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (this->distance_from_body[backstep][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
             }
 	    }
 		

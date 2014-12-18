@@ -263,7 +263,8 @@ namespace EMTG {
         vector<int> G_index_of_derivative_of_match_point_with_respect_to_BOL_power;
 
         //distance from body constraints
-        vector<double> distance_from_body;
+        vector < vector < vector<double> > > distance_constraint_relative_position; //step, constraint, state variable
+        vector< vector<double> > distance_from_body; //step, constraint
         vector< vector<int> > F_index_of_distance_constraint; //step, constraint
         vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass; //step, constraint
         vector< vector<int> > G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass; //step, constraint

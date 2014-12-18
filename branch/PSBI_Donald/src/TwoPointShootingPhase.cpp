@@ -244,8 +244,8 @@ namespace EMTG {
                 }
                 //end flight time variables block
 
-                //mission power variables
-                if (options->objective_type == 13)
+                //mission power variables - no dependency for first and last step!
+                if (options->objective_type == 13 && !(step == 0 || step == options->num_timesteps - 1))
                 {
                     for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
                     {
@@ -449,7 +449,7 @@ namespace EMTG {
                                 stringstream EntryNameStream;
                                 EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                                 Gdescriptions->push_back(EntryNameStream.str());
-                                cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(Gdescriptions->size());
+                                cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(Gdescriptions->size() - 1);
                             }
                         }
 
@@ -460,7 +460,8 @@ namespace EMTG {
                 else
                 {
 
-                    //arrival mass this phase
+                    //arrival mass this phase - no entry for the last step's constraints
+                    if (!(step == options->num_timesteps - 1))
                     {
                         for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
                         {
@@ -471,7 +472,7 @@ namespace EMTG {
                                 stringstream EntryNameStream;
                                 EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                                 Gdescriptions->push_back(EntryNameStream.str());
-                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass;
+                                step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass.push_back(Gdescriptions->size() - 1);
                                 break;
                             }
                         }
@@ -544,7 +545,7 @@ namespace EMTG {
                                 stringstream EntryNameStream;
                                 EntryNameStream << "Derivative of " << (*Fdescriptions)[this->F_index_of_distance_constraint[step][body]] << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
                                 Gdescriptions->push_back(EntryNameStream.str());
-                                cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(Gdescriptions->size());
+                                cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(Gdescriptions->size() - 1);
                             }
                         }
 

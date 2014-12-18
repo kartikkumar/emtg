@@ -35,17 +35,17 @@ namespace EMTG
         this->initialize(j, p, options);
 
 		//must resize all data vectors to the correct length
-		vector<double> state_dummy(7);
-		vector<double> dV_or_control_dummy(3);
+		vector<double> vector7_dummy(7);
+		vector<double> vector3_dummmy(3);
         this->match_point_state.resize(7);
 
 		for (int step = 0; step < options.num_timesteps; ++step) {
-            this->spacecraft_state.push_back(state_dummy);
-            this->dV.push_back(dV_or_control_dummy);
-            this->control.push_back(dV_or_control_dummy);
-            this->ForceVector.push_back(dV_or_control_dummy);
-            this->dagravdRvec.push_back(dV_or_control_dummy);
-            this->dagravdtvec.push_back(dV_or_control_dummy);
+            this->spacecraft_state.push_back(vector7_dummy);
+            this->dV.push_back(vector3_dummmy);
+            this->control.push_back(vector3_dummmy);
+            this->ForceVector.push_back(vector3_dummmy);
+            this->dagravdRvec.push_back(vector3_dummmy);
+            this->dagravdtvec.push_back(vector3_dummmy);
 		}
 
         this->event_epochs.resize(options.num_timesteps);
@@ -97,6 +97,15 @@ namespace EMTG
         vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
         for (size_t step = 0; step < options.num_timesteps; ++step)
             this->central_body_state_mks.push_back(central_body_state_dummy);
+
+        //vector to track the distance from the central body for each step
+        vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
+        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummmy);
+        for (int step = 0; step < options.num_timesteps; ++step)
+        {
+            this->distance_from_body.push_back(dummy_distance_vector);
+            this->distance_constraint_relative_position.push_back(body_position_dummy);
+        }
 	}
 
 	MGA_LT_phase::~MGA_LT_phase() {
@@ -321,7 +330,6 @@ namespace EMTG
 					G[control_vector_G_indices[step][0]] = 2.0 * control[step][2] / local_throttle;
 					G[control_vector_G_indices[step][1]] = 2.0 * control[step][1] / local_throttle;
 					G[control_vector_G_indices[step][2]] = 2.0 * control[step][0] / local_throttle;
-					(*Gindex) += 3;
 				}
 
 				F[*Findex] = local_throttle;
@@ -433,22 +441,24 @@ namespace EMTG
             {
                 //step 6.2.9.1 compute the distance from the spacecraft to the body
                 //(this is a different procedure if the body is the central body)
-                double distance_from_body;
                 if (options->journey_distance_constraint_bodies[j][body] == -2)
-                    distance_from_body = math::norm(this->spacecraft_state[step].data(), 3);
+                {
+                    this->distance_constraint_relative_position[step][body][0] = this->spacecraft_state[step][0];
+                    this->distance_constraint_relative_position[step][body][1] = this->spacecraft_state[step][1];
+                    this->distance_constraint_relative_position[step][body][2] = this->spacecraft_state[step][2];
+                }
                 else
                 {
                     double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
                     Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[step], body_state, false, options);
-                    double relative_position[3];
-                    relative_position[0] = this->spacecraft_state[step][0] - body_state[0];
-                    relative_position[1] = this->spacecraft_state[step][1] - body_state[1];
-                    relative_position[2] = this->spacecraft_state[step][2] - body_state[2];
-                    distance_from_body = math::norm(relative_position, 3);
+                    this->distance_constraint_relative_position[step][body][0] = this->spacecraft_state[step][0] - body_state[0];
+                    this->distance_constraint_relative_position[step][body][1] = this->spacecraft_state[step][1] - body_state[1];
+                    this->distance_constraint_relative_position[step][body][2] = this->spacecraft_state[step][2] - body_state[2];
                 }
+                this->distance_from_body[step][body] = math::norm(this->distance_constraint_relative_position[step][body].data(), 3);
 
                 //step 6.2.9.2 apply the constraint
-                F[*Findex] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex] = (this->distance_from_body[step][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
                 ++(*Findex);
             }
 		}
@@ -588,7 +598,6 @@ namespace EMTG
 					G[control_vector_G_indices[backstep][0]] = 2.0 * control[backstep][2] / local_throttle;
 					G[control_vector_G_indices[backstep][1]] = 2.0 * control[backstep][1] / local_throttle;
 					G[control_vector_G_indices[backstep][2]] = 2.0 * control[backstep][0] / local_throttle;
-					(*Gindex) += 3;
 				}
 				F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j])] = local_throttle;
 			}
@@ -704,22 +713,25 @@ namespace EMTG
             {
                 //step 6.3.9.1 compute the distance from the spacecraft to the body
                 //(this is a different procedure if the body is the central body)
-                double distance_from_body;
                 if (options->journey_distance_constraint_bodies[j][body] == -2)
-                    distance_from_body = math::norm(this->spacecraft_state[backstep].data(), 3);
+                {
+                    this->distance_constraint_relative_position[backstep][body][0] = this->spacecraft_state[backstep][0];
+                    this->distance_constraint_relative_position[backstep][body][1] = this->spacecraft_state[backstep][1];
+                    this->distance_constraint_relative_position[backstep][body][2] = this->spacecraft_state[backstep][2];
+                }
                 else
                 {
                     double body_state[6]; //TODO THIS MUST CHANGE IF WE WANT TIME DERIVATIVES FOR DISTANCE CONSTRAINT
                     Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(this->event_epochs[backstep], body_state, false, options);
-                    double relative_position[3];
-                    relative_position[0] = this->spacecraft_state[backstep][0] - body_state[0];
-                    relative_position[1] = this->spacecraft_state[backstep][1] - body_state[1];
-                    relative_position[2] = this->spacecraft_state[backstep][2] - body_state[2];
-                    distance_from_body = math::norm(relative_position, 3);
+                    this->distance_constraint_relative_position[backstep][body][0] = this->spacecraft_state[backstep][0] - body_state[0];
+                    this->distance_constraint_relative_position[backstep][body][1] = this->spacecraft_state[backstep][1] - body_state[1];
+                    this->distance_constraint_relative_position[backstep][body][2] = this->spacecraft_state[backstep][2] - body_state[2];
                 }
+                this->distance_from_body[backstep][body] = math::norm(this->distance_constraint_relative_position[backstep][body].data(), 3);
+
 
                 //step 6.3.9.2 apply the constraint
-                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (distance_from_body - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (this->distance_from_body[backstep][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
             }
 		}
 
@@ -759,11 +771,11 @@ namespace EMTG
 
 		//Step 6.5: If required, compute the match point derivatives
 		if (options->derivative_type > 1 && needG)
-			this->calculate_match_point_derivatives(G, Gindex, j, p, options, Universe);
+			this->calculate_match_point_derivatives(G, j, p, options, Universe);
 
         //Step 6.6: If required, compute the distance constraint derivatives
         if (options->derivative_type > 1 && options->journey_distance_constraint_number_of_bodies[j] > 0 && needG)
-            this->calculate_distance_constraint_derivatives(G, Gindex, j, p, options, Universe);
+            this->calculate_distance_constraint_derivatives(G, j, p, options, Universe);
 
 		//******************************************************************
 		//Step 7: process the arrival, if applicable
@@ -1409,54 +1421,366 @@ namespace EMTG
 
     //function to calculate the distance constraint derivatives
     void MGA_LT_phase::calculate_distance_constraint_derivatives(double* G,
-        int* Gindex,
         const int& j,
         const int& p,
         missionoptions* options,
         EMTG::Astrodynamics::universe* Universe)
     {
         double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, deltat, dtdu, dPdu, dtotal_available_thrust_time_du;
-        //note that for each of these constraints the derivatives are built up recursively as you propagate away from the end points
+        const double scale_factors[] = { 1.0 / Universe->LU, 1.0 / Universe->LU, 1.0 / Universe->LU, Universe->TU / Universe->LU, Universe->TU / Universe->LU, Universe->TU / Universe->LU, 1.0 / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment) };
         
-        for (int step = 0; step < options->num_timesteps; ++step)
+        //note that for each of these constraints the derivatives are built up recursively as you propagate away from the end points
+        //also note that there is no dependency of the reference body's position on any decision variable EXCEPT time
+        
+        //**********************************************************************
+        //derivatives common to forward and backward steps
+        //ALL flight time variables
+        if (options->derivative_type > 2)
         {
 
-            //initial mass this phase
-            //***********************************
-            //arrival mass this phase
-            //***********************************
-            //this phase initial velocity
-            //***********************************
-            //this phase terminal velocity
-            //***********************************
-            //variable left boundary this phase
-            //***********************************
-            //if applicable variable right boundary previous phase
-            //***********************************
-            //variable right boundary this phase
-            //***********************************
-            //mission initial mass multiplier
-            //***********************************
-            //journey initial mass increment multiplier
-            //***********************************
-            //ALL flight time variables
-            //***********************************
-            if (options->derivative_type > 2)
-            {
+        }
+            
+        //***********************************
+        //global power variable
 
+        //***********************************
+        //derivatives with respect to spiral variables
+
+        //**********************************************************************
+        //forward step derivatives
+        //initial mass this phase
+
+        //***********************************
+        //variable left boundary this phase
+
+        //***********************************
+        //if applicable variable right boundary previous phase
+
+        //***********************************
+        //this phase initial velocity
+
+
+        //***********************************
+        //mission initial mass multiplier
+
+        //***********************************
+        //journey initial mass increment multiplier
+
+        //***********************************
+        //forward control
+        for (int step = 1; step < options->num_timesteps / 2; ++step)
+        {
+            for (int cstep = 0; cstep < step; ++cstep)
+            {
+                for (int cindex = 0; cindex < 3; ++cindex)
+                {
+                    //first we need to get the derivative of the next step's state vector with respect to the step where the control is applied
+                    dxdu = Forward_STM[cstep + 1](0, cindex + 3) * dVmax[cstep];
+                    dydu = Forward_STM[cstep + 1](1, cindex + 3) * dVmax[cstep];
+                    dzdu = Forward_STM[cstep + 1](2, cindex + 3) * dVmax[cstep];
+                    dxdotdu = Forward_STM[cstep + 1](3, cindex + 3) * dVmax[cstep];
+                    dydotdu = Forward_STM[cstep + 1](4, cindex + 3) * dVmax[cstep];
+                    dzdotdu = Forward_STM[cstep + 1](5, cindex + 3) * dVmax[cstep];
+
+                    double umag = math::norm(control[cstep].data(), 3);
+                    double r = math::norm(spacecraft_state[cstep].data(), 3);
+
+                    deltat = (time_step_sizes[cstep]);
+
+                    dmdu = -(available_mass_flow_rate[cstep] * deltat * options->engine_duty_cycle) * ((control[cstep][cindex] / (umag + 1.0e-10)));
+                    dtdu = 0.0; //there is no dependence of time on thrust control
+                    dtotal_available_thrust_time_du = 0.0;
+                    dPdu = 0.0; //there is no dependence of power on thrust control
+
+                    //loop over steps between the control step and the current step
+                    for (int stepnext = cstep + 1; stepnext < step; ++stepnext)
+                    {
+                        calculate_match_point_forward_propagation_derivatives(G,
+                            j,
+                            p,
+                            options,
+                            Universe,
+                            cstep,
+                            stepnext,
+                            dxdu,
+                            dydu,
+                            dzdu,
+                            dxdotdu,
+                            dydotdu,
+                            dzdotdu,
+                            dmdu,
+                            dtdu,
+                            dtotal_available_thrust_time_du,
+                            dPdu);
+                    } //end loop over later steps
+
+                    //place the derivatives in the Jacobian
+                    for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+                    {
+                        int Gindex = this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control[step][body][cstep][cindex];
+                        G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                            (this->distance_constraint_relative_position[step][body][0] * dxdu
+                            + this->distance_constraint_relative_position[step][body][1] * dydu
+                            + this->distance_constraint_relative_position[step][body][2] * dzdu)
+                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                    }
+                }//end loop over controls
             }
-            //mission/journey global Isp and/or power variables
-            //***********************************
-            //control variables preceding this constraint in the propagation (note this is different for forward propagation than backward propagation)
-            //forward control
-            //***********************************
-            //derivatives with respect to spiral variables
-        }//end loop over steps
+
+            //derivative with respect to Isp for forward propagation with VSI thruster
+            if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
+            {
+                for (int cstep = 0; cstep < step; ++cstep)
+                {
+                    deltat = (time_step_sizes[cstep]);
+
+                    double ux = control[cstep][0];
+                    double uy = control[cstep][1];
+                    double uz = control[cstep][2];
+                    double m = spacecraft_state[cstep - 1][6];
+                    dxdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](0, 3)*ux + Forward_STM[cstep + 1](0, 4)*uy + Forward_STM[cstep + 1](0, 5)*uz);
+                    dydu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](1, 3)*ux + Forward_STM[cstep + 1](1, 4)*uy + Forward_STM[cstep + 1](1, 5)*uz);
+                    dzdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](2, 3)*ux + Forward_STM[cstep + 1](2, 4)*uy + Forward_STM[cstep + 1](2, 5)*uz);
+                    dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](3, 3)*ux + Forward_STM[cstep + 1](3, 4)*uy + Forward_STM[cstep + 1](3, 5)*uz);
+                    dydotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](4, 3)*ux + Forward_STM[cstep + 1](4, 4)*uy + Forward_STM[cstep + 1](4, 5)*uz);
+                    dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](5, 3)*ux + Forward_STM[cstep + 1](5, 4)*uy + Forward_STM[cstep + 1](5, 5)*uz);
+
+                    double umag = math::norm(control[cstep].data(), 3);
+
+                    dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[cstep];
+                    dtdu = 0.0; //there is no dependence of time on Isp
+                    dtotal_available_thrust_time_du = 0.0;
+                    dPdu = 0.0; //there is no dependence of power on Isp
+
+                    //loop over later steps
+                    for (int stepnext = cstep + 1; stepnext < step; ++stepnext)
+                    {
+                        calculate_match_point_forward_propagation_derivatives(G,
+                            j,
+                            p,
+                            options,
+                            Universe,
+                            step,
+                            stepnext,
+                            dxdu,
+                            dydu,
+                            dzdu,
+                            dxdotdu,
+                            dydotdu,
+                            dzdotdu,
+                            dmdu,
+                            dtdu,
+                            dtotal_available_thrust_time_du,
+                            dPdu);
+                    } //end loop over later steps
+
+                    //place the derivatives in the Jacobian
+                    for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+                    {
+                        int Gindex = this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control[step][body][cstep][3];
+                        G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                            (this->distance_constraint_relative_position[step][body][0] * dxdu
+                            + this->distance_constraint_relative_position[step][body][1] * dydu
+                            + this->distance_constraint_relative_position[step][body][2] * dzdu)
+                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                    }
+                }
+            }//end forward Isp
+        }//end loop over controls and Isp
+
+        //**********************************************************************
+        //backward step derivatives
+        
+        //derivative with respect to arrival mass (no entry for the last step's distance constraint since no burn has happened)
+        for (int step = 1; step < options->num_timesteps / 2; ++step)
+        {
+            //translate into backward steps
+            int backstep = options->num_timesteps - 1 - step;
+
+            //arrival mass this phase
+            dxdu = 0.0;
+            dydu = 0.0;
+            dzdu = 0.0;
+            dxdotdu = 0.0;
+            dydotdu = 0.0;
+            dzdotdu = 0.0;
+
+            dmdu = 1.0;
+            dtdu = 0.0; //there is no dependence of time on arrival mass
+            dtotal_available_thrust_time_du = 0.0;
+            dPdu = 0.0;
+
+            //loop over later steps
+            for (int stepnext = 0; stepnext < step; ++stepnext)
+            {
+                calculate_match_point_backward_propagation_derivatives(G,
+                    j,
+                    p,
+                    options,
+                    Universe,
+                    options->num_timesteps - 1,
+                    stepnext,
+                    dxdu,
+                    dydu,
+                    dzdu,
+                    dxdotdu,
+                    dydotdu,
+                    dzdotdu,
+                    dmdu,
+                    dtdu,
+                    dtotal_available_thrust_time_du,
+                    dPdu);
+            } //end loop over later steps
+
+            //place the derivatives in the Jacobian
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+            {
+                int Gindex = this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass[backstep][body];
+                G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                    (this->distance_constraint_relative_position[backstep][body][0] * dxdu
+                    + this->distance_constraint_relative_position[backstep][body][1] * dydu
+                    + this->distance_constraint_relative_position[backstep][body][2] * dzdu)
+                    / this->distance_from_body[backstep][body] / options->journey_distance_constraint_bounds[j][body][0];
+            }
+        }//end loop over backward steps for arrival mass derivative
+            
+        //***********************************
+        //this phase terminal velocity
+            
+        //***********************************
+        //variable right boundary this phase
+
+        //***********************************
+        //backward control
+        for (int step = 1; step < options->num_timesteps / 2; ++step)
+        {
+            //translate into backward steps
+            int backstep = options->num_timesteps - 1 - step;
+
+            for (int cstep = 0; cstep < step; ++cstep)
+            {
+                int cbackstep = options->num_timesteps - 1 - cstep;
+
+                for (int cindex = 0; cindex < 3; ++cindex)
+                {
+                    //first we need to get the derivative of the next step's state vector with respect to the step where the control is applied
+                    dxdu = -Backward_STM[cstep + 1](0, cindex + 3) * dVmax[cbackstep];
+                    dydu = -Backward_STM[cstep + 1](1, cindex + 3) * dVmax[cbackstep];
+                    dzdu = -Backward_STM[cstep + 1](2, cindex + 3) * dVmax[cbackstep];
+                    dxdotdu = -Backward_STM[cstep + 1](3, cindex + 3) * dVmax[cbackstep];
+                    dydotdu = -Backward_STM[cstep + 1](4, cindex + 3) * dVmax[cbackstep];
+                    dzdotdu = -Backward_STM[cstep + 1](5, cindex + 3) * dVmax[cbackstep];
+
+                    double umag = math::norm(control[cbackstep].data(), 3);
+                    double r = math::norm(spacecraft_state[cbackstep].data(), 3);
+
+                    deltat = (time_step_sizes[cbackstep]);
+
+                    dmdu = (available_mass_flow_rate[cbackstep] * deltat * options->engine_duty_cycle) * ((control[cbackstep][cindex] / (umag + 1.0e-10)));
+                    dtdu = 0.0; //there is no dependence of time on thrust control
+                    dtotal_available_thrust_time_du = 0.0;
+                    dPdu = 0.0;
+
+                    //loop over later steps
+                    for (int stepnext = cstep + 1; stepnext < step; ++stepnext)
+                    {
+                        calculate_match_point_backward_propagation_derivatives(G,
+                            j,
+                            p,
+                            options,
+                            Universe,
+                            cbackstep,
+                            stepnext,
+                            dxdu,
+                            dydu,
+                            dzdu,
+                            dxdotdu,
+                            dydotdu,
+                            dzdotdu,
+                            dmdu,
+                            dtdu,
+                            dtotal_available_thrust_time_du,
+                            dPdu);
+                    } //end loop over later steps
+
+                    //place the derivatives in the Jacobian
+                    for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+                    {
+                        int Gindex = this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control[backstep][body][cstep][cindex];
+                        G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                            (this->distance_constraint_relative_position[backstep][body][0] * dxdu
+                            + this->distance_constraint_relative_position[backstep][body][1] * dydu
+                            + this->distance_constraint_relative_position[backstep][body][2] * dzdu)
+                            / this->distance_from_body[backstep][body] / options->journey_distance_constraint_bounds[j][body][0];
+                    }
+                }//end loop over controls
+            }
+
+            //derivative with respect to Isp for forward propagation with VSI thruster
+            if (options->engine_type == 4 || options->engine_type == 12 || options->engine_type == 13)
+            {
+                for (int cstep = 0; cstep < step; ++cstep)
+                {
+                    int cbackstep = options->num_timesteps - 1 - cstep;
+                    deltat = (time_step_sizes[backstep]);
+
+                    double ux = control[cbackstep][0];
+                    double uy = control[cbackstep][1];
+                    double uz = control[backstep][2];
+                    double m = spacecraft_state[cbackstep][6];
+                    dxdu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](0, 3)*ux + Backward_STM[cstep + 1](0, 4)*uy + Backward_STM[cstep + 1](0, 5)*uz);
+                    dydu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](1, 3)*ux + Backward_STM[cstep + 1](1, 4)*uy + Backward_STM[cstep + 1](1, 5)*uz);
+                    dzdu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](2, 3)*ux + Backward_STM[cstep + 1](2, 4)*uy + Backward_STM[cstep + 1](2, 5)*uz);
+                    dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](3, 3)*ux + Backward_STM[cstep + 1](3, 4)*uy + Backward_STM[cstep + 1](3, 5)*uz);
+                    dydotdu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](4, 3)*ux + Backward_STM[cstep + 1](4, 4)*uy + Backward_STM[cstep + 1](4, 5)*uz);
+                    dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[cbackstep] / m * (Backward_STM[cstep + 1](5, 3)*ux + Backward_STM[cstep + 1](5, 4)*uy + Backward_STM[cstep + 1](5, 5)*uz);
+
+                    double umag = math::norm(control[cbackstep].data(), 3);
+
+                    dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[cbackstep];
+                    dtdu = 0.0; //there is no dependence of time on Isp
+                    dtotal_available_thrust_time_du = 0.0;
+                    dPdu = 0.0;
+
+                    //loop over later steps
+                    for (int stepnext = cstep + 1; stepnext < step; ++stepnext)
+                    {
+                        calculate_match_point_forward_propagation_derivatives(G,
+                            j,
+                            p,
+                            options,
+                            Universe,
+                            cbackstep,
+                            stepnext,
+                            dxdu,
+                            dydu,
+                            dzdu,
+                            dxdotdu,
+                            dydotdu,
+                            dzdotdu,
+                            dmdu,
+                            dtdu,
+                            dtotal_available_thrust_time_du,
+                            dPdu);
+                    } //end loop over later steps
+
+                    //place the derivatives in the Jacobian
+                    for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+                    {
+                        int Gindex = this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control[step][body][cstep][3];
+                        G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                            (this->distance_constraint_relative_position[step][body][0] * dxdu
+                            + this->distance_constraint_relative_position[step][body][1] * dydu
+                            + this->distance_constraint_relative_position[step][body][2] * dzdu)
+                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                    }
+                }
+            }//end backward Isp
+        }//end loop over backward controls and Isp
     }
 
 	//function to calculate the patch point derivatives
 	void MGA_LT_phase::calculate_match_point_derivatives(	double* G,
-															int* Gindex,
 															const int& j, 
 															const int& p,
 															missionoptions* options, 
@@ -1483,7 +1807,6 @@ namespace EMTG
 			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_forward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -1514,7 +1837,6 @@ namespace EMTG
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_backward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -1573,7 +1895,6 @@ namespace EMTG
 				for (int stepnext = step + 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1633,7 +1954,6 @@ namespace EMTG
 				for (int stepnext = step + 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1681,7 +2001,6 @@ namespace EMTG
 			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_forward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -1726,7 +2045,6 @@ namespace EMTG
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_backward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -1775,7 +2093,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1821,7 +2138,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1875,7 +2191,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1918,7 +2233,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -1961,7 +2275,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2011,7 +2324,6 @@ namespace EMTG
 					for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 					{
 						calculate_match_point_forward_propagation_derivatives(	G,
-																				Gindex,
 																				j, 
 																				p,
 																				options, 
@@ -2063,7 +2375,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2110,7 +2421,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2175,7 +2485,6 @@ namespace EMTG
 			for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_forward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -2229,7 +2538,6 @@ namespace EMTG
 				for (int stepnext = 1; stepnext <= options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_forward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2291,7 +2599,6 @@ namespace EMTG
 				for (int stepnext = step + 1; stepnext < options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_backward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2353,7 +2660,6 @@ namespace EMTG
 				for (int stepnext = step + 1; stepnext < options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_backward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2403,7 +2709,6 @@ namespace EMTG
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_backward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -2467,7 +2772,6 @@ namespace EMTG
 			for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 			{
 				calculate_match_point_backward_propagation_derivatives(	G,
-																		Gindex,
 																		j, 
 																		p,
 																		options, 
@@ -2533,7 +2837,6 @@ namespace EMTG
 				for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_backward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2588,7 +2891,6 @@ namespace EMTG
 				for (int stepnext = 0; stepnext < options->num_timesteps / 2; ++stepnext)
 				{
 					calculate_match_point_backward_propagation_derivatives(	G,
-																			Gindex,
 																			j, 
 																			p,
 																			options, 
@@ -2622,7 +2924,6 @@ namespace EMTG
 
 	//function to calculate the derivative of a match point constraint with respect to a decision variable in the forward propagation
 	void MGA_LT_phase::calculate_match_point_forward_propagation_derivatives(double* G,
-																			int* Gindex,
 																			const int& j, 
 																			const int& p,
 																			missionoptions* options, 
@@ -2752,7 +3053,6 @@ namespace EMTG
 
 	//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
 	void MGA_LT_phase::calculate_match_point_backward_propagation_derivatives(	double* G,
-																				int* Gindex,
 																				const int& j, 
 																				const int& p,
 																				missionoptions* options, 

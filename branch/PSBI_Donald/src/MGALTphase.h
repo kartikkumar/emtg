@@ -76,7 +76,6 @@ namespace EMTG {
 
         //top-level function to calculate the derivatives of the distance constraints
         void calculate_distance_constraint_derivatives( double* G,
-                                                        int* Gindex,
                                                         const int& j,
                                                         const int& p,
                                                         missionoptions* options,
@@ -84,7 +83,6 @@ namespace EMTG {
 
 		//top-level function to calculate the match point derivatives
 		void calculate_match_point_derivatives(	double* G,
-												int* Gindex,
 												const int& j, 
 												const int& p,
 												missionoptions* options, 
@@ -92,7 +90,6 @@ namespace EMTG {
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the forward propagation
 		void calculate_match_point_forward_propagation_derivatives(	double* G,
-																	int* Gindex,
 																	const int& j, 
 																	const int& p,
 																	missionoptions* options, 
@@ -112,7 +109,6 @@ namespace EMTG {
 
 		//function to calculate the derivative of a match point constraint with respect to a decision variable in the backward propagation
 		void calculate_match_point_backward_propagation_derivatives(double* G,
-																	int* Gindex,
 																	const int& j, 
 																	const int& p,
 																	missionoptions* options, 
