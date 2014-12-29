@@ -2082,7 +2082,7 @@ namespace EMTG
                                                 
         }
         //Step 2c: if this phase starts with a post-flyby coast, propagate along that coast
-        else if ((p > 0 || (p == 0 && (options.journey_departure_elements_type[j] == 3 || options.journey_departure_elements_type[j] == 4 || options.journey_departure_elements_type[j] == 6)))
+        else if ((p > 0 || (p == 0 && (options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)))
                  && options.forced_flyby_coast > 0.0)
         {
             for (size_t k = 0; k < 7; ++k)
