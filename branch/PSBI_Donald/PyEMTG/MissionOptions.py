@@ -259,9 +259,9 @@ class MissionOptions(object):
 
                     if perturb_line_flag > 0:
                         perturb_line_flag += 1
-                        self.Journeys[j].journey_perturbation_bodies = []
+                        self.Journeys[perturb_line_flag - 1].journey_perturbation_bodies = []
                         for x in linecell:
-                            self.Journeys[j].journey_perturbation_bodies.append(int(x))
+                            self.Journeys[perturb_line_flag - 1].journey_perturbation_bodies.append(int(x))
 
                     elif point_group_members_flag > 0:
                         point_group_members_flag += 1
@@ -304,12 +304,12 @@ class MissionOptions(object):
                         destination_choice_line_flag = destination_choice_line_flag + 1
 
                     elif distance_constraint_bodies_flag > 0:
-                        distance_constraint_bodies_flag += 1
-                        self.Journeys[j].journey_distance_constraint_bodies = []
-                        self.Journeys[j].journey_distance_bounds = []
+                        self.Journeys[distance_constraint_bodies_flag - 1].journey_distance_constraint_bodies = []
+                        self.Journeys[distance_constraint_bodies_flag - 1].journey_distance_bounds = []
                         for counter in range(0, (len(linecell) - 1)/ 3):
-                            self.Journeys[j].journey_distance_constraint_bodies.append(int(linecell[3 * counter + 1]))
-                            self.Journeys[j].journey_distance_constraint_bounds.append([float(linecell[3 * counter + 2]), float(linecell[3 * counter + 3])])
+                            self.Journeys[distance_constraint_bodies_flag - 1].journey_distance_constraint_bodies.append(int(linecell[3 * counter + 1]))
+                            self.Journeys[distance_constraint_bodies_flag - 1].journey_distance_constraint_bounds.append([float(linecell[3 * counter + 2]), float(linecell[3 * counter + 3])])
+                        distance_constraint_bodies_flag += 1
 
                     elif choice == "problem_type":
                         self.problem_type = int(linecell[1])
@@ -763,6 +763,7 @@ class MissionOptions(object):
                         #first get the number of distance constraint bodies for each journey
                         for j in range(0, self.number_of_journeys):
                             self.Journeys[j].journey_distance_constraint_number_of_bodies = int(linecell[j+1])
+
                         #next read the bodies line for each journey
                         distance_constraint_bodies_flag = 1
                     
