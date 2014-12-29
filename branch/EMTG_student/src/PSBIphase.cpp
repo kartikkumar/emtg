@@ -23,13 +23,16 @@ namespace EMTG
     PSBIphase::PSBIphase() {}
 
     //main constructor
-    PSBIphase::PSBIphase(int j, int p, missionoptions* options)
+    PSBIphase::PSBIphase(const int& j, const int& p, const missionoptions& options)
     {
+        //call phase initialize method
+        this->initialize(j, p, options);
+
         //must resize all data vectors to the correct length
         vector<double> state_dummy(7);
         vector<double> dV_or_control_dummy(3);
 
-        for (size_t step = 0; step < options->num_timesteps; ++step)
+        for (size_t step = 0; step < options.num_timesteps; ++step)
         {
             this->left_hand_state.push_back(state_dummy);
             this->spacecraft_state.push_back(state_dummy);
@@ -41,71 +44,63 @@ namespace EMTG
             this->dagravdtvec.push_back(dV_or_control_dummy);
         }
 
-        this->event_epochs.resize(options->num_timesteps);
-        this->dVmax.resize(options->num_timesteps);
-        this->available_power.resize(options->num_timesteps);
-        this->available_mass_flow_rate.resize(options->num_timesteps);
-        this->available_thrust.resize(options->num_timesteps);
-        this->available_Isp.resize(options->num_timesteps);
-        this->active_power.resize(options->num_timesteps);
-        this->number_of_active_engines.resize(options->num_timesteps);
-        this->throttle.resize(options->num_timesteps);
+        this->event_epochs.resize(options.num_timesteps);
+        this->dVmax.resize(options.num_timesteps);
+        this->available_power.resize(options.num_timesteps);
+        this->available_mass_flow_rate.resize(options.num_timesteps);
+        this->available_thrust.resize(options.num_timesteps);
+        this->available_Isp.resize(options.num_timesteps);
+        this->active_power.resize(options.num_timesteps);
+        this->number_of_active_engines.resize(options.num_timesteps);
+        this->throttle.resize(options.num_timesteps);
 
-        //size the vectors that will be used to calculate the b-plane
-        this->V_infinity_in.resize(3, 1);
-        this->V_infinity_out.resize(3, 1);
-        this->BoundaryR.resize(3, 1);
-        this->BoundaryV.resize(3, 1);
-
-        //set the bodies
-        this->boundary1_location_code = options->sequence[j][p];
-        this->boundary2_location_code = options->sequence[j][p + 1];
+        //vector to track the state and derivatives of the central body
+        vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
+        for (size_t step = 0; step < options.num_timesteps; ++step)
+            this->central_body_state_mks.push_back(central_body_state_dummy);
 
         //size the vectors of state transition matrices
-        this->STM.resize(options->num_timesteps * 2);
-        this->Kepler_F.resize(options->num_timesteps * 2);
-        this->Kepler_Fdot.resize(options->num_timesteps * 2);
-        this->Kepler_G.resize(options->num_timesteps * 2);
-        this->Kepler_Gdot.resize(options->num_timesteps * 2);
-        this->Kepler_Fdotdot.resize(options->num_timesteps * 2);
-        this->Kepler_Gdotdot.resize(options->num_timesteps * 2);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
-        this->Propagation_Step_Time_Fraction.resize(options->num_timesteps * 2);
+        this->STM.resize(options.num_timesteps * 2);
+        this->Kepler_F.resize(options.num_timesteps * 2);
+        this->Kepler_Fdot.resize(options.num_timesteps * 2);
+        this->Kepler_G.resize(options.num_timesteps * 2);
+        this->Kepler_Gdot.resize(options.num_timesteps * 2);
+        this->Kepler_Fdotdot.resize(options.num_timesteps * 2);
+        this->Kepler_Gdotdot.resize(options.num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options.num_timesteps * 2);
+        this->Propagation_Step_Time_Fraction.resize(options.num_timesteps * 2);
 
         //if there are initial and/or terminal coasts, instantiate the relevant STMs
         this->initial_coast = false;
         this->terminal_coast = false;
-        if (j == 0 && p == 0 && options->forced_post_launch_coast > math::SMALL)
+        if (j == 0 && p == 0 && options.forced_post_launch_coast > math::SMALL)
         {
             this->initial_coast_STM = new Kepler::STM;
             this->initial_coast = true;
         }
-        else if ((p > 0 || options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6)
-            && options->forced_flyby_coast > math::SMALL)
+        else if ((p > 0 || options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)
+            && options.forced_flyby_coast > math::SMALL)
         {
             this->initial_coast_STM = new Kepler::STM;
             this->initial_coast = true;
         }
-        if ((p < options->number_of_phases[j] - 1 || (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 5))
-            && options->forced_flyby_coast > math::SMALL)
+        if ((p < options.number_of_phases[j] - 1 || (options.journey_arrival_type[j] == 2 || options.journey_arrival_type[j] == 5))
+            && options.forced_flyby_coast > math::SMALL)
         {
             this->terminal_coast_STM = new Kepler::STM;
             this->terminal_coast = true;
         }
 
-        this->current_mass_increment = 0.0;
-        this->journey_initial_mass_increment_scale_factor = 1.0;
-
         //size the time step vector
-        time_step_sizes.resize(options->num_timesteps);
+        this->time_step_sizes.resize(options.num_timesteps);
 
-        this->dTdP.resize(options->num_timesteps);
-        this->dmdotdP.resize(options->num_timesteps);
-        this->dTdIsp.resize(options->num_timesteps);
-        this->dmdotdIsp.resize(options->num_timesteps);
-        this->dPdr.resize(options->num_timesteps);
-        this->dPdt.resize(options->num_timesteps);
-        this->dFSRPdr.resize(options->num_timesteps);
+        this->dTdP.resize(options.num_timesteps);
+        this->dmdotdP.resize(options.num_timesteps);
+        this->dTdIsp.resize(options.num_timesteps);
+        this->dmdotdIsp.resize(options.num_timesteps);
+        this->dPdr.resize(options.num_timesteps);
+        this->dPdt.resize(options.num_timesteps);
+        this->dFSRPdr.resize(options.num_timesteps);
 
         //set derivatives for spirals
         this->spiral_escape_dm_after_dm_before = 1.0;
@@ -123,22 +118,22 @@ namespace EMTG
 
     //bounds calculation method
     void PSBIphase::calcbounds(vector<double>* Xupperbounds,
-                                vector<double>* Xlowerbounds,
-                                vector<double>* Fupperbounds,
-                                vector<double>* Flowerbounds,
-                                vector<string>* Xdescriptions,
-                                vector<string>* Fdescriptions,
-                                vector<int>* iAfun,
-                                vector<int>* jAvar,
-                                vector<int>* iGfun,
-                                vector<int>* jGvar,
-                                vector<string>* Adescriptions,
-                                vector<string>* Gdescriptions,
-                                vector<double>* synodic_periods,
-                                int j,
-                                int p,
-                                EMTG::Astrodynamics::universe* Universe,
-                                missionoptions* options)
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
     {
         //this function calculates the upper and lower bounds for the decision and constraint vectors for PSBI
         //create a prefix string with journey and phase information
@@ -159,11 +154,42 @@ namespace EMTG
 
         //**************************************************************************
         //calculate bounds on variables and constraints governing the left boundary
-        this->calcbounds_left_boundary(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_left_boundary( prefix,
+                                        first_X_entry_in_phase,
+                                        Xupperbounds, 
+                                        Xlowerbounds, 
+                                        Fupperbounds, 
+                                        Flowerbounds, 
+                                        Xdescriptions,
+                                        Fdescriptions, iAfun,
+                                        jAvar, 
+                                        iGfun, 
+                                        jGvar, 
+                                        Adescriptions,
+                                        Gdescriptions, 
+                                        j, 
+                                        p, 
+                                        Universe, options);
 
         //**************************************************************************
         //if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
-        this->calcbounds_phase_thruster_parameters(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
+        this->calcbounds_phase_thruster_parameters(prefix,
+            first_X_entry_in_phase,
+            Xupperbounds, 
+            Xlowerbounds, 
+            Fupperbounds, 
+            Flowerbounds, 
+            Xdescriptions, 
+            Fdescriptions, 
+            iAfun,
+            jAvar, 
+            iGfun, 
+            jGvar,
+            Adescriptions, 
+            Gdescriptions,
+            j,
+            p, 
+            Universe, options);
 
         //**************************************************************************
         //next, we need to encode the phase flight time
@@ -811,36 +837,106 @@ namespace EMTG
             this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);
         }//end loop over state for right-hand defect constraint
 
-        
+        //***************************************************************************
+        //if this is the last phase, encode any constraints for the arrival processing
+        if (p == options->number_of_phases[j] - 1)
+        {
+            if (options->journey_arrival_type[j] == 2) //intercept with bounded v-infinity
+            {
+                Flowerbounds->push_back((options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1])*(options->journey_final_velocity[j][0] / options->journey_final_velocity[j][1]) - 1);
+                Fupperbounds->push_back(0.0);
+                Fdescriptions->push_back(prefix + "arrival C3 constraint");
+
+                //Jacobian entry for a bounded v-infinity intercept
+                //this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        terminal_velocity_constraint_G_indices.push_back(iGfun->size() - 1);
+                        terminal_velocity_constraint_X_indices.push_back(entry);
+                        terminal_velocity_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+
+            if (options->journey_arrival_declination_constraint_flag[j] && (options->journey_arrival_type[j] == 0 || options->journey_arrival_type[j] == 2)) //intercept with bounded v-infinity or orbit insertion
+            {
+                Flowerbounds->push_back(options->journey_arrival_declination_bounds[j][0] / options->journey_arrival_declination_bounds[j][1] - 1.0);
+                Fupperbounds->push_back(0.0);
+                Fdescriptions->push_back(prefix + "arrival declination constraint");
+
+                //Jacobian entry for arrival declination constraint
+                //this is a nonlinear constraint dependent only on the terminal velocity vector for this phase
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " arrival v-infinity constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        arrival_declination_constraint_G_indices.push_back(iGfun->size() - 1);
+                        arrival_declination_constraint_X_indices.push_back(entry);
+                        arrival_declination_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+
+            if (options->journey_arrival_type[j] == 6) //enforce escape constraint, E = 0
+            {
+                Flowerbounds->push_back(-math::SMALL);
+                Fupperbounds->push_back(math::LARGE);
+                Fdescriptions->push_back(prefix + "arrival escape condition (zero energy constraint)");
+
+                //Jacobian entry for zero energy condition
+                //this is a nonlinear constraint dependent on the terminal velocity vector
+                //note that it is NOT dependent on position because these phases always end at the SOI and SOI distance is constant
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+                {
+                    if ((*Xdescriptions)[entry].find("terminal velocity") < 1024 || (*Xdescriptions)[entry].find("right boundary point") < 1024)
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << prefix << " escape constraint constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        escape_constraint_G_indices.push_back(iGfun->size() - 1);
+                        escape_constraint_X_indices.push_back(entry);
+                        escape_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
+                }
+            }
+        }
     }
 
     //evaluate function
     //return 0 if successful, 1 if failure
-    int PSBIphase::evaluate(double* X,
+    int PSBIphase::evaluate(const double* X,
                             int* Xindex,
                             double* F,
                             int* Findex,
                             double* G,
                             int* Gindex,
-                            int needG,
+                            const int& needG,
                             double* current_epoch,
                             double* current_state,
                             double* current_deltaV,
                             double* boundary1_state,
                             double* boundary2_state,
-                            int j,
-                            int p,
+                            const int& j,
+                            const int& p,
                             EMTG::Astrodynamics::universe* Universe,
                             missionoptions* options)
     {
         //declare some local variables
         int errcode = 0;
-        double temp_available_thrust;
-        double temp_available_mass_flow_rate;
-        double temp_available_Isp;
-        double temp_available_power;
-        double temp_active_power;
-        int temp_number_of_active_engines;
         double local_throttle, impulse_magnitude;
 
         //******************************************************************
@@ -1046,8 +1142,8 @@ namespace EMTG
             EMTG::Astrodynamics::force_model(options,
                                             Universe,
                                             this->spacecraft_state[step].data(),
-                                            &event_epochs[step],
-                                            X,
+                                            event_epochs[step],
+                                            X[0],
                                             control[step].data(),
                                             &available_thrust[step],
                                             &available_mass_flow_rate[step],
@@ -1065,7 +1161,8 @@ namespace EMTG
                                             &dPdt[step],
                                             &dFSRPdr[step],
                                             dagravdRvec[step],
-                                            dagravdtvec[step]);
+                                            dagravdtvec[step],
+                                            this->central_body_state_mks[step]);
 
             double effective_mass = this->spacecraft_state[step][6] > 1.0e-3 ? this->spacecraft_state[step][6] : 1.0e-3;
             dVmax[step] = options->engine_duty_cycle * available_thrust[step] / effective_mass * (time_step_sizes[step]);
@@ -1267,11 +1364,10 @@ namespace EMTG
     }
 
     //output function
-    //return 0 if successful, 1 if failure
-    int PSBIphase::output(missionoptions* options,
+    void PSBIphase::output(missionoptions* options,
         const double& launchdate,
-        int j,
-        int p,
+        const int& j,
+        const int& p,
         EMTG::Astrodynamics::universe* Universe,
         int* eventcount)
     {
@@ -1531,7 +1627,7 @@ namespace EMTG
             double current_Isp, current_thrust, current_power;
             if (options->engine_type == 0) //fixed thrust/Isp
             {
-                current_thrust = options->Thrust * 1000.0;
+                current_thrust = options->Thrust;
                 current_Isp = options->IspLT;
                 current_power = -1;
                 current_mass_flow_rate = current_thrust / current_Isp / options->g0;
@@ -1560,11 +1656,9 @@ namespace EMTG
             state[6] = spacecraft_state[step][6];
             for (int k = 0; k < 6; ++k)
                 state[k] = spacecraft_state[step][k];
-            if (step < options->num_timesteps / 2)
-            {
-                for (int k = 0; k < 3; ++k)
-                    state[k + 3] -= dV[step][k];
-            }
+            //adjust to "state before burn"
+            for (int k = 0; k < 3; ++k)
+                state[k + 3] -= dV[step][k];
 
             write_summary_line(options,
                 Universe,
@@ -1777,8 +1871,6 @@ namespace EMTG
                     this->spiral_capture_active_power);
             }
         }
-
-        return 0;
     }
 
     //method to calculate defect constraint derivatives
@@ -1790,7 +1882,6 @@ namespace EMTG
     {
         //declare variables which will be generally useful
         double dxdu, dydu, dzdu, dxdotdu, dydotdu, dzdotdu, dmdu, dtdu;
-        double dxdu_midpoint, dydu_midpoint, dzdu_midpoint, dxdotdu_midpoint, dydotdu_midpoint, dzdotdu_midpoint, dmdu_midpoint, dtdu_midpoint;
         double dtotal_available_thrust_timedu, dPdu;
 
         //derivatives for the left-hand defect constraints
@@ -1834,12 +1925,12 @@ namespace EMTG
                 {
                     if (initial_coast)
                     {
-                        dxdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[step - 1];
-                        dydu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[step - 1];
-                        dzdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[step - 1];
-                        dxdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[step - 1];
-                        dydotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[step - 1];
-                        dzdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[step - 1];
+                        dxdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[0];
+                        dydu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[0];
+                        dzdu = (this->initial_coast_Kepler_Fdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[0];
+                        dxdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[0] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[3]) * this->Propagation_Step_Time_Fraction[0];
+                        dydotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[1] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[4]) * this->Propagation_Step_Time_Fraction[0];
+                        dzdotdu = (this->initial_coast_Kepler_Fdotdot * this->state_at_beginning_of_phase[2] + this->initial_coast_Kepler_Gdotdot * this->state_at_beginning_of_phase[5]) * this->Propagation_Step_Time_Fraction[0];
                         dmdu = 0.0;
                     }
                     else //if no initial coast
@@ -1896,7 +1987,7 @@ namespace EMTG
                         dtotal_available_thrust_timedu,
                         dPdu);
                 }
-                else
+                else if (options->destination_list[j][0] > -1)
                 {
                     if (initial_coast)
                     {
@@ -2353,111 +2444,113 @@ namespace EMTG
             }
         }
 
-        //derivative of rightmost defect constraint with respect to previous flight time variables
-        dtdu = 1.0;
-        dtotal_available_thrust_timedu = 0.0;
-        dPdu = 0.0;
-
-        //first get the right hand side of the constraint
-        if (this->terminal_coast)
+        if (options->derivative_type > 2)
         {
-            dxdu = (*this->terminal_coast_STM)(0, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(0, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(0, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(0, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(0, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(0, 5) * this->right_boundary_state_derivative[5];
-            dydu = (*this->terminal_coast_STM)(1, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(1, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(1, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(1, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(1, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(1, 5) * this->right_boundary_state_derivative[5];
-            dzdu = (*this->terminal_coast_STM)(2, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(2, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(2, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(2, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(2, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(2, 5) * this->right_boundary_state_derivative[5];
-            dxdotdu = (*this->terminal_coast_STM)(3, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(3, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(3, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(3, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(3, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(3, 5) * this->right_boundary_state_derivative[5];
-            dydotdu = (*this->terminal_coast_STM)(4, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(4, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(4, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(4, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(4, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(4, 5) * this->right_boundary_state_derivative[5];
-            dzdotdu = (*this->terminal_coast_STM)(5, 0) * this->right_boundary_state_derivative[0]
-                + (*this->terminal_coast_STM)(5, 1) * this->right_boundary_state_derivative[1]
-                + (*this->terminal_coast_STM)(5, 2) * this->right_boundary_state_derivative[2]
-                + (*this->terminal_coast_STM)(5, 3) * this->right_boundary_state_derivative[3]
-                + (*this->terminal_coast_STM)(5, 4) * this->right_boundary_state_derivative[4]
-                + (*this->terminal_coast_STM)(5, 5) * this->right_boundary_state_derivative[5];
+            //derivative of rightmost defect constraint with respect to previous flight time variables
+            dtdu = 1.0;
+            dtotal_available_thrust_timedu = 0.0;
+            dPdu = 0.0;
+
+            //first get the right hand side of the constraint
+            if (this->terminal_coast)
+            {
+                dxdu = (*this->terminal_coast_STM)(0, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(0, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(0, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(0, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(0, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(0, 5) * this->right_boundary_state_derivative[5];
+                dydu = (*this->terminal_coast_STM)(1, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(1, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(1, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(1, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(1, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(1, 5) * this->right_boundary_state_derivative[5];
+                dzdu = (*this->terminal_coast_STM)(2, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(2, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(2, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(2, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(2, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(2, 5) * this->right_boundary_state_derivative[5];
+                dxdotdu = (*this->terminal_coast_STM)(3, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(3, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(3, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(3, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(3, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(3, 5) * this->right_boundary_state_derivative[5];
+                dydotdu = (*this->terminal_coast_STM)(4, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(4, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(4, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(4, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(4, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(4, 5) * this->right_boundary_state_derivative[5];
+                dzdotdu = (*this->terminal_coast_STM)(5, 0) * this->right_boundary_state_derivative[0]
+                    + (*this->terminal_coast_STM)(5, 1) * this->right_boundary_state_derivative[1]
+                    + (*this->terminal_coast_STM)(5, 2) * this->right_boundary_state_derivative[2]
+                    + (*this->terminal_coast_STM)(5, 3) * this->right_boundary_state_derivative[3]
+                    + (*this->terminal_coast_STM)(5, 4) * this->right_boundary_state_derivative[4]
+                    + (*this->terminal_coast_STM)(5, 5) * this->right_boundary_state_derivative[5];
+                dmdu = 0.0;
+            }
+            else //no terminal coast, RHS is state at end of phase
+            {
+                dxdu = this->right_boundary_state_derivative[0];
+                dydu = this->right_boundary_state_derivative[1];
+                dzdu = this->right_boundary_state_derivative[2];
+                dxdotdu = this->right_boundary_state_derivative[3];
+                dydotdu = this->right_boundary_state_derivative[4];
+                dzdotdu = this->right_boundary_state_derivative[5];
+                dmdu = 0.0;
+            }
+
+            //apply the right-hand side of the constraint
+            for (size_t timevar = (options->derivative_type > 3 ? 0 : 1); timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
+            {
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            }
+
+
+            //compute the left-hand side of the constraint
+            //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
+            dxdu = 0.0;
+            dydu = 0.0;
+            dzdu = 0.0;
+            dxdotdu = 0.0;
+            dzdotdu = 0.0;
+            dydotdu = 0.0;
             dmdu = 0.0;
-        }
-        else //no terminal coast, RHS is state at end of phase
-        {
-            dxdu = this->right_boundary_state_derivative[0];
-            dydu = this->right_boundary_state_derivative[1];
-            dzdu = this->right_boundary_state_derivative[2];
-            dxdotdu = this->right_boundary_state_derivative[3];
-            dydotdu = this->right_boundary_state_derivative[4];
-            dzdotdu = this->right_boundary_state_derivative[5];
-            dmdu = 0.0;
-        }
 
-        //apply the right-hand side of the constraint
-        for (size_t timevar = (options->derivative_type > 3 ? 0 : 1); timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
-        {
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] = this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            this->calculate_derivative_of_right_hand_state(options,
+                Universe,
+                options->num_timesteps - 1,
+                dxdu,
+                dydu,
+                dzdu,
+                dxdotdu,
+                dydotdu,
+                dzdotdu,
+                dmdu,
+                dtdu,
+                dtotal_available_thrust_timedu,
+                dPdu);
+            //apply the left-hand side of the constraint
+            for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
+            {
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
+                G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
+            }
         }
-
-
-        //compute the left-hand side of the constraint
-        //i.e. find the influence of the previous time/epoch variable on the state on the right-hand side of the previous step
-        dxdu = 0.0;
-        dydu = 0.0;
-        dzdu = 0.0;
-        dxdotdu = 0.0;
-        dzdotdu = 0.0;
-        dydotdu = 0.0;
-        dmdu = 0.0;
-
-        this->calculate_derivative_of_right_hand_state(options,
-                                                        Universe,
-                                                        options->num_timesteps - 1,
-                                                        dxdu,
-                                                        dydu,
-                                                        dzdu,
-                                                        dxdotdu,
-                                                        dydotdu,
-                                                        dzdotdu,
-                                                        dmdu,
-                                                        dtdu,
-                                                        dtotal_available_thrust_timedu,
-                                                        dPdu);
-        //apply the left-hand side of the constraint
-        for (size_t timevar = 1; timevar < this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0].size(); ++timevar)
-        {
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[0][timevar] * dxdu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[1][timevar] * dydu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[2][timevar] * dzdu / Universe->LU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[3][timevar] * dxdotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[4][timevar] * dydotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[5][timevar] * dzdotdu / Universe->LU * Universe->TU;
-            G[this->G_index_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar]] -= this->X_scale_range_of_derivative_of_rightmost_defect_constraints_with_respect_to_flight_time_variables[6][timevar] * dmdu / (options->maximum_mass + journey_initial_mass_increment_scale_factor * current_mass_increment);
-        }
-        
 
         //add the additional term for the derivative of rightmost defect constraint with respect to current phase flight time
         if (options->derivative_type > 3)
@@ -2514,30 +2607,51 @@ namespace EMTG
         double dxdu_right, dydu_right, dzdu_right, dxdotdu_right, dydotdu_right, dzdotdu_right, dmdu_right;
         double dxdt, dydt, dzdt, dxdotdt, dydotdt, dzdotdt;
 
-        double x = spacecraft_state[step][0];
-        double y = spacecraft_state[step][1];
-        double z = spacecraft_state[step][2];
-        double vx = spacecraft_state[step][3];
-        double vy = spacecraft_state[step][4];
-        double vz = spacecraft_state[step][5];
-        double r = sqrt(x*x + y*y + z*z);
-        double r3 = r*r*r;
-        double cmag = (math::norm(control[step].data(), 3) + 1.0e-10);
+        double x = this->spacecraft_state[step][0];
+        double y = this->spacecraft_state[step][1];
+        double z = this->spacecraft_state[step][2];
+        double vx = this->spacecraft_state[step][3];
+        double vy = this->spacecraft_state[step][4];
+        double vz = this->spacecraft_state[step][5];
+        double x_sun = x + this->central_body_state_mks[step][0];
+        double y_sun = y + this->central_body_state_mks[step][1];
+        double z_sun = z + this->central_body_state_mks[step][2];
+        double vx_sun, vy_sun, vz_sun;
+        if (options->derivative_type > 2)
+        {
+            vx_sun = vx + this->central_body_state_mks[step][6];
+            vy_sun = vy + this->central_body_state_mks[step][7];
+            vz_sun = vz + this->central_body_state_mks[step][8];
+        }
+        else
+        {
+            vx_sun = 0.0;
+            vy_sun = 0.0;
+            vz_sun = 0.0;
+        }
+        double r_sun = sqrt(x_sun*x_sun + y_sun*y_sun + z_sun*z_sun);
+        double cmag = (math::norm(this->control[step].data(), 3) + 1.0e-10);
 
 
         //values to be used in the derivative evaluation
         double dTdP = this->dTdP[step];
-        double dPdr = this->dPdr[step] / Universe->LU;
+        double dPdr = this->dPdr[step] / Astrodynamics::AU;
         double dPdt = this->dPdt[step];
         double Thrust = this->available_thrust[step];
         double mdot = this->available_mass_flow_rate[step];
         double deltat = this->total_available_thrust_time / options->num_timesteps;
         double dmdotdP = this->dmdotdP[step];
         double D = options->engine_duty_cycle;
-        double m = spacecraft_state[step][6];
+        double m = this->spacecraft_state[step][6];
 
-        double drdu = (x*dxdu + y*dydu + z*dzdu) / r;
-        double drdt = (x*vx + y*vy + z*vz) / r;
+        double dr_sundt = (x_sun*vx_sun + y_sun*vy_sun + z_sun*vz_sun) / r_sun;
+        double r_cb_sun = math::norm(this->central_body_state_mks[step].data(), 3);
+        double dr_cb_sun_dt = (options->derivative_type > 2
+                                ? (r_cb_sun > math::SMALL ? (this->central_body_state_mks[step][0] * this->central_body_state_mks[step][6] + this->central_body_state_mks[step][1] * this->central_body_state_mks[step][7] + this->central_body_state_mks[step][2] * this->central_body_state_mks[step][8]) / r_cb_sun : 0.0)
+                                : 0.0);
+
+        double dr_sundu = (x_sun*dxdu + y_sun*dydu + z_sun*dzdu) / r_sun;
+        
 
         //evaluate the time derivatives only when dtotal_available_thrust_time_du is nonzero, i.e. if u is a time variable
         if (fabs(dtotal_available_thrust_time_du) > 1.0e-8)
@@ -2571,7 +2685,7 @@ namespace EMTG
             dzdotdt = 0.0;
         }
 
-        double dTdu = dTdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+        double dTdu = dTdP * (dPdr * dr_sundu + (dPdt + dPdr * dr_cb_sun_dt) * dtdu + dPdu);
         double ddeltatdu = 1.0 / options->num_timesteps * dtotal_available_thrust_time_du;
 
         double ddVmaxdu = D / (m * m) * ((dTdu * deltat + ddeltatdu * Thrust) * m - dmdu * Thrust * deltat);
@@ -2610,7 +2724,7 @@ namespace EMTG
             +STM(5, 3) * dVxplusdu + STM(5, 4) * dVyplusdu + STM(5, 5) * dVzplusdu
             + dzdotdt * deltat / this->total_available_thrust_time * dtdu;
 
-        double dmdotdu = dmdotdP * (dPdr * drdu + dPdt * dtdu + dPdu);
+        double dmdotdu = dmdotdP * (dPdr * dr_sundu + (dPdt + dPdr * dr_cb_sun_dt) * dtdu + dPdu);
         dmdu_right = dmdu - D * cmag * (ddeltatdu * mdot + dmdotdu * deltat);
 
         dxdu = dxdu_right;
@@ -2648,19 +2762,46 @@ namespace EMTG
                 NewX.push_back((this->phase_start_epoch - current_epoch) / 86400.0);
                 ++NewXIndex;
 
-                //should add code to copy variable boundary conditions here
-
-                //then encode the departure asymptote (three variables)
-                NewX.push_back(sqrt(this->C3_departure));
-                NewX.push_back(this->RA_departure);
-                NewX.push_back(this->DEC_departure);
-                NewXIndex += 3;
-
-                //mission initial mass multiplier if applicable
-                if (j == 0 && options.allow_initial_mass_to_vary)
+                //variable left boundary conditions
+                if (options.destination_list[j][0] == -1)
                 {
-                    NewX.push_back(this->mission_initial_mass_multiplier);
-                    ++NewXIndex;
+                    if (options.journey_departure_elements_type[j] == 0) //Cartesian
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_local_frame_state[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                    else //COE
+                    {
+                        for (size_t state = 0; state < 6; ++state)
+                        {
+                            if (options.journey_departure_elements_vary_flag[j][state])
+                            {
+                                NewX.push_back(this->left_boundary_orbit_elements[state]);
+                                ++NewXIndex;
+                            }
+                        }
+                    }
+                }
+                //then encode the departure asymptote (three variables)
+                if ((j == 0 || !(options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)))
+                {
+                    NewX.push_back(sqrt(this->C3_departure));
+                    NewX.push_back(this->RA_departure);
+                    NewX.push_back(this->DEC_departure);
+                    NewXIndex += 3;
+
+                    //mission initial mass multiplier if applicable
+                    if (j == 0 && options.allow_initial_mass_to_vary)
+                    {
+                        NewX.push_back(this->mission_initial_mass_multiplier);
+                        ++NewXIndex;
+                    }
                 }
             }
         }
@@ -2674,7 +2815,7 @@ namespace EMTG
                 NewX.push_back(math::PI);
                 NewXIndex += 2;
             }
-            else if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
+            else if (!(options.journey_departure_type[j] == 5 || options.journey_departure_type[j] == 2))
             {
                 //MGALT, FBLT, MGANDSM phases want an initial v-infinity vector
                 NewX.push_back(this->V_infinity_out(0));
@@ -2687,6 +2828,33 @@ namespace EMTG
         //all phase types place the time of flight next
         NewX.push_back(this->TOF / 86400.0);
         ++NewXIndex;
+
+        //variable right-hand boundary
+        if (options.destination_list[j][1] == -1)
+        {
+            if (options.journey_arrival_elements_type[j] == 0) //Cartesian
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_local_frame_state[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+            else //COE
+            {
+                for (size_t state = 0; state < 6; ++state)
+                {
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                    {
+                        NewX.push_back(this->right_boundary_orbit_elements[state]);
+                        ++NewXIndex;
+                    }
+                }
+            }
+        }
 
         //MGALT, FBLT, MGANDSM, and PSBI phases want the terminal velocity vector, if applicable, and then spacecraft mass at end of phase next
         if (desired_mission_type == 2 || desired_mission_type == 3 || desired_mission_type == 4 || desired_mission_type == 5)
