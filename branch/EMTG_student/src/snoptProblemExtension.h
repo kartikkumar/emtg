@@ -63,7 +63,12 @@ public:
 			snclose_( &iSumm );
 		  }
 		  iSumm = 6;
-		  strcpy( summaryname, asummaryname );  prnt_len = strlen(summaryname);
+#ifdef _STONEAGECplusplus
+          strcpy( summaryname, asummaryname );
+#else
+		  strcpy_s( summaryname, asummaryname );
+#endif
+          prnt_len = strlen(summaryname);
 		  snopenappend_( &iSumm, summaryname,   &inform, prnt_len );
 		  this->setIntParameter((char*)"Summary file", iSumm);
 		}

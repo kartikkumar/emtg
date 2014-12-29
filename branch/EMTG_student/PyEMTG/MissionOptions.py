@@ -26,7 +26,7 @@ class MissionOptions(object):
     outerloop_ntrials = 1 #how many times to run the outer loop
     outerloop_elitecount = 1 #how many elite individuals to retain
     outerloop_useparallel = 0 #whether or not to use the parallel outer-loop
-    outerloop_warmstart = 0 #if true, read "population.txt" and "solutions.txt"
+    outerloop_warmstart = 0 #this will be the number of generations that have elapsed in the prior run of the GA
     outerloop_warm_population = "none"
     outerloop_warm_archive = "none"
     outerloop_reevaluate_full_population = 0
@@ -198,6 +198,7 @@ class MissionOptions(object):
         
     #output format settings
     output_units = 0 #0: km and km/s, 1: LU and LU/day
+    post_mission_wait_time = 0.0
     create_GMAT_script = 0 #0: no, 1: yes
     generate_initial_guess_file = 0
     mission_type_for_initial_guess_file = 2
@@ -205,6 +206,7 @@ class MissionOptions(object):
     forced_working_directory = "..//EMTG_v8_Results"
     generate_forward_integrated_ephemeris = 0#0 :no, 1: yes
     background_mode = 1 #0: no, 1: yes
+    output_dormant_journeys = 0
 
     #debug code
     check_derivatives = 0
@@ -415,7 +417,7 @@ class MissionOptions(object):
                             self.outerloop_point_groups_values.append(int(x))
 
                         #start reading point group members
-                        self.outerloop_point_groups_members
+                        self.outerloop_point_groups_members = []
                         point_group_members_flag = 1
 
                     elif choice == "outerloop_point_groups_number_to_score":
@@ -771,6 +773,8 @@ class MissionOptions(object):
                     #output format settings
                     elif choice == "output_units":
                         self.output_units = int(linecell[1])
+                    elif choice == "post_mission_wait_time":
+                        self.post_mission_wait_time = float(linecell[1])
                     elif choice == "create_GMAT_script":
                         self.create_GMAT_script = int(linecell[1])
                     elif choice == "generate_initial_guess_file":
@@ -785,6 +789,8 @@ class MissionOptions(object):
                         self.generate_forward_integrated_ephemeris = int(linecell[1])
                     elif choice == "background_mode":
                         self.background_mode = int(linecell[1])
+                    elif choice == "output_dormant_journeys":
+                        self.output_dormant_journeys = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1123,6 +1129,8 @@ class MissionOptions(object):
         outputfile.write("#1: maximum thrust\n")
         outputfile.write("#2: maximum Isp\n")
         outputfile.write("#3: maximum efficiency\n")
+        outputfile.write("#4: maximum number of thrusters\n")
+        outputfile.write("#4: minimum number of thrusters\n")
         outputfile.write("throttle_logic_mode " + str(self.throttle_logic_mode) + "\n")
         outputfile.write("#Throttle sharpness (higher means more precise, lower means smoother)\n")
         outputfile.write("throttle_sharpness " + str(self.throttle_sharpness) + "\n")
@@ -1177,7 +1185,7 @@ class MissionOptions(object):
         outputfile.write("#2: MGA-LT\n")
         outputfile.write("#3: FBLT\n")
         outputfile.write("#4: MGA-NDSM\n")
-        outputfile.write("#5: DTLT\n")
+        outputfile.write("#5: PSBI\n")
         outputfile.write("#6: solver chooses (MGA, MGA-DSM)\n")
         outputfile.write("#7: solver chooses (MGA, MGA-LT)\n")
         outputfile.write("#8: solver chooses (MGA-DSM, MGA-LT)\n")
@@ -1572,12 +1580,18 @@ class MissionOptions(object):
         outputfile.write("##output format settings\n")
         outputfile.write("#output units, 0: km and km/s, 1: LU and LU/day\n")
         outputfile.write("output_units " + str(self.output_units) + "\n")
+        outputfile.write("#Output journey entries for wait times at intermediate and final target?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("output_dormant_journeys " + str(self.output_dormant_journeys) + "\n")
+        outputfile.write("#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)\n")
+        outputfile.write("post_mission_wait_time " + str(self.post_mission_wait_time) + "\n")
         outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
         outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
         outputfile.write("#Generate initial guess file?\n")
-        outputfile.write("generate_initial_guess_file " + str(self.generate_initial_guess_file) + "\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
+        outputfile.write("generate_initial_guess_file " + str(self.generate_initial_guess_file) + "\n")
         outputfile.write("#Mission type for initial guess file (experimental!)\n")
         outputfile.write("#(this is a limited-capability feature and many options will not translate properly)\n")
         outputfile.write("#0: MGA\n")
@@ -2400,6 +2414,12 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(False)
             optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.txtIspDS.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients0.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients1.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients2.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients3.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients4.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients5.Show(True)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients0.Show(True)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients1.Show(True)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients2.Show(True)
@@ -2422,6 +2442,12 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(False)
             optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.txtIspDS.Show(True)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients0.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients1.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients2.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients3.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients5.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients1.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients2.Show(False)
@@ -2444,6 +2470,12 @@ class MissionOptions(object):
             optionsnotebook.tabSpacecraft.lblparking_orbit_altitude.Show(False)
             optionsnotebook.tabSpacecraft.lblparking_orbit_inclination.Show(False)
             optionsnotebook.tabSpacecraft.txtIspDS.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients0.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients1.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients2.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients3.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients4.Show(False)
+            optionsnotebook.tabSpacecraft.lblcustom_LV_coefficients5.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients0.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients1.Show(False)
             optionsnotebook.tabSpacecraft.txtcustom_LV_coefficients2.Show(False)
@@ -2707,6 +2739,14 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtIspLT.Show(True)
                     optionsnotebook.tabSpacecraft.txtIspLT_minimum.Show(True)
                     optionsnotebook.tabSpacecraft.txtuser_defined_engine_efficiency.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient_spacer.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
@@ -2746,6 +2786,14 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtIspLT.Show(True)
                     optionsnotebook.tabSpacecraft.txtIspLT_minimum.Show(False)
                     optionsnotebook.tabSpacecraft.txtuser_defined_engine_efficiency.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient_spacer.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
@@ -2785,6 +2833,14 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtIspLT.Show(True)
                     optionsnotebook.tabSpacecraft.txtIspLT_minimum.Show(True)
                     optionsnotebook.tabSpacecraft.txtuser_defined_engine_efficiency.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient_spacer.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
@@ -2823,6 +2879,14 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtIspLT.Show(False)
                     optionsnotebook.tabSpacecraft.txtIspLT_minimum.Show(False)
                     optionsnotebook.tabSpacecraft.txtuser_defined_engine_efficiency.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient_spacer.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(True)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients0.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients1.Show(True)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(True)
@@ -2860,6 +2924,14 @@ class MissionOptions(object):
                     optionsnotebook.tabSpacecraft.txtIspLT.Show(False)
                     optionsnotebook.tabSpacecraft.txtIspLT_minimum.Show(False)
                     optionsnotebook.tabSpacecraft.txtuser_defined_engine_efficiency.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient_spacer.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient0.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient1.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient2.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient3.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient4.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient5.Show(False)
+                    optionsnotebook.tabSpacecraft.lblengine_coefficient6.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients0.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients1.Show(False)
                     optionsnotebook.tabSpacecraft.txtengine_input_thrust_coefficients2.Show(False)
@@ -3355,12 +3427,21 @@ class MissionOptions(object):
     def update_output_options_panel(self, optionsnotebook):
         optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
+        optionsnotebook.tabOutput.chkoutput_dormant_journeys.SetValue(self.output_dormant_journeys)
+        optionsnotebook.tabOutput.txtpost_mission_wait_time.SetValue(str(self.post_mission_wait_time))
         optionsnotebook.tabOutput.chkgenerate_initial_guess_file.SetValue(self.generate_initial_guess_file)
         optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.SetSelection(self.mission_type_for_initial_guess_file)
         optionsnotebook.tabOutput.chkoverride_working_directory.SetValue(self.override_working_directory)
         optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.forced_working_directory)
         optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.SetValue(self.generate_forward_integrated_ephemeris)
         optionsnotebook.tabOutput.chkbackground_mode.SetValue(self.background_mode)
+
+        if (self.output_dormant_journeys):
+            optionsnotebook.tabOutput.lblpost_mission_wait_time.Show(True)
+            optionsnotebook.tabOutput.txtpost_mission_wait_time.Show(True)
+        else:
+            optionsnotebook.tabOutput.lblpost_mission_wait_time.Show(False)
+            optionsnotebook.tabOutput.txtpost_mission_wait_time.Show(False)
 
         if self.generate_initial_guess_file:
             optionsnotebook.tabOutput.lblmission_type_for_initial_guess_file.Show(True)
@@ -3377,3 +3458,7 @@ class MissionOptions(object):
             optionsnotebook.tabOutput.lblforced_working_directory.Show(False)
             optionsnotebook.tabOutput.txtforced_working_directory.Show(False)
             optionsnotebook.tabOutput.btnforced_working_directory.Show(False)
+
+        #re-size the panel
+        optionsnotebook.tabOutput.Layout()
+        optionsnotebook.tabOutput.SetupScrolling()

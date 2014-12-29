@@ -2,6 +2,8 @@
 #for use with EMTG-NSGAII outer-loop by Vavrina and Englander
 #Python interface by Jacob Englander begun 3-16-2014
 
+import Universe
+
 import os
 import numpy as np
 from scipy.integrate import ode
@@ -31,7 +33,7 @@ class NSGAII_outerloop_solution(object):
         self.number_of_thrusters = []
         self.launch_vehicle = []
         self.launch_date = []
-        self.description = [] # case name, can be parsed for data
+        self.description = '' # case name, can be parsed for data
         self.mission_sequence = []
         self.generation_found = [] #what generation was this solution found?
         self.timestamp = [] #at what time, in seconds from program start, was this solution found?
@@ -103,7 +105,7 @@ class NSGAII_outerloop_solution(object):
                     or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)':
                     self.objective_values.append(-float(input_cell[column_index]))
                 elif column_headers[column_index] == 'Point-group value':
-                    self.objective_values.append(-int(input_cell[column_index]))
+                    self.objective_values.append(int(input_cell[column_index]))
                 elif column_headers[column_index].find('Gene ') > 0:
                     self.Xouter.append(int(input_cell[column_index]))
 
@@ -112,16 +114,16 @@ class NSGAII_outerloop_solution(object):
 
     def plot_solution(self, PopulationAxes, PopulationFigure, ordered_list_of_objectives, colorbar, lowerbounds, upperbounds):
         if len(ordered_list_of_objectives) == 2: #2D
-            self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], s=20, c='b', marker='o', lw=0, picker=1)
+            self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], s=50, c='b', marker='o', lw=0, picker=1)
         elif len(ordered_list_of_objectives) == 3: #3D
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c='b', marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c='b', marker='o', lw=0, picker=1)
         else: #4D
             if self.colorbar is None:
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
                 self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
                 colorbar = PopulationFigure.colorbar(self.point)
             else:
-                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=20, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
+                self.point = PopulationAxes.scatter(self.objective_values[ordered_list_of_objectives[0]], self.objective_values[ordered_list_of_objectives[1]], self.objective_values[ordered_list_of_objectives[2]], s=50, c=self.objective_values[ordered_list_of_objectives[4]], marker='o', lw=0, picker=1)
                 self.point.set_clim([lowerbounds[-1],upperbounds[-1]])
 
         self.picker = self.point.figure.canvas.mpl_connect('pick_event', self.onpick)
@@ -204,7 +206,7 @@ class NSGAII_outerloop_population(object):
     #method to plot the population
     #input is an ordered list of objectives, [x, y, z, color]. If there are two objectives, a monochrome 2D plot will be shown. If there are three objectives, a monochrome 3D plot will be shown.
     #if there are four, a colored 3D plot will be shown. If there are more than four there will be an error message.
-    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1):
+    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1, FontSize = 10):
         self.ordered_list_of_objectives = ordered_list_of_objectives
         self.LowerBounds = LowerBounds
         self.UpperBounds = UpperBounds
@@ -216,6 +218,7 @@ class NSGAII_outerloop_population(object):
             return
 
         self.PopulationFigure = matplotlib.pyplot.figure()
+        matplotlib.rcParams.update({'font.size': FontSize})
         self.PopulationFigure.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99)
         if len(ordered_list_of_objectives) == 2:
             self.PopulationAxes = self.PopulationFigure.add_subplot(111)
@@ -240,7 +243,7 @@ class NSGAII_outerloop_population(object):
                         self.legal_solutions.append(solution)
 
                         if self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Flight time (days)' and self.TimeUnit == 0:
-                            objective_values_vector.append(solution.objective_values[objective_index] / 365.25)
+                            objective_values_vector.append(solution.objective_values[ordered_list_of_objectives[objective_index]] / 365.25)
                         elif self.objective_column_headers[self.ordered_list_of_objectives[objective_index]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
                             objective_values_vector.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[ordered_list_of_objectives[objective_index]] + 2400000.5).GetTicks())))
                         else:
@@ -360,16 +363,12 @@ class NSGAII_outerloop_population(object):
                 solution.point.changed()
 
     def onpick(self, event):
-        #description = []
-        #for objective_index in ordered_list_of_objectives:
-        #    description = description + self.objective_column_headers[objective_index] + ': ' + str(
         ind = event.ind[0]
         if len(self.ordered_list_of_objectives) == 2: #2D
             print '2D picker not implemented'
         elif len(self.ordered_list_of_objectives) >= 3: #3D or 4D plot
             x, y, z = event.artist._offsets3d
 
-            candidate_solution_indices_per_objective = []
             idx = np.where(self.objective_values_matrix[0] == x[ind])
             idy = np.where(self.objective_values_matrix[1] == y[ind])
             idz = np.where(self.objective_values_matrix[2] == z[ind])
@@ -395,4 +394,20 @@ class NSGAII_outerloop_population(object):
             print '---------------------------------------------------------------------------------------------'
 
     def format_date(self, x, pos=None):
-     return dates.num2date(x).strftime('%Y-%m-%d')
+        return dates.num2date(x).strftime('%Y-%m-%d')
+
+    def generate_body_prevalence_report(self, Universe):
+        #this method generates a list of tuples, (BodyName, NumberOfOccurrences)
+        #pass in a Univeres object, return a list of tuples
+        
+        prevalence_report = []
+        for body in Universe.bodies:
+            number_of_occurrences = 0
+            for solution in self.solutions:
+                #only book-keep feasible solutions
+
+                if solution.objective_values[0] < 1.0e+99 and body.shortname in solution.description:
+                    number_of_occurrences += 1
+            prevalence_report.append((body.name, number_of_occurrences))
+
+        return prevalence_report

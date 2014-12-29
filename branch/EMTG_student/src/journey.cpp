@@ -33,68 +33,68 @@ namespace EMTG
 		// default constructor does nothing (is never used)
 	}
 
-	journey::journey(missionoptions* options, int j, EMTG::Astrodynamics::universe& Universe)
+    journey::journey(const int& j, const missionoptions& options)
 	{
 		//designate a central body
-		central_body_name = options->journey_central_body[j];
+        this->central_body_name = options.journey_central_body[j];
 
 		//initialize the boundary states array
 		vector<double> state_dummy(12);
-		boundary_states.push_back(state_dummy);
+        this->boundary_states.push_back(state_dummy);
 
 		//create the phases
-		number_of_phases = options->number_of_phases[j];
+        this->number_of_phases = options.number_of_phases[j];
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
-			switch (options->phase_type[j][p])
+			switch (options.phase_type[j][p])
 			{
 				case 0:
 					{
 						//this phase is an MGA phase
-						phases.push_back(new MGA_phase(j, p, options));
+						this->phases.push_back(new MGA_phase(j, p, options));
 					}
 				break;
 				case 1:
 					{
 						//this phase is an MGA-DSM phase
-						phases.push_back(new MGA_DSM_phase(j, p, options));
+						this->phases.push_back(new MGA_DSM_phase(j, p, options));
 					}
 				break;
 				case 2:
 					{
 						//this phase is an MGA-LT phase
-						phases.push_back(new MGA_LT_phase(j, p, options));
+                        this->phases.push_back(new MGA_LT_phase(j, p, options));
 					}
 				break;
 				case 3:
 					{
 						//this phase is an FBLT phase
-						phases.push_back(new FBLT_phase(j, p, options));
+                        this->phases.push_back(new FBLT_phase(j, p, options));
 					}
 				break;
 				case 4:
 					{
 						//this phase is an MGA-NDSM phase
-						phases.push_back(new MGA_NDSM_phase(j, p, options));
+                        this->phases.push_back(new MGA_NDSM_phase(j, p, options));
 					}
 				break;
 				case 5:
 					{
 						//this phase is a PSBI phase
-                        phases.push_back(new PSBIphase(j, p, options));
+                        this->phases.push_back(new PSBIphase(j, p, options));
 					}
 				break;
 			}
 
-			boundary_states.push_back(state_dummy);
+            this->boundary_states.push_back(state_dummy);
 		}
 
 		//which journey am I?
-		journey_index = j;
+		this->journey_index = j;
 
 		//initialize the journey initial mass increment multiplier
-		journey_initial_mass_increment_scale_factor = 1.0;
+		this->journey_initial_mass_increment_scale_factor = 1.0;
 	}
 
 	journey::~journey()
@@ -225,7 +225,19 @@ namespace EMTG
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
-	int journey::evaluate(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, int needG, int j, double* current_epoch, double* current_state, double* current_deltaV, EMTG::Astrodynamics::universe& Universe, missionoptions* options)
+	int journey::evaluate(  const double* X,
+                            int* Xindex, 
+                            double* F, 
+                            int* Findex, 
+                            double* G, 
+                            int* Gindex,
+                            const int& needG, 
+                            const int& j,
+                            double* current_epoch,
+                            double* current_state,
+                            double* current_deltaV,
+                            EMTG::Astrodynamics::universe& Universe,
+                            missionoptions* options)
 	{
 		int errcode = 0;
 
@@ -257,7 +269,7 @@ namespace EMTG
 				//if this is NOT the first journey, transform the coordinate system into the central body frame of the current journey
 				if (j > 0)
 				{
-					Universe.locate_central_body(*current_epoch, central_body_state, options);
+					Universe.locate_central_body(*current_epoch, central_body_state, options, false);
 					for (int k = 0; k < 6; ++k)
 						current_state[k] -= central_body_state[k];
 				}
@@ -270,7 +282,7 @@ namespace EMTG
 				errcode = phases[p].evaluate(X, Xindex, F, Findex, G, Gindex, needG, current_epoch, current_state, current_deltaV, boundary_states[p].data(), boundary_states[p+1].data(), j, p, &Universe, options);	
 
 				//at the end of the journey, transform the coordinate system back into the central body frame of the Sun (EMTG global reference frame)
-				Universe.locate_central_body(*current_epoch, central_body_state, options);
+				Universe.locate_central_body(*current_epoch, central_body_state, options, false);
 				for (int k = 0; k < 6; ++k)
 					current_state[k] += central_body_state[k];
 			}
@@ -331,7 +343,7 @@ namespace EMTG
 	}
 
 	//output functions
-    void journey::output_journey_header(const missionoptions* options,
+    void journey::output_journey_header(missionoptions* options,
                                         EMTG::Astrodynamics::universe& Universe,
                                         const int& j,
                                         int& jprint,
@@ -542,7 +554,7 @@ namespace EMTG
     }
 
     //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
-    void journey::output_journey_prologue(const missionoptions* options,
+    void journey::output_journey_prologue(missionoptions* options,
                                         const double& launchdate,
                                         const int& j,
                                         int& jprint,
@@ -622,7 +634,7 @@ namespace EMTG
 
         //then print
         this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             wait_start_epoch / 86400.0,
                                             "waiting",
@@ -690,7 +702,7 @@ namespace EMTG
 
             //print
             this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                                (EMTG::Astrodynamics::universe *) &Universe,
+                                                (EMTG::Astrodynamics::universe*) &Universe,
                                                 eventcount,
                                                 (wait_start_epoch + step * wait_time_step_size) / 86400.0,
                                                 "waiting",
@@ -751,7 +763,7 @@ namespace EMTG
 
         //print
         this->phases[0].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             (wait_start_epoch + this->phases[0].phase_wait_time) / 86400.0,
                                             "waiting",
@@ -784,7 +796,7 @@ namespace EMTG
 
     }
 
-    void journey::output_journey_postlogue( const missionoptions* options,
+    void journey::output_journey_postlogue( missionoptions* options,
                                             const double& launchdate,
                                             const int& j,
                                             int& jprint,
@@ -862,7 +874,7 @@ namespace EMTG
 
         //then print
         this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
-                                            (EMTG::Astrodynamics::universe *) &Universe,
+                                            (EMTG::Astrodynamics::universe*) &Universe,
                                             eventcount,
                                             wait_start_epoch / 86400.0,
                                             "waiting",
@@ -930,7 +942,7 @@ namespace EMTG
 
             //print
             this->phases[lastphase].write_summary_line((EMTG::missionoptions*) options,
-                                                        (EMTG::Astrodynamics::universe *) &Universe,
+                                                        (EMTG::Astrodynamics::universe*) &Universe,
                                                         eventcount,
                                                         wait_start_epoch / 86400.0 + step * wait_time_step_size,
                                                         step == options->num_timesteps ? "mission_end" : "waiting",
@@ -965,17 +977,16 @@ namespace EMTG
 
     }
 
-	int journey::output(missionoptions* options, 
+	void journey::output(missionoptions* options, 
                         const double& launchdate,
                         const int& j,
                         int& jprint,
                         EMTG::Astrodynamics::universe& Universe,
                         int* eventcount)
 	{
-		int errcode = 0;
 
         //if applicable, print the journey prologue
-        if (j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
+        if (options->output_dormant_journeys && j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
         {
             ++jprint;
             this->output_journey_prologue(options,
@@ -993,9 +1004,7 @@ namespace EMTG
 
 		for (int p = 0; p < number_of_phases; ++p)
 		{
-			errcode = this->phases[p].output(options, launchdate, j, p, &Universe, eventcount);
-			if (!(errcode == 0))
-				return errcode;
+			this->phases[p].output(options, launchdate, j, p, &Universe, eventcount);
 		}
 
 		//print journey end information
@@ -1074,14 +1083,11 @@ namespace EMTG
 		outputfile.close();
 
         //If this is the last journey and a post-mission wait time has been specified then print out that post-mission wait
-        if (j == options->number_of_journeys - 1 && options->post_mission_wait_time > 1.0)
+        if (options->output_dormant_journeys && j == options->number_of_journeys - 1 && options->post_mission_wait_time > 1.0)
         {
             ++jprint;
             this->output_journey_postlogue(options, launchdate, j, jprint, Universe, eventcount);
         }
-	
-
-		return 0;
 	}
 
 	//function to find constraint dependecies due to an escape spiral in this or a previous journey

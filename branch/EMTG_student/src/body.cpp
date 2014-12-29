@@ -96,7 +96,7 @@ namespace EMTG {namespace Astrodynamics {
 	}
 
 	//function to find the body state vector at epoch
-	int body::locate_body(const double& epoch, double* state, const bool& need_deriv, missionoptions* options)
+	int body::locate_body(const double& epoch, double* state, const bool& need_deriv, missionoptions* options) const
 	{
 		double DT, n, M, E, V[6];
 
@@ -141,8 +141,7 @@ namespace EMTG {namespace Astrodynamics {
 					V[3] = this->RAAN;
 					V[4] = this->AOP;
 
-					true_anomaly = 2.0*atan(sqrt((1.0 + this->ECC) / (1.0 - this->ECC))*tan(E / 2.0));
-					V[5] = true_anomaly;
+                    V[5] = 2.0*atan(sqrt((1.0 + this->ECC) / (1.0 - this->ECC))*tan(E / 2.0));
 
 
 					COE2inertial(V, this->universe_mu, state);
@@ -168,7 +167,9 @@ namespace EMTG {namespace Astrodynamics {
 	}
 	
 	//function to locate a point on the sphere of influence in cartesian coordinates (Earth Equatorial J2000, measured from central body of current universe)
-	int body::locate_point_on_SOI(const double& theta, const double& phi, double* point_relative_to_body)
+    int body::locate_point_on_SOI(const double& theta, 
+                                    const double& phi, 
+                                    double* point_relative_to_body) const
 	{
 		point_relative_to_body[0] = r_SOI * cos(theta)*cos(phi);
 		point_relative_to_body[1] = r_SOI * sin(theta)*cos(phi);
@@ -178,7 +179,7 @@ namespace EMTG {namespace Astrodynamics {
 	}
 
 	//function to print body to screen (for debug purposes)
-	void body::print_body_to_screen(string filename)
+    void body::print_body_to_screen(string filename) const
 	{
 		ofstream outputfile(filename.c_str(), ios::app);
 		outputfile << "Body name: " << name << endl;
@@ -205,7 +206,7 @@ namespace EMTG {namespace Astrodynamics {
 	}
 	
 	//comparator
-	bool body::operator== (const body& OtherBody)
+    bool body::operator== (const body& OtherBody) const
 	{
 		//compare three fields for accuracy
 		if (this->name == OtherBody.name && this->spice_ID == OtherBody.spice_ID && this->mass == OtherBody.mass)
@@ -215,7 +216,7 @@ namespace EMTG {namespace Astrodynamics {
 		return false;
 	}
 
-	bool body::operator!= (const body& OtherBody)
+    bool body::operator!= (const body& OtherBody) const
 	{
 		return !(*this == OtherBody);
 	}

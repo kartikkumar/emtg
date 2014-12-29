@@ -244,6 +244,10 @@ namespace EMTG { namespace Solvers {
 		//increment the number of global resets
 		++this->number_of_resets;
 
+        //turn on the feasible point finder if it is enabled
+        if (this->Problem->options.ACE_feasible_point_finder)
+            this->feasible_point_finder_active = true;
+
 		//generate a new random trial point
 		if (Problem->options.MBH_zero_control_initial_guess > 0)
 		{
@@ -282,6 +286,9 @@ namespace EMTG { namespace Solvers {
 			for (size_t k = 0; k < Problem->total_number_of_NLP_parameters - seed_vector.size(); ++k)
 				Xtrial_scaled[k] = DoubleDistribution(RNG);
 		}
+
+        this->Problem->evaluate(seed_vector.data(), this->F, Problem->G.data(), 0, this->Problem->iGfun, this->Problem->jGvar);
+        double Ccurrent = this->check_feasibility();
 
 		fcurrent = EMTG::math::LARGE;
 
@@ -427,12 +434,15 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		/* uncomment these lines to re-enable MBH clipping. Currently we let SNOPT self-clip
-		if (Xtrial_scaled[k] > 1.0)
-			Xtrial_scaled[k] = 1.0;
-		else if (Xtrial_scaled[k] < 0.0)
-			Xtrial_scaled[k] = 0.0;
-			*/
+		//MBH clipping
+        for (size_t k = 0; k < Xtrial_scaled.size(); ++k)
+        {
+            if (Xtrial_scaled[k] > 1.0)
+                Xtrial_scaled[k] = 1.0;
+            else if (Xtrial_scaled[k] < 0.0)
+                Xtrial_scaled[k] = 0.0;
+        }
+
 
 		return 0;
 	}
@@ -443,7 +453,7 @@ namespace EMTG { namespace Solvers {
 		//loop through any time variables and if (uniform random < threshold) then add/subtract a synodic period
 		for (int timeindex = 0; timeindex < time_variable_indices.size(); ++timeindex)
 		{
-			if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
+            if (DoubleDistribution(RNG) < Problem->options.MBH_time_hop_probability)
 			{
 				int k = time_variable_indices[timeindex];
 				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
@@ -650,7 +660,7 @@ namespace EMTG { namespace Solvers {
 				//Step 1 (alternate): perturb the existing point
 				this->hop();
 
-				if (Problem->options.MBH_time_hop_probability > 0.0)
+                if (Problem->options.MBH_time_hop_probability > 0.0  && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
 					this->time_hop();
 			}
 			
@@ -674,7 +684,7 @@ namespace EMTG { namespace Solvers {
 			//Step 3: determine if the new trial point is feasible and if so, operate on it
 			double feasibility = this->check_feasibility();
 
-			//Step 3.01 if this is an MGA or MGA-DSM problem, make the finite differencing step tight and run again
+			//Step 3.01 if two-step MBH is enabled, make the finite differencing step tight and run again
 			if (Problem->options.MBH_two_step && (inform <= 3 || feasibility < Problem->options.snopt_feasibility_tolerance))
 			{
 				if (!Problem->options.quiet_basinhopping)
@@ -716,7 +726,8 @@ namespace EMTG { namespace Solvers {
 			//note: I do not trust SNOPT's "requested accuracy could not be achieved" return state - I prefer my own feasibility check
 			if ((inform <= 2 && inform >= 0)|| feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
-				//Step 3.1: if the trial point is feasible, add it to the archive
+				//Step 3.1: if the trial point is feasible, add it to the archive. Also disable the feasible point finder
+                this->feasible_point_finder_active = false;
 				Problem->unscale(Xtrial_scaled.data());
 				archive.push_back(Problem->X);
 				archive_scores.push_back(F[0]);
@@ -785,14 +796,18 @@ namespace EMTG { namespace Solvers {
 				}
 
 			}
-			else if (this->Problem->options.ACE_feasible_point_finder && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
+			else if (this->feasible_point_finder_active && best_feasibility >= this->Problem->options.snopt_feasibility_tolerance)
 			{
 				//if we have not yet found our first feasible point and the ACE feasible point finder is enabled
 				//then we should see if this point is "more feasible" than best one we have so far
 				if (feasibility < best_feasibility)
 				{
-					if (!Problem->options.quiet_basinhopping)
-						std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+                    if (!Problem->options.quiet_basinhopping)
+                    {
+                        std::cout << "Acquired slightly less infeasible point with feasibility " << feasibility << std::endl;
+                        std::cout << "Worst constraint is F[" << this->worst_constraint << "]: " << this->Problem->Fdescriptions[this->worst_constraint] << std::endl;
+                        std::cout << "with abs(violation) " << this->max_constraint_violation << std::endl;
+                    }
 					fcurrent = F[0];
 					Xcurrent_scaled = Xtrial_scaled;
 					best_feasibility = feasibility;
@@ -899,8 +914,7 @@ namespace EMTG { namespace Solvers {
 	//function to check feasibility of a solution
 	double MBH::check_feasibility()
 	{
-		double max_constraint_violation = 0.0;
-		int worst_constraint;
+		max_constraint_violation = 0.0;
 		for (int k = 1; k < Problem->total_number_of_constraints; ++k)
 		{
 			if (F[k] > Fupp[k])

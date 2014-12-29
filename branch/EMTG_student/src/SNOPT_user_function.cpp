@@ -31,7 +31,7 @@ namespace EMTG { namespace Solvers {
 		//Step 3: call the fitness function
 		try
 		{
-			Problem->evaluate(&(Problem->X[0]), F, G, *needG, Problem->iGfun, Problem->jGvar);
+			Problem->evaluate(Problem->X.data(), F, G, *needG, Problem->iGfun, Problem->jGvar);
 		}
 		catch (int errorcode)
 		{

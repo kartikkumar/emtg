@@ -316,7 +316,7 @@ mission_name Default
 #2: MGA-LT
 #3: FBLT
 #4: MGA-NDSM
-#5: DTLT
+#5: PSBI
 #6: solver chooses (MGA, MGA-DSM)
 #7: solver chooses (MGA, MGA-LT)
 #8: solver chooses (MGA-DSM, MGA-LT)
@@ -547,6 +547,8 @@ outerloop_point_groups_number_to_score 1
 ##output format settings
 #output units, 0: km and km/s, 1: LU and LU/day
 output_units 0
+#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)
+post_mission_wait_time 0.0
 #Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)
 create_GMAT_script 0
 #Generate initial guess file?

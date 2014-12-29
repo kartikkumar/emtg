@@ -84,6 +84,10 @@ public:
 	int number_of_failures_since_last_improvement;
 	int Jacobian_offset;
 
+    //track the worst constraint violation
+    int worst_constraint;
+    double max_constraint_violation;
+
 	//track the step size
 	double step_size;
 
@@ -93,6 +97,9 @@ public:
 
 	//track whether or not the sparsity file and XFfile have been printed
 	bool printed_sparsity;
+
+    //track whether or not the feasible point finder is active
+    bool feasible_point_finder_active;
 
 	//random number generator
 	boost::mt19937 RNG;

@@ -1,34 +1,36 @@
 //force model for EMTGv8
 //Jacob Englander 4/4/2013
 
+#include <iomanip>
 #include "Astrodynamics.h"
 #include "EMTG_math.h"
 #include "EMTG_Matrix.h"
 
 namespace EMTG { namespace Astrodynamics {
-	int force_model(EMTG::missionoptions* options,
-					EMTG::Astrodynamics::universe* Universe,
-					double* spacecraft_state,
-					double* epoch,
-					double* launch_epoch,
-					double* control,
-					double* max_thrust,
-					double* max_mass_flow_rate,
-					double* Isp,
-					double* power,
-					double* active_power,
-					int* number_of_active_engines,
-					double* force_vector,
-					const bool& generate_derivatives,
-					double* dTdP,
-					double* dmdotdP,
-					double* dTdIsp,
-					double* dmdotdIsp,
-					double* dPdr,
-					double* dPdt,
-					double* dFSRPdr,
+	int force_model(EMTG::missionoptions * options,
+					EMTG::Astrodynamics::universe * Universe,
+					double * spacecraft_state,
+					const double& epoch,
+					const double& launch_epoch,
+					double * control,
+					double * max_thrust,
+					double * max_mass_flow_rate,
+					double * Isp,
+					double * power,
+					double * active_power,
+					int * number_of_active_engines,
+					double * force_vector,
+					const bool & generate_derivatives,
+					double * dTdP,
+					double * dmdotdP,
+					double * dTdIsp,
+					double * dmdotdIsp,
+					double * dPdr,
+					double * dPdt,
+					double * dFSRPdr,
 					vector<double>& dagravdRvec,
-					vector<double>& dagravdtvec)
+					vector<double>& dagravdtvec,
+                    vector<double>& central_body_state_mks)
 	{
 		//Note: all thrusts are returned in Newtons
 
@@ -38,22 +40,25 @@ namespace EMTG { namespace Astrodynamics {
 
 		if (!(Universe->central_body_SPICE_ID == 10))
 		{
-			double central_body_state_in_km[6];	
-			Universe->locate_central_body(*epoch, central_body_state_in_km, options);
+            Universe->locate_central_body(epoch, central_body_state_mks.data(), options, generate_derivatives);
 
-			position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + spacecraft_state[0]) / options->AU;
-			position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + spacecraft_state[1]) / options->AU;
-			position_relative_to_sun_in_AU[2] = (central_body_state_in_km[2] + spacecraft_state[2]) / options->AU;
+            position_relative_to_sun_in_AU[0] = (central_body_state_mks[0] + spacecraft_state[0]) / options->AU;
+            position_relative_to_sun_in_AU[1] = (central_body_state_mks[1] + spacecraft_state[1]) / options->AU;
+            position_relative_to_sun_in_AU[2] = (central_body_state_mks[2] + spacecraft_state[2]) / options->AU;
 
 			distance_from_sun_in_AU = math::norm(position_relative_to_sun_in_AU, 3);
 		}
-		else //if we are orbiting the sun, it's quite silly to look up the position of the sun relative to itself, so don't bother
-			distance_from_sun_in_AU = math::norm(spacecraft_state, 3)/Universe->LU;
+        else //if we are orbiting the sun, it's quite silly to look up the position of the sun relative to itself, so don't bother
+        {
+            distance_from_sun_in_AU = math::norm(spacecraft_state, 3) / Universe->LU;
+            for (size_t k = 0; k < (generate_derivatives && options->derivative_type > 2? 12 : 6); ++k)
+                central_body_state_mks[k] = 0.0;
+        }
 
 		//compute the thrust available from the engine
 		EMTG::Astrodynamics::find_engine_parameters(options,
 													distance_from_sun_in_AU,
-													*epoch - *launch_epoch,
+													epoch - launch_epoch,
 													max_thrust,
 													max_mass_flow_rate,
 													Isp, 
@@ -138,7 +143,7 @@ namespace EMTG { namespace Astrodynamics {
 				double spacecraft_position_relative_to_body_in_km[3];
 				double distance_from_body_in_km;
 
-				Universe->bodies[Universe->perturbation_menu[b]].locate_body(*epoch,
+				Universe->bodies[Universe->perturbation_menu[b]].locate_body(epoch,
 																			body_state_in_km,
 																			generate_derivatives && options->derivative_type > 2,
 																			options);
@@ -183,4 +188,574 @@ namespace EMTG { namespace Astrodynamics {
 
 		return 0;
 	}
+
+	int FBLT_force_model(EMTG::missionoptions * options,
+		EMTG::Astrodynamics::universe * Universe,
+		std::vector <double> & spacecraft_state_relative_to_central_body_in_km,
+		EMTG::math::Matrix <double> & dspacecraft_state_relative_to_central_body_in_LUdTOF,
+		const double & epoch_step_left,
+		std::vector <double> & depoch_left_stepdTOF,
+		const double & c,
+		const double & h,
+		const double & dhdTOF,
+		const double & launch_epoch,
+		const std::vector <double> & control,
+		std::vector <double> & f,
+		EMTG::math::Matrix <double> & dfdTOF,
+		double * max_thrust,
+		double * max_mass_flow_rate,
+		double * Isp,
+		double * power,
+		double * active_power,
+		int * number_of_active_engines,
+		std::vector <double> & force_vector,
+		const bool & generate_derivatives,
+		double * dTdP,
+		double * dmdotdP,
+		double * dTdIsp,
+		double * dmdotdIsp,
+		double * dPdr,
+		double * dPdt,
+		double * dFSRPdr,
+		EMTG::math::Matrix<double> & A,
+		vector<double> & dagravdRvec,
+		vector<double> & dagravdtvec,
+        vector<double> & central_body_state_mks)
+	{
+		//Note: all thrusts are returned in Newtons
+
+		double epoch = epoch_step_left + c * h; //TU
+
+		bool normalized_STMs = true;
+
+		//we need to know how far we are from the Sun
+		double spacecraft_distance_from_sun_in_LU;
+		double spacecraft_distance_from_sun_in_AU;
+		double spacecraft_distance_from_sun_in_km;
+		double spacecraft_position_relative_to_sun_in_LU[3];
+		double spacecraft_position_relative_to_sun_in_AU[3];
+		double spacecraft_position_relative_to_sun_in_km[3];
+
+		//we need the spacecraft's state in LU/TU
+		double spacecraft_state_relative_to_central_body_in_LU[7];
+		double spacecraft_distance_from_central_body_in_LU;
+		double spacecraft_distance_from_central_body_in_km;
+
+		for (size_t k = 0; k < 3; ++k)
+		{
+			spacecraft_state_relative_to_central_body_in_LU[k] = spacecraft_state_relative_to_central_body_in_km[k] / Universe->LU;
+			spacecraft_state_relative_to_central_body_in_LU[k + 3] = spacecraft_state_relative_to_central_body_in_km[k + 3] / Universe->LU * Universe->TU;
+		}
+		spacecraft_distance_from_central_body_in_LU = math::norm(spacecraft_state_relative_to_central_body_in_LU, 3);
+		spacecraft_distance_from_central_body_in_km = math::norm(&spacecraft_state_relative_to_central_body_in_km[0], 3);
+
+		if (!(Universe->central_body_SPICE_ID == 10))
+		{
+			//locate the central body's position w.r.t. the Sun
+			Universe->locate_central_body(epoch * Universe->TU, central_body_state_mks.data(), options, generate_derivatives);
+
+            spacecraft_position_relative_to_sun_in_km[0] = (central_body_state_mks[0] + spacecraft_state_relative_to_central_body_in_km[0]);
+            spacecraft_position_relative_to_sun_in_km[1] = (central_body_state_mks[1] + spacecraft_state_relative_to_central_body_in_km[1]);
+            spacecraft_position_relative_to_sun_in_km[2] = (central_body_state_mks[2] + spacecraft_state_relative_to_central_body_in_km[2]);
+
+			spacecraft_position_relative_to_sun_in_LU[0] = spacecraft_position_relative_to_sun_in_km[0] / Universe->LU;
+			spacecraft_position_relative_to_sun_in_LU[1] = spacecraft_position_relative_to_sun_in_km[1] / Universe->LU;
+			spacecraft_position_relative_to_sun_in_LU[2] = spacecraft_position_relative_to_sun_in_km[2] / Universe->LU;
+
+			spacecraft_distance_from_sun_in_km = math::norm(spacecraft_position_relative_to_sun_in_km, 3);
+			spacecraft_distance_from_sun_in_AU = spacecraft_distance_from_sun_in_km / options->AU;
+			spacecraft_distance_from_sun_in_LU = spacecraft_distance_from_sun_in_km / Universe->LU;
+		}
+		else //if we are orbiting the sun, it's quite silly to look up the position of the sun relative to itself, so don't bother
+		{		
+			spacecraft_distance_from_sun_in_km = math::norm(&spacecraft_state_relative_to_central_body_in_km[0], 3);
+			spacecraft_distance_from_sun_in_AU = spacecraft_distance_from_sun_in_km / options->AU;
+		}
+
+		double mass_kg = spacecraft_state_relative_to_central_body_in_km[6];
+		double mass_normalized = spacecraft_state_relative_to_central_body_in_km[6] / options->maximum_mass;
+
+        /*
+		double r_pert = 1.0e-6;
+		double Pforward;
+		double Pbackward;
+		double rtemp = spacecraft_distance_from_sun_in_AU;
+
+		for (size_t loopCount = 0; loopCount < 3; ++loopCount)
+		{
+
+			if (loopCount == 0)
+				spacecraft_distance_from_sun_in_AU += r_pert;
+			else if (loopCount == 1)
+			{
+				spacecraft_distance_from_sun_in_AU -= 2.0*r_pert;
+			}
+			else
+				spacecraft_distance_from_sun_in_AU = rtemp;
+                
+			//compute the maximum thrust available from the engines  
+			EMTG::Astrodynamics::find_engine_parameters(options,
+				spacecraft_distance_from_sun_in_AU,
+				*epoch - *launch_epoch,
+				max_thrust, //kN
+				max_mass_flow_rate, // kg/s
+				Isp, // seconds
+				power, // kW
+				active_power, // kW
+				number_of_active_engines,
+				generate_derivatives,
+				dTdP, // kN/kW 
+				dmdotdP, // kg/kW
+				dTdIsp, // kN/s
+				dmdotdIsp, // kg/s
+				dPdr, // kW/AU
+				dPdt // kW/s
+				);
+            
+		if (loopCount == 0)
+			Pforward = *power;
+		else if (loopCount == 1)
+			Pbackward = *power;
+
+		} //end finite difference loop
+        */
+        //compute the maximum thrust available from the engines  
+        EMTG::Astrodynamics::find_engine_parameters(options,
+                                                    spacecraft_distance_from_sun_in_AU,
+                                                    epoch - launch_epoch,
+                                                    max_thrust, //kN
+                                                    max_mass_flow_rate, // kg/s
+                                                    Isp, // seconds
+                                                    power, // kW
+                                                    active_power, // kW
+                                                    number_of_active_engines,
+                                                    generate_derivatives,
+                                                    dTdP, // kN/kW 
+                                                    dmdotdP, // kg/kW
+                                                    dTdIsp, // kN/s
+                                                    dmdotdIsp, // kg/s
+                                                    dPdr, // kW/AU
+                                                    dPdt // kW/s
+                                                    );
+        /*
+		double dPdr_FD = (Pforward - Pbackward) / (2.0 * r_pert);
+		std::cout << setprecision(16);
+	    std::cout << "Finite differenced dPdr: " << dPdr_FD << std::endl;
+		std::cout << "Analytical dPdr: " << (*dPdr) << std::endl;
+        std::cout << "error: " << dPdr_FD - (*dPdr) << std::endl;
+		//getchar();
+        */
+        
+
+		//depend. Theing on whether we want normalized or MKS STMs we must convert
+		//the engine model derivative units
+		if (normalized_STMs)
+		{
+			*max_thrust = (*max_thrust) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU;
+			*max_mass_flow_rate = (*max_mass_flow_rate) / options->maximum_mass * Universe->TU;
+			//we don't need to scale Isp, because none of the EOM's directly depend on it
+			//we don't want to scale Isp, because it will mess up the output to file
+			//*Isp = (*Isp) / Universe->TU;
+			*dTdP = (*dTdP) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU;
+			*dmdotdP = (*dmdotdP) / options->maximum_mass;
+			*dTdIsp = (*dTdIsp) / options->maximum_mass / Universe->LU * Universe->TU * Universe->TU * Universe->TU;
+			*dmdotdIsp = (*dmdotdIsp) / options->maximum_mass * Universe->TU;
+			*dPdr = (*dPdr) / options->AU * Universe->LU;
+			*dPdt = (*dPdt) * Universe->TU;
+		}
+		//if we don't want normalized units, we still need to fix one derivative that is in kW/AU
+		else
+		{
+			*dPdr = (*dPdr) / options->AU;
+		}
+
+		//modify the thrust by the duty cycle of the engine
+		double maximum_available_thrust = (*max_thrust) * options->engine_duty_cycle;
+
+		//compute thrust...control vector consists of throttle decision parameters for this FBLT segment
+		force_vector[0] = control[0] * maximum_available_thrust;
+		force_vector[1] = control[1] * maximum_available_thrust;
+		force_vector[2] = control[2] * maximum_available_thrust;
+
+		double epsilon = 1.0e-10; //avoid divide by zero if thruster is off
+		double control_norm = EMTG::math::norm(&control[0], 3) + epsilon;
+
+		//****************************************
+		//
+		//Auxilliary Derivatives of Interest
+		//
+		//****************************************
+		
+
+		double one_over_spacecraft_distance_from_sun_in_km = 1.0 / spacecraft_distance_from_sun_in_km;
+		double one_over_spacecraft_distance_from_sun_in_LU = 1.0 / spacecraft_distance_from_sun_in_LU;
+		double one_over_spacecraft_distance_from_central_body_in_km = 1.0 / spacecraft_distance_from_central_body_in_km;
+		double one_over_spacecraft_distance_from_central_body_in_LU = 1.0 / spacecraft_distance_from_central_body_in_LU;
+
+		double one_over_control_norm_plus_epsilon = 1.0 / control_norm;
+
+		//gradient of the magnitude of the spacecraft position vector w.r.t. the Sun
+		double drdx;
+		double drdy;
+		double drdz;
+
+		double drdx_normalized;
+		double drdy_normalized;
+		double drdz_normalized;
+
+		//if we are not orbiting the Sun, then this derivative is calculated slightly differently
+		if (!(Universe->central_body_SPICE_ID == 10))
+		{
+			drdx = spacecraft_state_relative_to_central_body_in_km[0] * one_over_spacecraft_distance_from_sun_in_km;
+			drdy = spacecraft_state_relative_to_central_body_in_km[1] * one_over_spacecraft_distance_from_sun_in_km;
+			drdz = spacecraft_state_relative_to_central_body_in_km[2] * one_over_spacecraft_distance_from_sun_in_km;
+
+			drdx_normalized = spacecraft_state_relative_to_central_body_in_LU[0] * one_over_spacecraft_distance_from_sun_in_LU;
+			drdy_normalized = spacecraft_state_relative_to_central_body_in_LU[1] * one_over_spacecraft_distance_from_sun_in_LU;
+			drdz_normalized = spacecraft_state_relative_to_central_body_in_LU[2] * one_over_spacecraft_distance_from_sun_in_LU;
+		}
+		else
+		{
+			drdx = spacecraft_state_relative_to_central_body_in_km[0] * one_over_spacecraft_distance_from_central_body_in_km;
+			drdy = spacecraft_state_relative_to_central_body_in_km[1] * one_over_spacecraft_distance_from_central_body_in_km;
+			drdz = spacecraft_state_relative_to_central_body_in_km[2] * one_over_spacecraft_distance_from_central_body_in_km;
+
+			drdx_normalized = spacecraft_state_relative_to_central_body_in_LU[0] * one_over_spacecraft_distance_from_central_body_in_LU;
+			drdy_normalized = spacecraft_state_relative_to_central_body_in_LU[1] * one_over_spacecraft_distance_from_central_body_in_LU;
+			drdz_normalized = spacecraft_state_relative_to_central_body_in_LU[2] * one_over_spacecraft_distance_from_central_body_in_LU;
+		}
+
+
+
+		//gradient of the magnitude of the control vector
+		double dcontrol_normdux = control[0] * one_over_control_norm_plus_epsilon;
+		double dcontrol_normduy = control[1] * one_over_control_norm_plus_epsilon;
+		double dcontrol_normduz = control[2] * one_over_control_norm_plus_epsilon;
+
+		if (generate_derivatives)
+		{
+			//****************************************
+			//
+			//State Propagation (A) matrix calculation
+			//
+			//****************************************
+
+			//Top Row Identity
+			A(0, 3) = 1.0;
+			A(1, 4) = 1.0;
+			A(2, 5) = 1.0;
+
+			//A21 dadr (everything except for the third body terms, they are handled below)
+			
+			if (normalized_STMs)
+			{
+                double spacecraft_distance_from_CB_in_LU3 = spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU;
+                double spacecraft_distance_from_CB_in_LU5 = spacecraft_distance_from_CB_in_LU3 * spacecraft_distance_from_central_body_in_LU * spacecraft_distance_from_central_body_in_LU;
+                double three_muCB_over_spacecraft_distance_from_CB_in_LU5 = 3.0 / spacecraft_distance_from_CB_in_LU5;
+                double muCB_over_spacecraft_distance_from_CB_in_LU3 = 1.0 / spacecraft_distance_from_CB_in_LU3;
+				double D_dTdP_dPdr_over_msc = (options->engine_duty_cycle) * (*dTdP) * (*dPdr) / mass_normalized;
+				double* State = spacecraft_state_relative_to_central_body_in_LU;
+
+				A(3, 0) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[0] * State[0] - muCB_over_spacecraft_distance_from_CB_in_LU3 + control[0] * D_dTdP_dPdr_over_msc * drdx_normalized;
+				A(3, 1) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[0] * State[1]												  + control[0] * D_dTdP_dPdr_over_msc * drdy_normalized;
+				A(3, 2) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[0] * State[2]												  + control[0] * D_dTdP_dPdr_over_msc * drdz_normalized;
+				A(4, 0) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[1] * State[0]												  + control[1] * D_dTdP_dPdr_over_msc * drdx_normalized;
+				A(4, 1) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[1] * State[1] - muCB_over_spacecraft_distance_from_CB_in_LU3 + control[1] * D_dTdP_dPdr_over_msc * drdy_normalized;
+				A(4, 2) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[1] * State[2]                                                + control[1] * D_dTdP_dPdr_over_msc * drdz_normalized;
+				A(5, 0) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[2] * State[0]                                                + control[2] * D_dTdP_dPdr_over_msc * drdx_normalized;
+				A(5, 1) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[2] * State[1]                                                + control[2] * D_dTdP_dPdr_over_msc * drdy_normalized;
+				A(5, 2) = three_muCB_over_spacecraft_distance_from_CB_in_LU5 * State[2] * State[2] - muCB_over_spacecraft_distance_from_CB_in_LU3 + control[2] * D_dTdP_dPdr_over_msc * drdz_normalized;
+			}
+			else
+			{
+                double spacecraft_distance_from_CB_in_km3 = spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km;
+                double spacecraft_distance_from_CB_in_km5 = spacecraft_distance_from_CB_in_km3 * spacecraft_distance_from_central_body_in_km * spacecraft_distance_from_central_body_in_km;
+                double three_muCB_over_spacecraft_distance_from_CB_in_km5 = 3.0 * Universe->mu / spacecraft_distance_from_CB_in_km5;
+                double muCB_over_spacecraft_distance_from_CB_in_km3 = Universe->mu / spacecraft_distance_from_CB_in_km3;
+				double D_dTdP_dPdr_over_msc = (options->engine_duty_cycle) * (*dTdP) * (*dPdr) / mass_kg;
+				double * State = &spacecraft_state_relative_to_central_body_in_km[0];
+
+				A(3, 0) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[0] * State[0] - muCB_over_spacecraft_distance_from_CB_in_km3 + control[0] * D_dTdP_dPdr_over_msc * drdx;
+				A(3, 1) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[0] * State[1]												  + control[0] * D_dTdP_dPdr_over_msc * drdy;
+				A(3, 2) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[0] * State[2]												  + control[0] * D_dTdP_dPdr_over_msc * drdz;
+				A(4, 0) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[1] * State[0]												  + control[1] * D_dTdP_dPdr_over_msc * drdx;
+				A(4, 1) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[1] * State[1] - muCB_over_spacecraft_distance_from_CB_in_km3 + control[1] * D_dTdP_dPdr_over_msc * drdy;
+				A(4, 2) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[1] * State[2]                                                + control[1] * D_dTdP_dPdr_over_msc * drdz;
+				A(5, 0) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[2] * State[0]                                                + control[2] * D_dTdP_dPdr_over_msc * drdx;
+				A(5, 1) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[2] * State[1]                                                + control[2] * D_dTdP_dPdr_over_msc * drdy;
+				A(5, 2) = three_muCB_over_spacecraft_distance_from_CB_in_km5 * State[2] * State[2] - muCB_over_spacecraft_distance_from_CB_in_km3 + control[2] * D_dTdP_dPdr_over_msc * drdz;
+			}
+
+			//A23 dadm
+			if (normalized_STMs)
+			{
+				//maximum_available_thrust has already been normalized
+				double D_thrust_over_msc2 = maximum_available_thrust / (mass_normalized * mass_normalized);
+
+				A(3, 6) = -control[0] * D_thrust_over_msc2;
+				A(4, 6) = -control[1] * D_thrust_over_msc2;
+				A(5, 6) = -control[2] * D_thrust_over_msc2;
+			}
+			else
+			{
+				double D_thrust_over_msc2 = maximum_available_thrust / (mass_kg * mass_kg);
+
+				A(3, 6) = -control[0] * D_thrust_over_msc2;
+				A(4, 6) = -control[1] * D_thrust_over_msc2;
+				A(5, 6) = -control[2] * D_thrust_over_msc2;
+			}
+
+			//A24 dadu
+			if (normalized_STMs)
+			{
+				double D_thrust_over_msc = maximum_available_thrust / mass_normalized;
+
+				A(3, 7) = D_thrust_over_msc;
+				A(3, 8) = 0.0;
+				A(3, 9) = 0.0;
+				A(4, 7) = 0.0;
+				A(4, 8) = D_thrust_over_msc;
+				A(4, 9) = 0.0;
+				A(5, 7) = 0.0;
+				A(5, 8) = 0.0;
+				A(5, 9) = D_thrust_over_msc;
+			}
+			else
+			{
+				double D_thrust_over_msc = maximum_available_thrust / mass_kg;
+
+				A(3, 7) = D_thrust_over_msc;
+				A(3, 8) = 0.0;
+				A(3, 9) = 0.0;
+				A(4, 7) = 0.0;
+				A(4, 8) = D_thrust_over_msc;
+				A(4, 9) = 0.0;
+				A(5, 7) = 0.0;
+				A(5, 8) = 0.0;
+				A(5, 9) = D_thrust_over_msc;
+			}
+
+			//A31 dmdotdr
+            double control_norm_D_dmdotdP_dPdr = control_norm * (options->engine_duty_cycle) * (*dmdotdP) * (*dPdr);
+
+			if (normalized_STMs)
+			{
+				A(6, 0) = -control_norm_D_dmdotdP_dPdr * drdx_normalized;
+				A(6, 1) = -control_norm_D_dmdotdP_dPdr * drdy_normalized;
+				A(6, 2) = -control_norm_D_dmdotdP_dPdr * drdz_normalized;
+			}
+			else
+			{
+				A(6, 0) = -control_norm_D_dmdotdP_dPdr * drdx;
+				A(6, 1) = -control_norm_D_dmdotdP_dPdr * drdy;
+				A(6, 2) = -control_norm_D_dmdotdP_dPdr * drdz;
+			}
+
+			//A34 dmdotdu
+            double D_mdot = (options->engine_duty_cycle) * (*max_mass_flow_rate);
+            
+			A(6, 7) = -dcontrol_normdux * D_mdot;
+			A(6, 8) = -dcontrol_normduy * D_mdot;
+			A(6, 9) = -dcontrol_normduz * D_mdot;
+		}
+
+
+
+
+		//compute third body perturbations if applicable
+		if (options->perturb_thirdbody)
+		{
+			double Fgravity = 0.0;
+
+			//perturbations due to the Sun
+			//don't bother calculating these if we are orbiting the sun; that would be silly
+			//if we are not orbiting the Sun, then we ALWAYS calculate Sun perturbations
+			if (!(Universe->central_body_SPICE_ID == 10))
+			{
+				double spacecraft_distance_from_sun_in_km = spacecraft_distance_from_sun_in_AU * options->AU;
+
+				// Force of gravity due to the Sun in Newtons
+				double mu_sun_mks = 1.32712440018e11;
+
+				Fgravity = -mu_sun_mks / (spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km) * 1000.0;
+
+
+				force_vector[0] += Fgravity * spacecraft_position_relative_to_sun_in_km[0] / spacecraft_distance_from_sun_in_km;
+				force_vector[1] += Fgravity * spacecraft_position_relative_to_sun_in_km[1] / spacecraft_distance_from_sun_in_km;
+				force_vector[2] += Fgravity * spacecraft_position_relative_to_sun_in_km[2] / spacecraft_distance_from_sun_in_km;
+
+				if (generate_derivatives)
+				{
+					if (normalized_STMs)
+					{
+						double mu_sun_normalized = 1.32712440018e11 / Universe->mu;
+                        double spacecraft_distance_from_sun_in_LU3 = spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU;
+                        double spacecraft_distance_from_sun_in_LU5 = spacecraft_distance_from_sun_in_LU3 * spacecraft_distance_from_sun_in_LU * spacecraft_distance_from_sun_in_LU;
+                        double three_muSun_over_spacecraft_distance_from_sun_in_LU5 = 3.0 * mu_sun_normalized / spacecraft_distance_from_sun_in_LU5;
+                        double muSun_over_spacecraft_distance_from_sun_in_LU3 = mu_sun_normalized / spacecraft_distance_from_sun_in_LU3;
+
+						A(3, 0) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[0] * spacecraft_position_relative_to_sun_in_LU[0] - muSun_over_spacecraft_distance_from_sun_in_LU3;
+						A(3, 1) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[0] * spacecraft_position_relative_to_sun_in_LU[1];
+						A(3, 2) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[0] * spacecraft_position_relative_to_sun_in_LU[2];
+						A(4, 0) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[1] * spacecraft_position_relative_to_sun_in_LU[0];
+						A(4, 1) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[1] * spacecraft_position_relative_to_sun_in_LU[1] - muSun_over_spacecraft_distance_from_sun_in_LU3;
+						A(4, 2) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[1] * spacecraft_position_relative_to_sun_in_LU[2];
+						A(5, 0) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[2] * spacecraft_position_relative_to_sun_in_LU[0];
+						A(5, 1) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[2] * spacecraft_position_relative_to_sun_in_LU[1];
+						A(5, 2) += three_muSun_over_spacecraft_distance_from_sun_in_LU5 * spacecraft_position_relative_to_sun_in_LU[2] * spacecraft_position_relative_to_sun_in_LU[2] - muSun_over_spacecraft_distance_from_sun_in_LU3;
+					}
+					else
+					{
+                        double spacecraft_distance_from_sun_in_km3 = spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km;
+                        double spacecraft_distance_from_sun_in_km5 = spacecraft_distance_from_sun_in_km3 * spacecraft_distance_from_sun_in_km * spacecraft_distance_from_sun_in_km;
+                        double three_muSun_over_spacecraft_distance_from_sun_in_km5 = 3.0 * mu_sun_mks / spacecraft_distance_from_sun_in_km5;
+                        double muSun_over_spacecraft_distance_from_sun_in_km3 = mu_sun_mks / spacecraft_distance_from_sun_in_km3;
+
+						A(3, 0) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[0] * spacecraft_position_relative_to_sun_in_km[0] - muSun_over_spacecraft_distance_from_sun_in_km3;
+						A(3, 1) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[0] * spacecraft_position_relative_to_sun_in_km[1];
+						A(3, 2) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[0] * spacecraft_position_relative_to_sun_in_km[2];
+						A(4, 0) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[1] * spacecraft_position_relative_to_sun_in_km[0];
+						A(4, 1) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[1] * spacecraft_position_relative_to_sun_in_km[1] - muSun_over_spacecraft_distance_from_sun_in_km3;
+						A(4, 2) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[1] * spacecraft_position_relative_to_sun_in_km[2];
+						A(5, 0) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[2] * spacecraft_position_relative_to_sun_in_km[0];
+						A(5, 1) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[2] * spacecraft_position_relative_to_sun_in_km[1];
+						A(5, 2) += three_muSun_over_spacecraft_distance_from_sun_in_km5 * spacecraft_position_relative_to_sun_in_km[2] * spacecraft_position_relative_to_sun_in_km[2] - muSun_over_spacecraft_distance_from_sun_in_km3;
+					}
+
+				}
+			}
+
+			//perturbations due to bodies in the perturbation list
+			for (size_t b = 0; b < Universe->perturbation_menu.size(); ++b)
+			{
+				double third_body_state_relative_to_central_body_in_km[9];
+				double spacecraft_position_relative_to_third_body_in_km[3];
+				double spacecraft_distance_from_third_body_in_km;
+				double spacecraft_position_relative_to_third_body_in_LU[3];
+				double spacecraft_distance_from_third_body_in_LU;
+
+				//extract the third body state vector from the ephemeris
+				Universe->bodies[Universe->perturbation_menu[b]].locate_body(epoch * Universe->TU,
+					third_body_state_relative_to_central_body_in_km,
+					generate_derivatives && options->derivative_type > 2,
+					options);
+
+				//form the vector from the third body to the spacecraft in the central body reference frame
+				spacecraft_position_relative_to_third_body_in_km[0] = spacecraft_state_relative_to_central_body_in_km[0] - third_body_state_relative_to_central_body_in_km[0];
+				spacecraft_position_relative_to_third_body_in_km[1] = spacecraft_state_relative_to_central_body_in_km[1] - third_body_state_relative_to_central_body_in_km[1];
+				spacecraft_position_relative_to_third_body_in_km[2] = spacecraft_state_relative_to_central_body_in_km[2] - third_body_state_relative_to_central_body_in_km[2];
+
+				spacecraft_position_relative_to_third_body_in_LU[0] = spacecraft_position_relative_to_third_body_in_km[0] / Universe->LU;
+				spacecraft_position_relative_to_third_body_in_LU[1] = spacecraft_position_relative_to_third_body_in_km[1] / Universe->LU;
+				spacecraft_position_relative_to_third_body_in_LU[2] = spacecraft_position_relative_to_third_body_in_km[2] / Universe->LU;
+
+				spacecraft_distance_from_third_body_in_km = math::norm(spacecraft_position_relative_to_third_body_in_km, 3);
+				spacecraft_distance_from_third_body_in_LU = math::norm(spacecraft_position_relative_to_third_body_in_LU, 3);
+
+				//to avoid singularities and to avoid screwing up the flyby model, we will only include a third body perturbations when we are not too close to the body
+				if (spacecraft_distance_from_third_body_in_km > Universe->bodies[Universe->perturbation_menu[b]].radius + Universe->bodies[Universe->perturbation_menu[b]].minimum_safe_flyby_altitude)
+				{
+					Fgravity = -Universe->bodies[Universe->perturbation_menu[b]].mu / (spacecraft_distance_from_third_body_in_km*spacecraft_distance_from_third_body_in_km) * 1000.0;
+
+					force_vector[0] += Fgravity * spacecraft_position_relative_to_third_body_in_km[0] / spacecraft_distance_from_third_body_in_km;
+					force_vector[1] += Fgravity * spacecraft_position_relative_to_third_body_in_km[1] / spacecraft_distance_from_third_body_in_km;
+					force_vector[2] += Fgravity * spacecraft_position_relative_to_third_body_in_km[2] / spacecraft_distance_from_third_body_in_km;
+
+					if (generate_derivatives)
+					{
+						if (normalized_STMs)
+						{
+							double mu_3B_normalized = Universe->bodies[Universe->perturbation_menu[b]].mu / Universe->mu;
+                            double spacecraft_distance_from_third_body_in_LU3 = spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU;
+                            double spacecraft_distance_from_third_body_in_LU5 = spacecraft_distance_from_third_body_in_LU3 * spacecraft_distance_from_third_body_in_LU * spacecraft_distance_from_third_body_in_LU;
+                            double three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 = 3.0 * mu_3B_normalized / spacecraft_distance_from_third_body_in_LU3;
+                            double mu3B_over_spacecraft_distance_from_third_body_in_LU3 = mu_3B_normalized / spacecraft_distance_from_third_body_in_LU5;
+
+							A(3, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[0] * spacecraft_position_relative_to_third_body_in_LU[0] - mu3B_over_spacecraft_distance_from_third_body_in_LU3;
+							A(3, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[0] * spacecraft_position_relative_to_third_body_in_LU[1];
+							A(3, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[0] * spacecraft_position_relative_to_third_body_in_LU[2];
+							A(4, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[1] * spacecraft_position_relative_to_third_body_in_LU[0];
+							A(4, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[1] * spacecraft_position_relative_to_third_body_in_LU[1] - mu3B_over_spacecraft_distance_from_third_body_in_LU3;
+							A(4, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[1] * spacecraft_position_relative_to_third_body_in_LU[2];
+							A(5, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[2] * spacecraft_position_relative_to_third_body_in_LU[0];
+							A(5, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[2] * spacecraft_position_relative_to_third_body_in_LU[1];
+							A(5, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_LU5 * spacecraft_position_relative_to_third_body_in_LU[2] * spacecraft_position_relative_to_third_body_in_LU[2] - mu3B_over_spacecraft_distance_from_third_body_in_LU3;
+						}
+						else
+						{
+							double mu_3B = Universe->bodies[Universe->perturbation_menu[b]].mu;
+                            double spacecraft_distance_from_third_body_in_km3 = spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km;
+                            double spacecraft_distance_from_third_body_in_km5 = spacecraft_distance_from_third_body_in_km3 * spacecraft_distance_from_third_body_in_km * spacecraft_distance_from_third_body_in_km;
+                            double three_mu3B_over_spacecraft_distance_from_third_body_in_km5 = 3.0 * mu_3B / spacecraft_distance_from_third_body_in_km5;
+                            double mu3B_over_spacecraft_distance_from_third_body_in_km3 = mu_3B / spacecraft_distance_from_third_body_in_km3;
+
+							A(3, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[0] * spacecraft_position_relative_to_third_body_in_km[0] - mu3B_over_spacecraft_distance_from_third_body_in_km3;
+							A(3, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[0] * spacecraft_position_relative_to_third_body_in_km[1];
+							A(3, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[0] * spacecraft_position_relative_to_third_body_in_km[2];
+							A(4, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[1] * spacecraft_position_relative_to_third_body_in_km[0];
+							A(4, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[1] * spacecraft_position_relative_to_third_body_in_km[1] - mu3B_over_spacecraft_distance_from_third_body_in_km3;
+							A(4, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[1] * spacecraft_position_relative_to_third_body_in_km[2];
+							A(5, 0) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[2] * spacecraft_position_relative_to_third_body_in_km[0];
+							A(5, 1) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[2] * spacecraft_position_relative_to_third_body_in_km[1];
+							A(5, 2) += three_mu3B_over_spacecraft_distance_from_third_body_in_km5 * spacecraft_position_relative_to_third_body_in_km[2] * spacecraft_position_relative_to_third_body_in_km[2] - mu3B_over_spacecraft_distance_from_third_body_in_km3;
+						}
+					}
+				}
+			}
+
+			
+			//****************************************************
+			//
+			//Phase TOF derivative calculation for this DOPRI 8(7) stage
+			//
+			//****************************************************
+
+			//Construct the partial derivatives w.r.t. TOF for the state gradient
+			std::vector <double> dadthrust (3, 0.0);
+
+			if (normalized_STMs)
+			{
+				dadthrust[0] = control[0] * options->engine_duty_cycle / mass_normalized;
+				dadthrust[1] = control[1] * options->engine_duty_cycle / mass_normalized;
+				dadthrust[2] = control[2] * options->engine_duty_cycle / mass_normalized;
+			}
+			else
+			{
+				dadthrust[0] = control[0] * options->engine_duty_cycle / mass_kg;
+				dadthrust[1] = control[1] * options->engine_duty_cycle / mass_kg;
+				dadthrust[2] = control[2] * options->engine_duty_cycle / mass_kg;
+			}
+
+			double dTdTOF = 0.0;
+			double dmdotdTOF = 0.0;
+			//dTdTOF = dTdP * (dPdr * +dPdt *);
+			//dmdotdTOF = dmdotdP * (dPdr * +dPdt *);
+
+			//we need to compute phase TOF derivatives for each previous phase and the current one
+			//these are normalized right now.....still have to take care of the MKS case
+			for (size_t p = 0; p < 2; ++p)
+			{
+				
+				dfdTOF(0, p) = dspacecraft_state_relative_to_central_body_in_LUdTOF(3, p);
+				dfdTOF(1, p) = dspacecraft_state_relative_to_central_body_in_LUdTOF(4, p);
+				dfdTOF(2, p) = dspacecraft_state_relative_to_central_body_in_LUdTOF(5, p);
+				//dxddotdTOF = dxddotdxsc*dxscdTOF + dxddotdysc*dyscdTOF +  dxddotdzsc*dzscdTOF + dxddotdx3B*dx3BdTOF + dxddotdy3B*dy3BdTOF + dxddotdz3B*dx3BdTOF + dxddotdmsc*dmscdTOF + dxddotdTx*dTxdTOF
+				//dfdTOF(3, p) = A(3, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(3, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(3, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + dadr3B[0] * dx3BdTOF + dadr3B[1] * dy3BdTOF + dadr3B[2] * dz3BdTOF + A(3, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[0] * dTdTOF;
+				//dfdTOF(4, p) = A(4, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(4, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(4, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + dadr3B[3] * dx3BdTOF + dadr3B[4] * dy3BdTOF + dadr3B[5] * dz3BdTOF + A(4, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[1] * dTdTOF;
+				//dfdTOF(5, p) = A(5, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(5, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(5, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + dadr3B[6] * dx3BdTOF + dadr3B[7] * dy3BdTOF + dadr3B[8] * dz3BdTOF + A(5, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[2] * dTdTOF;
+
+				//does not include third body stuff yet
+				dfdTOF(3, p) = A(3, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(3, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(3, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + A(3, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[0] * dTdTOF;
+				dfdTOF(4, p) = A(4, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(4, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(4, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + A(4, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[1] * dTdTOF;
+				dfdTOF(5, p) = A(5, 0)*dspacecraft_state_relative_to_central_body_in_LUdTOF(0, p) + A(5, 1)*dspacecraft_state_relative_to_central_body_in_LUdTOF(1, p) + A(5, 2)*dspacecraft_state_relative_to_central_body_in_LUdTOF(2, p) + A(5, 6)*dspacecraft_state_relative_to_central_body_in_LUdTOF(6, p) + dadthrust[2] * dTdTOF;
+
+				dfdTOF(6, p) = -control_norm * options->engine_duty_cycle * dmdotdTOF;
+				
+			}
+			
+		}
+
+		return 0;
+	}// end FBLT_force_model
+
 }} //close namespace

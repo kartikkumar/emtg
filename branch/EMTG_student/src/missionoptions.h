@@ -21,15 +21,16 @@ class missionoptions
 public:
 	//constructor
 	missionoptions();
-	missionoptions(string optionsfile);
+	missionoptions(const string& optionsfile);
 
 	//destructor
 	virtual ~missionoptions();
 
 	//methods
-	int parse_options_file(string filename);
+    void initialize();
+	int parse_options_file(const string& filename);
 	int parse_options_line(ifstream& inputfile, string& choice, double& value, char* dump_buffer, int& linenumber);
-	int print_options_file(string filename);
+	int print_options_file(const string& filename) const;
 	void construct_thruster_launch_vehicle_name_arrays();
 
 	//check for success
@@ -287,6 +288,7 @@ public:
 
 	//output format settings
 	int output_units; //0: km and km/s, 1: LU and LU/day
+    bool output_dormant_journeys;
     double post_mission_wait_time; //in days
 	int create_GMAT_script; //0: no, 1: yes
 	bool generate_initial_guess_file;

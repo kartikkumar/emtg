@@ -75,17 +75,20 @@ class MissionPanel(wx.Panel):
         self.chkPlotActivePower = wx.CheckBox(self, -1, "power used by propulsion system (kW)")
         self.chkPlotWasteHeat = wx.CheckBox(self, -1, "propulsion system waste heat (kW)")
         self.chkPlotCriticalEvents = wx.CheckBox(self, -1, "mark critical events")
+        self.chkPlotEarthDistance = wx.CheckBox(self, -1, "distance from Earth")
+        self.chkPlotSunEarthSpacecraftAngle = wx.CheckBox(self, -1, "Sun-Earth-Spacecraft angle")
 
 
-        DataPlotGrid = wx.GridSizer(5, 2, 5, 5)
-        DataPlotGrid.AddMany([self.chkPlotR, self.chkPlotV,
+        DataPlotGrid = wx.GridSizer(9, 2, 5, 5)
+        DataPlotGrid.AddMany([  self.chkPlotR, self.chkPlotV,
                                 self.chkPlotThrust, self.chkPlotIsp,
                                 self.chkPlotMdot, self.chkPlotEfficiency,
                                 self.chkPlotThrottle, self.chkPlotPower,
                                 self.chkPlotGamma, self.chkPlotDelta,
                                 self.chkPlotCB_thrust_angle, self.chkPlotMass,
                                 self.chkPlotNumberOfEngines, self.chkPlotActivePower,
-                                self.chkPlotWasteHeat, self.chkPlotCriticalEvents])
+                                self.chkPlotWasteHeat, self.chkPlotCriticalEvents,
+                                self.chkPlotEarthDistance, self.chkPlotSunEarthSpacecraftAngle])
 
         self.btnGenerateDataPlot = wx.Button(self, -1, "Generate plot")
 
@@ -200,6 +203,8 @@ class MissionPanel(wx.Panel):
         self.chkPlotActivePower.Bind(wx.EVT_CHECKBOX, self.ChangePlotActivePower)
         self.chkPlotWasteHeat.Bind(wx.EVT_CHECKBOX, self.ChangePlotWasteHeat)
         self.chkPlotCriticalEvents.Bind(wx.EVT_CHECKBOX, self.ChangePlotCriticalEvents)
+        self.chkPlotEarthDistance.Bind(wx.EVT_CHECKBOX, self.ChangePlotEarthDistance)
+        self.chkPlotSunEarthSpacecraftAngle.Bind(wx.EVT_CHECKBOX, self.ChangePlotSunEarthSpacecraftAngle)
 
         #format bindings
         self.spnctrlFontSizeControl.Bind(wx.EVT_SPINCTRL, self.ChangeFontSize)
@@ -294,6 +299,12 @@ class MissionPanel(wx.Panel):
 
     def ChangePlotCriticalEvents(self, e):
         self.plotoptions.PlotCriticalEvents = self.chkPlotCriticalEvents.GetValue()
+
+    def ChangePlotEarthDistance(self, e):
+        self.plotoptions.PlotEarthDistance = self.chkPlotEarthDistance.GetValue()
+
+    def ChangePlotSunEarthSpacecraftAngle(self, e):
+        self.plotoptions.PlotSunEarthSpacecraftAngle = self.chkPlotSunEarthSpacecraftAngle.GetValue()
 
     def ChangeFontSize(self, e):
         self.plotoptions.FontSize = self.spnctrlFontSizeControl.GetValue()

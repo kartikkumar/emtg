@@ -26,7 +26,7 @@ namespace EMTG
     public:
 	    //constructor
 	    journey();
-	    journey(missionoptions* options, int j, EMTG::Astrodynamics::universe& Universe);
+	    journey(const int& j, const missionoptions& options);
 
 	    //destructor
 	    virtual ~journey();
@@ -34,14 +34,14 @@ namespace EMTG
 	    //methods
 	    //evaluate function
 	    //return 0 if successful, 1 if failure
-	    int evaluate(   double* X,
+	    int evaluate(   const double* X,
                         int* Xindex, 
                         double* F, 
                         int* Findex, 
                         double* G, 
                         int* Gindex, 
-                        int needG, 
-                        int j, 
+                        const int& needG, 
+                        const int& j, 
                         double* current_epoch,
                         double* current_state,
                         double* current_deltaV, 
@@ -50,7 +50,7 @@ namespace EMTG
 
 	    //output functions
 	    //main output function
-	    int output(missionoptions* options,
+	    void output(missionoptions* options,
                    const double& launchdate,
                    const int& j, 
                    int& jprint,
@@ -58,7 +58,7 @@ namespace EMTG
                    int* eventcount);
 
         //method to output "journey and a half" information that occurs while the spacecraft is "hanging out" at a body prior to departure
-        void output_journey_prologue(const missionoptions* options,
+        void output_journey_prologue(missionoptions* options,
                                     const double& launchdate,
                                     const int& j,
                                     int& jprint,
@@ -66,7 +66,7 @@ namespace EMTG
                                     int* eventcount);
 
         //method to output additional stay time at the target body
-        void output_journey_postlogue(  const missionoptions* options,
+        void output_journey_postlogue(  missionoptions* options,
                                         const double& launchdate,
                                         const int& j,
                                         int& jprint,
@@ -74,7 +74,7 @@ namespace EMTG
                                         int* eventcount);
 
         //method to output journey header
-        void output_journey_header(const missionoptions* options,
+        void output_journey_header(missionoptions* options,
                                     EMTG::Astrodynamics::universe& Universe,
                                     const int& j,
                                     int& jprint,

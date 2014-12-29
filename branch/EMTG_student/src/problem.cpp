@@ -89,10 +89,12 @@ namespace EMTG {
 
 				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 
+                this->X = this->Xopt;
+                this->output_problem_bounds_and_descriptions(this->options.working_directory + "//" + this->options.mission_name + "_" + this->options.description + "XFfile.csv");
+
 				if (options.check_derivatives)
 				{
 					this->X = this->options.current_trialX;
-					this->output_problem_bounds_and_descriptions(this->options.working_directory + "//" + this->options.mission_name + "_" + this->options.description + "XFfile.csv");
 					this->check_and_print_derivatives(options.working_directory + "//" + options.mission_name + "_" + options.description + "derivcheck.csv");
 				}
 
@@ -222,12 +224,12 @@ namespace EMTG {
 
 
 	//function to output X and F bounds, descriptions
-	int problem::output_problem_bounds_and_descriptions()
+	void problem::output_problem_bounds_and_descriptions()
 	{
 		this->output_problem_bounds_and_descriptions("XFfile.csv");
-		return 0;
+
 	}
-	int problem::output_problem_bounds_and_descriptions(string filestring)
+	void problem::output_problem_bounds_and_descriptions(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
 
@@ -238,12 +240,10 @@ namespace EMTG {
 			outputfile << k << "," << Fdescriptions[k] << "," << Flowerbounds[k] << "," << Fupperbounds[k] << "," << F[k] << endl;
 
 		outputfile.close();
-
-		return 0;
 	}
 
 	//function to output the Jacobian sparsity information
-	int problem::output_Jacobian_sparsity_information(string filestring)
+	void problem::output_Jacobian_sparsity_information(string filestring)
 	{
 		ofstream outputfile(filestring.c_str(), ios::trunc);
 
@@ -258,8 +258,6 @@ namespace EMTG {
 			outputfile << iGfun[k] << "," << jGvar[k] << "," << k << "," << Gdescriptions[k] << endl;
 
 		outputfile.close();
-
-		return 0;
 	}
 
 	int problem::check_and_print_derivatives()

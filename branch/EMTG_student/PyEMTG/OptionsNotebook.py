@@ -14,7 +14,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtMissionName = wx.TextCtrl(self, -1, "mission_name", size=(500,-1))
 
         self.lblMissionType = wx.StaticText(self, -1, "Mission Type")
-        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT','4: MGA-NDSM (experimental)']#,'6: DTLT']
+        phasetypes = ['0: MGA','1: MGA-DSM','2: MGA-LT','3: FBLT','4: MGA-NDSM (experimental)','5: PSBI']
                     #,'6: solver chooses (MGA, MGA-DSM)','7: solver chooses (MGA, MGA-LT)',
                     #'8: solver chooses (MGA-DSM, MGA-LT)','9: solver chooses (MGA, MGA-DSM, MGA-LT)']
         self.cmbMissionType = wx.ComboBox(self, -1, choices=phasetypes, style=wx.CB_READONLY)
@@ -172,16 +172,22 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblIspDS = wx.StaticText(self, -1, "Departure stage Isp (s)")
         self.txtIspDS = wx.TextCtrl(self, -1, "IspDS")
 
-        self.lblcustom_LV_coefficients = wx.StaticText(self, -1, "Custom launch vehicle coefficients")
+        self.lblcustom_LV_coefficients = wx.StaticText(self, -1, "Custom launch vehicle coefficients (kg)")
+        self.lblcustom_LV_coefficients0 = wx.StaticText(self, -1, "C3^5")
+        self.lblcustom_LV_coefficients1 = wx.StaticText(self, -1, "C3^4")
+        self.lblcustom_LV_coefficients2 = wx.StaticText(self, -1, "C3^3")
+        self.lblcustom_LV_coefficients3 = wx.StaticText(self, -1, "C3^2")
+        self.lblcustom_LV_coefficients4 = wx.StaticText(self, -1, "C3")
+        self.lblcustom_LV_coefficients5 = wx.StaticText(self, -1, "1")
         self.txtcustom_LV_coefficients0 = wx.TextCtrl(self, -1, "custom_LV_coefficients[0]")
         self.txtcustom_LV_coefficients1 = wx.TextCtrl(self, -1, "custom_LV_coefficients[1]")
         self.txtcustom_LV_coefficients2 = wx.TextCtrl(self, -1, "custom_LV_coefficients[2]")
         self.txtcustom_LV_coefficients3 = wx.TextCtrl(self, -1, "custom_LV_coefficients[3]")
         self.txtcustom_LV_coefficients4 = wx.TextCtrl(self, -1, "custom_LV_coefficients[4]")
         self.txtcustom_LV_coefficients5 = wx.TextCtrl(self, -1, "custom_LV_coefficients[5]")
-        LV_coefficients_box = wx.BoxSizer(wx.HORIZONTAL)
-        LV_coefficients_box.AddMany([self.txtcustom_LV_coefficients0, self.txtcustom_LV_coefficients1, self.txtcustom_LV_coefficients2,
-                                     self.txtcustom_LV_coefficients3, self.txtcustom_LV_coefficients4, self.txtcustom_LV_coefficients5])
+        LV_coefficients_box = wx.FlexGridSizer(2, 6, 5, 5)
+        LV_coefficients_box.AddMany([self.lblcustom_LV_coefficients0, self.lblcustom_LV_coefficients1, self.lblcustom_LV_coefficients2, self.lblcustom_LV_coefficients3, self.lblcustom_LV_coefficients4, self.lblcustom_LV_coefficients5,
+                                     self.txtcustom_LV_coefficients0, self.txtcustom_LV_coefficients1, self.txtcustom_LV_coefficients2, self.txtcustom_LV_coefficients3, self.txtcustom_LV_coefficients4, self.txtcustom_LV_coefficients5])
 
         self.lblcustom_LV_C3_bounds = wx.StaticText(self, -1, "Custom launch vehicle C3 bounds (km^2/s^2)")
         self.txtcustom_LV_C3_bounds_lower = wx.TextCtrl(self, -1, "custom_LV_C3_bounds[0]")
@@ -267,7 +273,7 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtnumber_of_engines = wx.TextCtrl(self, -1, "number_of_engines")
 
         self.lblthrottle_logic_mode = wx.StaticText(self, -1, "Throttle logic mode")
-        throttle_logic_types = ['maximum power use','maximum thrust','maximum Isp','maximum efficiency']
+        throttle_logic_types = ['maximum power use','maximum thrust','maximum Isp','maximum efficiency','maximum number of thrusters','minimum number of thrusters']
         self.cmbthrottle_logic_mode = wx.ComboBox(self, -1, choices = throttle_logic_types, style = wx.CB_READONLY)
 
         self.lblthrottle_sharpness = wx.StaticText(self, -1, "Throttle sharpness")
@@ -288,7 +294,16 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbluser_defined_engine_efficiency = wx.StaticText(self, -1, "Thruster efficiency")
         self.txtuser_defined_engine_efficiency = wx.TextCtrl(self, -1, "user_defined_engine_efficiency")
 
-        self.lblengine_input_thrust_coefficients = wx.StaticText(self, -1, "Custom thrust coefficients")
+        self.lblengine_coefficient_spacer = wx.StaticText(self, -1, "")
+        self.lblengine_coefficient0 = wx.StaticText(self, -1, "1.0")
+        self.lblengine_coefficient1 = wx.StaticText(self, -1, "P")
+        self.lblengine_coefficient2 = wx.StaticText(self, -1, "P^2")
+        self.lblengine_coefficient3 = wx.StaticText(self, -1, "P^3")
+        self.lblengine_coefficient4 = wx.StaticText(self, -1, "P^4")
+        self.lblengine_coefficient5 = wx.StaticText(self, -1, "P^5")
+        self.lblengine_coefficient6 = wx.StaticText(self, -1, "P^6")
+
+        self.lblengine_input_thrust_coefficients = wx.StaticText(self, -1, "Custom thrust coefficients (mN)")
         self.txtengine_input_thrust_coefficients0 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[0]")
         self.txtengine_input_thrust_coefficients1 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[1]")
         self.txtengine_input_thrust_coefficients2 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[2]")
@@ -296,12 +311,8 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtengine_input_thrust_coefficients4 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[4]")
         self.txtengine_input_thrust_coefficients5 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[5]")
         self.txtengine_input_thrust_coefficients6 = wx.TextCtrl(self, -1, "engine_input_thrust_coefficients[6]")
-        thrust_coefficients_box = wx.BoxSizer(wx.HORIZONTAL)
-        thrust_coefficients_box.AddMany([self.txtengine_input_thrust_coefficients0, self.txtengine_input_thrust_coefficients1, self.txtengine_input_thrust_coefficients2,
-                                         self.txtengine_input_thrust_coefficients3, self.txtengine_input_thrust_coefficients4, self.txtengine_input_thrust_coefficients5,
-                                         self.txtengine_input_thrust_coefficients6])
 
-        self.lblengine_input_mass_flow_rate_coefficients = wx.StaticText(self, -1, "Custom mass flow rate coefficients")
+        self.lblengine_input_mass_flow_rate_coefficients = wx.StaticText(self, -1, "Custom mass flow rate coefficients (mg/s)")
         self.txtengine_input_mass_flow_rate_coefficients0 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[0]")
         self.txtengine_input_mass_flow_rate_coefficients1 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[1]")
         self.txtengine_input_mass_flow_rate_coefficients2 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[2]")
@@ -309,16 +320,17 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.txtengine_input_mass_flow_rate_coefficients4 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[4]")
         self.txtengine_input_mass_flow_rate_coefficients5 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[5]")
         self.txtengine_input_mass_flow_rate_coefficients6 = wx.TextCtrl(self, -1, "engine_input_mass_flow_rate_coefficients[6]")
-        mass_flow_rate_coefficients_box = wx.BoxSizer(wx.HORIZONTAL)
-        mass_flow_rate_coefficients_box.AddMany([self.txtengine_input_mass_flow_rate_coefficients0, self.txtengine_input_mass_flow_rate_coefficients1, self.txtengine_input_mass_flow_rate_coefficients2,
-                                                 self.txtengine_input_mass_flow_rate_coefficients3, self.txtengine_input_mass_flow_rate_coefficients4, self.txtengine_input_mass_flow_rate_coefficients5,
-                                                 self.txtengine_input_mass_flow_rate_coefficients6])
 
         self.lblengine_input_power_bounds = wx.StaticText(self, -1, "Thruster input power bounds")
         self.txtengine_input_power_bounds_lower = wx.TextCtrl(self, -1, "engine_input_power_bounds[0]")
         self.txtengine_input_power_bounds_upper = wx.TextCtrl(self, -1, "engine_input_power_bounds[1]")
         enginepowerbox = wx.BoxSizer(wx.HORIZONTAL)
         enginepowerbox.AddMany([self.txtengine_input_power_bounds_lower, self.txtengine_input_power_bounds_upper])
+
+        customthrustergrid = wx.FlexGridSizer(3, 8, 5, 5)
+        customthrustergrid.AddMany([self.lblengine_coefficient_spacer, self.lblengine_coefficient0, self.lblengine_coefficient1, self.lblengine_coefficient2, self.lblengine_coefficient3, self.lblengine_coefficient4, self.lblengine_coefficient5, self.lblengine_coefficient6,
+                                    self.lblengine_input_thrust_coefficients, self.txtengine_input_thrust_coefficients0, self.txtengine_input_thrust_coefficients1, self.txtengine_input_thrust_coefficients2, self.txtengine_input_thrust_coefficients3, self.txtengine_input_thrust_coefficients4, self.txtengine_input_thrust_coefficients5, self.txtengine_input_thrust_coefficients6,
+                                    self.lblengine_input_mass_flow_rate_coefficients, self.txtengine_input_mass_flow_rate_coefficients0, self.txtengine_input_mass_flow_rate_coefficients1, self.txtengine_input_mass_flow_rate_coefficients2, self.txtengine_input_mass_flow_rate_coefficients3, self.txtengine_input_mass_flow_rate_coefficients4, self.txtengine_input_mass_flow_rate_coefficients5, self.txtengine_input_mass_flow_rate_coefficients6])
 
         propulsiongrid.AddMany([self.lblIspChem, self.txtIspChem,
                                 self.lblengine_type, self.cmbengine_type,
@@ -330,12 +342,12 @@ class SpacecraftOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblIspLT, self.txtIspLT,
                                 self.lblIspLT_minimum, self.txtIspLT_minimum,
                                 self.lbluser_defined_engine_efficiency, self.txtuser_defined_engine_efficiency,
-                                self.lblengine_input_thrust_coefficients, thrust_coefficients_box,
-                                self.lblengine_input_mass_flow_rate_coefficients, mass_flow_rate_coefficients_box,
                                 self.lblengine_input_power_bounds, enginepowerbox])
 
+
+
         propulsionbox = wx.BoxSizer(wx.VERTICAL)
-        propulsionbox.AddMany([propulsiongridtitle, propulsiongrid])
+        propulsionbox.AddMany([propulsiongridtitle, propulsiongrid, customthrustergrid])
 
         #power
         powergrid = wx.FlexGridSizer(20,2,5,5)
@@ -1019,12 +1031,18 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbloutput_units = wx.StaticText(self, -1, "Output units")
         outputchoices = ['km and km/s','LU and LU/day']
         self.cmboutput_units = wx.ComboBox(self, -1, choices=outputchoices, style=wx.CB_READONLY)
+        
+        self.lbloutput_dormant_journeys = wx.StaticText(self, -1, "Output journey entries for wait times at intermediate and final target?")
+        self.chkoutput_dormant_journeys = wx.CheckBox(self, -1)
+
+        self.lblpost_mission_wait_time = wx.StaticText(self, -1, "Stay time at the final target")
+        self.txtpost_mission_wait_time = wx.TextCtrl(self, -1, "post_mission_wait_time")
 
         self.lblgenerate_initial_guess_file = wx.StaticText(self, -1, "Generate initial guess file? (experimental!)")
         self.chkgenerate_initial_guess_file = wx.CheckBox(self, -1)
 
         self.lblmission_type_for_initial_guess_file = wx.StaticText(self, -1, "Mission type for initial guess file")
-        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM"]
+        initial_guess_file_choices = ["MGA","MGADSM","MGALT","FBLT","MGANDSM","PSBI"]
         self.cmbmission_type_for_initial_guess_file = wx.ComboBox(self, -1, choices=initial_guess_file_choices, style=wx.CB_READONLY)
 
         self.lbloverride_working_directory = wx.StaticText(self, -1, "Override working directory?")
@@ -1042,14 +1060,16 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
         self.chkbackground_mode = wx.CheckBox(self, -1)
 
-        self.mainbox.AddMany([self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
-                           self.lbloutput_units, self.cmboutput_units,
-                           self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
-                           self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
-                           self.lbloverride_working_directory, self.chkoverride_working_directory,
-                           self.lblforced_working_directory, working_directory_sizer,
-                           self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
-                           self.lblbackground_mode, self.chkbackground_mode])
+        self.mainbox.AddMany([  self.lbloutput_dormant_journeys, self.chkoutput_dormant_journeys,
+                                self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
+                                self.lblcreate_GMAT_script, self.chkcreate_GMAT_script,
+                                self.lbloutput_units, self.cmboutput_units,
+                                self.lblgenerate_initial_guess_file, self.chkgenerate_initial_guess_file,
+                                self.lblmission_type_for_initial_guess_file, self.cmbmission_type_for_initial_guess_file,
+                                self.lbloverride_working_directory, self.chkoverride_working_directory,
+                                self.lblforced_working_directory, working_directory_sizer,
+                                self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
+                                self.lblbackground_mode, self.chkbackground_mode])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()

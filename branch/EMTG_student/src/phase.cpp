@@ -42,12 +42,81 @@ namespace EMTG {
 
 	}
 
+    phase::phase(const int& j, const int& p, const missionoptions& options) :
+        TOF(0),
+        phase_end_epoch(0),
+        phase_start_epoch(0),
+        flyby_turn_angle(0),
+        flyby_altitude(0),
+        RA_departure(0),
+        RA_arrival(0),
+        DEC_departure(0),
+        DEC_arrival(0),
+        C3_departure(0),
+        C3_arrival(0)
+    {
+        this->initialize(j, p, options);
+    }
+
+    void phase::initialize(const int& j, const int& p, const missionoptions& options)
+    {
+        //set the bodies
+        this->boundary1_location_code = options.sequence[j][p],
+        this->boundary2_location_code = options.sequence[j][p + 1];
+        //set up mass increment information
+        this->current_mass_increment = 0.0;
+        this->journey_initial_mass_increment_scale_factor = 1.0;
+        this->mission_initial_mass_multiplier = 1.0;
+
+        //size the vectors that will be used to calculate the b-plane
+        this->V_infinity_in.resize(3, 1);
+        this->V_infinity_out.resize(3, 1);
+        this->BoundaryR.resize(3, 1);
+        this->BoundaryV.resize(3, 1);
+
+        //size the vector of derivatives of boundary states with respect to boundary state variables
+        if (options.derivative_type > 1)
+        {
+            if (options.destination_list[j][0] == -1)
+            {
+                this->number_of_left_boundary_variables = 0;
+                for (int state = 0; state < 6; ++state)
+                    if (options.journey_departure_elements_vary_flag[j][state])
+                        ++this->number_of_left_boundary_variables;
+                this->derivative_of_left_boundary_state_with_respect_to_variable_left_boundary_decision_variables.resize(this->number_of_left_boundary_variables, 0.0);
+            }
+            if (options.destination_list[j][1] == -1)
+            {
+                this->number_of_right_boundary_variables = 0;
+                for (int state = 0; state < 6; ++state)
+                    if (options.journey_arrival_elements_vary_flag[j][state])
+                        ++this->number_of_right_boundary_variables;
+                this->derivative_of_right_boundary_state_with_respect_to_variable_right_boundary_decision_variables.resize(this->number_of_right_boundary_variables, 0.0);
+            }
+        }
+    }
+
 	phase::~phase()
 	{
 	// default destructor is never used (I think it is superceded by the daughter class destructors)
 	}
 
-	void phase::process_left_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::process_left_boundary_condition(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		double vinf_out;
 		double vinf_in;
@@ -138,16 +207,21 @@ namespace EMTG {
 																	this->DEC_departure * 180.0 / math::PI,
 																	options->LV_type,
 																	&launch_mass,
-																	&dmdvinf,
+																	&(this->dmdvinf),
 																	options);
 
-							this->state_at_beginning_of_phase[6] = launch_mass > options->maximum_mass ? options->maximum_mass : launch_mass;
-						
-							//apply the mass margin
-							this->state_at_beginning_of_phase[6] *= 1.0 - options->LV_margin;
-
-							//convert from dm/dC3 to dm/dvinf
-							this->dmdvinf *= (2 * vinf_out)*(1.0 - options->LV_margin);
+                            if (launch_mass * (1.0 - options->LV_margin) > options->maximum_mass)
+                            {
+                                this->state_at_beginning_of_phase[6] = options->maximum_mass;
+                                this->dmdvinf = 0.0;
+                            }
+                            else
+                            {
+                                this->state_at_beginning_of_phase[6] = launch_mass * (1.0 - options->LV_margin);
+                                
+                                //convert from dm/dC3 to dm/dvinf
+                                this->dmdvinf *= (2.0 * vinf_out)*(1.0 - options->LV_margin);
+                            }
 						}
 						else if (options->LV_type == 0)
 						{
@@ -224,14 +298,16 @@ namespace EMTG {
 						this->state_at_beginning_of_phase[6] = current_state[6] * exp(-this->dV_departure_magnitude * 1000/ (options->IspDS * options->g0));
 				}
 
+                //handle the mission initial mass multiplier
+                this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
 				if (j == 0 && options->allow_initial_mass_to_vary)
 				{
 					//if we have enabled varying the initial mass, then pass through a mass multiplier
 					this->mission_initial_mass_multiplier = X[*Xindex];
 					++(*Xindex);
-					this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
 					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
 				}
+
 			}//end code for journeys that start with an impulse
 			else if (options->journey_departure_type[j] == 2)//free direct departure
 			{
@@ -299,8 +375,6 @@ namespace EMTG {
 						this->mission_initial_mass_multiplier = X[*Xindex];
 						++(*Xindex);
 					}
-					else
-						this->mission_initial_mass_multiplier = 1.0;
 
 					this->unscaled_phase_initial_mass = options->maximum_mass;
 					this->spiral_escape_state_before_spiral[6] = this->unscaled_phase_initial_mass * this->mission_initial_mass_multiplier;
@@ -327,7 +401,7 @@ namespace EMTG {
 				{
 					double central_body_state_in_km[6];
 					double position_relative_to_sun_in_AU[3];
-					Universe->locate_central_body(*current_epoch, central_body_state_in_km, options);
+					Universe->locate_central_body(*current_epoch, central_body_state_in_km, options, false);
 
 					position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + this->spiral_escape_state_before_spiral[0]) / options->AU;
 					position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + this->spiral_escape_state_before_spiral[1]) / options->AU;
@@ -690,7 +764,22 @@ namespace EMTG {
 		this->phase_start_epoch = *current_epoch;
 	}
 
-	void phase::process_right_boundary_condition(double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, double* current_epoch, double* current_state, double* current_deltaV, double* boundary1_state, double* boundary2_state, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::process_right_boundary_condition(const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        double* current_epoch,
+        double* current_state,
+        double* current_deltaV,
+        double* boundary1_state,
+        double* boundary2_state,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{		
 		//Step 5.1: if EMTG is choosing an input power or Isp for the phase (for REP/NEP models), then this information must be encoded
 		if (!(options->mission_type == 0 || options->mission_type == 1 || options->mission_type == 4))
@@ -730,7 +819,21 @@ namespace EMTG {
 		phase_end_epoch = *current_epoch + TOF;
 
 		//Step 5.3: locate the second body
-		locate_boundary_point(boundary2_location_code, options->journey_arrival_type[j], false, Universe, boundary2_state, current_state+3, *current_epoch + TOF, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
+		locate_boundary_point(boundary2_location_code,
+                                options->journey_arrival_type[j],
+                                false, Universe, boundary2_state,
+                                current_state+3,
+                                *current_epoch + TOF,
+                                X,
+                                Xindex, 
+                                F,
+                                Findex,
+                                G, 
+                                Gindex,
+                                needG,
+                                j,
+                                p,
+                                options);
 	
 		//Step 5.4: if this is not a terminal rendezvous, extract the terminal velocity increment
 		//otherwise, the terminal state is the body state or the terminal v-infinity
@@ -798,7 +901,7 @@ namespace EMTG {
 			{
 				double central_body_state_in_km[6];
 				double position_relative_to_sun_in_AU[3];
-				Universe->locate_central_body(*current_epoch + this->TOF, central_body_state_in_km, options);
+				Universe->locate_central_body(*current_epoch + this->TOF, central_body_state_in_km, options, false);
 
 				position_relative_to_sun_in_AU[0] = (central_body_state_in_km[0] + this->spiral_capture_state_before_spiral[0]) / options->AU;
 				position_relative_to_sun_in_AU[1] = (central_body_state_in_km[1] + this->spiral_capture_state_before_spiral[1]) / options->AU;
@@ -862,7 +965,23 @@ namespace EMTG {
 			//Step 4.3.1 advance time (not required)
 
 			//Step 4.3.2 find the position of the body at the new phase start time and store it in spiral_capture_state_after_spiral
-			locate_boundary_point(boundary2_location_code, options->journey_departure_type[j], true, Universe, this->spiral_capture_state_after_spiral, current_state+3, *current_epoch + this->TOF + this->spiral_capture_time, X, Xindex, F, Findex, G, Gindex, needG, j, p, options);
+			locate_boundary_point(  boundary2_location_code, 
+                                    options->journey_departure_type[j],
+                                    true, 
+                                    Universe,
+                                    this->spiral_capture_state_after_spiral,
+                                    current_state+3,
+                                    *current_epoch + this->TOF + this->spiral_capture_time,
+                                    X, 
+                                    Xindex,
+                                    F, 
+                                    Findex,
+                                    G, 
+                                    Gindex, 
+                                    needG, 
+                                    j, 
+                                    p, 
+                                    options);
 
 			//Step 4.3.3 fill in the new mass
 			this->spiral_capture_state_after_spiral[6] = this->spiral_capture_mass_after;
@@ -870,17 +989,17 @@ namespace EMTG {
 
 	}
 
-	double phase::process_arrival(	double* incoming_velocity,
-									double* boundary_state,
-									double* X_infinity,
-									double* current_epoch,
-									double mu,
-									double r_SOI, 
-									double* F,
-									int* Findex, 
-									int j, 
-									missionoptions* options, 
-									Astrodynamics::universe* Universe)
+    double phase::process_arrival(double* incoming_velocity,
+        double* boundary_state,
+        double* X_infinity,
+        double* current_epoch,
+        double mu,
+        double r_SOI,
+        double* F,
+        int* Findex,
+        const int& j,
+        missionoptions* options,
+        EMTG::Astrodynamics::universe* Universe)
 	{
 		switch (options->journey_arrival_type[j])
 			{
@@ -1011,7 +1130,23 @@ namespace EMTG {
 	}
 
 	//function to locate boundary points
-	int phase::locate_boundary_point(int location, int boundary_type, bool left_boundary, EMTG::Astrodynamics::universe* Universe, double* boundary_state, double* V_infinity, double epoch, double* X, int* Xindex, double* F, int* Findex, double* G, int* Gindex, const int& needG, int j, int p,  missionoptions* options)
+    int phase::locate_boundary_point(const int& location,
+        const int& boundary_type,
+        const bool& left_boundary,
+        EMTG::Astrodynamics::universe* Universe,
+        double* boundary_state,
+        double* V_infinity,
+        double epoch,
+        const double* X,
+        int* Xindex,
+        double* F,
+        int* Findex,
+        double* G,
+        int* Gindex,
+        const int& needG,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		if (left_boundary) //this is the left boundary of the phase
 		{
@@ -1041,6 +1176,7 @@ namespace EMTG {
 			{
 				//if we are starting this journey at a non-body point AND this is not the first journey then the starting location is wherever we ended the last journey
 				//here we take advantage of the fact that the "V_infinity" field is actually the 4th, 5th, and 6th entries of a 7-vector containing the spacecraft state at the end of the previous journey
+                
 				double boundary_state_copy[6];
 				for (int k = 0; k < 6; ++k)
 					boundary_state_copy[k] = V_infinity[k - 3];
@@ -1055,6 +1191,12 @@ namespace EMTG {
 													&Gdummy,
 													&Ftdummy,
 													&Gtdummy);
+
+                //derivatives with respect to boundary decision variables for this case are the same as the right-hand side of the previous phase
+                if (options->derivative_type > 1 && needG)
+                {
+                    //TODO pass in derivatives with respect to boundary decision variables in previous phase/journey
+                }
 			}
 			else if (location == -1 && j == 0) //if this boundary point is at a free point in space, with the various elements either fixed or free
 			{
@@ -1795,7 +1937,24 @@ namespace EMTG {
 
 	
 
-	void phase::calcbounds_left_boundary(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_left_boundary(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//if applicable, vary the journey initial mass increment
 		if (options->journey_starting_mass_increment[j] > 0.0 && options->journey_variable_mass_increment[j] && p == 0)
@@ -1852,9 +2011,9 @@ namespace EMTG {
 						Xlowerbounds->push_back(options->journey_departure_elements_bounds[j][k][0]);
 						Xupperbounds->push_back(options->journey_departure_elements_bounds[j][k][1]);
 						if (options->journey_departure_elements_type[j])
-							Xdescriptions->push_back(prefix + " left boundary point " + ClassicalOrbitElementNames[k]);
+							Xdescriptions->push_back(prefix + "left boundary point " + ClassicalOrbitElementNames[k]);
 						else
-							Xdescriptions->push_back(prefix + " left boundary point " + CartesianElementNames[k]);
+							Xdescriptions->push_back(prefix + "left boundary point " + CartesianElementNames[k]);
 					}
 				}
 
@@ -1867,7 +2026,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "left boundary central body exclusion radius constraint");
 
 						//this constraint has derivatives with respect to SMA, ECC, and TA
 						//only create a derivative entry with respect to an orbit element if that element is being varied
@@ -1880,7 +2039,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1897,7 +2056,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1914,7 +2073,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1931,7 +2090,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " left boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "left boundary central body exclusion radius constraint");
 					}
 
 					//this constraint has derivatives with respect to x, y, and z
@@ -1945,7 +2104,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1962,7 +2121,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -1979,7 +2138,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "left boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								left_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								left_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2093,7 +2252,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby X velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2133,7 +2292,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry+1);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
+						EntryNameStream << "Derivative of " << prefix << "flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+1 << "]: " << (*Xdescriptions)[entry+1];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry+1);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2149,7 +2308,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry-1);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
+						EntryNameStream << "Derivative of " << prefix << "flyby Y velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry-1 << "]: " << (*Xdescriptions)[entry-1];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry-1);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2173,7 +2332,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry+2);
 						stringstream entryNameStream;
-						entryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
+						entryNameStream << "Derivative of " << prefix << "flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry+2 << "]: " << (*Xdescriptions)[entry+2];
 						Gdescriptions->push_back(entryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry+2);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2189,7 +2348,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby Z velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2216,7 +2375,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2232,7 +2391,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby velocity magnitude constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_constraints_X_indices.push_back(entry);
 						flyby_velocity_magnitude_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2262,7 +2421,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
 					}
@@ -2276,7 +2435,7 @@ namespace EMTG {
 						iGfun->push_back(Fdescriptions->size() - 1);
 						jGvar->push_back(entry);
 						stringstream EntryNameStream;
-						EntryNameStream << "Derivative of " << prefix << " flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+						EntryNameStream << "Derivative of " << prefix << "flyby no-collision constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 						Gdescriptions->push_back(EntryNameStream.str());
 						flyby_altitude_constraint_G_indices.push_back(iGfun->size() - 1);
 						++foundcount;
@@ -2288,7 +2447,25 @@ namespace EMTG {
 		}
 	}
 
-	void phase::calcbounds_flight_time(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, vector<double>* synodic_periods, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_flight_time(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        vector<double>* synodic_periods,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		if (boundary1_location_code > 0)
 		{
@@ -2385,9 +2562,9 @@ namespace EMTG {
 		if (p == 0 && j == 0)
 			forced_coast_this_phase += options->forced_post_launch_coast;
 		else if (p > 0 || (p == 0 && (options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4)) )
-			forced_coast_this_phase += options->forced_flyby_coast;
+            forced_coast_this_phase += options->forced_flyby_coast;
 		if (p < options->number_of_phases[j] - 1 || (p == options->number_of_phases[j] - 1 && (options->journey_arrival_type[j] == 2 || options->journey_arrival_type[j] == 0)) )
-			forced_coast_this_phase += options->forced_flyby_coast;
+            forced_coast_this_phase += options->forced_flyby_coast;
 
 		if (boundary1_location_code == boundary2_location_code && boundary1_location_code > 0) //if this transfer is a repeat of the same planet, we have special rules
 		{
@@ -2425,7 +2602,24 @@ namespace EMTG {
         synodic_periods->push_back(1.0 / (fabs(1.0 / this->T1 - 1.0 / this->T2)));
 	}
 
-	void phase::calcbounds_right_boundary(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p,  EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_right_boundary(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
 	{
 		//if we are the last phase in the journey, then encode any variables necessary for the right hand boundary condition
 		if (p == (options->number_of_phases[j] - 1))
@@ -2456,9 +2650,9 @@ namespace EMTG {
 						Xlowerbounds->push_back(options->journey_arrival_elements_bounds[j][k][0]);
 						Xupperbounds->push_back(options->journey_arrival_elements_bounds[j][k][1]);
 						if (options->journey_arrival_elements_type[j])
-							Xdescriptions->push_back(prefix + " right boundary point " + ClassicalOrbitElementNames[k]);
+							Xdescriptions->push_back(prefix + "right boundary point " + ClassicalOrbitElementNames[k]);
 						else
-							Xdescriptions->push_back(prefix + " right boundary point " + CartesianElementNames[k]);
+							Xdescriptions->push_back(prefix + "right boundary point " + CartesianElementNames[k]);
 					}
 				}
 
@@ -2471,7 +2665,7 @@ namespace EMTG {
 					{
 						Flowerbounds->push_back(0.0);
 						Fupperbounds->push_back(math::LARGE);
-						Fdescriptions->push_back(prefix + " right boundary central body exclusion radius constraint");
+						Fdescriptions->push_back(prefix + "right boundary central body exclusion radius constraint");
 
 						//this constraint has derivatives with respect to SMA, ECC, and TA
 						//only create a derivative entry with respect to an orbit element if that element is being varied
@@ -2484,7 +2678,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2501,7 +2695,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2518,7 +2712,7 @@ namespace EMTG {
 									iGfun->push_back(Fdescriptions->size() - 1);
 									jGvar->push_back(entry);
 									stringstream EntryNameStream;
-									EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+									EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 									Gdescriptions->push_back(EntryNameStream.str());
 									right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 									right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2549,7 +2743,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2566,7 +2760,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2583,7 +2777,7 @@ namespace EMTG {
 								iGfun->push_back(Fdescriptions->size() - 1);
 								jGvar->push_back(entry);
 								stringstream EntryNameStream;
-								EntryNameStream << "Derivative of " << prefix << " right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+								EntryNameStream << "Derivative of " << prefix << "right boundary central body exclusion radius constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
 								Gdescriptions->push_back(EntryNameStream.str());
 								right_boundary_central_body_exclusion_radius_constraint_X_indices.push_back(entry);
 								right_boundary_central_body_exclusion_radius_constraint_G_indices.push_back(iGfun->size() - 1);
@@ -2656,7 +2850,21 @@ namespace EMTG {
 	}
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the beginning of any preceeding journey
-	void phase::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, missionoptions* options)
+    void phase::find_dependencies_due_to_escape_spiral(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj <= j; ++jj)
@@ -2812,7 +3020,21 @@ namespace EMTG {
 	}
 
 	//function to find dependencies of a constraint on other variables due to a spiral at the end of any preceeding journey
-	void phase::find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, missionoptions* options)
+    void phase::find_dependencies_due_to_capture_spiral(vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        missionoptions* options)
 	{
 		//loop over journeys
 		for (int jj = 0; jj < j; ++jj)
@@ -2923,7 +3145,24 @@ namespace EMTG {
 		}//end loop over journeys
 	}
 
-    void phase::calcbounds_phase_thruster_parameters(const string& prefix, int first_X_entry_in_phase, vector<double>* Xupperbounds, vector<double>* Xlowerbounds, vector<double>* Fupperbounds, vector<double>* Flowerbounds, vector<string>* Xdescriptions, vector<string>* Fdescriptions, vector<int>* iAfun, vector<int>* jAvar, vector<int>* iGfun, vector<int>* jGvar, vector<string>* Adescriptions, vector<string>* Gdescriptions, int j, int p, EMTG::Astrodynamics::universe* Universe, missionoptions* options)
+    void phase::calcbounds_phase_thruster_parameters(const string& prefix,
+        const int& first_X_entry_in_phase,
+        vector<double>* Xupperbounds,
+        vector<double>* Xlowerbounds,
+        vector<double>* Fupperbounds,
+        vector<double>* Flowerbounds,
+        vector<string>* Xdescriptions,
+        vector<string>* Fdescriptions,
+        vector<int>* iAfun,
+        vector<int>* jAvar,
+        vector<int>* iGfun,
+        vector<int>* jGvar,
+        vector<string>* Adescriptions,
+        vector<string>* Gdescriptions,
+        const int& j,
+        const int& p,
+        EMTG::Astrodynamics::universe* Universe,
+        missionoptions* options)
     {
         if (options->engine_type == 1 && (j == 0 && p == 0))
         {

@@ -50,8 +50,15 @@ class PyEMTG_interface(wx.Frame):
 
             if linecell[0] == "EMTG_path":
                 self.emtgpath = linecell[1]
+                if len(linecell) > 2:
+                    for term in linecell[2:]:
+                        self.emtgpath += ' ' + term
+
             elif linecell[0] == "default_universe_path":
                 self.default_universe_path = linecell[1]
+                if len(linecell) > 2:
+                    for term in linecell[2:]:
+                        self.default_universe_path += ' ' + term
 
         inputfile.close()
         
@@ -687,6 +694,8 @@ class PyEMTG_interface(wx.Frame):
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
+        self.optionsnotebook.tabOutput.chkoutput_dormant_journeys.Bind(wx.EVT_CHECKBOX, self.Changeoutput_dormant_journeys)
+        self.optionsnotebook.tabOutput.txtpost_mission_wait_time.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_wait_time)
         self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.Bind(wx.EVT_CHECKBOX, self.Changegenerate_initial_guess_file)
         self.optionsnotebook.tabOutput.cmbmission_type_for_initial_guess_file.Bind(wx.EVT_COMBOBOX, self.Changemisson_type_for_initial_guess)
         self.optionsnotebook.tabOutput.chkoverride_working_directory.Bind(wx.EVT_CHECKBOX, self.Changeoverride_working_directory)
@@ -699,6 +708,7 @@ class PyEMTG_interface(wx.Frame):
     #event handlers for global mission options    
     def ChangeMissionName(self, e):
         self.missionoptions.mission_name = self.optionsnotebook.tabGlobal.txtMissionName.GetValue()
+        self.missionoptions.update_all_panels(self.optionsnotebook)
         
     def ChangeMissionType(self, e):
         self.missionoptions.mission_type = self.optionsnotebook.tabGlobal.cmbMissionType.GetSelection()
@@ -1681,23 +1691,33 @@ class PyEMTG_interface(wx.Frame):
                 guessfile = open(os.path.join(self.dirname, self.filename), "r")
                 
                 counter = 0
+                guess_type_string = []
+                guess_num_timesteps = 0
 
                 for line in guessfile:
                     counter += 1
                     if counter == 4:
                         guess_type_string = line.strip('\n')
-                    elif counter == 7:
+                    elif counter == 6:
+                        guess_num_timesteps = int(line.strip('\n'))
+                    elif counter == 9:
                         if (guess_type_string == "MGA" and self.missionoptions.mission_type == 0) \
                             or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 1) \
                             or (guess_type_string == "MGALT" and self.missionoptions.mission_type == 2) \
                             or (guess_type_string == "FBLT" and self.missionoptions.mission_type == 3) \
-                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 4):
+                            or (guess_type_string == "MGADSM" and self.missionoptions.mission_type == 4) \
+                            or (guess_type_string == "PSBI" and self.missionoptions.mission_type == 5):
 
                             guessvector = []
                             for entry in line.split(','):
                                 guessvector.append(float(entry))
 
                             self.missionoptions.trialX = [copy.deepcopy(guessvector)]
+
+                            if not (guess_num_timesteps == self.missionoptions.num_timesteps):
+                                errordlg = wx.MessageDialog(self, "Initial guess has " + str(guess_num_timesteps) + " time-steps per phase but this options file has " + str(self.missionoptions.num_timesteps) + " time-steps per phase. This initial guess will not work unless you (a) use the same number of time-steps or (b) use the initial guess interpolator.", "EMTG Error", wx.OK)
+                                errordlg.ShowModal()
+                                errordlg.Destroy()
                         else:
                             errordlg = wx.MessageDialog(self, "Initial guess file type does not match this options file's mission type.", "EMTG Error", wx.OK)
                             errordlg.ShowModal()
@@ -1741,10 +1761,10 @@ class PyEMTG_interface(wx.Frame):
         self.missionoptions.update_all_panels(self.optionsnotebook)
 
     def Changespacecraft_area(self, e):
-        self.missionoptions.spacecraft_area = float(self.optionsnotebook.tabPhysics.txtspacecraft_area.GetValue())
+        self.missionoptions.spacecraft_area = eval(self.optionsnotebook.tabPhysics.txtspacecraft_area.GetValue())
 
     def Changecoefficient_of_reflectivity(self, e):
-        self.missionoptions.coefficient_of_reflectivity = float(self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.GetValue())
+        self.missionoptions.coefficient_of_reflectivity = eval(self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.GetValue())
 
     def Changespiral_model_type(self, e):
         self.missionoptions.spiral_model_type = self.optionsnotebook.tabPhysics.cmbspiral_model_type.GetSelection()
@@ -1754,10 +1774,17 @@ class PyEMTG_interface(wx.Frame):
 
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
-        self.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
+        self.missionoptions.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
     def Changeoutput_units(self, e):
-        self.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+        self.missionoptions.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
+
+    def Changeoutput_dormant_journeys(self, e):
+        self.missionoptions.output_dormant_journeys = int(self.optionsnotebook.tabOutput.chkoutput_dormant_journeys.GetValue())
+        self.missionoptions.update_output_options_panel(self.optionsnotebook)
+
+    def Changepost_mission_wait_time(self, e):
+        self.missionoptions.post_mission_wait_time = eval(self.optionsnotebook.tabOutput.txtpost_mission_wait_time.GetValue())
 
     def Changegenerate_initial_guess_file(self, e):
         self.missionoptions.generate_initial_guess_file = int(self.optionsnotebook.tabOutput.chkgenerate_initial_guess_file.GetValue())

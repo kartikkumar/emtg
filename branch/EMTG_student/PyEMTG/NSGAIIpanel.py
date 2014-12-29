@@ -9,6 +9,7 @@ class NSGAIIPlotOptions:
         self.LowerBounds = []
         self.TimeUnit = 0
         self.EpochUnit = 0
+        self.FontSize = 10.0
 
 class NSGAIIpanel(wx.Panel):
     def __init__(self, parent, Population):
@@ -114,13 +115,22 @@ class NSGAIIpanel(wx.Panel):
         EpochUnitSizer = wx.BoxSizer(wx.HORIZONTAL)
         EpochUnitSizer.AddMany([self.lblEpochUnit, self.cmbEpochUnit])
 
+        #font size control
+        FormatBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.lblFontSize = wx.StaticText(self, -1, "Font size")
+        self.spnctrlFontSizeControl = wx.SpinCtrl(self, -1, min=1, max=100, initial=10, name="Font size")
+        FormatBoxSizer.AddMany([self.lblFontSize, self.spnctrlFontSizeControl])
+        self.spnctrlFontSizeControl.Bind(wx.EVT_SPINCTRL, self.ChangeFontSize)
+
 
         self.PlotOptionsBox = wx.StaticBox(self, -1, "Plot Options", size = (300, 300))
         font = self.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.PlotOptionsBox.SetFont(font)
         PlotOptionsSizer = wx.StaticBoxSizer(self.PlotOptionsBox, wx.VERTICAL)
-        PlotOptionsSizer.AddMany([TimeUnitSizer, EpochUnitSizer])
+        PlotOptionsSizer.AddMany([TimeUnitSizer, EpochUnitSizer, FormatBoxSizer])
+
+        
         
         #finally we want a button to make the plot
         self.btnPlotPopulation = wx.Button(self, -1, "Plot Population")
@@ -148,34 +158,37 @@ class NSGAIIpanel(wx.Panel):
         self.Cobjective = self.objective_selectors[3].GetSelection()
 
     def ChangeXLowerBound(self, event):
-        self.plotoptions.LowerBounds[0] = eval(self.objective_lowerbound_fields[0].GetValue())
+        self.plotoptions.LowerBounds[0] = float(eval(self.objective_lowerbound_fields[0].GetValue()))
 
     def ChangeXUpperBound(self, event):
-        self.plotoptions.UpperBounds[0] = eval(self.objective_upperbound_fields[0].GetValue())
+        self.plotoptions.UpperBounds[0] = float(eval(self.objective_upperbound_fields[0].GetValue()))
 
     def ChangeYLowerBound(self, event):
-        self.plotoptions.LowerBounds[1] = eval(self.objective_lowerbound_fields[1].GetValue())
+        self.plotoptions.LowerBounds[1] = float(eval(self.objective_lowerbound_fields[1].GetValue()))
 
     def ChangeYUpperBound(self, event):
-        self.plotoptions.UpperBounds[1] = eval(self.objective_upperbound_fields[1].GetValue())
+        self.plotoptions.UpperBounds[1] = float(eval(self.objective_upperbound_fields[1].GetValue()))
 
     def ChangeZLowerBound(self, event):
-        self.plotoptions.LowerBounds[2] = eval(self.objective_lowerbound_fields[2].GetValue())
+        self.plotoptions.LowerBounds[2] = float(eval(self.objective_lowerbound_fields[2].GetValue()))
 
     def ChangeZUpperBound(self, event):
-        self.plotoptions.UpperBounds[2] = eval(self.objective_upperbound_fields[2].GetValue())
+        self.plotoptions.UpperBounds[2] = float(eval(self.objective_upperbound_fields[2].GetValue()))
 
     def ChangeCLowerBound(self, event):
-        self.plotoptions.LowerBounds[3] = eval(self.objective_lowerbound_fields[3].GetValue())
+        self.plotoptions.LowerBounds[3] = float(eval(self.objective_lowerbound_fields[3].GetValue()))
 
     def ChangeCUpperBound(self, event):
-        self.plotoptions.UpperBounds[3] = eval(self.objective_upperbound_fields[3].GetValue())
+        self.plotoptions.UpperBounds[3] = float(eval(self.objective_upperbound_fields[3].GetValue()))
 
     def ChangeTimeUnit(self, event):
         self.plotoptions.TimeUnit = self.cmbTimeUnit.GetSelection()
 
     def ChangeEpochUnit(self, event):
         self.plotoptions.EpochUnit = self.cmbEpochUnit.GetSelection()
+
+    def ChangeFontSize(self, e):
+        self.plotoptions.FontSize = self.spnctrlFontSizeControl.GetValue()
 
     def ClickPlotPopulation(self, event):
         #first assemble the ordered list of objectives
@@ -203,4 +216,4 @@ class NSGAIIpanel(wx.Panel):
                 errordlg.Destroy()
             
             else:
-                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit)
+                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit, FontSize = self.plotoptions.FontSize)

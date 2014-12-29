@@ -10,6 +10,9 @@
 
 namespace EMTG{ namespace Astrodynamics
 {
+    //******************************
+    //some constants
+    const double AU = 149597870.691;
 	//******************************
 	//insertion burn
 	double insertion_burn(const double *Vin, const double *Vplanet, const double mu, const double R_SOI, const double destination_a, const double destination_e, double* v_inf_inbound);
@@ -55,29 +58,63 @@ namespace EMTG{ namespace Astrodynamics
 
 	//******************************
 	//force model code
-	int force_model(EMTG::missionoptions* options,
-					EMTG::Astrodynamics::universe* Universe,
-					double* spacecraft_state,
-					double* epoch,
-					double* launch_epoch,
-					double* control,
-					double* max_thrust,
-					double* max_mass_flow_rate,
-					double* Isp,
-					double* power,
-					double* active_power,
-					int* number_of_active_engines,
-					double* force_vector,
-					const bool& generate_derivatives,
-					double* dTdP,
-					double* dmdotdP,
-					double* dTdIsp,
-					double* dmdotdIsp,
-					double* dPdr,
-					double* dPdt,
-					double* dSRPdr,
-					vector<double>& dagravdRvec,
-					vector<double>& dagravdtvec);
+	int force_model(EMTG::missionoptions * options,
+					EMTG::Astrodynamics::universe * Universe,
+					double * spacecraft_state,
+					const double& epoch,
+					const double& launch_epoch,
+					double * control,
+					double * max_thrust,
+					double * max_mass_flow_rate,
+					double * Isp,
+					double * power,
+					double * active_power,
+					int * number_of_active_engines,
+					double * force_vector,
+					const bool & generate_derivatives,
+					double * dTdP,
+					double * dmdotdP,
+					double * dTdIsp,
+					double * dmdotdIsp,
+					double * dPdr,
+					double * dPdt,
+					double * dSRPdr,
+					vector<double> & dagravdRvec,
+                    vector<double> & dagravdtvec,
+                    vector<double> & central_body_state_mks);
+
+	int FBLT_force_model(EMTG::missionoptions * options,
+		                EMTG::Astrodynamics::universe * Universe,
+						std::vector <double> & spacecraft_state_relative_to_central_body_in_km,
+						EMTG::math::Matrix <double> & dspacecraft_state_relative_to_central_body_in_kmdTOF,
+		                const double & epoch_step_left,
+						std::vector <double> & depoch_left_stepdTOF,
+						const double & c,
+						const double & h,
+						const double & dhdTOF,
+		                const double & launch_epoch,
+						const std::vector <double> & control,
+						std::vector <double> & f,
+						EMTG::math::Matrix <double> & dfdTOF,
+		                double * max_thrust,
+		                double * max_mass_flow_rate,
+		                double * Isp,
+		                double * power,
+		                double * active_power,
+		                int * number_of_active_engines,
+						std::vector <double> & force_vector,
+		                const bool & generate_derivatives,
+		                double * dTdP,
+		                double * dmdotdP,
+		                double * dTdIsp,
+		                double * dmdotdIsp,
+		                double * dPdr,
+		                double * dPdt,
+		                double * dFSRPdr,
+		                EMTG::math::Matrix<double> & A,
+		                vector<double> & dagravdRvec,
+		                vector<double> & dagravdtvec,
+                        vector<double> & central_body_state_mks);
 
 	//******************************
 	//launch vehicle code
