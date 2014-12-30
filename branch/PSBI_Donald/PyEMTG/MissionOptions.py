@@ -258,10 +258,10 @@ class MissionOptions(object):
                     choice = linecell[0]
 
                     if perturb_line_flag > 0:
-                        perturb_line_flag += 1
                         self.Journeys[perturb_line_flag - 1].journey_perturbation_bodies = []
                         for x in linecell:
                             self.Journeys[perturb_line_flag - 1].journey_perturbation_bodies.append(int(x))
+                        perturb_line_flag += 1
 
                     elif point_group_members_flag > 0:
                         point_group_members_flag += 1
