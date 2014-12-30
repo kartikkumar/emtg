@@ -170,8 +170,8 @@ namespace EMTG {
             vector<int> step_F_index_of_body_distance_constraint;
             for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
             {
-                Flowerbounds->push_back(1.0 - options->journey_distance_constraint_bounds[j][body][1] / options->journey_distance_constraint_bounds[j][body][0]);
-                Fupperbounds->push_back(0.0);
+                Flowerbounds->push_back(options->journey_distance_constraint_bounds[j][body][0] / Universe->LU);
+                Fupperbounds->push_back(options->journey_distance_constraint_bounds[j][body][1] / Universe->LU);
                 if (options->journey_distance_constraint_bodies[j][body] == -2)
                     Fdescriptions->push_back(prefix + "step " + stepstream.str() + " distance constraint from " + Universe->central_body_name);
                 else
@@ -456,6 +456,7 @@ namespace EMTG {
                         body_G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(cstep_G_index_of_derivative_of_distance_from_body_with_respect_to_Control);
                     }
                 }//end block for forward step distance constraint derivatives
+
                 //*****************************entries for backward steps only
                 else
                 {
@@ -564,19 +565,29 @@ namespace EMTG {
             }//end loop over bodies
 
             //load everything into the final vector
-            this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass);
-            this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass);
-            this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier);
-            this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier);
+            //all steps
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_BOL_power.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_BOL_power);
-            this->G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary);
-            this->G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary);
-            this->G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary);
-            this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity);
-            this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity);
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_flight_time_variables.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_flight_time_variables);
             this->G_index_of_derivative_of_distance_from_body_with_respect_to_Control.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_Control);
 
+            //forward steps
+            if (step < options->num_timesteps / 2)
+            {
+                this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_initial_mass);
+                this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_mission_initial_mass_multiplier);
+                this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_journey_initial_mass_increment_multiplier);
+                this->G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_left_boundary);
+                this->G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_previous_phase_variable_right_boundary);
+                this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_initial_velocity);
+            }
+            //backward steps
+            else
+            {
+                this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass.push_back(step_G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass);
+                this->G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_variable_right_boundary);
+                this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity.push_back(step_G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity);
+            }
+            
             //finally, derivatives with respect to spiral variables
             //check for derivatives with respect to escape and capture spirals in this journey and previous journeys
             this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, Fdescriptions->size() - 1, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, options);

@@ -36,16 +36,16 @@ namespace EMTG
 
 		//must resize all data vectors to the correct length
 		vector<double> vector7_dummy(7);
-		vector<double> vector3_dummmy(3);
+		vector<double> vector3_dummy(3);
         this->match_point_state.resize(7);
 
 		for (int step = 0; step < options.num_timesteps; ++step) {
             this->spacecraft_state.push_back(vector7_dummy);
-            this->dV.push_back(vector3_dummmy);
-            this->control.push_back(vector3_dummmy);
-            this->ForceVector.push_back(vector3_dummmy);
-            this->dagravdRvec.push_back(vector3_dummmy);
-            this->dagravdtvec.push_back(vector3_dummmy);
+            this->dV.push_back(vector3_dummy);
+            this->control.push_back(vector3_dummy);
+            this->ForceVector.push_back(vector3_dummy);
+            this->dagravdRvec.push_back(vector3_dummy);
+            this->dagravdtvec.push_back(vector3_dummy);
 		}
 
         this->event_epochs.resize(options.num_timesteps);
@@ -100,7 +100,7 @@ namespace EMTG
 
         //vector to track the distance from the central body for each step
         vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
-        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummmy);
+        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummy);
         for (int step = 0; step < options.num_timesteps; ++step)
         {
             this->distance_from_body.push_back(dummy_distance_vector);
@@ -458,7 +458,7 @@ namespace EMTG
                 this->distance_from_body[step][body] = math::norm(this->distance_constraint_relative_position[step][body].data(), 3);
 
                 //step 6.2.9.2 apply the constraint
-                F[*Findex] = (this->distance_from_body[step][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex] = this->distance_from_body[step][body] / Universe->LU;
                 ++(*Findex);
             }
 		}
@@ -731,7 +731,7 @@ namespace EMTG
 
 
                 //step 6.3.9.2 apply the constraint
-                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (this->distance_from_body[backstep][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = this->distance_from_body[backstep][body] / Universe->LU;
             }
 		}
 
@@ -1475,19 +1475,19 @@ namespace EMTG
                 for (int cindex = 0; cindex < 3; ++cindex)
                 {
                     //first we need to get the derivative of the next step's state vector with respect to the step where the control is applied
-                    dxdu = Forward_STM[cstep + 1](0, cindex + 3) * dVmax[cstep];
-                    dydu = Forward_STM[cstep + 1](1, cindex + 3) * dVmax[cstep];
-                    dzdu = Forward_STM[cstep + 1](2, cindex + 3) * dVmax[cstep];
-                    dxdotdu = Forward_STM[cstep + 1](3, cindex + 3) * dVmax[cstep];
-                    dydotdu = Forward_STM[cstep + 1](4, cindex + 3) * dVmax[cstep];
-                    dzdotdu = Forward_STM[cstep + 1](5, cindex + 3) * dVmax[cstep];
+                    dxdu = this->Forward_STM[cstep + 1](0, cindex + 3) * this->dVmax[cstep];
+                    dydu = this->Forward_STM[cstep + 1](1, cindex + 3) * this->dVmax[cstep];
+                    dzdu = this->Forward_STM[cstep + 1](2, cindex + 3) * this->dVmax[cstep];
+                    dxdotdu = this->Forward_STM[cstep + 1](3, cindex + 3) * this->dVmax[cstep];
+                    dydotdu = this->Forward_STM[cstep + 1](4, cindex + 3) * this->dVmax[cstep];
+                    dzdotdu = this->Forward_STM[cstep + 1](5, cindex + 3) * this->dVmax[cstep];
 
-                    double umag = math::norm(control[cstep].data(), 3);
-                    double r = math::norm(spacecraft_state[cstep].data(), 3);
+                    double umag = math::norm(this->control[cstep].data(), 3);
+                    double r = math::norm(this->spacecraft_state[cstep].data(), 3);
 
-                    deltat = (time_step_sizes[cstep]);
+                    deltat = (this->time_step_sizes[cstep]);
 
-                    dmdu = -(available_mass_flow_rate[cstep] * deltat * options->engine_duty_cycle) * ((control[cstep][cindex] / (umag + 1.0e-10)));
+                    dmdu = -(this->available_mass_flow_rate[cstep] * deltat * options->engine_duty_cycle) * ((this->control[cstep][cindex] / (umag + 1.0e-10)));
                     dtdu = 0.0; //there is no dependence of time on thrust control
                     dtotal_available_thrust_time_du = 0.0;
                     dPdu = 0.0; //there is no dependence of power on thrust control
@@ -1522,7 +1522,7 @@ namespace EMTG
                             (this->distance_constraint_relative_position[step][body][0] * dxdu
                             + this->distance_constraint_relative_position[step][body][1] * dydu
                             + this->distance_constraint_relative_position[step][body][2] * dzdu)
-                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                            / this->distance_from_body[step][body] / Universe->LU;
                     }
                 }//end loop over controls
             }
@@ -1532,22 +1532,22 @@ namespace EMTG
             {
                 for (int cstep = 0; cstep < step; ++cstep)
                 {
-                    deltat = (time_step_sizes[cstep]);
+                    deltat = (this->time_step_sizes[cstep]);
 
-                    double ux = control[cstep][0];
-                    double uy = control[cstep][1];
-                    double uz = control[cstep][2];
-                    double m = spacecraft_state[cstep - 1][6];
-                    dxdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](0, 3)*ux + Forward_STM[cstep + 1](0, 4)*uy + Forward_STM[cstep + 1](0, 5)*uz);
-                    dydu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](1, 3)*ux + Forward_STM[cstep + 1](1, 4)*uy + Forward_STM[cstep + 1](1, 5)*uz);
-                    dzdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](2, 3)*ux + Forward_STM[cstep + 1](2, 4)*uy + Forward_STM[cstep + 1](2, 5)*uz);
-                    dxdotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](3, 3)*ux + Forward_STM[cstep + 1](3, 4)*uy + Forward_STM[cstep + 1](3, 5)*uz);
-                    dydotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](4, 3)*ux + Forward_STM[cstep + 1](4, 4)*uy + Forward_STM[cstep + 1](4, 5)*uz);
-                    dzdotdu = options->engine_duty_cycle * deltat * dTdIsp[cstep] / m * (Forward_STM[cstep + 1](5, 3)*ux + Forward_STM[cstep + 1](5, 4)*uy + Forward_STM[cstep + 1](5, 5)*uz);
+                    double ux = this->control[cstep][0];
+                    double uy = this->control[cstep][1];
+                    double uz = this->control[cstep][2];
+                    double m = this->spacecraft_state[cstep - 1][6];
+                    dxdu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](0, 3)*ux + this->Forward_STM[cstep + 1](0, 4)*uy + this->Forward_STM[cstep + 1](0, 5)*uz);
+                    dydu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](1, 3)*ux + this->Forward_STM[cstep + 1](1, 4)*uy + this->Forward_STM[cstep + 1](1, 5)*uz);
+                    dzdu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](2, 3)*ux + this->Forward_STM[cstep + 1](2, 4)*uy + this->Forward_STM[cstep + 1](2, 5)*uz);
+                    dxdotdu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](3, 3)*ux + this->Forward_STM[cstep + 1](3, 4)*uy + this->Forward_STM[cstep + 1](3, 5)*uz);
+                    dydotdu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](4, 3)*ux + this->Forward_STM[cstep + 1](4, 4)*uy + this->Forward_STM[cstep + 1](4, 5)*uz);
+                    dzdotdu = options->engine_duty_cycle * deltat * this->dTdIsp[cstep] / m * (this->Forward_STM[cstep + 1](5, 3)*ux + this->Forward_STM[cstep + 1](5, 4)*uy + this->Forward_STM[cstep + 1](5, 5)*uz);
 
-                    double umag = math::norm(control[cstep].data(), 3);
+                    double umag = math::norm(this->control[cstep].data(), 3);
 
-                    dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * dmdotdIsp[cstep];
+                    dmdu = -deltat * options->engine_duty_cycle * (umag + 1.0e-10) * this->dmdotdIsp[cstep];
                     dtdu = 0.0; //there is no dependence of time on Isp
                     dtotal_available_thrust_time_du = 0.0;
                     dPdu = 0.0; //there is no dependence of power on Isp
@@ -1582,7 +1582,7 @@ namespace EMTG
                             (this->distance_constraint_relative_position[step][body][0] * dxdu
                             + this->distance_constraint_relative_position[step][body][1] * dydu
                             + this->distance_constraint_relative_position[step][body][2] * dzdu)
-                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                            / this->distance_from_body[step][body] / Universe->LU;
                     }
                 }
             }//end forward Isp
@@ -1594,8 +1594,8 @@ namespace EMTG
         //derivative with respect to arrival mass (no entry for the last step's distance constraint since no burn has happened)
         for (int step = 1; step < options->num_timesteps / 2; ++step)
         {
-            //translate into backward steps
-            int backstep = options->num_timesteps - 1 - step;
+            //translate into backward steps in the half-phase vector
+            int backstep = options->num_timesteps / 2 - 1 - step;
 
             //arrival mass this phase
             dxdu = 0.0;
@@ -1640,7 +1640,7 @@ namespace EMTG
                     (this->distance_constraint_relative_position[backstep][body][0] * dxdu
                     + this->distance_constraint_relative_position[backstep][body][1] * dydu
                     + this->distance_constraint_relative_position[backstep][body][2] * dzdu)
-                    / this->distance_from_body[backstep][body] / options->journey_distance_constraint_bounds[j][body][0];
+                    / this->distance_from_body[backstep][body] / Universe->LU;
             }
         }//end loop over backward steps for arrival mass derivative
             
@@ -1711,7 +1711,7 @@ namespace EMTG
                             (this->distance_constraint_relative_position[backstep][body][0] * dxdu
                             + this->distance_constraint_relative_position[backstep][body][1] * dydu
                             + this->distance_constraint_relative_position[backstep][body][2] * dzdu)
-                            / this->distance_from_body[backstep][body] / options->journey_distance_constraint_bounds[j][body][0];
+                            / this->distance_from_body[backstep][body] / Universe->LU;
                     }
                 }//end loop over controls
             }
@@ -1772,7 +1772,7 @@ namespace EMTG
                             (this->distance_constraint_relative_position[step][body][0] * dxdu
                             + this->distance_constraint_relative_position[step][body][1] * dydu
                             + this->distance_constraint_relative_position[step][body][2] * dzdu)
-                            / this->distance_from_body[step][body] / options->journey_distance_constraint_bounds[j][body][0];
+                            / this->distance_from_body[step][body] / Universe->LU;
                     }
                 }
             }//end backward Isp

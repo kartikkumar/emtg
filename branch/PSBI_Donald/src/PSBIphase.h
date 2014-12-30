@@ -110,7 +110,10 @@ namespace EMTG
         vector <double> event_epochs;
 
         //state information and constraint information
-        double minimum_radial_distance;
+        vector < vector < vector<double> > > distance_constraint_relative_position; //step, constraint, state variable
+        vector< vector<double> > distance_from_body; //step, constraint
+        vector< vector<int> > F_index_of_distance_constraint; //step, constraint
+
         vector< vector<double> > left_hand_state;
         vector< vector<double> > right_hand_state;
         vector< vector<double> > defect_constraint;
@@ -134,9 +137,9 @@ namespace EMTG
             vector<double> Propagation_Step_Time_Fraction;
             vector<double> Propagation_Step_Time_Fraction_Derivative;
 
-        //derivatives for the radial distance constraint
-            vector< vector<int> > radius_constraint_G_indices;
-            vector< vector <double> > radius_constraint_X_scale_ranges;
+        //derivatives for the radial distance constraint (3 + nth entries are with respect to time variables, last one being current phase flight time)
+            vector< vector< vector<int> > >radius_constraint_G_indices; //step, body, entry
+            vector< vector< vector <double> > > radius_constraint_X_scale_ranges; //step, body, entry
 
         //derivatives for all left-handed defect constraints
             vector< vector<int> > G_index_of_derivative_of_defect_constraints_with_respect_to_current_state;

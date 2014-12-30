@@ -29,19 +29,19 @@ namespace EMTG
         this->initialize(j, p, options);
 
         //must resize all data vectors to the correct length
-        vector<double> state_dummy(7);
-        vector<double> dV_or_control_dummy(3);
+        vector<double> vector7_dummy(7);
+        vector<double> vector3_dummy(3);
 
         for (size_t step = 0; step < options.num_timesteps; ++step)
         {
-            this->left_hand_state.push_back(state_dummy);
-            this->spacecraft_state.push_back(state_dummy);
-            this->right_hand_state.push_back(state_dummy);
-            this->dV.push_back(dV_or_control_dummy);
-            this->control.push_back(dV_or_control_dummy);
-            this->ForceVector.push_back(dV_or_control_dummy);
-            this->dagravdRvec.push_back(dV_or_control_dummy);
-            this->dagravdtvec.push_back(dV_or_control_dummy);
+            this->left_hand_state.push_back(vector7_dummy);
+            this->spacecraft_state.push_back(vector7_dummy);
+            this->right_hand_state.push_back(vector7_dummy);
+            this->dV.push_back(vector3_dummy);
+            this->control.push_back(vector3_dummy);
+            this->ForceVector.push_back(vector3_dummy);
+            this->dagravdRvec.push_back(vector3_dummy);
+            this->dagravdtvec.push_back(vector3_dummy);
         }
 
         this->event_epochs.resize(options.num_timesteps);
@@ -104,6 +104,15 @@ namespace EMTG
 
         //set derivatives for spirals
         this->spiral_escape_dm_after_dm_before = 1.0;
+
+        //vector to track the distance from the central body for each step
+        vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
+        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummy);
+        for (int step = 0; step < options.num_timesteps; ++step)
+        {
+            this->distance_from_body.push_back(dummy_distance_vector);
+            this->distance_constraint_relative_position.push_back(body_position_dummy);
+        }
     }
 
     //destructor
@@ -311,33 +320,62 @@ namespace EMTG
             }
 
             //position magnitude constraint
-            //radial distance must always be greater than central body minimum
-            //or, later, whatever user-specified minimum distance we have
-            this->minimum_radial_distance = Universe->minimum_safe_distance;
-            Flowerbounds->push_back(-math::LARGE);
-            Fupperbounds->push_back(0.0);
-            Fdescriptions->push_back(prefix + "step " + stepstream.str() + " radial distance constraint");
-            //radial distance constraint is dependent ONLY on x, y, z for THIS step
-            vector<int> step_radius_constraint_G_indices;
-            vector<double> step_radius_constraint_X_scale_ranges;
-            for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
+            //radial distance constraint is dependent ONLY on x, y, z for THIS step and on all current and previous TIME variables for all but the central body
+            vector<int> step_F_index_of_body_distance_constraint;
+            vector< vector <int> > step_radius_constraint_G_indices;
+            vector< vector <double> > step_radius_constraint_X_scale_ranges;
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
             {
-                if (((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " x") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024))
-                    || ((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " y") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024))
-                    || ((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " z") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024)))
+                Flowerbounds->push_back(options->journey_distance_constraint_bounds[j][body][0] / Universe->LU);
+                Fupperbounds->push_back(options->journey_distance_constraint_bounds[j][body][1] / Universe->LU);
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                    Fdescriptions->push_back(prefix + "step " + stepstream.str() + " distance constraint from " + Universe->central_body_name);
+                else
+                    Fdescriptions->push_back(prefix + "step " + stepstream.str() + " distance constraint from " + Universe->bodies[options->journey_distance_constraint_bodies[j][body]].name);
+                step_F_index_of_body_distance_constraint.push_back(Fdescriptions->size() - 1);
+
+                vector<int> body_radius_constraint_G_indices;
+                vector<double> body_radius_constraint_X_scale_ranges;
+                for (size_t entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
                 {
-                    iGfun->push_back(Fdescriptions->size() - 1);
-                    jGvar->push_back(entry);
-                    stringstream EntryNameStream;
-                    EntryNameStream << "Derivative of " << prefix + "step " << step << " radial distance constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-                    Gdescriptions->push_back(EntryNameStream.str());
-                    step_radius_constraint_G_indices.push_back(Gdescriptions->size() - 1);
-                    step_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    if (((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " x") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024))
+                        || ((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " y") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024))
+                        || ((*Xdescriptions)[entry].find(prefix + "step " + stepstream.str() + " z") < 1024 && !((*Xdescriptions)[entry].find("dot") < 1024)))
+                    {
+                        iGfun->push_back(Fdescriptions->size() - 1);
+                        jGvar->push_back(entry);
+                        stringstream EntryNameStream;
+                        EntryNameStream << "Derivative of " << Fdescriptions->back() << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                        Gdescriptions->push_back(EntryNameStream.str());
+                        body_radius_constraint_G_indices.push_back(Gdescriptions->size() - 1);
+                        body_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                    }
                 }
+                //if this constraint is NOT with respect to the central body then there is a time derivative
+                if (options->journey_distance_constraint_bodies[j][body] > 0)
+                {
+                    for (size_t entry = 0; entry < (step == 0 ? first_X_entry_in_phase + 1: Xdescriptions->size()); ++entry)
+                    {
+                        if ((*Xdescriptions)[entry].find("time") < 1024 || (*Xdescriptions)[entry].find("epoch") < 1024)
+                        {
+                            iGfun->push_back(Fdescriptions->size() - 1);
+                            jGvar->push_back(entry);
+                            stringstream EntryNameStream;
+                            EntryNameStream << "Derivative of " << Fdescriptions->back() << " with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                            Gdescriptions->push_back(EntryNameStream.str());
+                            body_radius_constraint_G_indices.push_back(Gdescriptions->size() - 1);
+                            body_radius_constraint_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                        }
+                    }
+                }
+                
+                step_radius_constraint_G_indices.push_back(body_radius_constraint_G_indices);
+                step_radius_constraint_X_scale_ranges.push_back(body_radius_constraint_X_scale_ranges);
+                this->F_index_of_distance_constraint.push_back(step_F_index_of_body_distance_constraint);
             }
             this->radius_constraint_G_indices.push_back(step_radius_constraint_G_indices);
             this->radius_constraint_X_scale_ranges.push_back(step_radius_constraint_X_scale_ranges);
-
+            
 
             //left-hand defect constraints: all steps have this!
             //temporary arrays for G index tracking
@@ -1035,16 +1073,56 @@ namespace EMTG
             (*Xindex) += 7;
 
             //Step 6.3.2 apply the radial distance constraint and its derivatives
-            double r = math::norm(this->left_hand_state[step].data(), 3);
-            F[*Findex] = (this->minimum_radial_distance - r) / this->minimum_radial_distance;
-            ++(*Findex);
-
-            if (needG && options->derivative_type > 0)
+            for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
             {
-                G[this->radius_constraint_G_indices[step][0]] = this->radius_constraint_X_scale_ranges[step][0] * (-this->left_hand_state[step][0] / r) / this->minimum_radial_distance;
-                G[this->radius_constraint_G_indices[step][1]] = this->radius_constraint_X_scale_ranges[step][1] * (-this->left_hand_state[step][1] / r) / this->minimum_radial_distance;
-                G[this->radius_constraint_G_indices[step][2]] = this->radius_constraint_X_scale_ranges[step][2] * (-this->left_hand_state[step][2] / r) / this->minimum_radial_distance;
+                //step 6.3.2.1 compute the distance from the spacecraft to the body
+                //(this is a different procedure if the body is the central body)
+                double body_state[12];
+                if (options->journey_distance_constraint_bodies[j][body] == -2)
+                {
+                    this->distance_constraint_relative_position[step][body][0] = this->left_hand_state[step][0];
+                    this->distance_constraint_relative_position[step][body][1] = this->left_hand_state[step][1];
+                    this->distance_constraint_relative_position[step][body][2] = this->left_hand_state[step][2];
+                }
+                else
+                {
+                    Universe->bodies[options->journey_distance_constraint_bodies[j][body]].locate_body(phase_start_epoch + phase_time_elapsed_forward, body_state, (options->derivative_type > 2 && needG), options);
+                    this->distance_constraint_relative_position[step][body][0] = this->left_hand_state[step][0] - body_state[0];
+                    this->distance_constraint_relative_position[step][body][1] = this->left_hand_state[step][1] - body_state[1];
+                    this->distance_constraint_relative_position[step][body][2] = this->left_hand_state[step][2] - body_state[2];
+                }
+                this->distance_from_body[step][body] = math::norm(this->distance_constraint_relative_position[step][body].data(), 3);
+
+                //step 6.3.2.2 apply the constraint
+                F[*Findex] = this->distance_from_body[step][body] / Universe->LU;
+                ++(*Findex);
+                
+                //step 6.3.2.3 apply the distance constraint derivatives
+                if (needG && options->derivative_type > 0)
+                {
+                    G[this->radius_constraint_G_indices[step][body][0]] = this->radius_constraint_X_scale_ranges[step][body][0] * this->left_hand_state[step][0] / this->distance_from_body[step][body] / Universe->LU;
+                    G[this->radius_constraint_G_indices[step][body][1]] = this->radius_constraint_X_scale_ranges[step][body][1] * this->left_hand_state[step][1] / this->distance_from_body[step][body] / Universe->LU;
+                    G[this->radius_constraint_G_indices[step][body][2]] = this->radius_constraint_X_scale_ranges[step][body][2] * this->left_hand_state[step][2] / this->distance_from_body[step][body] / Universe->LU;
+                }
+                if (needG && options->derivative_type > 2)
+                {
+                    for (int tindex = 3; tindex < this->radius_constraint_G_indices[step][body].size(); ++tindex)
+                    {
+                        //note: for current phase flight time, the derivative entry has an additional scale factor mapping to the fraction of propagation time thusfar accumulated
+                        double scale_factor = this->radius_constraint_X_scale_ranges[step][body][tindex];
+                        if (tindex > 3 && tindex == this->radius_constraint_G_indices[step][body].size() - 1)
+                            scale_factor *= (double) step / options->num_timesteps;
+
+                        G[this->radius_constraint_G_indices[step][body][tindex]] = -scale_factor / this->distance_from_body[step][body] / Universe->LU *
+                            ( this->distance_constraint_relative_position[step][body][0] * body_state[6]
+                            + this->distance_constraint_relative_position[step][body][1] * body_state[7]
+                            + this->distance_constraint_relative_position[step][body][2] * body_state[8]);
+                    }
+                }
             }
+
+
+            
 
             //Step 6.3.3 apply the left-hand defect constraint and its derivatives
             //if this is the first step and there was an initial coast then we apply relative to the initial coast
@@ -1127,7 +1205,7 @@ namespace EMTG
             //"mass leak" throttle of 1.0e-10 to ensure that we always have at least some thrusting (prevents derivative from being zero)
             local_throttle = math::norm(control[step].data(), 3) + 1.0e-10;
             throttle[step] = local_throttle;
-            if (options->derivative_type > 1 && needG)
+            if (options->derivative_type > 0 && needG)
             {
                 G[control_vector_G_indices[step][0]] = 2.0 * control[step][2] / local_throttle;
                 G[control_vector_G_indices[step][1]] = 2.0 * control[step][1] / local_throttle;

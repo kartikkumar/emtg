@@ -137,6 +137,11 @@ namespace EMTG
             this->distance_from_body.push_back(dummy_distance_vector);
             this->distance_constraint_relative_position.push_back(body_position_dummy);
         }
+
+
+
+        //size the empty control vector
+        this->empty_vector.resize((options.engine_type == 4 || options.engine_type == 12 || options.engine_type == 13 ? 4 : 3), 0.0);
     }
 
     FBLT_phase::~FBLT_phase() {
@@ -582,7 +587,7 @@ namespace EMTG
                 this->distance_from_body[step][body] = math::norm(this->distance_constraint_relative_position[step][body].data(), 3);
 
                 //step 6.2.5.2 apply the constraint
-                F[*Findex] = (this->distance_from_body[step][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex] = this->distance_from_body[step][body] / Universe->LU;
                 ++(*Findex);
             }
         }
@@ -1130,7 +1135,7 @@ namespace EMTG
                 this->distance_from_body[backstep][body] = math::norm(this->distance_constraint_relative_position[backstep][body].data(), 3);
 
                 //step 6.3.5.2 apply the constraint
-                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = (this->distance_from_body[backstep][body] - options->journey_distance_constraint_bounds[j][body][1]) / options->journey_distance_constraint_bounds[j][body][0];
+                F[*Findex + (backstep - options->num_timesteps / 2) * (1 + options->journey_distance_constraint_number_of_bodies[j]) + body + 1] = this->distance_from_body[backstep][body] / Universe->LU;
             }
 	    }
 		
@@ -2139,7 +2144,7 @@ namespace EMTG
                                                 
         }
         //Step 2c: if this phase starts with a post-flyby coast, propagate along that coast
-        else if ((p > 0 || (p == 0 && (options.journey_departure_elements_type[j] == 3 || options.journey_departure_elements_type[j] == 4 || options.journey_departure_elements_type[j] == 6)))
+        else if ((p > 0 || (p == 0 && (options.journey_departure_type[j] == 3 || options.journey_departure_type[j] == 4 || options.journey_departure_type[j] == 6)))
                  && options.forced_flyby_coast > 0.0)
         {
             for (size_t k = 0; k < 7; ++k)
