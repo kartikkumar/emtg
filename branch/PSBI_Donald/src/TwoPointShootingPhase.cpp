@@ -362,7 +362,7 @@ namespace EMTG {
                     if (!(p == 0 && (options->journey_departure_type[j] == 2 || options->journey_departure_type[j] == 5)))
                     {
                         //the first phase of the journey has velocity given in polar coordinates
-                        if (p == 0)
+                        if (p == 0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 6))
                         {
                             for (int entry = first_X_entry_in_phase; entry < Xdescriptions->size(); ++entry)
                             {

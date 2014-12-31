@@ -275,12 +275,16 @@ namespace EMTG { namespace Astrodynamics {
 		double mass_kg = spacecraft_state_relative_to_central_body_in_km[6];
 		double mass_normalized = spacecraft_state_relative_to_central_body_in_km[6] / options->maximum_mass;
 
-        /*
+        
 		double r_pert = 1.0e-6;
 		double Pforward;
 		double Pbackward;
+        double Tforward;
+        double Tbackward;
+        double mdotforward;
+        double mdotbackward;
 		double rtemp = spacecraft_distance_from_sun_in_AU;
-
+        /*
 		for (size_t loopCount = 0; loopCount < 3; ++loopCount)
 		{
 
@@ -296,7 +300,7 @@ namespace EMTG { namespace Astrodynamics {
 			//compute the maximum thrust available from the engines  
 			EMTG::Astrodynamics::find_engine_parameters(options,
 				spacecraft_distance_from_sun_in_AU,
-				*epoch - *launch_epoch,
+				epoch - launch_epoch,
 				max_thrust, //kN
 				max_mass_flow_rate, // kg/s
 				Isp, // seconds
@@ -312,10 +316,18 @@ namespace EMTG { namespace Astrodynamics {
 				dPdt // kW/s
 				);
             
-		if (loopCount == 0)
-			Pforward = *power;
-		else if (loopCount == 1)
-			Pbackward = *power;
+            if (loopCount == 0)
+            {
+                Pforward = *power;
+                Tforward = *max_thrust;
+                mdotforward = *max_mass_flow_rate;
+            }
+            else if (loopCount == 1)
+            {
+                Pbackward = *power;
+                Tbackward = *max_thrust;
+                mdotbackward = *max_mass_flow_rate;
+            }
 
 		} //end finite difference loop
         */
@@ -339,11 +351,18 @@ namespace EMTG { namespace Astrodynamics {
                                                     );
         /*
 		double dPdr_FD = (Pforward - Pbackward) / (2.0 * r_pert);
+        double dTdr_FD = (Tforward - Tbackward) / (2.0 * r_pert);
+        double dmdotdr_FD = (mdotforward - mdotbackward) / (2.0 * r_pert);
 		std::cout << setprecision(16);
 	    std::cout << "Finite differenced dPdr: " << dPdr_FD << std::endl;
 		std::cout << "Analytical dPdr: " << (*dPdr) << std::endl;
         std::cout << "error: " << dPdr_FD - (*dPdr) << std::endl;
-		//getchar();
+        std::cout << "Finite differenced dTdr: " << dTdr_FD << std::endl;
+        std::cout << "Analytical dPdr: " << (*dTdP * *dPdr) << std::endl;
+        std::cout << "error: " << dTdr_FD - (*dTdP * *dPdr) << std::endl;
+        std::cout << "Finite differenced dmdotdr: " << dmdotdr_FD << std::endl;
+        std::cout << "Analytical dPdr: " << (*dmdotdP * *dPdr) << std::endl;
+        std::cout << "error: " << dmdotdr_FD - (*dmdotdP * *dPdr) << std::endl;
         */
         
 

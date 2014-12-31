@@ -1611,7 +1611,7 @@ namespace EMTG
             dPdu = 0.0;
 
             //loop over later steps
-            for (int stepnext = 0; stepnext < step; ++stepnext)
+            for (int stepnext = 1; stepnext < step; ++stepnext)
             {
                 calculate_match_point_backward_propagation_derivatives(G,
                     j,
@@ -1636,7 +1636,7 @@ namespace EMTG
             for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
             {
                 int Gindex = this->G_index_of_derivative_of_distance_from_body_constraints_with_respect_to_arrival_mass[backstep][body];
-                G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                G[Gindex] = -options->X_scale_ranges[options->jGvar[Gindex]] *
                     (this->distance_constraint_relative_position[backstep][body][0] * dxdu
                     + this->distance_constraint_relative_position[backstep][body][1] * dydu
                     + this->distance_constraint_relative_position[backstep][body][2] * dzdu)
@@ -1646,7 +1646,62 @@ namespace EMTG
             
         //***********************************
         //this phase terminal velocity
-            
+        //only evaluated for phases that are not terminal intercepts
+        if (!(p == options->number_of_phases[j] - 1 && ((options->journey_arrival_type[j] == 1) || options->journey_arrival_type[j] == 3) || options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 7))
+        {
+            for (int step = 0; step < options->num_timesteps / 2; ++step)
+            {
+                for (int c = 0; c < 3; ++c)
+                {
+                    //first we need to get the derivative of the next step's state vector with respect to the terminal velocity increment
+                    dxdu = Backward_STM[0](0, c + 3);
+                    dydu = Backward_STM[0](1, c + 3);
+                    dzdu = Backward_STM[0](2, c + 3);
+                    dxdotdu = Backward_STM[0](3, c + 3);
+                    dydotdu = Backward_STM[0](4, c + 3);
+                    dzdotdu = Backward_STM[0](5, c + 3);
+
+                    dmdu = 0.0;
+                    dtdu = 0.0; //there is no dependence of time on terminal velocity
+                    dtotal_available_thrust_time_du = 0.0;
+                    dPdu = 0.0;
+
+                    //loop over later steps
+                    for (int stepnext = 1; stepnext < step; ++stepnext)
+                    {
+                        calculate_match_point_backward_propagation_derivatives( G,
+                                                                                j,
+                                                                                p,
+                                                                                options,
+                                                                                Universe,
+                                                                                options->num_timesteps - 1,
+                                                                                stepnext,
+                                                                                dxdu,
+                                                                                dydu,
+                                                                                dzdu,
+                                                                                dxdotdu,
+                                                                                dydotdu,
+                                                                                dzdotdu,
+                                                                                dmdu,
+                                                                                dtdu,
+                                                                                dtotal_available_thrust_time_du,
+                                                                                dPdu);
+                    } //end loop over later steps
+
+                    //place the derivatives in the Jacobian
+                    for (int body = 0; body < options->journey_distance_constraint_number_of_bodies[j]; ++body)
+                    {
+                        int Gindex = this->G_index_of_derivative_of_distance_from_body_with_respect_to_phase_terminal_velocity[step][body][c];
+                        G[Gindex] = options->X_scale_ranges[options->jGvar[Gindex]] *
+                            ( this->distance_constraint_relative_position[step][body][0] * dxdu
+                            + this->distance_constraint_relative_position[step][body][1] * dydu
+                            + this->distance_constraint_relative_position[step][body][2] * dzdu)
+                            / this->distance_from_body[step][body] / Universe->LU;
+                    }
+                }//end loop over controls
+            }
+        }//end code for derivative of distance constraint with respect to phase terminal velocity vector
+
         //***********************************
         //variable right boundary this phase
 
