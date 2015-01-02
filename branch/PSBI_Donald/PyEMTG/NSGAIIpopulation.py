@@ -295,72 +295,53 @@ class NSGAII_outerloop_population(object):
     def plot_solution_points(self):
         self.colorbar = None
         self.solution_names = []
+        X = []
+        Y = []
+        Z = []
+        C = []
         for solution in self.solutions:
             if solution.Legal_Solution:
-                self.solution_names.append(solution.description)
-                X = []
-                Y = []
-                Z = []
-                C = []
-
                 if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
-                    X = solution.objective_values[self.ordered_list_of_objectives[0]] / 365.25
+                    X.append(solution.objective_values[self.ordered_list_of_objectives[0]] / 365.25)
                 elif self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                    X = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[0] + 2400000.5).GetTicks()))
+                    X.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[0] + 2400000.5).GetTicks())))
                 else:
-                    X = solution.objective_values[self.ordered_list_of_objectives[0]]
+                    X.append(solution.objective_values[self.ordered_list_of_objectives[0]])
 
                 if self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Flight time (days)' and self.TimeUnit == 0:
-                    Y = solution.objective_values[self.ordered_list_of_objectives[1]] / 365.25
+                    Y.append(solution.objective_values[self.ordered_list_of_objectives[1]] / 365.25)
                 elif self.objective_column_headers[self.ordered_list_of_objectives[1]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                    Y = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[1] + 2400000.5).GetTicks()))
+                    Y.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[1] + 2400000.5).GetTicks())))
                 else:
-                    Y = solution.objective_values[self.ordered_list_of_objectives[1]]
+                    Y.append(solution.objective_values[self.ordered_list_of_objectives[1]])
 
                 if len(self.ordered_list_of_objectives) > 2:
                     if self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Flight time (days)' and self.TimeUnit == 0:
-                        Z = solution.objective_values[self.ordered_list_of_objectives[2]] / 365.25
+                        Z.append(solution.objective_values[self.ordered_list_of_objectives[2]] / 365.25)
                     elif self.objective_column_headers[self.ordered_list_of_objectives[2]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                        Z = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[2] + 2400000.5).GetTicks()))
+                        Z.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[2] + 2400000.5).GetTicks())))
                     else:
-                        Z = solution.objective_values[self.ordered_list_of_objectives[2]]
+                        Z.append(solution.objective_values[self.ordered_list_of_objectives[2]])
 
                 if len(self.ordered_list_of_objectives) > 3:
                     if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
-                        C = solution.objective_values[self.ordered_list_of_objectives[3]] / 365.25
+                        C.append(solution.objective_values[self.ordered_list_of_objectives[3]] / 365.25)
                     elif self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                        C = dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[3] + 2400000.5).GetTicks()))
+                        C.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[3] + 2400000.5).GetTicks())))
                     else:
-                        C = solution.objective_values[self.ordered_list_of_objectives[3]]
+                        C.append(solution.objective_values[self.ordered_list_of_objectives[3]])
 
-                if len(self.ordered_list_of_objectives) == 2: #2D
-                    solution.point = self.PopulationAxes.scatter(X, Y, s=20, c='b', marker='o', lw=0, picker=1)
-                elif len(self.ordered_list_of_objectives) == 3: #3D
-                        solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c='b', marker='o', lw=0, picker=1)
-                else: #4D
-                    if self.colorbar is None:
-                        solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
-                        if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
-                            self.colorbar = self.PopulationFigure.colorbar(solution.point, label='Flight time (years)')
-                        elif self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Launch epoch (MJD)' and self.EpochUnit == 0:
-                            self.PopulationAxes.set_xlabel('Launch Epoch (TDB Gregorian)')
-                        else:
-                            self.colorbar = self.PopulationFigure.colorbar(solution.point, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
-                    else:
-                        solution.point = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', lw=0, picker=1)
-                        solution.point.set_clim(vmin = self.lowerbounds[3], vmax = self.upperbounds[3])
-
-
+        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', picker=1)
+        
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
         if len(self.ordered_list_of_objectives) == 4:
-            self.updater = self.PopulationFigure.canvas.mpl_connect('draw_event',self.force_update)
+            self.PopulationFigure.colorbar(solution.points, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
     
     
     def force_update(self, event):
         for solution in self.solutions:
             if solution.Legal_Solution:
-                solution.point.changed()
+                solution.points.changed()
 
     def onpick(self, event):
         ind = event.ind[0]

@@ -1477,7 +1477,7 @@ namespace EMTG
 
             this->DEC_departure = asin(rot_out_vec(2) / V_infinity_in.norm());
         }
-        else if (j == 0 && boundary1_location_code > 0 && options->LV_type >= 0)
+        else if (j == 0 && boundary1_location_code > 0 && (options->LV_type >= 0 || options->LV_type == -2))
             event_type = "launch";
         else if (options->journey_departure_type[j] == 6)
         {
@@ -1603,9 +1603,9 @@ namespace EMTG
             event_type,
             boundary1_name,
             0,
-            (p > 0 ? flyby_altitude : Bradius),
+            ( (p > 0 || options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ? flyby_altitude : Bradius),
             this->Btheta,
-            (p > 0 ? this->flyby_turn_angle : -1),
+            ( (p > 0 || options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4) ? this->flyby_turn_angle : -1),
             this->RA_departure,
             this->DEC_departure,
             this->C3_departure,

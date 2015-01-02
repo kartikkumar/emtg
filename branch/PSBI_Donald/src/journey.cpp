@@ -986,7 +986,7 @@ namespace EMTG
 	{
 
         //if applicable, print the journey prologue
-        if (options->output_dormant_journeys && j > 0 && options->journey_wait_time_bounds[j][1] > 1.0)
+        if (options->output_dormant_journeys && j > 0 && options->journey_wait_time_bounds[j][1] > 1.0 && !(options->journey_departure_type[j] == 3 || options->journey_departure_type[j] == 4 || options->journey_departure_type[j] == 6))
         {
             ++jprint;
             this->output_journey_prologue(options,
