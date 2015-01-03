@@ -1387,7 +1387,7 @@ class MissionOptions(object):
                 outputfile.write(" " + str(self.Journeys[j].journey_arrival_elements_bounds[k]))
         outputfile.write("\n")
         outputfile.write("#journey central body\n")
-        outputfile.write("#use SPICE names, as per http://www-int.stsci.edu/~sontag/spicedocs/req/naif_ids.html\n")
+        outputfile.write("#Must match the name of a Universe file in the Universe folder\n")
         outputfile.write("journey_central_body")
         for j in range(0, self.number_of_journeys):
             outputfile.write(" " + str(self.Journeys[j].journey_central_body))

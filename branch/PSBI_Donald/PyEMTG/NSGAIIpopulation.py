@@ -206,15 +206,17 @@ class NSGAII_outerloop_population(object):
     #method to plot the population
     #input is an ordered list of objectives, [x, y, z, color]. If there are two objectives, a monochrome 2D plot will be shown. If there are three objectives, a monochrome 3D plot will be shown.
     #if there are four, a colored 3D plot will be shown. If there are more than four there will be an error message.
-    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1, FontSize = 10):
+    def plot_population(self, ordered_list_of_objectives, LowerBounds = None, UpperBounds = None, TimeUnit = 1, EpochUnit = 1, FontSize = 10, BaseMarkerSize = 20):
         self.ordered_list_of_objectives = ordered_list_of_objectives
         self.LowerBounds = LowerBounds
         self.UpperBounds = UpperBounds
         self.TimeUnit = TimeUnit
         self.EpochUnit = EpochUnit
+        self.BaseMarkerSize = BaseMarkerSize
+
         #first check to see if the correct number of objective function indices were supplied
-        if len(self.ordered_list_of_objectives) < 2 or len(self.ordered_list_of_objectives) > 4:
-            print "NSGAII_outerloop_population::plot_population ERROR. You must specify between two and four objective functions to plot."
+        if len(self.ordered_list_of_objectives) < 2 or len(self.ordered_list_of_objectives) > 5:
+            print "NSGAII_outerloop_population::plot_population ERROR. You must specify between two and five objective functions to plot."
             return
 
         self.PopulationFigure = matplotlib.pyplot.figure()
@@ -299,6 +301,7 @@ class NSGAII_outerloop_population(object):
         Y = []
         Z = []
         C = []
+        S = []
         for solution in self.solutions:
             if solution.Legal_Solution:
                 if self.objective_column_headers[self.ordered_list_of_objectives[0]] == 'Flight time (days)' and self.TimeUnit == 0:
@@ -331,10 +334,17 @@ class NSGAII_outerloop_population(object):
                     else:
                         C.append(solution.objective_values[self.ordered_list_of_objectives[3]])
 
-        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=20, c=C, marker='o', picker=1)
+
+                #if there is a fifth objective, size the markers to reflect it
+                if len(self.ordered_list_of_objectives) > 4:
+                    S.append(self.BaseMarkerSize * solution.objective_values[self.ordered_list_of_objectives[4]] / (self.upperbounds[4] - self.lowerbounds[4]))
+                else:
+                    S.append(self.BaseMarkerSize)
+
+        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=S, c=C, edgecolors='none', marker='o', picker=1)
         
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
-        if len(self.ordered_list_of_objectives) == 4:
+        if len(self.ordered_list_of_objectives) > 3:
             self.PopulationFigure.colorbar(solution.points, label=self.objective_column_headers[self.ordered_list_of_objectives[3]])
     
     
@@ -379,7 +389,7 @@ class NSGAII_outerloop_population(object):
 
     def generate_body_prevalence_report(self, Universe):
         #this method generates a list of tuples, (BodyName, NumberOfOccurrences)
-        #pass in a Univeres object, return a list of tuples
+        #pass in a Universe object, return a list of tuples
         
         prevalence_report = []
         for body in Universe.bodies:

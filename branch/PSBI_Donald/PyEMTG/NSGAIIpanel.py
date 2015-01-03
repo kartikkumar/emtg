@@ -9,6 +9,7 @@ class NSGAIIPlotOptions:
         self.LowerBounds = []
         self.TimeUnit = 0
         self.EpochUnit = 0
+        self.BaseMarkerSize = 20.0
         self.FontSize = 10.0
 
 class NSGAIIpanel(wx.Panel):
@@ -21,9 +22,10 @@ class NSGAIIpanel(wx.Panel):
         self.Yobjective = 1
         self.Zobjective = 2
         self.Cobjective = 3
+        self.Sobjective = 4
 
-        self.plotoptions.LowerBounds = numpy.zeros(4)
-        self.plotoptions.UpperBounds = 1.0e+50 * numpy.ones(4)
+        self.plotoptions.LowerBounds = numpy.zeros(5)
+        self.plotoptions.UpperBounds = 1.0e+50 * numpy.ones(5)
 
         #first we want an array of [Objective # label, combobox to select objective, lowerbound for objective display, upperbound for objective display]
         #we want one of these rows for every objective in the population file
@@ -98,6 +100,22 @@ class NSGAIIpanel(wx.Panel):
             CaxisSizer.AddMany([caxislabel, self.objective_selectors[-1], self.objective_lowerbound_fields[-1], self.objective_upperbound_fields[-1]])
             AxisOptionsBoxSizer.Add(CaxisSizer)
 
+        #size axis
+        if len(self.NSGAIIpopulation.objective_column_headers) > 4:
+            saxislabel = wx.StaticText(self, -1, "Size axis", size=(100, -1))
+            saxischoices = copy.deepcopy(self.NSGAIIpopulation.objective_column_headers)
+            saxischoices.append('do not display')
+            self.objective_selectors.append(wx.ComboBox(self, -1, choices = saxischoices, style = wx.CB_READONLY, size=(200, -1)))
+            self.objective_selectors[-1].SetSelection(self.Sobjective)
+            self.objective_lowerbound_fields.append(wx.TextCtrl(self, -1, str(0.0)))
+            self.objective_upperbound_fields.append(wx.TextCtrl(self, -1, str(1.0e+50)))
+            self.objective_selectors[-1].Bind(wx.EVT_COMBOBOX, self.ChangeSObjective)
+            self.objective_lowerbound_fields[-1].Bind(wx.EVT_KILL_FOCUS, self.ChangeSLowerBound)
+            self.objective_upperbound_fields[-1].Bind(wx.EVT_KILL_FOCUS, self.ChangeSUpperBound)
+            SaxisSizer = wx.BoxSizer(wx.HORIZONTAL)
+            SaxisSizer.AddMany([saxislabel, self.objective_selectors[-1], self.objective_lowerbound_fields[-1], self.objective_upperbound_fields[-1]])
+            AxisOptionsBoxSizer.Add(SaxisSizer)
+
         #next we want checkboxes for any other plot options
         self.lblTimeUnit = wx.StaticText(self, -1, "Display time unit", size=(200,-1))
         TimeUnitChoices = ['years','days']
@@ -115,12 +133,20 @@ class NSGAIIpanel(wx.Panel):
         EpochUnitSizer = wx.BoxSizer(wx.HORIZONTAL)
         EpochUnitSizer.AddMany([self.lblEpochUnit, self.cmbEpochUnit])
 
+        #marker size control
+        self.lblMarkerSize = wx.StaticText(self, -1, "Base marker size")
+        self.spnctrlMarkerSizeControl = wx.SpinCtrl(self, -1, min=1, max=10000000, initial=20, name="Marker size")
+        self.spnctrlMarkerSizeControl.Bind(wx.EVT_SPINCTRL, self.ChangeMarkerSize)
+
         #font size control
-        FormatBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.lblFontSize = wx.StaticText(self, -1, "Font size")
         self.spnctrlFontSizeControl = wx.SpinCtrl(self, -1, min=1, max=100, initial=10, name="Font size")
-        FormatBoxSizer.AddMany([self.lblFontSize, self.spnctrlFontSizeControl])
         self.spnctrlFontSizeControl.Bind(wx.EVT_SPINCTRL, self.ChangeFontSize)
+        
+        
+        FormatBoxSizer = wx.FlexGridSizer(2,2,5,5)
+        FormatBoxSizer.AddMany([self.lblMarkerSize, self.spnctrlMarkerSizeControl,
+                                self.lblFontSize, self.spnctrlFontSizeControl])
 
 
         self.PlotOptionsBox = wx.StaticBox(self, -1, "Plot Options", size = (300, 300))
@@ -156,6 +182,9 @@ class NSGAIIpanel(wx.Panel):
 
     def ChangeCObjective(self, event):
         self.Cobjective = self.objective_selectors[3].GetSelection()
+    
+    def ChangeSObjective(self, event):
+        self.Cobjective = self.objective_selectors[4].GetSelection()
 
     def ChangeXLowerBound(self, event):
         self.plotoptions.LowerBounds[0] = float(eval(self.objective_lowerbound_fields[0].GetValue()))
@@ -180,12 +209,21 @@ class NSGAIIpanel(wx.Panel):
 
     def ChangeCUpperBound(self, event):
         self.plotoptions.UpperBounds[3] = float(eval(self.objective_upperbound_fields[3].GetValue()))
+        
+    def ChangeSLowerBound(self, event):
+        self.plotoptions.LowerBounds[3] = float(eval(self.objective_lowerbound_fields[4].GetValue()))
+
+    def ChangeSUpperBound(self, event):
+        self.plotoptions.UpperBounds[3] = float(eval(self.objective_upperbound_fields[4].GetValue()))
 
     def ChangeTimeUnit(self, event):
         self.plotoptions.TimeUnit = self.cmbTimeUnit.GetSelection()
 
     def ChangeEpochUnit(self, event):
         self.plotoptions.EpochUnit = self.cmbEpochUnit.GetSelection()
+
+    def ChangeMarkerSize(self, event):
+        self.plotoptions.BaseMarkerSize = self.spnctrlMarkerSizeControl.GetValue()
 
     def ChangeFontSize(self, e):
         self.plotoptions.FontSize = self.spnctrlFontSizeControl.GetValue()
@@ -199,6 +237,11 @@ class NSGAIIpanel(wx.Panel):
             errordlg.ShowModal()
             errordlg.Destroy()
 
+        if self.Sobjective < len(self.NSGAIIpopulation.objective_column_headers) - 1 and self.Cobjective == len(self.NSGAIIpopulation.objective_column_headers):
+            errordlg = wx.MessageDialog(self, "You cannot set the size axis without setting the color axis first", "EMTG Error", wx.OK)
+            errordlg.ShowModal()
+            errordlg.Destroy()
+
         else:
             ordered_list_of_objectives = [self.Xobjective, self.Yobjective]
 
@@ -208,6 +251,9 @@ class NSGAIIpanel(wx.Panel):
             if self.Cobjective < len(self.NSGAIIpopulation.objective_column_headers):
                 ordered_list_of_objectives.append(self.Cobjective)
 
+            if self.Sobjective < len(self.NSGAIIpopulation.objective_column_headers):
+                ordered_list_of_objectives.append(self.Sobjective)
+
             #check for duplicate objectives. If present, throw an error
             s = set()
             if any(obj in s or s.add(obj) for obj in ordered_list_of_objectives):
@@ -216,4 +262,4 @@ class NSGAIIpanel(wx.Panel):
                 errordlg.Destroy()
             
             else:
-                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit, FontSize = self.plotoptions.FontSize)
+                self.NSGAIIpopulation.plot_population(ordered_list_of_objectives, LowerBounds = self.plotoptions.LowerBounds, UpperBounds = self.plotoptions.UpperBounds, TimeUnit = self.plotoptions.TimeUnit, EpochUnit = self.plotoptions.EpochUnit, FontSize = self.plotoptions.FontSize, BaseMarkerSize = self.plotoptions.BaseMarkerSize)

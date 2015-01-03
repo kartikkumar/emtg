@@ -2471,7 +2471,7 @@ namespace EMTG {
 		    }
 		    outputfile << endl;
 		    outputfile << "#journey central body" << endl;
-		    outputfile << "#use SPICE names, as per http://www-int.stsci.edu/~sontag/spicedocs/req/naif_ids.html" << endl;
+		    outputfile << "#Must match the name of a Universe file in the Universe folder" << endl;
 		    outputfile << "journey_central_body";
 		    for (int j=0; j < this->number_of_journeys; ++j)
 			    outputfile << " " << this->journey_central_body[j];
