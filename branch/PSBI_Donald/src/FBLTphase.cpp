@@ -223,7 +223,7 @@ namespace EMTG
 	    double resumeH = time_step_sizes[0]/2.0/Universe->TU;
 	    double resumeError = 1.0e-13;
 
-	    //first initialize the forward integration
+	    //initialize the forward integration
 	    for (int k = 0; k < 7; ++k)
 		    spacecraft_state_forward[k] = state_at_beginning_of_phase[k];
 
@@ -396,13 +396,18 @@ namespace EMTG
                 spacecraft_state_forward[i] = 1.0;
 
 
-            /*
+			/*
             //before we propagate with derivatives, let's do a "mini finite differencing" check
+			//NOTE: NOT set up to work with coasts presently
             double control_perturbation = 1.0e-6;
             double dstate_du[7][3]; //indexed as [state][control]
             vector<double> reference_control = this->control[step];
-            double spacecraft_state_forward_prop_plus[11 + 11 * 11];
-            double spacecraft_state_forward_prop_minus[11 + 11 * 11];
+            std::vector <double> spacecraft_state_forward_prop_plus(11 + 11 * 11, 0.0);
+            std::vector <double> spacecraft_state_forward_prop_minus(11 + 11 * 11, 0.0);
+
+			EMTG::math::Matrix <double> dspacecraft_state_forward_prop_plusdTOF(7, 2, 0.0);
+			EMTG::math::Matrix <double> dspacecraft_state_forward_prop_minusdTOF(7, 2, 0.0);
+
             for (size_t cindex = 0; cindex < 3; ++cindex)
             {
                 vector<double> control_minus = reference_control;
@@ -417,11 +422,15 @@ namespace EMTG
                 spacecraft_state_forward[i] = 1.0;
 
                 integrator->adaptive_step_int(spacecraft_state_forward,
+											dspacecraft_state_forwarddTOF,
                                             spacecraft_state_forward_prop_plus,
-                                            control_plus.data(),
+											dspacecraft_state_forward_prop_plusdTOF,
+                                            control_plus,
                                             (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+											dcurrent_epochdTOF,
                                             X[0],
                                             time_step_sizes[step] / Universe->TU,
+											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
                                             1.0e-8,
@@ -445,11 +454,15 @@ namespace EMTG
                 spacecraft_state_forward[i] = 1.0;
 
                 integrator->adaptive_step_int(spacecraft_state_forward,
+											dspacecraft_state_forwarddTOF,
                                             spacecraft_state_forward_prop_minus,
-                                            control_minus.data(),
+											dspacecraft_state_forward_prop_minusdTOF,
+                                            control_minus,
                                             (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+											dcurrent_epochdTOF,
                                             X[0],
                                             time_step_sizes[step] / Universe->TU,
+											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
                                             1.0e-8,
@@ -467,9 +480,14 @@ namespace EMTG
                                             DummyControllerPointer);
 
                 for (size_t stateindex = 0; stateindex < 7; ++stateindex)
-                dstate_du[stateindex][cindex] = (spacecraft_state_forward_prop_plus[stateindex] - spacecraft_state_forward_prop_minus[stateindex]) / (2.0 * control_perturbation);
+					dstate_du[stateindex][cindex] = (spacecraft_state_forward_prop_plus[stateindex] - spacecraft_state_forward_prop_minus[stateindex]) / (2.0 * control_perturbation);
             }
-            */
+            
+			*/
+
+
+
+
             //now generate the actual STM
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_forward[i] = 0.0;
@@ -517,7 +535,7 @@ namespace EMTG
                 }
             }
             
-            /*
+			/*
             //finally, compare the propagated STM to the central differenced STM
             std::cout << "Difference between propagated STM and central differenced STM, forward step " << step << std::endl;
             std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
@@ -592,15 +610,20 @@ namespace EMTG
             }
         }
 		
-        /*
+		/*
         //now let's repeat the integration inside a finite difference loop to check the multiplication of the STMs
         double control_perturbation = 1.0e-6;
-        vector<double> temp_control;
+        std::vector<double> temp_control;
         double dstate_du[7][3]; //indexed as [state][control]
-        double spacecraft_state_forward_prop_plus[11 + 11 * 11];
-        double spacecraft_state_forward_prop_plus_2[11 + 11 * 11];
-        double spacecraft_state_forward_prop_minus[11 + 11 * 11];
-        double spacecraft_state_forward_prop_minus_2[11 + 11 * 11];
+		std::vector<double> spacecraft_state_forward_prop_plus(11 + 11 * 11, 0.0);
+		std::vector<double> spacecraft_state_forward_prop_plus_2(11 + 11 * 11, 0.0);
+		std::vector<double> spacecraft_state_forward_prop_minus(11 + 11 * 11, 0.0);
+		std::vector<double> spacecraft_state_forward_prop_minus_2(11 + 11 * 11, 0.0);
+
+		EMTG::math::Matrix <double> dspacecraft_state_forward_prop_plusdTOF(7, 2, 0.0);
+		EMTG::math::Matrix <double> dspacecraft_state_forward_prop_plus_2dTOF(7, 2, 0.0);
+		EMTG::math::Matrix <double> dspacecraft_state_forward_prop_minusdTOF(7, 2, 0.0);
+		EMTG::math::Matrix <double> dspacecraft_state_forward_prop_minus_2dTOF(7, 2, 0.0);
 
         for (size_t cindex = 0; cindex < 3; ++cindex)
         {
@@ -641,11 +664,15 @@ namespace EMTG
                 //propagate the spacecraft to the end of the FBLT step using the control unit vector
 
                 integrator->adaptive_step_int(spacecraft_state_forward_prop_plus,
+												dspacecraft_state_forward_prop_plusdTOF,
                                                 spacecraft_state_forward_prop_plus_2,
-                                                temp_control.data(),
+												dspacecraft_state_forward_prop_plus_2dTOF,
+                                                temp_control,
                                                 (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+												dcurrent_epochdTOF,
                                                 X[0],
                                                 time_step_sizes[step] / Universe->TU,
+												dsegment_timedTOF,
                                                 &resumeH,
                                                 &resumeError,
                                                 1.0e-8,
@@ -688,11 +715,15 @@ namespace EMTG
                 //propagate the spacecraft to the end of the FBLT step using the control unit vector
 
                 integrator->adaptive_step_int(spacecraft_state_forward_prop_minus,
+												dspacecraft_state_forward_prop_minusdTOF,
                                                 spacecraft_state_forward_prop_minus_2,
-                                                temp_control.data(),
+												dspacecraft_state_forward_prop_minus_2dTOF,
+                                                temp_control,
                                                 (phase_start_epoch + phase_time_elapsed_forward) / Universe->TU,
+												dcurrent_epochdTOF,
                                                 X[0],
                                                 time_step_sizes[step] / Universe->TU,
+												dsegment_timedTOF,
                                                 &resumeH,
                                                 &resumeError,
                                                 1.0e-8,
@@ -721,8 +752,8 @@ namespace EMTG
         //finally, compare the propagated STM to the central differenced STM
         std::cout << "Difference between propagated STM and central differenced STM after " << options->num_timesteps / 2 << " steps" << std::endl;
         std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
-        vector<string> statenames;
-        vector<string> cnames;
+        std::vector<string> statenames;
+        std::vector<string> cnames;
         statenames.push_back("x");
         statenames.push_back("y");
         statenames.push_back("z");
@@ -777,8 +808,10 @@ namespace EMTG
         }
 
         getchar();
-        */
+        
         //end STM checker
+
+		*/
         
 	    //Step 6.3: propagate backward
 	    phase_time_elapsed_backward = 0.0;
@@ -950,13 +983,18 @@ namespace EMTG
 			for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
 				spacecraft_state_backward[i] = 1.0;
 
-            /*
+            
+			/*
             //before we propagate with derivatives, let's do a "mini finite differencing" check
             double control_perturbation = 1.0e-6;
             double dstate_du[7][3]; //indexed as [state][control]
-            vector<double> reference_control = this->control[backstep];
-            double spacecraft_state_backward_prop_plus[11 + 11 * 11];
-            double spacecraft_state_backward_prop_minus[11 + 11 * 11];
+            std::vector<double> reference_control = this->control[backstep];
+            std::vector <double> spacecraft_state_backward_prop_plus(11 + 11 * 11, 0.0);
+            std::vector <double> spacecraft_state_backward_prop_minus(11 + 11 * 11, 0.0);
+
+			EMTG::math::Matrix <double> dspacecraft_state_backward_prop_plusdTOF(7, 2, 0.0);
+			EMTG::math::Matrix <double> dspacecraft_state_backward_prop_minusdTOF(7, 2, 0.0);
+
             for (size_t cindex = 0; cindex < 3; ++cindex)
             {
                 vector<double> control_minus = reference_control;
@@ -971,11 +1009,15 @@ namespace EMTG
                     spacecraft_state_backward[i] = 1.0;
 
                 integrator->adaptive_step_int(spacecraft_state_backward,
+											dspacecraft_state_backwarddTOF,
                                             spacecraft_state_backward_prop_plus,
-                                            control_plus.data(),
+											dspacecraft_state_backward_prop_plusdTOF,
+                                            control_plus,
                                             (phase_end_epoch - phase_time_elapsed_backward) / Universe->TU,
+											dcurrent_epochdTOF,
                                             X[0],
                                             -time_step_sizes[backstep] / Universe->TU,
+											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
                                             1.0e-8,
@@ -999,11 +1041,15 @@ namespace EMTG
                     spacecraft_state_backward[i] = 1.0;
 
                 integrator->adaptive_step_int(spacecraft_state_backward,
+											dspacecraft_state_backwarddTOF,
                                             spacecraft_state_backward_prop_minus,
-                                            control_minus.data(),
+											dspacecraft_state_backward_prop_minusdTOF,
+                                            control_minus,
                                             (phase_end_epoch - phase_time_elapsed_backward) / Universe->TU,
+											dcurrent_epochdTOF,
                                             X[0],
                                             -time_step_sizes[backstep] / Universe->TU,
+											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
                                             1.0e-8,
@@ -1064,7 +1110,8 @@ namespace EMTG
 					++statecount;
 				}
 			}
-            /*
+            
+			/*
             //finally, compare the propagated STM to the central differenced STM
             std::cout << "Difference between propagated STM and central differenced STM, backward step " << step << std::endl;
             std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
