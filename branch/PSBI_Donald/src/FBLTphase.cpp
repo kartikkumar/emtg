@@ -20,6 +20,8 @@
 
 #include "SpiceUsr.h"
 
+#define ENABLE_FBLT_INSTRUMENTATION
+
 
 
 namespace EMTG 
@@ -396,7 +398,8 @@ namespace EMTG
                 spacecraft_state_forward[i] = 1.0;
 
 
-			/*
+#ifdef ENABLE_FBLT_INSTRUMENTATION
+
             //before we propagate with derivatives, let's do a "mini finite differencing" check
 			//NOTE: NOT set up to work with coasts presently
             double control_perturbation = 1.0e-6;
@@ -482,18 +485,13 @@ namespace EMTG
                 for (size_t stateindex = 0; stateindex < 7; ++stateindex)
 					dstate_du[stateindex][cindex] = (spacecraft_state_forward_prop_plus[stateindex] - spacecraft_state_forward_prop_minus[stateindex]) / (2.0 * control_perturbation);
             }
-            
-			*/
-
-
-
 
             //now generate the actual STM
             for (size_t i = this->STMrows; i < this->num_states; ++i)
                 spacecraft_state_forward[i] = 0.0;
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
-
+#endif
 			 
 			
 
@@ -535,7 +533,7 @@ namespace EMTG
                 }
             }
             
-			/*
+#ifdef ENABLE_FBLT_INSTRUMENTATION
             //finally, compare the propagated STM to the central differenced STM
             std::cout << "Difference between propagated STM and central differenced STM, forward step " << step << std::endl;
             std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
@@ -565,7 +563,7 @@ namespace EMTG
             }
             getchar();
             //end local STM check
-            */
+#endif
 
             //copy the state over
             for (size_t state = 0; state < 11; ++state)
@@ -610,7 +608,7 @@ namespace EMTG
             }
         }
 		
-		/*
+#ifdef ENABLE_FBLT_INSTRUMENTATION
         //now let's repeat the integration inside a finite difference loop to check the multiplication of the STMs
         double control_perturbation = 1.0e-6;
         std::vector<double> temp_control;
@@ -811,7 +809,7 @@ namespace EMTG
         
         //end STM checker
 
-		*/
+#endif
         
 	    //Step 6.3: propagate backward
 	    phase_time_elapsed_backward = 0.0;
@@ -984,7 +982,7 @@ namespace EMTG
 				spacecraft_state_backward[i] = 1.0;
 
             
-			/*
+#ifdef ENABLE_FBLT_INSTRUMENTATION
             //before we propagate with derivatives, let's do a "mini finite differencing" check
             double control_perturbation = 1.0e-6;
             double dstate_du[7][3]; //indexed as [state][control]
@@ -1069,7 +1067,7 @@ namespace EMTG
                 for (size_t stateindex = 0; stateindex < 7; ++stateindex)
                     dstate_du[stateindex][cindex] = (spacecraft_state_backward_prop_plus[stateindex] - spacecraft_state_backward_prop_minus[stateindex]) / (2.0 * control_perturbation);
             }
-            */
+#endif
 		
 		    //step 6.3.3 propagate the spacecraft to the midpoint of the step using the control unit vector
 		    integrator->adaptive_step_int(	spacecraft_state_backward,
@@ -1111,7 +1109,7 @@ namespace EMTG
 				}
 			}
             
-			/*
+#ifdef ENABLE_FBLT_INSTRUMENTATION
             //finally, compare the propagated STM to the central differenced STM
             std::cout << "Difference between propagated STM and central differenced STM, backward step " << step << std::endl;
             std::cout << "Written as: index, propagated, differenced, absolute error, relative error" << std::endl;
@@ -1142,7 +1140,7 @@ namespace EMTG
             }
             getchar();
             //end local STM check
-            */
+#endif
 
             //copy the state over
             for (size_t state = 0; state < 11; ++state)
