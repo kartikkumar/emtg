@@ -325,6 +325,8 @@ class NSGAII_outerloop_population(object):
                         Z.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[2] + 2400000.5).GetTicks())))
                     else:
                         Z.append(solution.objective_values[self.ordered_list_of_objectives[2]])
+                else:
+                    Z.append(0.0)
 
                 if len(self.ordered_list_of_objectives) > 3:
                     if self.objective_column_headers[self.ordered_list_of_objectives[3]] == 'Flight time (days)' and self.TimeUnit == 0:
@@ -333,6 +335,8 @@ class NSGAII_outerloop_population(object):
                         C.append(dates.date2num(datetime.datetime.fromtimestamp(wx.DateTimeFromJDN(solution.objective_values[3] + 2400000.5).GetTicks())))
                     else:
                         C.append(solution.objective_values[self.ordered_list_of_objectives[3]])
+                else:
+                    C.append(0.0)
 
 
                 #if there is a fifth objective, size the markers to reflect it
@@ -341,7 +345,7 @@ class NSGAII_outerloop_population(object):
                 else:
                     S.append(self.BaseMarkerSize)
 
-        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=S, c=C, edgecolors='none', marker='o', picker=1)
+        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=S, c=C, alpha=1.0, edgecolors='none', marker='o', picker=1)
         
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
         if len(self.ordered_list_of_objectives) > 3:
