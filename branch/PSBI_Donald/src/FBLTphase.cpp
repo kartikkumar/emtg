@@ -87,7 +87,7 @@ namespace EMTG
         this->number_of_active_engines.resize(options.num_timesteps);
 
         //vector to track the state and derivatives of the central body
-        vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
+        std::vector<double> central_body_state_dummy(options.derivative_type > 2 ? 12 : 6);
         for (size_t step = 0; step < options.num_timesteps; ++step)
             this->central_body_state_mks.push_back(central_body_state_dummy);
 
@@ -132,8 +132,8 @@ namespace EMTG
             this->detect_terminal_coast = false;
 		
         //vector to track the distance from the central body for each step
-        vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
-        vector< vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummy);
+        std::vector<double> dummy_distance_vector(options.journey_distance_constraint_number_of_bodies[j]);
+        std::vector< std::vector <double> > body_position_dummy(options.journey_distance_constraint_number_of_bodies[j], vector3_dummy);
         for (int step = 0; step < options.num_timesteps; ++step)
         {
             this->distance_from_body.push_back(dummy_distance_vector);
