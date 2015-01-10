@@ -218,9 +218,9 @@ namespace EMTG { namespace Astrodynamics {
 		double * dPdt,
 		double * dFSRPdr,
 		EMTG::math::Matrix<double> & A,
-		vector<double> & dagravdRvec,
-		vector<double> & dagravdtvec,
-        vector<double> & central_body_state_mks)
+		std::vector<double> & dagravdRvec,
+		std::vector<double> & dagravdtvec,
+        std::vector<double> & central_body_state_mks)
 	{
 		//Note: all thrusts are returned in Newtons
 
@@ -275,7 +275,7 @@ namespace EMTG { namespace Astrodynamics {
 		double mass_kg = spacecraft_state_relative_to_central_body_in_km[6];
 		double mass_normalized = spacecraft_state_relative_to_central_body_in_km[6] / options->maximum_mass;
 
-        
+		/*
 		double r_pert = 1.0e-6;
 		double Pforward;
 		double Pbackward;
@@ -284,7 +284,7 @@ namespace EMTG { namespace Astrodynamics {
         double mdotforward;
         double mdotbackward;
 		double rtemp = spacecraft_distance_from_sun_in_AU;
-        /*
+        
 		for (size_t loopCount = 0; loopCount < 3; ++loopCount)
 		{
 

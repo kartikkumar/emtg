@@ -98,6 +98,7 @@ namespace EMTG
 		this->STMrows = 11;
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
+		this->intTol = 1.0e-8;
 	    integrator = new EMTG::integration::rk8713M(num_states, options.number_of_phases[j]);
 
 	    //size the time step vector
@@ -178,6 +179,8 @@ namespace EMTG
 	    double temp_available_power;
 	    double temp_active_power;
 	    int temp_number_of_active_engines;
+
+		
 		
 	    //******************************************************************
 	    //Steps 1-4: Process the left boundary condition
@@ -313,7 +316,7 @@ namespace EMTG
 											dsegment_timedTOF,
 										    &resumeH,
 										    &resumeError,
-										    1.0e-8,
+											this->intTol,
 										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &temp_available_thrust,
                                             &temp_available_mass_flow_rate,
@@ -436,7 +439,7 @@ namespace EMTG
 											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
-                                            1.0e-8,
+											this->intTol,
                                             EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &available_thrust[step],
                                             &available_mass_flow_rate[step],
@@ -468,7 +471,7 @@ namespace EMTG
 											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
-                                            1.0e-8,
+											this->intTol,
                                             EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &available_thrust[step],
                                             &available_mass_flow_rate[step],
@@ -507,7 +510,7 @@ namespace EMTG
 										   dsegment_timedTOF,
                                            &resumeH,
                                            &resumeError,
-                                           1.0e-8,
+										   this->intTol,
                                            EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                            &available_thrust[step],
                                            &available_mass_flow_rate[step],
@@ -673,7 +676,7 @@ namespace EMTG
 												dsegment_timedTOF,
                                                 &resumeH,
                                                 &resumeError,
-                                                1.0e-8,
+												this->intTol,
                                                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                                 &available_thrust[step],
                                                 &available_mass_flow_rate[step],
@@ -724,7 +727,7 @@ namespace EMTG
 												dsegment_timedTOF,
                                                 &resumeH,
                                                 &resumeError,
-                                                1.0e-8,
+												this->intTol,
                                                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                                 &available_thrust[step],
                                                 &available_mass_flow_rate[step],
@@ -896,7 +899,7 @@ namespace EMTG
 											dsegment_timedTOF,
 										    &resumeH,
 										    &resumeError,
-										    1.0e-8,
+											this->intTol,
                                             EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &temp_available_thrust,
                                             &temp_available_mass_flow_rate,
@@ -1018,7 +1021,7 @@ namespace EMTG
 											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
-                                            1.0e-8,
+											this->intTol,
                                             EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &available_thrust[backstep],
                                             &available_mass_flow_rate[backstep],
@@ -1050,7 +1053,7 @@ namespace EMTG
 											dsegment_timedTOF,
                                             &resumeH,
                                             &resumeError,
-                                            1.0e-8,
+											this->intTol,
                                             EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                             &available_thrust[backstep],
                                             &available_mass_flow_rate[backstep],
@@ -1082,7 +1085,7 @@ namespace EMTG
 											dsegment_timedTOF,
 										    &resumeH,
 										    &resumeError,
-										    1.0e-8,
+											this->intTol,
 										    EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
 										    &available_thrust[backstep],
 										    &available_mass_flow_rate[backstep],
@@ -1569,7 +1572,7 @@ namespace EMTG
 											dsegment_timedTOF,
                 &resumeH,
                 &resumeError,
-                1.0e-8,
+				this->intTol,
                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                 &temp_thrust,
                 &temp_mdot,
@@ -1608,7 +1611,7 @@ namespace EMTG
 											dsegment_timedTOF,
                 &resumeH,
                 &resumeError,
-                1.0e-8,
+				this->intTol,
                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                 &temp_thrust,
                 &temp_mdot,
@@ -1705,7 +1708,7 @@ namespace EMTG
 				                            dsegment_timedTOF,
                 &resumeH,
                 &resumeError,
-                1.0e-8,
+				this->intTol,
                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                 &temp_thrust,
                 &temp_mdot,
@@ -1746,7 +1749,7 @@ namespace EMTG
 											dsegment_timedTOF,
                 &resumeH,
                 &resumeError,
-                1.0e-8,
+				this->intTol,
                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                 &temp_thrust,
                 &temp_mdot,
@@ -1895,7 +1898,7 @@ namespace EMTG
 											dsegment_timedTOF,
                 &resumeH,
                 &resumeError,
-                1.0e-8,
+				this->intTol,
                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                 &temp_thrust,
                 &temp_mdot,
@@ -2321,7 +2324,7 @@ namespace EMTG
         while (time_remaining > 0.0)
         {
             double step_time = time_remaining > 86400.0 ? 86400.0 : time_remaining;
-            double resumeError = 1.0e-8;
+			double resumeError = this->intTol;
             double resumeH = step_time / Universe.TU;
 
 			//I DON'T THINK THIS WILL WORK IN IT'S CURRENT FORM....CURRENT STATE MUST BE LENGTH 132
@@ -2337,7 +2340,7 @@ namespace EMTG
 												  dsegment_timedTOF,
                                                 &resumeH,
                                                 &resumeError,
-                                                1.0e-8,
+												this->intTol,
                                                 EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
                                                 &available_thrust,
                                                 &available_mass_flow_rate,
