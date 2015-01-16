@@ -17,7 +17,6 @@
 #include "file_utilities.h"
 #include "universe.h"
 #include "EMTG_math.h"
-#include "rk8713M.h"
 #include "interpolator.h"
 
 #include "SpiceUsr.h"

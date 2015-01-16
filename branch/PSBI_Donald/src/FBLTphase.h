@@ -13,7 +13,12 @@
 #include "TwoPointShootingPhase.h"
 #include "journey.h"
 #include "missionoptions.h"
-#include "rk8713M.h"
+#ifdef AD_INSTRUMENTATION
+	#include "rk7813M_templated.h"
+	#include "GSAD.h"
+#else
+	#include "rk8713M.h"
+#endif
 #include "equations_of_motion.h"
 #include "universe.h"
 
@@ -149,7 +154,13 @@ public:
 
 	//integrator
 	double intTol;
-	EMTG::integration::rk8713M *integrator;
+
+#ifdef AD_INSTRUMENTATION
+	EMTG::integration::rk8713M<GSAD::adouble> * integrator;
+#else
+	EMTG::integration::rk8713M<double> * integrator;
+	//USE THIS INSTEAD IF NOT USING A TEMPLATED INTEGRATOR EMTG::integration::rk8713M *integrator;
+#endif
 
     //dummy controller pointer
     void* DummyControllerPointer;

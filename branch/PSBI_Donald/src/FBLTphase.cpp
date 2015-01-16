@@ -99,8 +99,12 @@ namespace EMTG
 		this->STMcolumns = 11;
 		this->num_states = 11 + 11 * 11;
 		this->intTol = 1.0e-8;
-	    integrator = new EMTG::integration::rk8713M(num_states, options.number_of_phases[j]);
 
+#ifdef AD_INSTRUMENTATION
+	    integrator = new EMTG::integration::rk8713M<GSAD::adouble>(num_states, options.number_of_phases[j]);
+#else
+		integrator = new EMTG::integration::rk8713M<double>(num_states, options.number_of_phases[j]);
+#endif
 	    //size the time step vector
 	    this->time_step_sizes.resize(options.num_timesteps);
 
@@ -278,6 +282,42 @@ namespace EMTG
 		dcurrent_epochdTOF[0] = 0.0;
 		dcurrent_epochdTOF[1] = 1.0;
 
+#ifdef AD_INSTRUMENTATION
+		//AD wrapper...create adouble versions of everthing 
+
+		std::vector <GSAD::adouble> spacecraft_state_forward_AD;
+		EMTG::math::Matrix <GSAD::adouble> dspacecraft_state_forwarddTOF_AD;
+		std::vector <GSAD::adouble> spacecraft_state_end_coast_AD;
+		EMTG::math::Matrix <GSAD::adouble> dspacecraft_state_end_coastdTOF_AD;
+		std::vector <GSAD::adouble> empty_vector_AD;
+		std::vector <GSAD::adouble> dcurrent_epochdTOF_AD;
+		GSAD::adouble dsegment_timedTOF_AD = dsegment_timedTOF;
+
+		for (size_t k = 0; k < spacecraft_state_forward.size(); ++k)
+			spacecraft_state_forward_AD[k] = spacecraft_state_forward[k];
+			
+
+		for (size_t k = 0; k < 7; ++k)
+		{
+			dspacecraft_state_forwarddTOF_AD(k, 0) = dspacecraft_state_forwarddTOF(k, 0);
+			dspacecraft_state_forwarddTOF_AD(k, 1) = dspacecraft_state_forwarddTOF(k, 1);
+
+			dspacecraft_state_end_coastdTOF_AD(k, 0) = dspacecraft_state_end_coastdTOF(k, 0);
+			dspacecraft_state_end_coastdTOF_AD(k, 1) = dspacecraft_state_end_coastdTOF(k, 1);
+		}
+
+		for (size_t k = 0; k < empty_vector.size(); ++k)
+			empty_vector_AD[k] = empty_vector[k];
+
+		for (size_t k = 0; k < dcurrent_epochdTOF.size(); ++k)
+			dcurrent_epochdTOF_AD[k] = dcurrent_epochdTOF[k];
+#endif
+
+
+
+
+
+
 	    //Step 6.2.0.1 if there is an initial coast, propagate through it
 	    if (detect_initial_coast)
 	    {
@@ -304,6 +344,37 @@ namespace EMTG
             for (size_t i = this->STMrows; i < this->num_states; i = i + STMrows + 1)
                 spacecraft_state_forward[i] = 1.0;
 
+#ifdef AD_INSTRUMENTATION
+			
+			//use the templated integrator
+
+			integrator->adaptive_step_int(	spacecraft_state_forward_AD,
+				dspacecraft_state_forwarddTOF_AD,
+				spacecraft_state_end_coast_AD,
+				dspacecraft_state_end_coastdTOF_AD,
+				empty_vector_AD, 
+				(phase_start_epoch) / Universe->TU,
+				dcurrent_epochdTOF_AD,
+				X[0],
+				initial_coast_duration / Universe->TU,
+				dsegment_timedTOF_AD,
+				&resumeH,
+				&resumeError,
+				this->intTol,
+				EMTG::Astrodynamics::EOM::EOM_inertial_continuous_thrust,
+				&temp_available_thrust,
+				&temp_available_mass_flow_rate,
+				&temp_available_Isp,
+				&temp_available_power,
+				&temp_active_power,
+				&temp_number_of_active_engines,
+				this->STMrows,
+				this->STMcolumns,
+				(void*)options,
+				(void*)Universe,
+				DummyControllerPointer      );
+#else
+
 		    integrator->adaptive_step_int(	spacecraft_state_forward,
 											dspacecraft_state_forwarddTOF,
                                             spacecraft_state_end_coast,
@@ -329,6 +400,7 @@ namespace EMTG
 										    (void*)options,
 										    (void*)Universe,
 										    DummyControllerPointer      );	
+#endif
 
             //Store the initial coast's first half STM
             int statecount = this->STMrows;
@@ -352,6 +424,19 @@ namespace EMTG
 				spacecraft_state_forward = spacecraft_state_end_coast;
 
 			dspacecraft_state_forwarddTOF = dspacecraft_state_end_coastdTOF;
+
+
+#ifdef AD_INSTRUMENTATION
+			for (size_t k = 0; k < spacecraft_state_forward.size(); ++k)
+			{
+				spacecraft_state_forward_AD[k] = spacecraft_state_forward[k];
+				spacecraft_state_end_coast_AD[k] = spacecraft_state_end_coast[k];
+			}
+
+			for (size_t i = 0; i < 2; ++i)
+				dcurrent_epochdTOF_AD[i] += dsegment_timedTOF_AD;
+#endif
+
         }
 
 
