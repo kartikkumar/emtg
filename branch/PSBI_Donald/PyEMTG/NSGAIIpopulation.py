@@ -99,13 +99,15 @@ class NSGAII_outerloop_solution(object):
                     self.objective_values.append(float(input_cell[column_index]))
                 elif column_headers[column_index] == 'Thruster preference' \
                     or column_headers[column_index] == 'Number of thrusters' \
-		            or column_headers[column_index] == 'Launch vehicle preference':
-                    self.objective_values.append(int(input_cell[column_index]))
+		            or column_headers[column_index] == 'Launch vehicle preference' \
+                    or column_headers[column_index] == 'Point-group value':
+                    if float(input_cell[column_index]) < 1.0e+99:
+                        self.objective_values.append(int(input_cell[column_index]))
+                    else:
+                        self.objective_values.append(1.0e+100)
                 elif column_headers[column_index] == 'Delivered mass to final target (kg)' \
                     or column_headers[column_index] == 'Final journey mass increment (for maximizing sample return)':
                     self.objective_values.append(-float(input_cell[column_index]))
-                elif column_headers[column_index] == 'Point-group value':
-                    self.objective_values.append(int(input_cell[column_index]))
                 elif column_headers[column_index].find('Gene ') > 0:
                     self.Xouter.append(int(input_cell[column_index]))
 
@@ -345,7 +347,7 @@ class NSGAII_outerloop_population(object):
                 else:
                     S.append(self.BaseMarkerSize)
 
-        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=S, c=C, alpha=1.0, edgecolors='none', marker='o', picker=1)
+        solution.points = self.PopulationAxes.scatter(X, Y, Z, s=S, c=C, marker='o', edgecolors='none', picker=1)
         
         self.picker = self.PopulationFigure.canvas.mpl_connect('pick_event', self.onpick)
         if len(self.ordered_list_of_objectives) > 3:

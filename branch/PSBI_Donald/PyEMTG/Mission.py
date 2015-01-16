@@ -245,9 +245,6 @@ class Mission(object):
                 CurrentJourney.OutputSTKEphemeris(MissionPanel)
 
     def BubbleSearch(self, BubbleOptions, outputfilename):
-        
-
-
         bubblefile = open(outputfilename, mode = 'w')
         bubblefile.write('#Bubble file for ' + self.mission_name + '\n')
         bubblefile.write('#\n')
