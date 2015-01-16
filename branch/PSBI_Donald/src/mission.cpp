@@ -1428,6 +1428,7 @@ int mission::evaluate(  double* X,
 	//test for errors
 	if (failed_c())//test for SPICE errors
 	{
+        std::cout << "SPICE error detected" << std::endl;
 		F[0] = 1.0e+20;
 		reset_c();
 	}

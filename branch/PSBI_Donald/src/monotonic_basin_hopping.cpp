@@ -247,6 +247,8 @@ namespace EMTG { namespace Solvers {
         //turn on the feasible point finder if it is enabled
         if (this->Problem->options.ACE_feasible_point_finder)
             this->feasible_point_finder_active = true;
+        else
+            this->feasible_point_finder_active = false;
 
 		//generate a new random trial point
 		if (Problem->options.MBH_zero_control_initial_guess > 0)

@@ -76,7 +76,10 @@ namespace EMTG {namespace Astrodynamics {
 			double LT_dump;
 			spkez_c (spice_ID, reference_epoch - (51544.5 * 86400.0), "J2000", "NONE", central_body_spice_ID, temp_state, &LT_dump);
 			if (failed_c())
+			{
+				cout << "Warning, body " << this->name << " is not defined in the kernel pool at reference epoch " << this->reference_epoch << endl;
 				reset_c();
+			}
 
 
 			if (fabs(temp_state[0]) > 1.0e-6 && fabs(temp_state[0]) < 1.0e+50)
