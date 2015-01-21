@@ -40,6 +40,7 @@ using namespace boost::filesystem;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 
+/*
 #ifdef _STONEAGECplusplus
 #include <execinfo.h>
 #include <signal.h>
@@ -56,17 +57,19 @@ void handler(int sig) {
   exit(1);
 }
 #endif
+*/
 
 int main(int argc, char* argv[]) 
 {
 	//delete the fort if present
+	/*
 #ifndef _STONEAGECplusplus
 	fs::path fort(L"fort.1"); 
 	fs::remove(fort);
 #else
 	signal(SIGSEGV, handler);
 #endif
-
+	*/
 
 	cout << "program starting" << endl;
 

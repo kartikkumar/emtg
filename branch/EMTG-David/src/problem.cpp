@@ -10,6 +10,7 @@
 #include "mission.h"
 #include "monotonic_basin_hopping.h"
 #include "AdaptiveConstrainedDiffEvolve.h"
+#include "testAlg1.h"
 #include "EMTG_math.h"
 
 
@@ -214,6 +215,22 @@ namespace EMTG {
 						cout << "EMTG::Integrator failure" << endl;
 					F[0] = EMTG::math::LARGE;
 				}
+
+				break;
+			}
+		case 5: //run TestAlg1
+			{
+				EMTG::Solvers::TestAlg1 solver(this);
+
+				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
+				solver.Evolve();
+				/*double bestJ = EMTG::math::LARGE;
+				bestJ = solver.BestObjectiveValue;
+				this->unscale(solver.BestX.data());
+				this->Xopt = X;
+				this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+
+				this->output();*/
 
 				break;
 			}

@@ -127,8 +127,8 @@ namespace EMTG {
                         //cout << "H2 \n"; //remove
                         double T0 = TOF20;
                         double T1 = TOF100;
-                        double k_check = pow((TOF100*(TOF20 - TOF) * 10 - TOF20*sqrt(20)*(TOF100 - TOF)) / TOF*(TOF20 - TOF100), 2); //remove
-                        k = ((T1*(T0 - TOF)*10.0 - T0*sqrt(20)*(T1 - TOF)) / (TOF*(T0 - T1))) * ((T1*(T0 - TOF)*10.0 - T0*sqrt(20)*(T1 - TOF)) / (TOF*(T0 - T1)));
+                        double k_check = pow((TOF100*(TOF20 - TOF) * 10 - TOF20*sqrt(20.0)*(TOF100 - TOF)) / TOF*(TOF20 - TOF100), 2); //remove
+                        k = ((T1*(T0 - TOF)*10.0 - T0*sqrt(20.0)*(T1 - TOF)) / (TOF*(T0 - T1))) * ((T1*(T0 - TOF)*10.0 - T0*sqrt(20.0)*(T1 - TOF)) / (TOF*(T0 - T1)));
                     }
                 }
                 else if (Nrev >= 1.0) //a multi-revolution elliptical orbit is desired
