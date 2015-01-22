@@ -364,6 +364,9 @@ namespace EMTG
 		double dVarrival[3]; //arrival deltaV vector
 		double current_mass_increment; //count up the mass increments preceding this phase
 		double mission_initial_mass_multiplier;
+		
+		//index information
+		int first_X_entry_in_phase;
 
 		//fields containing information about the endpoints
 		int boundary1_location_code; //integer code representing the first boundary point in the phase
