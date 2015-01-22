@@ -597,7 +597,7 @@ sequence 1
 check_derivatives 0
 #which inner loop solver to run?
 #0: none, evaluate trialX, 1: evaluate a batch of decision vectors, 2: run MBH, 3: run constrained DE, 4: run SNOPT using trialX as initial guess
-run_inner_loop 2
+run_inner_loop 5
 #trial decision vector
 #trialX
 trialX
