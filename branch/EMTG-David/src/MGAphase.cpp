@@ -755,7 +755,7 @@ namespace EMTG
 	    stringstream prefixstream;
 	    prefixstream << "j" << j << "p" << p << ": ";
 	    string prefix = prefixstream.str();
-	    int first_X_entry_in_phase = Xupperbounds->size();
+	    this->first_X_entry_in_phase = Xupperbounds->size();
 
 	    //first, we need to know if we are the first phase in the journey
 	    if (p == 0)

@@ -149,7 +149,7 @@ namespace EMTG
         stringstream prefixstream;
         prefixstream << "j" << j << "p" << p << ": ";
         string prefix = prefixstream.str();
-        int first_X_entry_in_phase = Xupperbounds->size();
+        this->first_X_entry_in_phase = Xupperbounds->size();
 
         //initialize an array of strings describing the defect constraints
         vector<string> statename;

@@ -1287,7 +1287,7 @@ namespace EMTG
 	    stringstream prefixstream;
 	    prefixstream << "j" << j << "p" << p << ": ";
 	    string prefix = prefixstream.str();
-	    int first_X_entry_in_phase = Xupperbounds->size();
+	    this->first_X_entry_in_phase = Xupperbounds->size();
 
 	    //**************************************************************************
 	    //calculate bounds on variables and constraints governing the left boundary
