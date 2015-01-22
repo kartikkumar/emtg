@@ -27,6 +27,15 @@ namespace EMTG { namespace Solvers {
 		//void GenerateNewPopulation();
 		//void EvaluateIndividual(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void Evolve();
+		void RandInit(int gens);
+		void EvalInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
+		void LocOptInd(vector<double>& X);
+		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
+		std::vector<vector<vector<double>>> Bins;
+		std::vector<vector<vector<double>>> Fits;
+		std::vector<double> vars;
+		int iter;
+
 
 		//fields
 		int NP;
@@ -55,6 +64,10 @@ namespace EMTG { namespace Solvers {
 		//double TrialConstrainNorm;
 
 		std::vector<double> BestX;
+		std::vector<double> xTemp;
+		std::vector<double> ConstraintViolationVector;
+		double objValTemp;
+		double conValTemp;
 		double BestObjectiveValue;
 		double BestConstraintNorm;
 		//int BestIndex;
@@ -64,12 +77,14 @@ namespace EMTG { namespace Solvers {
 		EMTG::problem* Problem;
 
 		//random number generator
-		//boost::mt19937 RNG;
-		/*boost::uniform_int<> IntegerDistributionNP;
-		boost::uniform_int<> IntegerDistributionnX;
-		boost::uniform_real<> DoubleDistribution;*/
+		boost::mt19937 RNG;
+		//boost::uniform_int<> IntegerDistributionNP;
+		boost::uniform_int<> capDist;
+		boost::uniform_int<> binDist;
+		boost::uniform_real<> DoubleDistribution;
+		boost::uniform_real<> VarDist;
 	};
 
 }}//close namespaces
 
-#endif //_ADAPTIVECONSTRAINEDDIFFEVOLVE
+#endif //_TESTALG1
