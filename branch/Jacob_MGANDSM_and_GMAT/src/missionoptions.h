@@ -147,6 +147,7 @@ public:
 	string SPICE_reference_frame_kernel;
 	string universe_folder;
 	int ephemeris_source; //0: static, 1: SPICE (default to static if no SPICE file supplied for a body)
+    double integrator_tolerance;
 
 	//Lambert solver
 	int LambertSolver; //0: Arora-Russell, 1: Izzo
@@ -300,6 +301,7 @@ public:
 	string forced_working_directory;
     bool generate_forward_integrated_ephemeris;
     bool background_mode; //0: no, 1: yes
+    bool unscale_match_point_constraints; //0: no, 1: yes
 
 	//debug code
 	int run_inner_loop;

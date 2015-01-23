@@ -930,6 +930,7 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         ephemerisgrid = wx.GridSizer(4,2,5,5)
         perturbgrid = wx.GridSizer(4,2,5,5)
+        integratorgrid = wx.GridSizer(2,2,5,5)
         
         self.lblephemeris_source = wx.StaticText(self, -1, "Ephemeris Source")
         ephemeris_source_typestypes = ['Static','SPICE']
@@ -960,6 +961,9 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblcoefficient_of_reflectivity = wx.StaticText(self, -1, "Coefficient of reflectivity")
         self.txtcoefficient_of_reflectivity = wx.TextCtrl(self, -1, "coefficient_of_reflectivity")
 
+        self.lblintegrator_tolerance = wx.StaticText(self, -1, "Integrator tolerance")
+        self.txtintegrator_tolerance = wx.TextCtrl(self, -1, "integrator_tolerance")
+
         ephemerisgrid.AddMany([self.lblephemeris_source, self.cmbephemeris_source,
                               self.lblSPICE_leap_seconds_kernel, self.txtSPICE_leap_seconds_kernel,
                               self.lblSPICE_reference_frame_kernel, self.txtSPICE_reference_frame_kernel,
@@ -969,7 +973,7 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                               self.lblspacecraft_area, self.txtspacecraft_area,
                               self.lblcoefficient_of_reflectivity, self.txtcoefficient_of_reflectivity])
 
-
+        integratorgrid.AddMany([self.lblintegrator_tolerance, self.txtintegrator_tolerance])
 
 
         lblLeftTitle = wx.StaticText(self, -1, "Ephemeris settings")
@@ -1015,7 +1019,7 @@ class PhysicsOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.mainvbox = wx.BoxSizer(wx.VERTICAL)
         self.mainvbox.Add(self.mainbox)
         self.mainvbox.AddSpacer(20)
-        self.mainvbox.AddMany([vboxspiral, vboxlambert])
+        self.mainvbox.AddMany([vboxspiral, vboxlambert, integratorgrid])
 
         self.SetSizer(self.mainvbox)
         self.SetupScrolling()
@@ -1059,8 +1063,11 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblgenerate_forward_integrated_ephemeris = wx.StaticText(self, -1, "Generate forward-integrated STK-compatible ephemeris")
         self.chkgenerate_forward_integrated_ephemeris = wx.CheckBox(self, -1)
 
-        self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode?")
+        self.lblbackground_mode = wx.StaticText(self, -1, "Enable background mode")
         self.chkbackground_mode = wx.CheckBox(self, -1)
+
+        self.lblunscale_matchpoint_constraints = wx.StaticText(self, -1, "Unscale match point constraints")
+        self.chkunscale_matchpoint_constraints = wx.CheckBox(self, -1)
 
         self.mainbox.AddMany([  self.lbloutput_dormant_journeys, self.chkoutput_dormant_journeys,
                                 self.lblpost_mission_wait_time, self.txtpost_mission_wait_time,
@@ -1071,7 +1078,8 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lbloverride_working_directory, self.chkoverride_working_directory,
                                 self.lblforced_working_directory, working_directory_sizer,
                                 self.lblgenerate_forward_integrated_ephemeris, self.chkgenerate_forward_integrated_ephemeris,
-                                self.lblbackground_mode, self.chkbackground_mode])
+                                self.lblbackground_mode, self.chkbackground_mode,
+                                self.lblunscale_matchpoint_constraints, self.chkunscale_matchpoint_constraints])
 
         self.SetSizer(self.mainbox)
         self.SetupScrolling()
