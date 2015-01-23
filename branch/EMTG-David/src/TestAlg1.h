@@ -1,4 +1,5 @@
 #include "problem.h"
+#include "mission.h"
 
 #include "boost/random/uniform_int.hpp"
 #include "boost/random/uniform_real.hpp"
@@ -34,6 +35,7 @@ namespace EMTG { namespace Solvers {
 		std::vector<vector<vector<double>>> Bins;
 		std::vector<vector<vector<double>>> Fits;
 		std::vector<double> vars;
+		std::vector<int> phasePts;
 		int iter;
 
 
@@ -41,6 +43,8 @@ namespace EMTG { namespace Solvers {
 		int NP;
 		int nX;
 		int nF;
+		int pM;
+		int mode;
 		//int AgeLimit;
 		//double Tau1; //adaptation parameter from jDE
 		//double Tau2; //adaptation parameter from jDE
@@ -75,6 +79,7 @@ namespace EMTG { namespace Solvers {
 
 		//pointer to problem object
 		EMTG::problem* Problem;
+		EMTG::mission* Mission;
 
 		//random number generator
 		boost::mt19937 RNG;

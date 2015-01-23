@@ -28,6 +28,17 @@ namespace EMTG { namespace Solvers {
 	{
 		//store a pointer to the problem object
 		Problem = Problem_input;
+		Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
+		Mission = (mission*)(Problem);
+		pM = 0;
+		for (int j = 0; j < Problem->options.number_of_journeys; j++)
+		{
+			for (int p = 0; p < Problem->options.number_of_phases[j]; p++)
+			{
+				phasePts.push_back(Mission->journeys[j].phases[p].first_X_entry_in_phase);
+				pM++;
+			}
+		}
 
 		////extract the dimensions of the problem
 		nX = Problem->total_number_of_NLP_parameters;
@@ -71,6 +82,7 @@ namespace EMTG { namespace Solvers {
 
 	void TestAlg1::RandInit(int gens)
 	{
+		mode = 0;// Rand flag
 		for (int i = 0; i < gens; i++)
 		{
 			for (int j = 0; j < nX; j++)
@@ -136,10 +148,32 @@ namespace EMTG { namespace Solvers {
 			it2+=cap;
 			it2 = fit.insert (it2,score);
 			//bin.insert(cap,X);
+			string tStr;
+			switch (mode)
+			{
+				case 0:
+				{
+					tStr = "Random";
+					break;
+				}
+				case 1:
+				{
+					tStr = "DE";
+					break;
+				}
+				case 2:
+				{
+					tStr = "GA";
+					break;
+				}
+			}
+			if(cap==0)
+				cout << "Bin " << ind << " has a new best at Fit = " << score[ind] << " by " << tStr << "\n";
+		}
+		if(cap==NP-1)
+		{
 			bin.pop_back();
 			fit.pop_back();
-			if(cap==0)
-				cout << "Bin " << ind << " has a new best at Fit = " << score[ind] << "\n";
 		}
 	}
 
@@ -181,7 +215,7 @@ namespace EMTG { namespace Solvers {
 				else if (FVector[j+1] < Problem->Flowerbounds[j+1])
 					ConstraintViolationVector[j] = Problem->Flowerbounds[j+1] - FVector[j+1];
 				else
-					ConstraintViolationVector[j] = 0.0;
+					ConstraintViolationVector[j] = 0.0; // formerly 0.0
 			}
 
 			//return the norm of the constraints
@@ -195,28 +229,50 @@ namespace EMTG { namespace Solvers {
 	{
 		cout << "Evolve Called\n";
 
-		int evoIter = 1000; // Make Alg Param
+		int evoIter = 5000; // Make Alg Param
+		bool deMode = true; // Make Alg Param
 		double varType;
-		double mutCap = 1; // Make Alg Param
+		double mutCap = 0.5; // Make Alg Param
 		double F_w = 0.85; // Make Alg Param
 		vector<double> bn (3);
 		vector<double> num (3);
 		for (int i = 0; i < evoIter; i++)
 		{
 			varType = DoubleDistribution(RNG);
-			if(varType < mutCap)
+			if(varType < mutCap) // DE mutation
 			{
+				mode = 1;// DE flag
 				for (int j = 0; j < 3; j++)
 				{
-					bn[j] = binDist(RNG);
-					num[j] = capDist(RNG);
+					int safety = 0;
+					do
+					{
+						bn[j] = binDist(RNG);
+						num[j] = capDist(RNG);
+						safety++;
+						if(safety > 1000)
+							cout << "Infinite Loop -- KILL IT!\n";
+					} while(deMode && ((bn[j]==bn[(j+1)%3] && num[j]==num[(j+1)%3]) || (bn[j]==bn[(j+2)%3] && num[j]==num[(j+2)%3])));
 				}
 				for (int j = 0; j < nX; j++)
 					xTemp[j] = Bins[bn[0]][num[0]][j] + F_w*(Bins[bn[1]][num[1]][j] - Bins[bn[2]][num[2]][j]);
 			}
-			else
+			else // GA recombination
 			{
-				// GA recomb
+				mode = 2;// GA flag
+				for (int j = 0; j < pM; j++)
+				{
+					int f = phasePts[j];
+					int e = nX;
+					if(j != pM-1)
+					{
+						e = phasePts[j+1];
+					}
+					int b = binDist(RNG);
+					int c = capDist(RNG);
+					for (int k = f; k < e; k++)
+						xTemp[k] = Bins[b][c][k];
+				}
 			}
 			LocOptInd(xTemp);
 			EvalInd(xTemp, &objValTemp, &conValTemp);
@@ -232,6 +288,12 @@ namespace EMTG { namespace Solvers {
 					SortBin(Bins[j],Fits[j],xTemp,score,NP-1,j);
 			}
 		}
+
+		/*for (int i = 0; i < pM; i++) // check phasePts for elements
+			cout << "Entry " << i << " is " << phasePts[i] << "\n";*/
+
+		/*for (int i = 0; i < nF; i++) // sanity check to ensure bins didn't change size
+			cout << "Bin " << i << " cap = " << Bins[i].size() << "\n";*/
 
 		BestX = Bins[1][1];
 		Problem->unscale(BestX.data());
