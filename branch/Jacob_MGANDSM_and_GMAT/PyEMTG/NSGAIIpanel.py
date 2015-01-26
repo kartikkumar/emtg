@@ -184,7 +184,7 @@ class NSGAIIpanel(wx.Panel):
         self.Cobjective = self.objective_selectors[3].GetSelection()
     
     def ChangeSObjective(self, event):
-        self.Cobjective = self.objective_selectors[4].GetSelection()
+        self.Sobjective = self.objective_selectors[4].GetSelection()
 
     def ChangeXLowerBound(self, event):
         self.plotoptions.LowerBounds[0] = float(eval(self.objective_lowerbound_fields[0].GetValue()))

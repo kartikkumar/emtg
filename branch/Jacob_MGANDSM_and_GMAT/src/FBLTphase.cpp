@@ -1975,7 +1975,7 @@ namespace EMTG
                 event_type = "rendezvous";
             else if (options->journey_arrival_type[j] == 2)
                 event_type = "intercept";
-            else if (options->journey_arrival_type[j] == 3)
+            else if (options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 7)
                 event_type = "LT_rndzvs";
             else if (options->journey_arrival_type[j] == 5 || options->journey_arrival_type[j] == 4)
                 event_type = "match-vinf";
@@ -2002,12 +2002,12 @@ namespace EMTG
             {
                 dV_arrival_mag = sqrt(C3_arrival);
             }
-            else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3)
+            else if (options->journey_arrival_type[j] == 4 || options->journey_arrival_type[j] == 3 || options->journey_arrival_type[j] == 7)
             {
                 dV_arrival_mag = 0;
-                dVarrival[0] = 0;
-                dVarrival[1] = 0;
-                dVarrival[2] = 0;
+                this->dVarrival[0] = 0;
+                this->dVarrival[1] = 0;
+                this->dVarrival[2] = 0;
                 this->RA_arrival = 0.0;
                 this->DEC_arrival = 0.0;
             }
