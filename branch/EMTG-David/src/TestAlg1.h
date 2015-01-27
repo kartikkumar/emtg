@@ -102,6 +102,10 @@ namespace EMTG { namespace Solvers {
 		double killDist;
 		bool proxMode;
 		bool proxKill;
+		double elitePer;
+		int recur;
+		int recurLim;
+		string mutStr;
 
 		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
 		void LocOptInd(vector<double>& X);

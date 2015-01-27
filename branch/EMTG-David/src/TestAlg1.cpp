@@ -29,15 +29,15 @@ namespace EMTG { namespace Solvers {
 		//store a pointer to the problem object
 		Problem = Problem_input;
 		Problem->output_problem_bounds_and_descriptions(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "XFfile.csv");
-		Mission = (mission*)(Problem);
-		pM = 0;
-		phi = (1.0 + sqrt(5.0)) / 2.0;
-		resphi = 2.0 - phi;
+		Mission = (mission*)(Problem); // Needed for phase parcing of genome
+		pM = 0; // Total phase counter
+		phi = (1.0 + sqrt(5.0)) / 2.0; // Golden Ratio
+		resphi = 2.0 - phi; // Needed for GoldenSearch
 		for (int j = 0; j < Problem->options.number_of_journeys; j++)
 		{
 			for (int p = 0; p < Problem->options.number_of_phases[j]; p++)
 			{
-				phasePts.push_back(Mission->journeys[j].phases[p].first_X_entry_in_phase);
+				phasePts.push_back(Mission->journeys[j].phases[p].first_X_entry_in_phase); // Collection of phase indices in genome
 				pM++;
 			}
 		}
@@ -47,8 +47,8 @@ namespace EMTG { namespace Solvers {
 		nF = Problem->total_number_of_constraints;
 		NP = 100; // Bin Depth -- Make Alg Param
 		genC = 0.1; // Fraction of total iterations allowed to serve as stagntion tolerance -- Make Alg Param
-		gC = 0;
-		gCb = 0;
+		gC = 0; // stagnation generation counter for local optimization
+		gCb = 0; // stagnation generation counter for evolve
 		BestObjectiveValue = EMTG::math::LARGE;
 		BestConstraintNorm = EMTG::math::LARGE;
 		ConstraintViolationVector.resize(nF - 1);
@@ -56,19 +56,21 @@ namespace EMTG { namespace Solvers {
 		FVector.resize(nF);
 		xTemp.resize(nX);
 		DoubleDistribution = boost::uniform_real<>(0.0, 1.0);
-		capDist = boost::uniform_int<>(0, NP-1);
-		binDist = boost::uniform_int<>(0, nF-1);
+		capDist = boost::uniform_int<>(0, NP-1); // Used for random member of bin selection
+		binDist = boost::uniform_int<>(0, nF-1); // Used for random bin selection
 		RNG.seed(time(NULL));
-		Bins.resize(nF);
-		Fits.resize(nF);
-		varPer = 0.000001;
-		zeros.resize(nX);
+		Bins.resize(nF); // Collection of best trials in bins by constraint
+		Fits.resize(nF); // Fitness values corresponding to maintained population
+		varPer = 0.000001; // Used as small genome walk value in local optimization
+		zeros.resize(nX); // vector of all zeros to allow the norm of vector difference method to also calculate norms
 		for (int i = 0; i < nX; i++)
 			zeros[i] = 0.0;
 
-		killDist = Problem->options.FD_stepsize; // Make Alg Param
-		proxMode = true; // Make Alg Param
-		proxKill = false;
+		killDist = 1000*Problem->options.FD_stepsize; // Distance within which insertion becomes replacement -- Make Alg Param
+		proxMode = true; // Whether or not to kill near duplicates -- Make Alg Param
+		proxKill = false; // Used to determine whether or not a deletion has taken place
+		elitePer = 0.1*NP; // Index above which ranked placement resets the stagnation counter -- Make Alg Param 
+		mutStr = ""; // Used in cmd to notify when the best had undergone mutation
 
 		for (int i = 0; i < nF; i++)
 		{
@@ -84,10 +86,12 @@ namespace EMTG { namespace Solvers {
 		}
 
 		iter = 500; // Local optimization iterations -- Make Alg Param
-
+		recur = 0; // Local optimization recursion-depth counter 
+		recurLim = 7000; // Local optimization recursion-depth limit -- Make Alg Param
 		RandInit(gens);
 	}
 
+	// Make a sufficient number of random candidates to fill population and allow for differentiation
 	void TestAlg1::RandInit(int gens)
 	{
 		mode = 0;// Rand flag
@@ -118,26 +122,6 @@ namespace EMTG { namespace Solvers {
 		vector<double> Xb = X;
 		EvalInd(Xb, &objValTemp, &conValTemp);
 		double Sb = objValTemp + conValTemp;
-		//for (int j = 0; j < iter; j++)
-		//{
-		//	vector<double> Xt (nX);
-		//	for (int i = 0; i < nX; i++)
-		//	{
-		//		double temp = Xb[i] + vars[i] * VarDist(RNG);
-		//		if(temp > Problem->Xupperbounds[i])
-		//			temp = 2*Problem->Xupperbounds[i]-temp;
-		//		if(temp < Problem->Xlowerbounds[i])
-		//			temp = 2*Problem->Xlowerbounds[i]-temp;
-		//		Xt[i] = temp;
-		//	}
-		//	EvalInd(Xt, &objValTemp, &conValTemp);
-		//	double St = objValTemp + conValTemp;
-		//	if(St < Sb)
-		//	{
-		//		Xb = Xt;
-		//		Sb = St;
-		//	}
-		//}
 		gC = 0;
 		int j = 0;
 		while (j < iter && gC < genC*iter)
@@ -146,10 +130,10 @@ namespace EMTG { namespace Solvers {
 			for (int i = 0; i < nX; i++)
 			{
 				double temp = Xb[i] + varPer * (DoubleDistribution(RNG)-0.5);
-				if(temp > 1)
-					temp = 2-temp;
-				if(temp < 0)
-					temp = -1*temp;
+				if(temp > 1.0)
+					temp = 2.0-temp;
+				if(temp < 0.0)
+					temp = -1.0*temp;
 				Xt[i] = temp;
 			}
 			EvalInd(Xt, &objValTemp, &conValTemp);
@@ -169,31 +153,16 @@ namespace EMTG { namespace Solvers {
 	// Locally Optimize Individual -- using steepest decent
 	void TestAlg1::LocOptInd_SteepDecent(vector<double>& X)
 	{
-		vector<double> Xb = X;
+		vector<double> Xb = X; // Best so far
 		EvalInd(Xb, &objValTemp, &conValTemp);
-		double Sb = objValTemp + conValTemp;
-		vector<double> Xt (nX);
-		vector<double> ders (nX);
-		double step = 0.0001; // Make Alg Param
-		double maxDer = 0;
-		double closestDist = 2;
-		vector<double> bndDist (nX);
-		//for (int i = 0; i < nX; i++)
-		//{
-		//	Xt[i] = Xb[i] + Problem->options.FD_stepsize;
-		//	if(Xt[i] > 1)
-		//		Xt[i] = 1-Xt[i];
-		//	ders[i] = (Xt[i]-Xb[i])/Problem->options.FD_stepsize;
-		//	if(abs(ders[i]) > maxDer)
-		//		maxDer = abs(ders[i]);
-		//	if(1-Xb[i] < closestDist)
-		//		closestDist = 1-Xb[i];
-		//	else if(Xb[i] < closestDist)
-		//		closestDist = Xb[i];
-		//}
+		double Sb = objValTemp + conValTemp; // Score of best
+		vector<double> ders (nX); // Directional derivatives
+		double maxDer = 0; // Max derivative in any direction
+		double closestDist = 2; // Distance closest dimension to boundary
+		vector<double> bndDist (nX); // Distance to boundary of every dimension
 		for (int i = 0; i < nX; i++)
 		{
-			if(1-Xb[i] < Xb[i])
+			if(1-Xb[i] < Xb[i]) // Learn boundary
 			{
 				bndDist[i] = 1-Xb[i];
 				if(1-Xb[i] < closestDist)
@@ -205,31 +174,31 @@ namespace EMTG { namespace Solvers {
 				if(Xb[i] < closestDist)
 					closestDist = Xb[i];
 			}
-			vector<double> Xt (nX);
-			for (int j = 0; j < nX; j++)
+			vector<double> Xt (nX); // An single dimension offset of Xb to calculate derivatives
+			for (int j = 0; j < nX; j++) // Make Xt
 			{
 				if(j==i)
 				{
 					Xt[j] = Xb[j] + Problem->options.FD_stepsize;
-					if(Xt[i] > 1)
-						Xt[i] = 2-Xt[i];
-					if(Xt[i] < 0 && Xt[i] >= -1)
-						Xt[i] = -1*Xt[i];
-					if(Xt[i] < -1)
-						Xt[i] = DoubleDistribution(RNG);
+					if(Xt[i] > 1.0)
+						Xt[i] = 2.0-Xt[i];
+					if(Xt[i] < 0.0 && Xt[i] >= -1.0)
+						Xt[i] = -1.0*Xt[i];
+					if(Xt[i] < -1.0)
+						Xt[i] = DoubleDistribution(RNG); // Should never happen;
 				}
 				else
 					Xt[j] = Xb[j];
 			}
 			EvalInd(Xt, &objValTemp, &conValTemp);
-			double St = objValTemp + conValTemp; 
-			ders[i] = (St-Sb)/Problem->options.FD_stepsize;
+			double St = objValTemp + conValTemp; // Score of Xt
+			ders[i] = (St-Sb)/Problem->options.FD_stepsize; // Simple derivative calculation
 			if(abs(ders[i]) > maxDer)
 				maxDer = abs(ders[i]);
 		}
 		
 		if(maxDer < Problem->options.FD_stepsize)
-			maxDer = Problem->options.FD_stepsize;
+			maxDer = Problem->options.FD_stepsize; // Stop divide by 0 error
 		//if(maxDer!=maxDer)
 		//	maxDer = EMTG::math::LARGE;
 		//for(int i = 0; i < nX; i++)
@@ -259,10 +228,10 @@ namespace EMTG { namespace Solvers {
 		for (int i = 0; i < nX; i++)
 		{
 			bndPt[i] = Xb[i] - numCl * ((ders[i]/maxDer)*closestDist);
-			if(bndPt[i] > 1)
-				bndPt[i] = 1;
-			if(bndPt[i] < 0)
-				bndPt[i] = 0;
+			if(bndPt[i] > 1.0)
+				bndPt[i] = 1.0;
+			if(bndPt[i] < 0.0)
+				bndPt[i] = 0.0;
 		}
 
 		// Make directional vector from Xb to boundary (inefficient at the moment since this can be constructed from known data)
@@ -278,40 +247,17 @@ namespace EMTG { namespace Solvers {
 			tot = Problem->options.FD_stepsize;
 		for (int i = 0; i < nX; i++)
 			dir[i] = dir[i]/tot;
-		//EvalInd(bndPt, &objValTemp, &conValTemp);
-		//double Sbnd = objValTemp + conValTemp;
 		vector<double> ptB (nX);
 		for (int i = 0; i < nX; i++)
 			ptB[i] = Xb[i] + (bndPt[i]-Xb[i])/3.0;
+		recur = 0;
 		X = GoldenSearch(Xb,ptB,bndPt,Problem->options.FD_stepsize,dir);
-	 //   bool rep = true;
-		//while (rep)
-		//{
-		//	for (int i = 0; i < nX; i++)
-		//	{
-		//		Xt[i] = -1*(ders[i]/maxDer)*step + Xb[i];
-		//		if(Xt[i] > 1)
-		//			Xt[i] = 2-Xt[i];
-		//		if(Xt[i] < 0 && Xt[i] >= -1)
-		//			Xt[i] = -1*Xt[i];
-		//		if(Xt[i] < -1)
-		//			Xt[i] = DoubleDistribution(RNG);
-		//	}
-		//	EvalInd(Xt, &objValTemp, &conValTemp);
-		//	double St = objValTemp + conValTemp;
-		//	if(St < Sb)
-		//	{
-		//		Xb = Xt;
-		//		Sb = St;
-		//	}
-		//	else
-		//		rep = false;
-		//}
 	}
 
 	// Recursive Golden Search Implementation
 	vector<double> TestAlg1::GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir)
 	{
+		recur++;
 		vector<double> x (nX);
 		if(NormOfDif(C,B) > NormOfDif(B,A))
 		{
@@ -321,7 +267,7 @@ namespace EMTG { namespace Solvers {
 		else
 			for (int i = 0; i < nX; i++)
 				x[i] = B[i] - resphi * NormOfDif(B,A)*dir[i];
-		if(NormOfDif(C,A) < tau*(NormOfDif(B,zeros) + NormOfDif(x,zeros)))
+		if(NormOfDif(C,A) < tau*(NormOfDif(B,zeros) + NormOfDif(x,zeros)) || recur > recurLim)
 		{
 			vector<double> ret (nX);
 			for (int i = 0; i < nX; i++)
@@ -394,28 +340,49 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind)
 	{
 		proxKill = false;
+		int offset = 0; // Used for both index of deletion and eraser flag
 		if(cap>0 && score[ind] < fit[cap-1][ind])
 			SortBin(bin,fit,X,score,cap-1,ind);
 		else
 		{
-			if(proxMode && NormOfDif(bin[cap],X) < killDist);
-				proxKill = true;
-			vector<vector<double>>::iterator it;
-			it = bin.begin();
-			it+=cap;
-			it = bin.insert (it,X);
-			vector<vector<double>>::iterator it2;
-			it2 = fit.begin();
-			it2+=cap;
-			it2 = fit.insert (it2,score);
-			//bin.insert(cap,X);
-			if(proxKill && cap+1 > NP)
+			if(proxMode) // True = do not allow near duplicates
 			{
-				bin.erase(bin.begin()+cap+1);
-				fit.erase(fit.begin()+cap+1);
+				if(NormOfDif(bin[cap],X) < killDist) // Kill below
+				{
+					proxKill = true;
+					offset++;
+				}
+				if(cap > 0 && NormOfDif(bin[cap-1],X) < killDist) // Kill self
+				{
+					proxKill = true;
+					offset--;
+				}
+				if(proxKill && offset==0) // Find closer one to kill
+				{
+					if(NormOfDif(bin[cap],X) < NormOfDif(bin[cap-1],X))
+						offset++;
+					else
+						offset--;
+				}
+			}
+			if(offset!=-1) // Prevents insertion when self is dupicate
+			{
+				vector<vector<double>>::iterator it;
+				it = bin.begin();
+				it+=cap;
+				it = bin.insert (it,X);
+				vector<vector<double>>::iterator it2;
+				it2 = fit.begin();
+				it2+=cap;
+				it2 = fit.insert (it2,score);
+			}
+			if(offset > 0 && cap+1 > NP) // Kill below
+			{
+				bin.erase(bin.begin()+cap+offset);
+				fit.erase(fit.begin()+cap+offset);
 			}
 			string tStr;
-			switch (mode)
+			switch (mode) // For tracking success
 			{
 				case 0:
 				{
@@ -434,19 +401,18 @@ namespace EMTG { namespace Solvers {
 				}
 			}
 			if(cap==0)
-			{
-				cout << "Bin " << ind << " has a new best at Fit = " << score[ind] << " by " << tStr << "\n";
+				cout << "\nBin " << ind << " has a new best at Fit = " << score[ind] << " by " << tStr << mutStr;
+			if(cap < elitePer)
 				gCb = 0;
-			}
 		}
-		if(cap==NP-1 && !proxKill)
+		if(cap==NP-1 && !proxKill) // Only delete last if no one was killed
 		{
 			bin.pop_back();
 			fit.pop_back();
 		}
 	}
 
-	// Evaluate Individual
+	// Evaluate Individual -- borrowed from ACDE
 	void TestAlg1::EvalInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue)
 	{
 		//unscale the decision vector
@@ -505,19 +471,28 @@ namespace EMTG { namespace Solvers {
 	//main algorithm loop
 	void TestAlg1::Evolve()
 	{
-		cout << "Evolve Called\n";
+		cout << "\nEvolve Called\n";
 
-		int evoIter = 30000; // Make Alg Param
-		bool deMode = true; // Make Alg Param
+		int evoIter = 50000; // Number of candidates to make -- Make Alg Param
+		bool deMode = true; // True = unique DE vector choices -- Make Alg Param
 		double varType;
-		double mutCap = 0.5; // Make Alg Param
-		double F_w = 0.85; // Make Alg Param
-		vector<double> bn (3);
-		vector<double> num (3);
+		double mutCap = 0.5; // DE/GA trade-off point -- Make Alg Param
+		double F_w = 0.85; // DE parameter -- Make Alg Param
+		double mutProb = 0.2; // Bit-wise Pareto mutation probability -- Make Alg Param
+		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
+		vector<double> bn (3); // Random bin index holder
+		vector<double> num (3); // Random bin entry index holder
+		for (int i = 0; i < 3; i++)
+		{
+			bn[i] = -1;
+			num[i] = -1;
+		}
+
 		int i = 0;
 		gCb = 0;
 		while (i < evoIter && gCb < genC*evoIter)
 		{
+			mutStr = "";
 			varType = DoubleDistribution(RNG);
 			if(varType < mutCap) // DE mutation
 			{
@@ -532,16 +507,16 @@ namespace EMTG { namespace Solvers {
 						safety++;
 						if(safety > 1000)
 							cout << "Infinite Loop -- KILL IT!\n";
-					} while(deMode && ((bn[j]==bn[(j+1)%3] && num[j]==num[(j+1)%3]) || (bn[j]==bn[(j+2)%3] && num[j]==num[(j+2)%3])));
+					} while(deMode && ((bn[j]==bn[(j+1)%3] && num[j]==num[(j+1)%3]) || (bn[j]==bn[(j+2)%3] && num[j]==num[(j+2)%3]))); // Forces reselection if choice is duplicate
 				}
 				for (int j = 0; j < nX; j++)
 				{
 					double temp = Bins[bn[0]][num[0]][j] + F_w*(Bins[bn[1]][num[1]][j] - Bins[bn[2]][num[2]][j]);
-					if(temp > 1)
-						temp = 2-temp;
-					if(temp < 0 && temp >= -1)
-						temp = -1*temp;
-					if(temp < -1)
+					if(temp > 1.0)
+						temp = 2.0-temp;
+					if(temp < 0.0 && temp >= -1.0)
+						temp = -1.0*temp;
+					if(temp < -1.0)
 						temp = DoubleDistribution(RNG);
 					xTemp[j] = temp;
 				}
@@ -549,7 +524,7 @@ namespace EMTG { namespace Solvers {
 			else // GA recombination
 			{
 				mode = 2;// GA flag
-				for (int j = 0; j < pM; j++)
+				for (int j = 0; j < pM; j++) // Construct trial by phase combination
 				{
 					int f = phasePts[j];
 					int e = nX;
@@ -563,7 +538,47 @@ namespace EMTG { namespace Solvers {
 						xTemp[k] = Bins[b][c][k];
 				}
 			}
-			// Add bit-wise mutation probability
+			if(DoubleDistribution(RNG) < mutProb) // Pareto mutation
+			{
+				mutStr = " with Mut";
+				for (int j = 0; j < nX; j++)
+				{
+					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+					double perturb = s * Problem->options.MBH_max_step_size * r;
+					double temp = xTemp[j] + perturb;
+					if(temp > 1.0)
+					{
+						if(temp < 2.0 && abs(xTemp[j]-1) < Problem->options.FD_stepsize)
+						{
+							temp = 1.0;
+							//cout << "Bound Upper";
+						}
+						else
+						{
+							temp = DoubleDistribution(RNG);
+							//cout << "\nReset Upper";
+						}
+					}
+					else if(temp < 0.0)
+					{
+						if(temp > -1.0 && abs(xTemp[j]) < Problem->options.FD_stepsize)
+						{
+							temp = 0.0;
+							//cout << "Bound Lower";
+						}
+						else
+						{
+							temp = DoubleDistribution(RNG);
+							//cout << "\nReset Lower";
+						}
+					}
+					xTemp[j] = temp;
+				}
+			}
+			if(gCb == 1)
+				cout << "\n";
+			cout <<".";
 			LocOptInd_SteepDecent(xTemp);
 			EvalInd(xTemp, &objValTemp, &conValTemp);
 			vector<double> score (nF);
@@ -581,9 +596,9 @@ namespace EMTG { namespace Solvers {
 			gCb++;
 		}
 		if (!(gCb < genC*evoIter))
-		{
-			cout << "Evolution terminated due to stagnation.\n";
-		}
+			cout << "\nEvolution terminated due to stagnation.\n";
+		else
+			cout << "\n";
 		/*for (int i = 0; i < pM; i++) // check phasePts for elements
 			cout << "Entry " << i << " is " << phasePts[i] << "\n";*/
 
