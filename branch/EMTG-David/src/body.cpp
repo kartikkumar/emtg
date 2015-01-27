@@ -120,7 +120,6 @@ namespace EMTG {namespace Astrodynamics {
 					state[10] = (statepert[4] - state[4]) / (10.0);
 					state[11] = (statepert[5] - state[5]) / (10.0);
 				}
-
 				break;
 			case 0: //static ephemeris
 					//TODO static ephemeris is not ready!
