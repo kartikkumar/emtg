@@ -30,7 +30,7 @@ namespace EMTG {
         if (this->journey_distance_constraint_number_of_bodies.size() == 0)
         {
             for (int j = 0; j < this->number_of_journeys; ++j)
-                journey_distance_constraint_number_of_bodies.push_back(0);
+                this->journey_distance_constraint_number_of_bodies.push_back(0);
         }
 
         this->construct_thruster_launch_vehicle_name_arrays();
@@ -44,7 +44,7 @@ namespace EMTG {
         if (this->journey_distance_constraint_number_of_bodies.size() == 0)
         {
             for (int j = 0; j < this->number_of_journeys; ++j)
-                journey_distance_constraint_number_of_bodies.push_back(0);
+                this->journey_distance_constraint_number_of_bodies.push_back(0);
         }
 
 	    this->construct_thruster_launch_vehicle_name_arrays();
@@ -52,68 +52,70 @@ namespace EMTG {
 
     void missionoptions::initialize()
     {
-        outerloop_warmstart = 0;
-        outerloop_vary_power = false;
-        outerloop_vary_launch_epoch = false;
-        outerloop_vary_flight_time_upper_bound = false;
-        outerloop_vary_thruster_type = false;
-        outerloop_vary_number_of_thrusters = false;
-        outerloop_vary_launch_vehicle = false;
-        outerloop_vary_departure_C3 = false;
-        outerloop_vary_arrival_C3 = false;
-        outerloop_restrict_flight_time_lower_bound = false;
-        outerloop_reevaluate_full_population = false;
-        outerloop_warm_population = "none";
-        outerloop_warm_archive = "none";
-        quiet_outerloop = 1;
-        quiet_basinhopping = false;
-        MBH_two_step = false;
-        FD_stepsize = 1.5e-8;
-        FD_stepsize_coarse = 1.5e-3;
-        control_coordinate_system = 0;
-        initial_guess_control_coordinate_system = 0;
-        enable_maximum_propellant_mass_constraint = false;
-        maximum_propellant_mass = 1000.0;
-        maximum_number_of_lambert_revolutions = 0;
+        this->outerloop_warmstart = 0;
+        this->outerloop_vary_power = false;
+        this->outerloop_vary_launch_epoch = false;
+        this->outerloop_vary_flight_time_upper_bound = false;
+        this->outerloop_vary_thruster_type = false;
+        this->outerloop_vary_number_of_thrusters = false;
+        this->outerloop_vary_launch_vehicle = false;
+        this->outerloop_vary_departure_C3 = false;
+        this->outerloop_vary_arrival_C3 = false;
+        this->outerloop_restrict_flight_time_lower_bound = false;
+        this->outerloop_reevaluate_full_population = false;
+        this->outerloop_warm_population = "none";
+        this->outerloop_warm_archive = "none";
+        this->quiet_outerloop = 1;
+        this->quiet_basinhopping = false;
+        this->MBH_two_step = false;
+        this->FD_stepsize = 1.5e-8;
+        this->FD_stepsize_coarse = 1.5e-3;
+        this->control_coordinate_system = 0;
+        this->initial_guess_control_coordinate_system = 0;
+        this->enable_maximum_propellant_mass_constraint = false;
+        this->maximum_propellant_mass = 1000.0;
+        this->maximum_number_of_lambert_revolutions = 0;
 
-        spiral_model_type = 1;
-        problem_type = 0;
-        IspLT_minimum = 3000;
-        LV_adapter_mass = 0.0;
-        NLP_solver_type = 0;
-        NLP_solver_mode = true;
-        quiet_NLP = false;
-        ACE_feasible_point_finder = false;
-        MBH_hop_distribution = 1;
-        MBH_Pareto_alpha = 3.0;
-        MBH_time_hop_probability = 0.2;
-        interpolate_initial_guess = false;
-        seed_MBH = false;
-        MBH_zero_control_initial_guess = 1;
-        AU = 1.49597870691e+8;
-        snopt_max_run_time = 3600;
-        power_decay_rate = 0.0;
-        throttle_logic_mode = 0;
-        throttle_sharpness = 100.0;
-        post_mission_delta_v = 0.0;
-        post_mission_Isp = 3000.0;
-        propellant_margin = 0.0;
-        create_GMAT_script = 0;
-        forced_flyby_coast = 0.0;
-        forced_post_launch_coast = 0.0;
-        power_margin = 0.0;
-        number_of_journeys = 1;
+        this->spiral_model_type = 1;
+        this->problem_type = 0;
+        this->IspLT_minimum = 3000.0;
+        this->LV_adapter_mass = 0.0;
+        this->NLP_solver_type = 0;
+        this->NLP_solver_mode = true;
+        this->quiet_NLP = false;
+        this->ACE_feasible_point_finder = false;
+        this->MBH_hop_distribution = 1;
+        this->MBH_Pareto_alpha = 3.0;
+        this->MBH_time_hop_probability = 0.2;
+        this->interpolate_initial_guess = false;
+        this->seed_MBH = false;
+        this->MBH_zero_control_initial_guess = 1;
+        this->AU = 1.49597870691e+8;
+        this->snopt_max_run_time = 3600;
+        this->power_decay_rate = 0.0;
+        this->throttle_logic_mode = 0;
+        this->throttle_sharpness = 100.0;
+        this->post_mission_delta_v = 0.0;
+        this->post_mission_Isp = 3000.0;
+        this->propellant_margin = 0.0;
+        this->create_GMAT_script = 0;
+        this->forced_flyby_coast = 0.0;
+        this->forced_post_launch_coast = 0.0;
+        this->power_margin = 0.0;
+        this->number_of_journeys = 1;
 
-        LambertSolver = 0;
+        this->LambertSolver = 0;
+        this->integrator_tolerance = 1.0e-8;
 
-        post_mission_wait_time = 0.0;
-        generate_initial_guess_file = false;
-        mission_type_for_initial_guess_file = 2;
-        override_working_directory = false;
-        forced_working_directory = "..//EMTGv8_Results";
-        generate_forward_integrated_ephemeris = false;
-        background_mode = true;
-        output_dormant_journeys = false;
+        this->post_mission_wait_time = 0.0;
+        this->generate_initial_guess_file = false;
+        this->mission_type_for_initial_guess_file = 2;
+        this->override_working_directory = false;
+        this->forced_working_directory = "..//EMTGv8_Results";
+        this->generate_forward_integrated_ephemeris = false;
+        this->background_mode = true;
+        this->output_dormant_journeys = false;
+        this->unscale_match_point_constraints = false;
     }
 
     missionoptions::~missionoptions() {}
@@ -285,6 +287,13 @@ namespace EMTG {
 		    this->LambertSolver = (int)value;
 		    return 0;
 	    }
+
+        //integrator settings
+        if (choice == "integrator_tolerance")
+        {
+            this->integrator_tolerance = value;
+            return 0;
+        }
 
 	    //outer loop solver settings
 	    if (choice ==  "run_outerloop") 
@@ -1752,6 +1761,11 @@ namespace EMTG {
             this->output_dormant_journeys = (bool)value;
             return 0;
         }
+        if (choice == "unscale_match_point_constraints")
+        {
+            this->unscale_match_point_constraints = (bool)value;
+            return 0;
+        }
 
 	    //debug code
 	    if (choice == "check_derivatives") {
@@ -2058,6 +2072,11 @@ namespace EMTG {
 		    outputfile << "#SPICE_reference_frame_kernel" << endl;
 		    outputfile << "SPICE_reference_frame_kernel " << this->SPICE_reference_frame_kernel << endl;
 		    outputfile << endl;
+
+            outputfile << "##integrator options" << endl;
+            outputfile << "#integration tolerance" << endl;
+            outputfile << "integrator_tolerance " << this->integrator_tolerance << endl;
+            outputfile << endl;
 
 		    outputfile << "##lambert solver options" << endl;
 		    outputfile << "#Lambert solver choice" << endl;
@@ -2736,6 +2755,10 @@ namespace EMTG {
             outputfile << "#0: no" << endl;
             outputfile << "#1: yes" << endl;
             outputfile << "background_mode " << this->background_mode << endl;
+            outputfile << "#Unscale match point constraints (use to get tighter feasibility)" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "unscale_match_point_constraints " << this->unscale_match_point_constraints << endl;
 		    outputfile << endl;
 
 		    outputfile << "##debug code" << endl;

@@ -134,7 +134,6 @@ namespace EMTG
 		//declare some local variables
 		int errcode = 0;
 		double local_throttle, impulse_magnitude;
-		double TOF2 = this->TOF * this->TOF;
 
 		//******************************************************************
 		//Steps 1-4: Process the left boundary condition
@@ -166,6 +165,7 @@ namespace EMTG
 		this->total_available_thrust_time = TOF;
 		double t_step_basic = 0.0;
 		double dt_step_basic_dt = 0.0;
+        double TOF2 = this->TOF * this->TOF;
 		if (j == 0 && p == 0 && options->forced_post_launch_coast > 1.0e-6)
 		{
 			this->total_available_thrust_time -= options->forced_post_launch_coast;

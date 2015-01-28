@@ -133,6 +133,12 @@ namespace EMTG
 												    missionoptions* options,
 												    const int& Findex);
 
+        //method to unscale match-point constraints and their derivatives
+        void unscale_match_point_constraint(double* F,
+                                            double* G,
+                                            const missionoptions& options,
+                                            EMTG::Astrodynamics::universe& Universe);
+
 	    //method to create an initial guess of another mission type
 	    void create_initial_guess(const int& desired_mission_type,
 							    const bool& VSI,
@@ -167,8 +173,17 @@ namespace EMTG
 
 	    //derivative information
 	    int first_X_entry_in_journey;
-	    vector<int> timeconstraints_G_indices;
+        int first_F_entry_in_journey;
+        int first_G_entry_in_journey;
+        vector<int> timeconstraints_G_indices;
 	    vector<double> timeconstraints_X_scale_ranges;
+
+        vector<int> match_point_position_constraint_F_indices;
+        vector<int> match_point_position_constraint_G_indices;
+        vector<int> match_point_velocity_constraint_F_indices;
+        vector<int> match_point_velocity_constraint_G_indices;
+        vector<int> match_point_mass_constraint_F_indices;
+        vector<int> match_point_mass_constraint_G_indices;
     };
 
 } /* namespace EMTG */

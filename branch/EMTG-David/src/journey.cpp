@@ -107,7 +107,9 @@ namespace EMTG
 		stringstream prefixstream;
 		prefixstream << "j" << j << ": ";
 		string prefix = prefixstream.str();
-		this->first_X_entry_in_journey = Xupperbounds->size();
+		this->first_X_entry_in_journey = Xdescriptions->size();
+        this->first_F_entry_in_journey = Fdescriptions->size();
+        this->first_G_entry_in_journey = Gdescriptions->size();
 
 		//phase-specific bounds and constraints
 		for (int p = 0; p < options->number_of_phases[j]; ++p)
@@ -130,98 +132,167 @@ namespace EMTG
 			{
 				if ((*Xdescriptions)[entry].find("phase flight time") < 1024)
 				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of journey flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					timeconstraints_G_indices.push_back(iGfun->size() - 1);
-					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-				}
-			}
+iGfun->push_back(Fdescriptions->size() - 1);
+jGvar->push_back(entry);
+stringstream EntryNameStream;
+EntryNameStream << "Derivative of journey flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+Gdescriptions->push_back(EntryNameStream.str());
+timeconstraints_G_indices.push_back(iGfun->size() - 1);
+timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+            }
 
-			//check for dependencies due to an escape spiral in this or a previous phase
-			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-		}
-		else if (options->journey_timebounded[j] == 2) //bounded journey arrival date
-		{
-			Flowerbounds->push_back(options->journey_arrival_date_bounds[j][0] / options->journey_arrival_date_bounds[j][1] - 1);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "journey arrival date bounds");
+            //check for dependencies due to an escape spiral in this or a previous phase
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+        }
+        else if (options->journey_timebounded[j] == 2) //bounded journey arrival date
+        {
+            Flowerbounds->push_back(options->journey_arrival_date_bounds[j][0] / options->journey_arrival_date_bounds[j][1] - 1);
+            Fupperbounds->push_back(0.0);
+            Fdescriptions->push_back(prefix + "journey arrival date bounds");
 
-			//Generate the Jacobian entries for the journey arrival date constraint
-			//note:
-			//1. Only the time variables present in the current journey affect the arrival date constraint
-			//2. The journey arrival date constraint is linear but we express it as a nonlinear constraint
-			for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
-			{
-				if ((*Xdescriptions)[entry].find("time") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of journey arrival date constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					timeconstraints_G_indices.push_back(iGfun->size() - 1);
-					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-				}
-				else if ((*Xdescriptions)[entry].find("epoch") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of journey arrival date constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					timeconstraints_G_indices.push_back(iGfun->size() - 1);
-					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-				}
-			}
+            //Generate the Jacobian entries for the journey arrival date constraint
+            //note:
+            //1. Only the time variables present in the current journey affect the arrival date constraint
+            //2. The journey arrival date constraint is linear but we express it as a nonlinear constraint
+            for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
+            {
+                if ((*Xdescriptions)[entry].find("time") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of journey arrival date constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    timeconstraints_G_indices.push_back(iGfun->size() - 1);
+                    timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+                else if ((*Xdescriptions)[entry].find("epoch") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of journey arrival date constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    timeconstraints_G_indices.push_back(iGfun->size() - 1);
+                    timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+            }
 
-			//check for dependencies due to an escape spiral in this or a previous phase
-			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-		}
+            //check for dependencies due to an escape spiral in this or a previous phase
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+        }
 
-		else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
-		{
-			Flowerbounds->push_back(options->journey_flight_time_bounds[j][0] / options->journey_flight_time_bounds[j][1] - 1);
-			Fupperbounds->push_back(0.0);
-			Fdescriptions->push_back(prefix + "journey aggregate flight time bounds");
+        else if (options->journey_timebounded[j] == 3) //bounded aggregate flight time
+        {
+            Flowerbounds->push_back(options->journey_flight_time_bounds[j][0] / options->journey_flight_time_bounds[j][1] - 1);
+            Fupperbounds->push_back(0.0);
+            Fdescriptions->push_back(prefix + "journey aggregate flight time bounds");
 
-			//Generate the Jacobian entries for the journey arrival date constraint
-			//note:
-			//1. Only the time variables present in the current journey affect the arrival date constraint
-			//2. The journey arrival date constraint is linear but we express it as a nonlinear constraint
-			for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
-			{
-				if ((*Xdescriptions)[entry].find("time") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					timeconstraints_G_indices.push_back(iGfun->size() - 1);
-					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-				}
-				else if ((*Xdescriptions)[entry].find("epoch") < 1024)
-				{
-					iGfun->push_back(Fdescriptions->size() - 1);
-					jGvar->push_back(entry);
-					stringstream EntryNameStream;
-					EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
-					Gdescriptions->push_back(EntryNameStream.str());
-					timeconstraints_G_indices.push_back(iGfun->size() - 1);
-					timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
-				}
-			}
+            //Generate the Jacobian entries for the journey arrival date constraint
+            //note:
+            //1. Only the time variables present in the current journey affect the arrival date constraint
+            //2. The journey arrival date constraint is linear but we express it as a nonlinear constraint
+            for (size_t entry = 0; entry < Xdescriptions->size(); ++entry)
+            {
+                if ((*Xdescriptions)[entry].find("time") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    timeconstraints_G_indices.push_back(iGfun->size() - 1);
+                    timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+                else if ((*Xdescriptions)[entry].find("epoch") < 1024)
+                {
+                    iGfun->push_back(Fdescriptions->size() - 1);
+                    jGvar->push_back(entry);
+                    stringstream EntryNameStream;
+                    EntryNameStream << "Derivative of journey aggregate flight time constraint F[" << Fdescriptions->size() - 1 << "] with respect to X[" << entry << "]: " << (*Xdescriptions)[entry];
+                    Gdescriptions->push_back(EntryNameStream.str());
+                    timeconstraints_G_indices.push_back(iGfun->size() - 1);
+                    timeconstraints_X_scale_ranges.push_back((*Xupperbounds)[entry] - (*Xlowerbounds)[entry]);
+                }
+            }
 
-			//check for dependencies due to an escape spiral in this or a previous phase
-			this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-			this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
-		}
+            //check for dependencies due to an escape spiral in this or a previous phase
+            this->find_dependencies_due_to_escape_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+            this->find_dependencies_due_to_capture_spiral(Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, options, Fdescriptions->size() - 1);
+        }
+
+        //populate the index lists for the match point constraints and derivatives
+        for (int Fentry = this->first_F_entry_in_journey; Fentry < Fdescriptions->size(); ++Fentry)
+        {
+            /*if ((*Fdescriptions)[Fentry].find("match point m") < 1024)
+            {
+                this->match_point_mass_constraint_F_indices.push_back(Fentry);
+            }
+            else */if ((*Fdescriptions)[Fentry].find("match point xdot") < 1024 || (*Fdescriptions)[Fentry].find("match point ydot") < 1024 || (*Fdescriptions)[Fentry].find("match point zdot") < 1024)
+            {
+                this->match_point_velocity_constraint_F_indices.push_back(Fentry);
+            }
+            else if ((*Fdescriptions)[Fentry].find("match point") < 1024)
+            {
+                this->match_point_position_constraint_F_indices.push_back(Fentry);
+            }
+        }
+
+        for (int Gentry = this->first_G_entry_in_journey; Gentry < Gdescriptions->size(); ++Gentry)
+        {
+            /*if ((*Gdescriptions)[Gentry].find("match point m") < 1024)
+            {
+                this->match_point_mass_constraint_G_indices.push_back(Gentry);
+            }
+            else */if ((*Gdescriptions)[Gentry].find("match point xdot") < 1024 || (*Gdescriptions)[Gentry].find("match point ydot") < 1024 || (*Gdescriptions)[Gentry].find("match point zdot") < 1024)
+            {
+                this->match_point_velocity_constraint_G_indices.push_back(Gentry);
+            }
+            else if ((*Gdescriptions)[Gentry].find("match point") < 1024)
+            {
+                this->match_point_position_constraint_G_indices.push_back(Gentry);
+            }
+        }
 	}
+
+    //method to unscale match-point constraints and their derivatives
+    //can be used to tighten feasibility for FBLT, especially useful when producing STK .e outputs
+    void journey::unscale_match_point_constraint(double* F,
+                                                double* G,
+                                                const missionoptions& options,
+                                                EMTG::Astrodynamics::universe& Universe)
+    {
+        //constraints
+        for (int Fentry = 0; Fentry < this->match_point_mass_constraint_F_indices.size(); ++Fentry)
+        {
+            F[Fentry] *= options.maximum_mass;
+        }
+        for (int Fentry = 0; Fentry < this->match_point_position_constraint_F_indices.size(); ++Fentry)
+        {
+            F[Fentry] *= Universe.LU;
+        }
+        for (int Fentry = 0; Fentry < this->match_point_velocity_constraint_F_indices.size(); ++Fentry)
+        {
+            F[Fentry] *= Universe.LU / Universe.TU;
+        }
+
+        //Jacobian entries
+        for (int Gentry = 0; Gentry < this->match_point_mass_constraint_G_indices.size(); ++Gentry)
+        {
+            F[Gentry] *= options.maximum_mass;
+        }
+        for (int Gentry = 0; Gentry < this->match_point_position_constraint_G_indices.size(); ++Gentry)
+        {
+            F[Gentry] *= Universe.LU;
+        }
+        for (int Gentry = 0; Gentry < this->match_point_velocity_constraint_G_indices.size(); ++Gentry)
+        {
+            F[Gentry] *= Universe.LU / Universe.TU;
+        }
+    }
 
 	//evaluate function
 	//return 0 if successful, 1 if failure
@@ -339,6 +410,11 @@ namespace EMTG
 				}
 			}
 		}
+
+        //if applicable, unscale the match point constraints and their derivatives
+        if (options->unscale_match_point_constraints)
+            this->unscale_match_point_constraint(F, G, *options, Universe);
+
 		return 0;
 	}
 

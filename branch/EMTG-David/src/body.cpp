@@ -54,14 +54,6 @@ namespace EMTG {namespace Astrodynamics {
 		this->MA = iclassical_orbit_elements[5] * EMTG::math::PI / 180.0;
 		
 
-
-		//compute additional values
-		mu = options->G * mass;
-		if (ECC < 0.2)
-			r_SOI = SMA * pow(mu / universe_mu, 0.4);
-		else
-			r_SOI = SMA * (1 - ECC) * pow(mu / (3.0 * universe_mu), 0.333333333333333333333333);
-
 		//determine which ephemeris to draw from
 		if (options->ephemeris_source == 0)
 		{
@@ -84,7 +76,18 @@ namespace EMTG {namespace Astrodynamics {
 
 			if (fabs(temp_state[0]) > 1.0e-6 && fabs(temp_state[0]) < 1.0e+50)
 			{
+                //activate SPICE for this body
 				body_ephemeris_source = 1; //body can be located using SPICE
+                
+                //replace the orbit elements with something drawn from SPICE
+                double temp_elements[6];
+                Astrodynamics::inertial2COE(temp_state, this->universe_mu, temp_elements);
+                this->SMA = temp_elements[0];
+                this->ECC = temp_elements[1];
+                this->INC = temp_elements[2];
+                this->RAAN = temp_elements[3];
+                this->AOP = temp_elements[4];
+                this->MA = temp_elements[5];
 			}
 			else
 			{
@@ -96,6 +99,13 @@ namespace EMTG {namespace Astrodynamics {
 		}
 
 		J2000_body_equatorial_frame.initialize(ireference_angles[0], ireference_angles[1], ireference_angles[2], ireference_angles[3], ireference_angles[4], ireference_angles[5]);
+
+        //compute additional values
+        this->mu = options->G * mass;
+        if (ECC < 0.2)
+            this->r_SOI = this->SMA * pow(this->mu / this->universe_mu, 0.4);
+        else
+            this->r_SOI = this->SMA * (1 - this->ECC) * pow(this->mu / (3.0 * this->universe_mu), 0.333333333333333333333333);
 	}
 
 	//function to find the body state vector at epoch
@@ -107,12 +117,12 @@ namespace EMTG {namespace Astrodynamics {
 		{
 			case 1: //SPICE
 				double LT_dump;
-				spkez_c(spice_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", this->central_body_spice_ID, state, &LT_dump);
+				spkez_c(this->spice_ID, epoch - (51544.5 * 86400.0), "J2000", "NONE", this->central_body_spice_ID, state, &LT_dump);
 
 				if (need_deriv)
 				{
 					double statepert[6];
-					spkez_c(spice_ID, epoch - (51544.5 * 86400.0) + 10.0, "J2000", "NONE", this->central_body_spice_ID, statepert, &LT_dump);
+					spkez_c(this->spice_ID, epoch - (51544.5 * 86400.0) + 10.0, "J2000", "NONE", this->central_body_spice_ID, statepert, &LT_dump);
                     state[6] = (statepert[0] - state[0]) / (10.0);
                     state[7] = (statepert[1] - state[1]) / (10.0);
                     state[8] = (statepert[2] - state[2]) / (10.0);

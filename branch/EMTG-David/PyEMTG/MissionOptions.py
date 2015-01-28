@@ -94,6 +94,9 @@ class MissionOptions(object):
     SPICE_reference_frame_kernel = "pck00010.tpc"
     universe_folder = "../Universe/"
 
+    #integrator options
+    integrator_tolerance = 1.0e-8
+
     #Lambert solver
     LambertSolver = 0 #0: Arora-Russell, 1: Izzo (not included in open-source)
 
@@ -207,6 +210,7 @@ class MissionOptions(object):
     generate_forward_integrated_ephemeris = 0#0 :no, 1: yes
     background_mode = 1 #0: no, 1: yes
     output_dormant_journeys = 0
+    unscale_match_point_constraints = 0
 
     #debug code
     check_derivatives = 0
@@ -502,6 +506,9 @@ class MissionOptions(object):
                         self.SPICE_reference_frame_kernel = linecell[1]
                     elif choice ==  "universe_folder":
                         self.universe_folder = linecell[1]
+
+                    elif choice == "integrator_tolerance":
+                        self.integrator_tolerance = float(linecell[1])
 
                     elif choice == "LambertSolver":
                         self.LambertSolver = int(linecell[1])
@@ -807,6 +814,8 @@ class MissionOptions(object):
                         self.background_mode = int(linecell[1])
                     elif choice == "output_dormant_journeys":
                         self.output_dormant_journeys = int(linecell[1])
+                    elif choice == "unscale_match_point_constraints":
+                        self.unscale_match_point_constraints = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1023,6 +1032,11 @@ class MissionOptions(object):
         outputfile.write("SPICE_leap_seconds_kernel " + str(self.SPICE_leap_seconds_kernel) + "\n")
         outputfile.write("#SPICE_reference_frame_kernel\n")
         outputfile.write("SPICE_reference_frame_kernel " + str(self.SPICE_reference_frame_kernel) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##integrator options\n")
+        outputfile.write("#integration tolerance\n")
+        outputfile.write("integrator_tolerance " + str(self.integrator_tolerance) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##lambert solver options\n")
@@ -1651,6 +1665,10 @@ class MissionOptions(object):
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("background_mode " + str(self.background_mode) + "\n")
+        outputfile.write("#Unscale match point constraints (use to get tighter feasibility)\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("unscale_match_point_constraints " + str(self.unscale_match_point_constraints) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3463,6 +3481,7 @@ class MissionOptions(object):
         optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.SetValue(str(self.coefficient_of_reflectivity))
         optionsnotebook.tabPhysics.cmbspiral_model_type.SetSelection(self.spiral_model_type)
         optionsnotebook.tabPhysics.cmblambert_type.SetSelection(self.LambertSolver)
+        optionsnotebook.tabPhysics.txtintegrator_tolerance.SetValue(str(self.integrator_tolerance))
 
         #if SRP is disabled, make the options associated with it invisible
         if self.perturb_SRP == 1:
@@ -3475,6 +3494,14 @@ class MissionOptions(object):
             optionsnotebook.tabPhysics.lblcoefficient_of_reflectivity.Show(False)
             optionsnotebook.tabPhysics.txtspacecraft_area.Show(False)
             optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.Show(False)
+
+        #only enable integrator tolerance for mission types that integrate
+        if self.mission_type == 3:
+            optionsnotebook.tabPhysics.lblintegrator_tolerance.Show(True)
+            optionsnotebook.tabPhysics.txtintegrator_tolerance.Show(True)
+        else:
+            optionsnotebook.tabPhysics.lblintegrator_tolerance.Show(False)
+            optionsnotebook.tabPhysics.txtintegrator_tolerance.Show(False)
 
         #re-size the panel
         optionsnotebook.tabPhysics.Layout()
@@ -3492,6 +3519,7 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.txtforced_working_directory.SetValue(self.forced_working_directory)
         optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.SetValue(self.generate_forward_integrated_ephemeris)
         optionsnotebook.tabOutput.chkbackground_mode.SetValue(self.background_mode)
+        optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.SetValue(self.unscale_match_point_constraints)
 
         if (self.output_dormant_journeys):
             optionsnotebook.tabOutput.lblpost_mission_wait_time.Show(True)
@@ -3515,6 +3543,13 @@ class MissionOptions(object):
             optionsnotebook.tabOutput.lblforced_working_directory.Show(False)
             optionsnotebook.tabOutput.txtforced_working_directory.Show(False)
             optionsnotebook.tabOutput.btnforced_working_directory.Show(False)
+
+        if self.mission_type == 3:
+            optionsnotebook.tabOutput.lblunscale_matchpoint_constraints.Show(True)
+            optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.Show(True)
+        else:
+            optionsnotebook.tabOutput.lblunscale_matchpoint_constraints.Show(False)
+            optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.Show(False)
 
         #re-size the panel
         optionsnotebook.tabOutput.Layout()

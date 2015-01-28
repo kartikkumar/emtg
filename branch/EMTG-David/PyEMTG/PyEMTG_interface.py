@@ -691,6 +691,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabPhysics.txtcoefficient_of_reflectivity.Bind(wx.EVT_KILL_FOCUS,self.Changecoefficient_of_reflectivity)
         self.optionsnotebook.tabPhysics.cmbspiral_model_type.Bind(wx.EVT_COMBOBOX, self.Changespiral_model_type)
         self.optionsnotebook.tabPhysics.cmblambert_type.Bind(wx.EVT_COMBOBOX, self.ChangeLambertSolver)
+        self.optionsnotebook.tabPhysics.txtintegrator_tolerance.Bind(wx.EVT_KILL_FOCUS, self.ChangeIntegratorTolerance)
 
         #output options
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
@@ -704,6 +705,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabOutput.btnforced_working_directory.Bind(wx.EVT_BUTTON, self.Clickforced_working_directory_button)
         self.optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.Bind(wx.EVT_CHECKBOX, self.Changegenerate_forward_integrated_ephemeris)
         self.optionsnotebook.tabOutput.chkbackground_mode.Bind(wx.EVT_CHECKBOX, self.Changebackground_mode)
+        self.optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.Bind(wx.EVT_CHECKBOX, self.Changeunscale_matchpoint_constraints)
         
         
     #event handlers for global mission options    
@@ -1790,6 +1792,9 @@ class PyEMTG_interface(wx.Frame):
     def ChangeLambertSolver(self, e):
         self.missionoptions.LambertSolver = self.optionsnotebook.tabPhysics.cmblambert_type.GetSelection()
 
+    def ChangeIntegratorTolerance(self, e):
+        self.missionoptions.integrator_tolerance = eval(self.optionsnotebook.tabPhysics.txtintegrator_tolerance.GetValue())
+
     #handlers for output options
     def Changecreate_GMAT_script(self, e):
         self.missionoptions.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
@@ -1831,3 +1836,6 @@ class PyEMTG_interface(wx.Frame):
 
     def Changebackground_mode(self, e):
         self.missionoptions.background_mode = int(self.optionsnotebook.tabOutput.chkbackground_mode.GetValue())
+
+    def Changeunscale_matchpoint_constraints(self, e):
+        self.missionoptions.unscale_match_point_constraints = int(self.optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.GetValue())

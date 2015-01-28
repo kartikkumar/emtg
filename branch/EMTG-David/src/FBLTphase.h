@@ -148,7 +148,6 @@ public:
 	vector <double> event_epochs;
 
 	//integrator
-	double intTol;
 	EMTG::integration::rk8713M *integrator;
 
     //dummy controller pointer
