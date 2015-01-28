@@ -28,7 +28,7 @@ namespace EMTG { namespace Solvers {
 		//void GenerateNewPopulation();
 		//void EvaluateIndividual(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void Evolve();
-		void RandInit(int gens);
+		void RandInit(int gens,bool sed);
 		void EvalInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		
 		
@@ -95,6 +95,7 @@ namespace EMTG { namespace Solvers {
 		int gCb;
 		std::vector<int> phasePts;
 		std::vector<double> zeros;
+		std::vector<double> trashFits;
 		int iter;
 		double varPer;
 		double phi;
