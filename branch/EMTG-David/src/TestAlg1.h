@@ -41,6 +41,8 @@ namespace EMTG { namespace Solvers {
 		int NP;
 		int nX;
 		int nF;
+
+		double conWeight;
 		
 		//int AgeLimit;
 		//double Tau1; //adaptation parameter from jDE
@@ -65,7 +67,7 @@ namespace EMTG { namespace Solvers {
 		//double TrialConstrainNorm;
 
 		std::vector<double> BestX;
-		std::vector<double> xTemp;
+		
 		std::vector<double> ConstraintViolationVector;
 		
 		double BestObjectiveValue;
@@ -96,6 +98,7 @@ namespace EMTG { namespace Solvers {
 		std::vector<int> phasePts;
 		std::vector<double> zeros;
 		std::vector<double> trashFits;
+		std::vector<double> xTemp;
 		int iter;
 		double varPer;
 		double phi;
@@ -108,12 +111,13 @@ namespace EMTG { namespace Solvers {
 		int recurLim;
 		string mutStr;
 
+		void SubmitInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
 		void LocOptInd(vector<double>& X);
 		void LocOptInd_LinWalk(vector<double>& X);
-		void LocOptInd_SteepDecent(vector<double>& X);
+		void LocOptInd_SteepDecent(vector<double>& X, int b);
 		double NormOfDif(vector<double>& A,vector<double>& B);
-		vector<double> GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir);
+		vector<double> GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b);
 	};
 
 }}//close namespaces
