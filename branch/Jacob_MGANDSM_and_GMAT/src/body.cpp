@@ -57,9 +57,9 @@ namespace EMTG {namespace Astrodynamics {
 		//determine which ephemeris to draw from
 		if (options->ephemeris_source == 0)
 		{
-			body_ephemeris_source = 0; //use static ephemeris
-			ephemeris_start_date = -0;
-			ephemeris_end_date = 1e+10;
+			this->body_ephemeris_source = 0; //use static ephemeris
+			this->ephemeris_start_date = -0;
+			this->ephemeris_end_date = 1e+10;
 		}
 		else if (options->ephemeris_source == 1)
 		{
@@ -77,7 +77,7 @@ namespace EMTG {namespace Astrodynamics {
 			if (fabs(temp_state[0]) > 1.0e-6 && fabs(temp_state[0]) < 1.0e+50)
 			{
                 //activate SPICE for this body
-				body_ephemeris_source = 1; //body can be located using SPICE
+				this->body_ephemeris_source = 1; //body can be located using SPICE
                 
                 //replace the orbit elements with something drawn from SPICE
                 double temp_elements[6];
@@ -91,18 +91,18 @@ namespace EMTG {namespace Astrodynamics {
 			}
 			else
 			{
-				cout << "Warning, body " << name << " does not have a SPICE ephemeris file." << endl;
-				body_ephemeris_source = 0; //use static ephemeris
-				ephemeris_start_date = 0;
-				ephemeris_end_date = 1e+10;
+				cout << "Warning, body " << this->name << " does not have a SPICE ephemeris file." << endl;
+				this->body_ephemeris_source = 0; //use static ephemeris
+				this->ephemeris_start_date = 0;
+				this->ephemeris_end_date = 1e+10;
 			}
 		}
 
-		J2000_body_equatorial_frame.initialize(ireference_angles[0], ireference_angles[1], ireference_angles[2], ireference_angles[3], ireference_angles[4], ireference_angles[5]);
+		this->J2000_body_equatorial_frame.initialize(ireference_angles[0], ireference_angles[1], ireference_angles[2], ireference_angles[3], ireference_angles[4], ireference_angles[5]);
 
         //compute additional values
         this->mu = options->G * mass;
-        if (ECC < 0.2)
+        if (this->ECC < 0.2)
             this->r_SOI = this->SMA * pow(this->mu / this->universe_mu, 0.4);
         else
             this->r_SOI = this->SMA * (1 - this->ECC) * pow(this->mu / (3.0 * this->universe_mu), 0.333333333333333333333333);
@@ -184,9 +184,9 @@ namespace EMTG {namespace Astrodynamics {
                                     const double& phi, 
                                     double* point_relative_to_body) const
 	{
-		point_relative_to_body[0] = r_SOI * cos(theta)*cos(phi);
-		point_relative_to_body[1] = r_SOI * sin(theta)*cos(phi);
-		point_relative_to_body[2] = r_SOI * sin(phi);
+		point_relative_to_body[0] = this->r_SOI * cos(theta)*cos(phi);
+		point_relative_to_body[1] = this->r_SOI * sin(theta)*cos(phi);
+		point_relative_to_body[2] = this->r_SOI * sin(phi);
 
 		return 0;
 	}
@@ -195,24 +195,24 @@ namespace EMTG {namespace Astrodynamics {
     void body::print_body_to_screen(string filename) const
 	{
 		ofstream outputfile(filename.c_str(), ios::app);
-		outputfile << "Body name: " << name << endl;
-		outputfile << "Short name: " << short_name << endl;
-		outputfile << "Body position in menu: " << body_code << endl;
-		outputfile << "SPICE ID: " << spice_ID << endl;
-		outputfile << "Valid flyby target? " << (minimum_safe_flyby_altitude > 0.0 ? "True" : "False") << endl;
-		if (minimum_safe_flyby_altitude > 0.0)
-			outputfile << "Minimum safe flyby altitude (km) " << minimum_safe_flyby_altitude << endl;
-		outputfile << "Mass (kg): " << mass << endl;
-		outputfile << "Radius (km): " << radius << endl;
-		outputfile << "Ephemeris source: " << body_ephemeris_source << endl;
-		outputfile << "R_SOI: " << r_SOI << endl;
-		outputfile << "Reference Epoch (MJD): " << reference_epoch << endl;
-		outputfile << "SMA (km): " << SMA << endl;
-		outputfile << "ECC: " << ECC << endl;
-		outputfile << "INC (deg): " << INC * 180.0 / EMTG::math::PI << endl;
-		outputfile << "RAAN (deg): " << RAAN * 180.0 / EMTG::math::PI << endl;
-		outputfile << "AOP (deg): " << AOP * 180.0 / EMTG::math::PI << endl;
-		outputfile << "MA (deg): " << MA * 180.0 / EMTG::math::PI << endl;
+		outputfile << "Body name: " << this->name << endl;
+		outputfile << "Short name: " << this->short_name << endl;
+		outputfile << "Body position in menu: " << this->body_code << endl;
+		outputfile << "SPICE ID: " << this->spice_ID << endl;
+		outputfile << "Valid flyby target? " << (this->minimum_safe_flyby_altitude > 0.0 ? "True" : "False") << endl;
+		if (this->minimum_safe_flyby_altitude > 0.0)
+			outputfile << "Minimum safe flyby altitude (km) " << this->minimum_safe_flyby_altitude << endl;
+		outputfile << "Mass (kg): " << this->mass << endl;
+		outputfile << "Radius (km): " << this->radius << endl;
+		outputfile << "Ephemeris source: " << this->body_ephemeris_source << endl;
+		outputfile << "R_SOI: " << this->r_SOI << endl;
+		outputfile << "Reference Epoch (MJD): " << this->reference_epoch << endl;
+		outputfile << "SMA (km): " << this->SMA << endl;
+		outputfile << "ECC: " << this->ECC << endl;
+		outputfile << "INC (deg): " << this->INC * 180.0 / EMTG::math::PI << endl;
+		outputfile << "RAAN (deg): " << this->RAAN * 180.0 / EMTG::math::PI << endl;
+		outputfile << "AOP (deg): " << this->AOP * 180.0 / EMTG::math::PI << endl;
+		outputfile << "MA (deg): " << this->MA * 180.0 / EMTG::math::PI << endl;
 		outputfile << endl;
 
 		outputfile.close();
