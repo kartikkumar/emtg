@@ -60,6 +60,12 @@ class PyEMTG_interface(wx.Frame):
                     for term in linecell[2:]:
                         self.default_universe_path += ' ' + term
 
+            elif linecell[0] == "default_small_bodies_file":
+                self.default_small_bodies_file = linecell[1]
+                if len(linecell) > 2:
+                    for term in linecell[2:]:
+                        self.default_universe_path += ' ' + term
+
         inputfile.close()
         
     def initialize_GUI(self):

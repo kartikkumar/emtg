@@ -1,2 +1,3 @@
 EMTG_path C:\Projects\EMTGv8_Sourceforge\branch\Jacob_MGANDSM_and_GMAT\Release\EMTGv8.exe
 default_universe_path C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\Universe\
+default_small_bodies_file C:\Projects\EMTGv8_Sourceforge\EMTG_libraries\Universe\allbodiesbright.smallbody

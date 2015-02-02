@@ -4,6 +4,13 @@
 
 class BubbleOptions(object):
     def __init__(self):
+        self.initialize()
+
+    def __init__(self, smallbodyfile):
+        self.initialize()
+        self.smallbodyfile = smallbodyfile
+
+    def initialize(self):
         self.smallbodyfile = './MainBeltBright.SmallBody'
         self.LU = 149597870.691
         self.mu = 1.32712440018e+11

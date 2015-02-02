@@ -13,7 +13,7 @@ class MissionPanel(wx.Panel):
 
         self.mission = mission
         self.plotoptions = PlotOptions.PlotOptions()
-        self.bubbleoptions = BubbleOptions.BubbleOptions()
+        self.bubbleoptions = BubbleOptions.BubbleOptions(parent.default_small_bodies_file)
         self.throttletablefile = 'ThrottleTable'
 
         #Journey selection listbox
