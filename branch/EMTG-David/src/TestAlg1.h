@@ -43,6 +43,7 @@ namespace EMTG { namespace Solvers {
 		int nF;
 
 		double conWeight;
+		double conLW;
 		
 		//int AgeLimit;
 		//double Tau1; //adaptation parameter from jDE
@@ -92,13 +93,15 @@ namespace EMTG { namespace Solvers {
 		EMTG::mission* Mission;
 		int pM;
 		int mode;
-		double genC;
+		int genC;
 		int gC;
 		int gCb;
 		std::vector<int> phasePts;
 		std::vector<double> zeros;
 		std::vector<double> trashFits;
 		std::vector<double> xTemp;
+		//std::vector<double> hist;
+		//double fitThresh;
 		int iter;
 		double varPer;
 		double phi;
@@ -113,7 +116,8 @@ namespace EMTG { namespace Solvers {
 
 		void SubmitInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
-		void LocOptInd(vector<double>& X);
+		void LocalOpt(vector<double>& X,int b);
+		void LocOptInd_RandWalk(vector<double>& X,int b);
 		void LocOptInd_LinWalk(vector<double>& X);
 		void LocOptInd_SteepDecent(vector<double>& X, int b);
 		double NormOfDif(vector<double>& A,vector<double>& B);
