@@ -145,6 +145,9 @@ public:
 	vector<int> dry_mass_constraint_G_indices;
 	vector<int> dry_mass_constraint_X_indices;
 	vector<double> dry_mass_constraint_X_ranges;
+    vector<int> final_mass_constraint_G_indices;
+    vector<int> final_mass_constraint_X_indices;
+    vector<double> final_mass_constraint_X_ranges;
 	vector<int> propellant_mass_constraint_G_indices;
 	vector<int> propellant_mass_constraint_X_indices;
 	vector<double> propellant_mass_constraint_X_ranges;

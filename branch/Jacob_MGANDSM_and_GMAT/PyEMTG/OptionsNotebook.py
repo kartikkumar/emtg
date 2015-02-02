@@ -100,8 +100,14 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         initial_V_infinity_box = wx.BoxSizer(wx.HORIZONTAL)
         initial_V_infinity_box.AddMany([self.txtinitial_V_infinity_x, self.txtinitial_V_infinity_y, self.txtinitial_V_infinity_z])
 
-        self.lblminimum_dry_mass = wx.StaticText(self, -1, "Minimum dry mass (kg)")
-        self.txtminimum_dry_mass = wx.TextCtrl(self, -1, "minimum_dry_mass")
+        self.lblfinal_mass_constraint= wx.StaticText(self, -1, "Final mass constraint value (kg)")
+        self.txtfinal_mass_constraint = wx.TextCtrl(self, -1, "minimum_dry_mass")
+
+        self.lblenforce_fixed_final_mass = wx.StaticText(self, -1, "Enable fixed final mass?")
+        self.chkenforce_fixed_final_mass = wx.CheckBox(self, -1)
+
+        self.lblenforce_minimum_dry_mass = wx.StaticText(self, -1, "Enable minimum dry mass?")
+        self.chkenforce_minimum_dry_mass = wx.CheckBox(self, -1)
 
         self.lblenforce_fixed_dry_mass = wx.StaticText(self, -1, "Enable fixed dry mass?")
         self.chkenforce_fixed_dry_mass = wx.CheckBox(self, -1)
@@ -115,7 +121,9 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblforced_post_launch_coast, self.txtforced_post_launch_coast,
                                 self.lblforced_flyby_coast, self.txtforced_flyby_coast,
                                 self.lblinitial_V_infinity, initial_V_infinity_box,
-                                self.lblminimum_dry_mass, self.txtminimum_dry_mass,
+                                self.lblfinal_mass_constraint, self.txtfinal_mass_constraint,
+                                self.lblenforce_fixed_final_mass, self.chkenforce_fixed_final_mass,
+                                self.lblenforce_minimum_dry_mass, self.chkenforce_minimum_dry_mass,
                                 self.lblenforce_fixed_dry_mass, self.chkenforce_fixed_dry_mass,
                                 self.lblpost_mission_delta_v, self.txtpost_mission_delta_v])
 

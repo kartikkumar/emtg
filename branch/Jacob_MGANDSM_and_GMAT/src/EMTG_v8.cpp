@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 		furnsh_c(referenceframestring.c_str());
 
 		//disable SPICE errors. This is because we can, and will often, go off the edge of an ephemeris file.
-		//errprt_c((SpiceChar*)"SET", 100, "NONE");
+		errprt_c((SpiceChar*)"SET", 100, "NONE");
 		erract_c((SpiceChar*)"SET", 100, "RETURN");
 
         SPICE_files_required = SPICE_files_initial;

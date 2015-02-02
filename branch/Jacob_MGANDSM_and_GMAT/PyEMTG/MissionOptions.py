@@ -165,7 +165,9 @@ class MissionOptions(object):
     power_decay_rate = 0.0 #percent per year
         
     #minimum dry mass constraint and related parameters
-    minimum_dry_mass = 0 #in kg
+    final_mass_constraint = 0 #in kg
+    enforce_minimum_dry_mass = 0
+    enforce_fixed_final_mass = 0
     enforce_fixed_dry_mass = 0
     enable_maximum_propellant_mass_constraint = 0
     maximum_propellant_mass = 1000.0
@@ -619,8 +621,12 @@ class MissionOptions(object):
                     elif choice == "parking_orbit_inclination":
                         self.parking_orbit_inclination = float(linecell[1])
 
-                    elif choice == "minimum_dry_mass":
-                        self.minimum_dry_mass = float(linecell[1])
+                    elif choice == "final_mass_constraint":
+                        self.final_mass_constraint = float(linecell[1])
+                    elif choice == "enforce_fixed_final_mass":
+                        self.enforce_fixed_dry_mass = int(linecell[1])
+                    elif choice == "enforce_minimum_dry_mass":
+                        self.enforce_fixed_dry_mass = int(linecell[1])
                     elif choice == "enforce_fixed_dry_mass":
                         self.enforce_fixed_dry_mass = int(linecell[1])
                     elif choice == "post_mission_delta_v":
@@ -837,6 +843,11 @@ class MissionOptions(object):
                     #deprecated options
                     elif choice == "NeuroSpiral_number_of_layers" or choice == "NeuroSpiral_neurons_per_layer" or choice == "journey_capture_spiral_starting_radius" or choice == "lazy_race_tree_allow_duplicates":
                         print choice, " is deprecated."
+                    elif choice == "minimum_dry_mass":
+                        print "minimum_dry_mass is deprecated and has been replaced by final_mass_constraint and the enforce_minimum_dry_mass check box. Your options have been translated to the new specifications but you should check to make sure they are correct."
+                        self.final_mass_constraint = float(linecell[1])
+                        if self.final_mass_constraint > 0.0:
+                            self.enforce_minimum_dry_mass = 1
                                 
                     #if option is not recognized
                     else:
@@ -1197,8 +1208,16 @@ class MissionOptions(object):
         outputfile.write("EP_dry_mass " + str(self.EP_dry_mass) + "\n")
         outputfile.write("#Allow initial mass to vary, up to maximum possible mass? (only relevant for MGALT and FBLT)\n")
         outputfile.write("allow_initial_mass_to_vary " + str(self.allow_initial_mass_to_vary) + "\n")
-        outputfile.write("#Minimum dry mass\n")
-        outputfile.write("minimum_dry_mass " + str(self.minimum_dry_mass) + "\n")
+        outputfile.write("#Final mass constraint value\n")
+        outputfile.write("final_mass_constraint " + str(self.final_mass_constraint) + "\n")
+        outputfile.write("#Enforce fixed final mass?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("enforce_fixed_final_mass " + str(int(self.enforce_fixed_final_mass)) + "\n")
+        outputfile.write("#Enforce minimum dry mass?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("enforce_minimum_dry_mass " + str(int(self.enforce_minimum_dry_mass)) + "\n")
         outputfile.write("#Enforce fixed dry mass?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
@@ -1769,7 +1788,9 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtinitial_V_infinity_x.SetValue(str(self.initial_V_infinity[0]))
         optionsnotebook.tabGlobal.txtinitial_V_infinity_y.SetValue(str(self.initial_V_infinity[1]))
         optionsnotebook.tabGlobal.txtinitial_V_infinity_z.SetValue(str(self.initial_V_infinity[2]))
-        optionsnotebook.tabGlobal.txtminimum_dry_mass.SetValue(str(self.minimum_dry_mass))
+        optionsnotebook.tabGlobal.txtfinal_mass_constraint.SetValue(str(self.final_mass_constraint))
+        optionsnotebook.tabGlobal.chkenforce_fixed_final_mass.SetValue(self.enforce_fixed_final_mass)
+        optionsnotebook.tabGlobal.chkenforce_minimum_dry_mass.SetValue(self.enforce_minimum_dry_mass)
         optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.SetValue(self.enforce_fixed_dry_mass)
         optionsnotebook.tabGlobal.txtpost_mission_delta_v.SetValue(str(self.post_mission_delta_v))
 
@@ -1807,17 +1828,18 @@ class MissionOptions(object):
             optionsnotebook.tabGlobal.txttotal_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabGlobal.txttotal_flight_time_bounds_upper.Show(False)
 
-        #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible, likewise for fixed dry mass
-        if self.minimum_dry_mass > 0.0:
+        #if the minimum dry mass constraint or the fixed dry mass or final constraint are not active, make the post-mission delta-v field invisible
+        #likewise do not show the mass constraint field unless one of those boxes is checked
+        if self.enforce_fixed_dry_mass or self.enforce_fixed_final_mass or self.enforce_minimum_dry_mass:
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(True)
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(True)
-            optionsnotebook.tabGlobal.lblenforce_fixed_dry_mass.Show(True)
-            optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.Show(True)
+            optionsnotebook.tabGlobal.lblfinal_mass_constraint.Show(True)
+            optionsnotebook.tabGlobal.txtfinal_mass_constraint.Show(True)
         else:
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(False)
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(False)
-            optionsnotebook.tabGlobal.lblenforce_fixed_dry_mass.Show(False)
-            optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.Show(False)
+            optionsnotebook.tabGlobal.lblfinal_mass_constraint.Show(False)
+            optionsnotebook.tabGlobal.txtfinal_mass_constraint.Show(False)
 
         #control coordinate system is only shown for low-thrust mission types
         if self.mission_type == 2 or self.mission_type == 3:
@@ -2462,7 +2484,7 @@ class MissionOptions(object):
         optionsnotebook.tabSpacecraft.txtpower_decay_rate.SetValue(str(self.power_decay_rate))
 
         #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible
-        if self.minimum_dry_mass > 0.0 or self.enable_maximum_propellant_mass_constraint > 0:
+        if self.enforce_fixed_dry_mass or self.enforce_fixed_final_mass or self.enforce_minimum_dry_mass or self.enable_maximum_propellant_mass_constraint > 0:
             optionsnotebook.tabSpacecraft.lblpost_mission_Isp.Show(True)
             optionsnotebook.tabSpacecraft.txtpost_mission_Isp.Show(True)
         else:

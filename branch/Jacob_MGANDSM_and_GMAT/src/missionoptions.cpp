@@ -688,10 +688,18 @@ namespace EMTG {
 	    }
 
 	    //minimum dry mass constraint and related parameters
-	    if (choice == "minimum_dry_mass") {
-		    this->minimum_dry_mass = value;
+	    if (choice == "final_mass_constraint") {
+            this->final_mass_constraint = value;
 		    return 0;
 	    }
+        if (choice == "enforce_minimum_dry_mass") {
+            this->enforce_minimum_dry_mass = (bool)value;
+            return 0;
+        }
+        if (choice == "enforce_fixed_final_mass") {
+            this->enforce_fixed_final_mass = (bool)value;
+            return 0;
+        }
         if (choice == "enforce_fixed_dry_mass") {
             this->enforce_fixed_dry_mass = (bool)value;
             return 0;
@@ -1893,6 +1901,16 @@ namespace EMTG {
 
 	    }
 
+        //handle deprecated options
+        if (choice == "minimum_dry_mass")
+        {
+            cout << "minimum_dry_mass is deprecated and has been replaced by final_mass_constraint and the enforce_minimum_dry_mass check box. Your options have been translated to the new specifications but you should check to make sure they are correct." << endl;
+            this->final_mass_constraint = value;
+            if (value > 0.0)
+                this->enforce_minimum_dry_mass = true;
+            return 0;
+        }
+
 	    if (choice == "reset for next line") {return 0;}
 
 	    //or, if we have a string that did not match any option (i.e. we got this far)
@@ -2240,8 +2258,16 @@ namespace EMTG {
 		    outputfile << "EP_dry_mass " << this->EP_dry_mass << endl;
 		    outputfile << "#Allow initial mass to vary, up to maximum possible mass? (only relevant for MGALT and FBLT)" << endl;
 		    outputfile << "allow_initial_mass_to_vary " << allow_initial_mass_to_vary << endl;
-		    outputfile << "#Minimum dry mass" << endl;
-		    outputfile << "minimum_dry_mass " << this->minimum_dry_mass << endl;
+		    outputfile << "#Final mass constraint value" << endl;
+		    outputfile << "final_mass_constraint " << this->final_mass_constraint << endl;
+            outputfile << "#Enforce fixed final mass?" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "enforce_fixed_final_mass " << this->enforce_fixed_dry_mass << endl;
+            outputfile << "#Enforce minimum dry mass?" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "enforce_minimum_dry_mass " << this->enforce_fixed_dry_mass << endl;
             outputfile << "#Enforce fixed dry mass?" << endl;
             outputfile << "#0: no" << endl;
             outputfile << "#1: yes" << endl;

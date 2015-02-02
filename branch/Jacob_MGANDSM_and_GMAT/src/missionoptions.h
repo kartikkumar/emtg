@@ -227,7 +227,9 @@ public:
 	double EP_dry_mass; //in kg
 
 	//terminal constraints
-	double minimum_dry_mass; //in kg
+	double final_mass_constraint; //in kg
+    bool enforce_minimum_dry_mass;
+    bool enforce_fixed_final_mass;
     bool enforce_fixed_dry_mass;
 	bool enable_maximum_propellant_mass_constraint;
 	double maximum_propellant_mass; // in kg
