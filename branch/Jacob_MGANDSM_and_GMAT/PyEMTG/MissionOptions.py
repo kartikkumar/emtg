@@ -624,9 +624,9 @@ class MissionOptions(object):
                     elif choice == "final_mass_constraint":
                         self.final_mass_constraint = float(linecell[1])
                     elif choice == "enforce_fixed_final_mass":
-                        self.enforce_fixed_dry_mass = int(linecell[1])
+                        self.enforce_fixed_final_mass = int(linecell[1])
                     elif choice == "enforce_minimum_dry_mass":
-                        self.enforce_fixed_dry_mass = int(linecell[1])
+                        self.enforce_minimum_dry_mass = int(linecell[1])
                     elif choice == "enforce_fixed_dry_mass":
                         self.enforce_fixed_dry_mass = int(linecell[1])
                     elif choice == "post_mission_delta_v":
