@@ -692,6 +692,10 @@ namespace EMTG {
 		    this->minimum_dry_mass = value;
 		    return 0;
 	    }
+        if (choice == "enforce_fixed_dry_mass") {
+            this->enforce_fixed_dry_mass = (bool)value;
+            return 0;
+        }
 	    if (choice == "enable_maximum_propellant_mass_constraint")
 	    {
 		    this->enable_maximum_propellant_mass_constraint = (bool)value;
@@ -2238,6 +2242,10 @@ namespace EMTG {
 		    outputfile << "allow_initial_mass_to_vary " << allow_initial_mass_to_vary << endl;
 		    outputfile << "#Minimum dry mass" << endl;
 		    outputfile << "minimum_dry_mass " << this->minimum_dry_mass << endl;
+            outputfile << "#Enforce fixed dry mass?" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "enforce_fixed_dry_mass " << this->enforce_fixed_dry_mass << endl;
 		    outputfile << "#Enable maximum propellant mass constraint?" << endl;
 		    outputfile << "enable_maximum_propellant_mass_constraint " << (int) this->enable_maximum_propellant_mass_constraint << endl;
 		    outputfile << "#Maximum propellant mass (kg)" << endl;
@@ -2307,6 +2315,7 @@ namespace EMTG {
 		    outputfile << "#11: maximum dry/wet ratio" << endl;
 		    outputfile << "#12: maximum arrival kinetic energy" << endl;
 		    outputfile << "#13: minimum BOL power" << endl;
+            outputfile << "#14: maximum log10(final mass)" << endl;
 		    outputfile << "objective_type " << this->objective_type << endl;
 		    outputfile << "#bounds on the DLA, in degrees (typically set to declination of your launch site)" << endl;
 		    outputfile << "DLA_bounds " << this->DLA_bounds[0] << " " << this->DLA_bounds[1] << endl;
@@ -2809,7 +2818,11 @@ namespace EMTG {
 		    outputfile << "#Check derivatives against finite differencing?" << endl;
 		    outputfile << "check_derivatives " << this->check_derivatives << endl;
 		    outputfile << "#which inner loop solver to run?" << endl;
-		    outputfile << "#0: none, evaluate trialX, 1: evaluate a batch of decision vectors, 2: run MBH, 3: run constrained DE, 4: run SNOPT using trialX as initial guess" << endl;
+            outputfile << "#0: none, evaluate trialX" << endl;
+            outputfile << "#1: evaluate a batch of decision vectors" << endl;
+            outputfile << "#2: run MBH" << endl;
+            outputfile << "#3: run constrained DE" << endl;
+            outputfile << "#4: run SNOPT using trialX as initial guess" << endl;
 		    outputfile << "run_inner_loop " << this->run_inner_loop << endl;
 		    outputfile << "#trial decision vector" << endl;
 		    outputfile << "#trialX" << endl;

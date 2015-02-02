@@ -228,6 +228,7 @@ public:
 
 	//terminal constraints
 	double minimum_dry_mass; //in kg
+    bool enforce_fixed_dry_mass;
 	bool enable_maximum_propellant_mass_constraint;
 	double maximum_propellant_mass; // in kg
 	double post_mission_delta_v; //in km/s

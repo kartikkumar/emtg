@@ -782,7 +782,10 @@ void mission::calcbounds()
 	//mission dry mass constraint
 	if (options.minimum_dry_mass > 0)
 	{
-		Flowerbounds.push_back(-math::LARGE);
+        if (this->options.enforce_fixed_dry_mass)
+            Flowerbounds.push_back(0.0);
+        else
+            Flowerbounds.push_back(-math::LARGE);
 		Fupperbounds.push_back(0.0);
 		Fdescriptions.push_back("mission dry mass constraint");
 
@@ -1423,7 +1426,19 @@ int mission::evaluate(  double* X,
 		}
 	case 13: //minimum power
 		F[0] = this->options.power_at_1_AU;
+        break;
+    case 14: //maximum log(final mass)
+        if (options.mission_type > 1)
+            F[0] = -log10(current_state[6] / (options.maximum_mass + FinalPhase->current_mass_increment));
+        else
+        {
+            double c = -log10(current_state[6]);
+            F[0] = c;
+        }
+        break;
 	}
+
+    
 	
 	//test for errors
 	if (failed_c())//test for SPICE errors

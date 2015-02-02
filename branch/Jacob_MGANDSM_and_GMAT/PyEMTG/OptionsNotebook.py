@@ -27,7 +27,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                           '4: launch as late as possible in the window','5: launch as early as possible in the window',
                           '6: maximize orbit energy','7: minimize launch mass','8: arrive as early as possible',
                           '9: arrive as late as possible','10: minimum propellant (not the same as 2)','11: maximum dry/wet ratio',
-                          '12: maximum arrival kinetic energy', '13: minimum BOL power']
+                          '12: maximum arrival kinetic energy', '13: minimum BOL power', '14: maximize log10(final mass)']
         self.cmbobjective_type = wx.ComboBox(self, -1, choices=objectivetypes, style = wx.CB_READONLY)
 
         self.lblinclude_initial_impulse_in_cost = wx.StaticText(self, -1, "Include initial impulse in cost")
@@ -103,6 +103,9 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblminimum_dry_mass = wx.StaticText(self, -1, "Minimum dry mass (kg)")
         self.txtminimum_dry_mass = wx.TextCtrl(self, -1, "minimum_dry_mass")
 
+        self.lblenforce_fixed_dry_mass = wx.StaticText(self, -1, "Enable fixed dry mass?")
+        self.chkenforce_fixed_dry_mass = wx.CheckBox(self, -1)
+
         self.lblpost_mission_delta_v = wx.StaticText(self, -1, "Post-mission delta-v (km/s)")
         self.txtpost_mission_delta_v = wx.TextCtrl(self, -1, "post_mission_delta_v")
 
@@ -113,6 +116,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblforced_flyby_coast, self.txtforced_flyby_coast,
                                 self.lblinitial_V_infinity, initial_V_infinity_box,
                                 self.lblminimum_dry_mass, self.txtminimum_dry_mass,
+                                self.lblenforce_fixed_dry_mass, self.chkenforce_fixed_dry_mass,
                                 self.lblpost_mission_delta_v, self.txtpost_mission_delta_v])
 
         vboxleft = wx.BoxSizer(wx.VERTICAL)

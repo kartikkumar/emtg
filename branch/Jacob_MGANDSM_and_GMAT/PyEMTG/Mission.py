@@ -282,7 +282,7 @@ class Mission(object):
         else:
             for j in range(0, len(self.Journeys)):
                 bubblefile.write('Journey ' + str(j+1) + ': ' + self.Journeys[j].journey_name + '\n')
-                bubblefile.write('Julian Date, Gregorian Date, Body Name, SPICE ID, Tholen spectral type, SMASSII spectral type, Absolute Magnitude, Diameter, Distance (km), Relative Velocity (km/s)\n')
+                bubblefile.write('Julian Date, Gregorian Date, Body Name, SPICE ID, Tholen spectral type, SMASSII spectral type, Absolute Magnitude, Diameter, Distance (km), Distance (LU), Relative Velocity (km/s)\n')
 
                 for event in self.Journeys[j].missionevents:
                     print "Searching for targets of opportunity on JD", event.JulianDate
@@ -304,7 +304,7 @@ class Mission(object):
                         else:
                             Diameter = str(body.Diameter)
 
-                        bubblefile.write(str(event.JulianDate) + ',' + event.GregorianDate + ',' + body.name + ',' + str(body.SPICEID) + ',' + Tholen + ',' + SMASSII + ',' + str(body.H) + ',' + Diameter + ',' + str(body.RelativePositionMagnitude) + ',' + str(body.RelativeVelocityMagnitude) + '\n')
+                        bubblefile.write(str(event.JulianDate) + ',' + event.GregorianDate + ',' + body.name + ',' + str(body.SPICEID) + ',' + Tholen + ',' + SMASSII + ',' + str(body.H) + ',' + Diameter + ',' + str(body.RelativePositionMagnitude) + ',' + str(body.RelativePositionMagnitude / BubbleOptions.LU) + ',' + str(body.RelativeVelocityMagnitude) + '\n')
                     print "Found", len(event_body_list), "candidates"
 
                 bubblefile.write('\n')

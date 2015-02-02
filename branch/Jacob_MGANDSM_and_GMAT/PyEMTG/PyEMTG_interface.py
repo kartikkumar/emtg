@@ -469,6 +469,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabGlobal.txtinitial_V_infinity_y.Bind(wx.EVT_KILL_FOCUS,self.Changeinitial_V_infinity_y)
         self.optionsnotebook.tabGlobal.txtinitial_V_infinity_z.Bind(wx.EVT_KILL_FOCUS,self.Changeinitial_V_infinity_z)
         self.optionsnotebook.tabGlobal.txtminimum_dry_mass.Bind(wx.EVT_KILL_FOCUS,self.Changeminimum_dry_mass)
+        self.optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.Bind(wx.EVT_CHECKBOX, self.Changeenforce_fixed_dry_mass)
         self.optionsnotebook.tabGlobal.txtpost_mission_delta_v.Bind(wx.EVT_KILL_FOCUS,self.Changepost_mission_delta_v)
 
         
@@ -806,6 +807,9 @@ class PyEMTG_interface(wx.Frame):
     def Changeminimum_dry_mass(self, e):
         self.missionoptions.minimum_dry_mass = eval(self.optionsnotebook.tabGlobal.txtminimum_dry_mass.GetValue())
         self.missionoptions.update_all_panels(self.optionsnotebook)
+
+    def Changeenforce_fixed_dry_mass(self, e):
+        self.missionoptions.enforce_fixed_dry_mass = self.optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.GetValue()
 
     def Changepost_mission_delta_v(self, e):
         self.missionoptions.post_mission_delta_v = eval(self.optionsnotebook.tabGlobal.txtpost_mission_delta_v.GetValue())

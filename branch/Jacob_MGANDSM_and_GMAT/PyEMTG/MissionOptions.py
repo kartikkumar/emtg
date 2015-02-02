@@ -166,6 +166,7 @@ class MissionOptions(object):
         
     #minimum dry mass constraint and related parameters
     minimum_dry_mass = 0 #in kg
+    enforce_fixed_dry_mass = 0
     enable_maximum_propellant_mass_constraint = 0
     maximum_propellant_mass = 1000.0
     post_mission_delta_v = 0.0 #in km/s
@@ -620,6 +621,8 @@ class MissionOptions(object):
 
                     elif choice == "minimum_dry_mass":
                         self.minimum_dry_mass = float(linecell[1])
+                    elif choice == "enforce_fixed_dry_mass":
+                        self.enforce_fixed_dry_mass = int(linecell[1])
                     elif choice == "post_mission_delta_v":
                         self.post_mission_delta_v = float(linecell[1])
                     elif choice == "post_mission_Isp":
@@ -1196,6 +1199,10 @@ class MissionOptions(object):
         outputfile.write("allow_initial_mass_to_vary " + str(self.allow_initial_mass_to_vary) + "\n")
         outputfile.write("#Minimum dry mass\n")
         outputfile.write("minimum_dry_mass " + str(self.minimum_dry_mass) + "\n")
+        outputfile.write("#Enforce fixed dry mass?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("enforce_fixed_dry_mass " + str(int(self.enforce_fixed_dry_mass)) + "\n")
         outputfile.write("#Enable maximum propellant mass constraint?\n")
         outputfile.write("enable_maximum_propellant_mass_constraint " + str(int(self.enable_maximum_propellant_mass_constraint)) + "\n")
         outputfile.write("#Maximum propellant mass (kg)\n")
@@ -1268,6 +1275,7 @@ class MissionOptions(object):
         outputfile.write("#11: maximum dry/wet ratio\n")
         outputfile.write("#12: maximum arrival kinetic energy\n")
         outputfile.write("#13: minimum BOL power\n")
+        outputfile.write("#14: maximize log10(final mass)\n")
         outputfile.write("objective_type " + str(self.objective_type) + "\n")
         outputfile.write("#bounds on the DLA, in degrees (typically set to declination of your launch site)\n")	
         outputfile.write("DLA_bounds " + str(self.DLA_bounds[0]) + " " + str(self.DLA_bounds[1]) + "\n")
@@ -1704,7 +1712,11 @@ class MissionOptions(object):
         outputfile.write("#Check derivatives against finite differencing?\n")
         outputfile.write("check_derivatives " + str(self.check_derivatives) + "\n")
         outputfile.write("#which inner loop solver to run?\n")	
-        outputfile.write("#0: none, evaluate trialX, 1: evaluate a batch of decision vectors, 2: run MBH, 3: run constrained DE, 4: run SNOPT using trialX as initial guess\n")
+        outputfile.write("#0: none, evaluate trialX\n")
+        outputfile.write("#1: evaluate a batch of decision vectors\n")
+        outputfile.write("#2: run MBH\n")
+        outputfile.write("#3: run constrained DE\n")
+        outputfile.write("#4: run SNOPT using trialX as initial guess\n")
         outputfile.write("run_inner_loop " + str(self.run_inner_loop) + "\n")
             
         if len(self.trialX) > 0:
@@ -1758,6 +1770,7 @@ class MissionOptions(object):
         optionsnotebook.tabGlobal.txtinitial_V_infinity_y.SetValue(str(self.initial_V_infinity[1]))
         optionsnotebook.tabGlobal.txtinitial_V_infinity_z.SetValue(str(self.initial_V_infinity[2]))
         optionsnotebook.tabGlobal.txtminimum_dry_mass.SetValue(str(self.minimum_dry_mass))
+        optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.SetValue(self.enforce_fixed_dry_mass)
         optionsnotebook.tabGlobal.txtpost_mission_delta_v.SetValue(str(self.post_mission_delta_v))
 
         #for Lambert mission types, show number of Lambert revs
@@ -1794,13 +1807,17 @@ class MissionOptions(object):
             optionsnotebook.tabGlobal.txttotal_flight_time_bounds_lower.Show(False)
             optionsnotebook.tabGlobal.txttotal_flight_time_bounds_upper.Show(False)
 
-        #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible
+        #if the minimum dry mass constraint is not active then make the post-mission delta-v field invisible, likewise for fixed dry mass
         if self.minimum_dry_mass > 0.0:
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(True)
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(True)
+            optionsnotebook.tabGlobal.lblenforce_fixed_dry_mass.Show(True)
+            optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.Show(True)
         else:
             optionsnotebook.tabGlobal.txtpost_mission_delta_v.Show(False)
             optionsnotebook.tabGlobal.lblpost_mission_delta_v.Show(False)
+            optionsnotebook.tabGlobal.lblenforce_fixed_dry_mass.Show(False)
+            optionsnotebook.tabGlobal.chkenforce_fixed_dry_mass.Show(False)
 
         #control coordinate system is only shown for low-thrust mission types
         if self.mission_type == 2 or self.mission_type == 3:
