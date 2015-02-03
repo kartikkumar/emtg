@@ -61,7 +61,7 @@ namespace EMTG { namespace Solvers {
 		RNG.seed(time(NULL));
 		Bins.resize(nF); // Collection of best trials in bins by constraint
 		Fits.resize(nF); // Fitness values corresponding to maintained population
-		varPer = 0.000001; // Used as small genome walk value in local optimization
+		varPer = Problem->options.FD_stepsize; // Used as small genome walk value in local optimization
 		zeros.resize(nX); // vector of all zeros to allow the norm of vector difference method to also calculate norms
 		
 		for (int i = 0; i < nX; i++)
@@ -88,11 +88,12 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		iter = 500; // Local optimization iterations -- Make Alg Param
+		iter = 100; // Local optimization iterations -- Make Alg Param
 		recur = 0; // Local optimization recursion-depth counter 
-		recurLim = 2000; // Local optimization recursion-depth limit -- Make Alg Param
-		conWeight = 10; // Weighting of constraints -- Make Alg Param
-		conLW = 1;
+		recurLim = 1000; // Local optimization recursion-depth limit -- Make Alg Param
+		optLim = 3;
+		conWeight = 100; // Weighting of constraints -- Make Alg Param
+		conLW = 10;
 		RandInit(gens,false);
 	}
 
@@ -100,6 +101,7 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::RandInit(int gens,bool sed)
 	{
 		mode = 0;// Rand flag
+		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
 		for (int i = 0; i < gens; i++)
 		{
 			if(!sed)
@@ -113,10 +115,9 @@ namespace EMTG { namespace Solvers {
 				{
 					for (int k = 0; k < nF; k++)
 					{
-						double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
 						double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
 						int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
-						double perturb = s * Problem->options.MBH_max_step_size * r;
+						double perturb = s * varPer * r;
 						double temp = Bins[k][0][j] + perturb;
 						if(temp > 1.0)
 						{
@@ -155,7 +156,10 @@ namespace EMTG { namespace Solvers {
 	// Local Optimization method holder to reduce difficulty in scheme change
 	void TestAlg1::LocalOpt(vector<double>& X,int b)
 	{
-		LocOptInd_SteepDecent(X,b);
+		for (int i = 0; i < optLim; i++)
+		{
+			LocOptInd_HybridOpt(X,b);
+		}
 	}
 
 	// Locally Optimize Individual -- here by random walk
@@ -178,7 +182,7 @@ namespace EMTG { namespace Solvers {
 				//double temp = Xb[i] + varPer * (DoubleDistribution(RNG)-0.5);
 				double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
 				int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
-				double perturb = s * Problem->options.MBH_max_step_size * r;
+				double perturb = s * varPer * r;
 				double temp = Xb[i] + perturb;
 				if(temp > 1.0)
 					temp = 1.0;
@@ -203,7 +207,7 @@ namespace EMTG { namespace Solvers {
 	}
 
 	// Locally Optimize Individual -- using steepest decent
-	void TestAlg1::LocOptInd_SteepDecent(vector<double>& X,int b)
+	void TestAlg1::LocOptInd_SteepDescent(vector<double>& X,int b)
 	{
 		vector<double> Xb = X; // Best so far
 		EvalInd(Xb, &objValTemp, &conValTemp);
@@ -314,6 +318,87 @@ namespace EMTG { namespace Solvers {
 			ptB[i] = Xb[i] + (bndPt[i]-Xb[i])*resphi;
 		recur = 0;
 		X = GoldenSearch(Xb,ptB,bndPt,Problem->options.FD_stepsize,dir,b);
+	}
+
+	void TestAlg1::LocOptInd_ParetoDescent(vector<double>& X,int b)
+	{
+		vector<double> Xb = X; // Best so far
+		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
+		EvalInd(Xb, &objValTemp, &conValTemp);
+		double Sb = objValTemp + conWeight * conValTemp; // Score of best
+		if(b!=0)
+			Sb = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+		vector<double> ders (nX); // Directional derivatives
+		double maxDer = 0; // Max derivative in any direction
+		double closestDist = 5; // Distance closest dimension to boundary
+		vector<double> bndDist (nX); // Distance to boundary of every dimension
+		vector<double> Xt (nX); // An single dimension offset of Xb to calculate derivatives
+		for (int i = 0; i < nX; i++)
+		{
+			vector<double> Xt (nX); // An single dimension offset of Xb to calculate derivatives
+			for (int j = 0; j < nX; j++) // Make Xt
+			{
+				if(j==i)
+				{
+					Xt[j] = Xb[j] + Problem->options.FD_stepsize;
+					if(Xt[i] > 1.0)
+						Xt[i] = 1.0;
+					if(Xt[i] < 0.0)
+						Xt[i] = 0.0;
+				}
+				else
+					Xt[j] = Xb[j];
+			}
+			EvalInd(Xt, &objValTemp, &conValTemp);
+			double St = objValTemp + conWeight * conValTemp; // Score of Xt
+			if(b!=0)
+				St = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+			ders[i] = (St-Sb)/Problem->options.FD_stepsize; // Simple derivative calculation
+		}
+		int j = 0;
+		gC = 0;
+		double nDers = NormOfDif(ders,zeros);
+		for (int i = 0; i < nX; i++)
+			ders[i] = ders[i]/nDers;
+		while (j < iter && gC < recurLim)
+		{
+			double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+			int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+			double perturb = s * varPer * r;
+			for (int k = 0; k < nX; k++)
+			{
+				Xt[k] = Xb[k] + perturb*ders[k];
+				if(Xt[k] > 1.0)
+				{
+					Xt[k] = 1.0;
+					//cout << "]";
+				}
+				if(Xt[k] < 0.0)
+				{
+					Xt[k] = 0.0;
+					//cout << "[";
+				}
+			}
+			EvalInd(Xt, &objValTemp, &conValTemp);
+			double St = objValTemp + conWeight * conValTemp; // Score of Xt
+			if(b!=0)
+				St = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+			if(St < Sb)
+			{
+				Xb = Xt;
+				Sb = St;
+				gC = -1;
+			}
+			j++;
+			gC++;
+		}
+		X = Xb;
+	}
+
+	void TestAlg1::LocOptInd_HybridOpt(vector<double>& X,int b)
+	{
+		LocOptInd_SteepDescent(X,b);
+		LocOptInd_RandWalk(X,b);
 	}
 
 	// Recursive Golden Search Implementation
@@ -469,7 +554,7 @@ namespace EMTG { namespace Solvers {
 			if(ind == 0 && cap < elitePer && offset!=-1)
 				gCb = -1;				
 			if(cap==0)
-				cout << "\nBin " << ind << " has a new best at Fit = " << score[ind] << " => " << objValTemp << " by " << tStr << mutStr;
+				cout << "\nBin " << ind << " new best at Fit = " << score[ind] << " => " << objValTemp << " by " << tStr << mutStr << " with Dist = " << NormOfDif(Bins[ind][0],Bins[ind][1]);
 		}
 		if(cap==NP-1 && bin.size() > NP) // Only delete last if no one was killed
 		{
@@ -530,7 +615,9 @@ namespace EMTG { namespace Solvers {
 	{
 		for (int i = 0; i < nF; i++)
 		{
-			xTemp = X;
+			//xTemp = X;
+			for (int j = 0; j < nX; j++)
+				xTemp[j] = X[j];
 			LocalOpt(xTemp,i);
 			EvalInd(xTemp,ObjectiveFunctionValue,ConstraintNormValue);
 			vector<double> score (nF);
@@ -541,7 +628,7 @@ namespace EMTG { namespace Solvers {
 				ofstream outputfile;
 				outputfile.open(Problem->options.working_directory + "//" + Problem->options.mission_name + "_" + Problem->options.description + "_Anomaly.emtg", ios::out | ios::app);
 				outputfile.precision(20);
-				for (int j = 0; j < nX; j++)
+				for (int j = 0; j < xTemp.size(); j++)
 				{
 					outputfile << xTemp[j];
 					outputfile << ", ";
@@ -570,7 +657,7 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::Evolve()
 	{
 		cout << "\nEvolve Called\n";
-
+		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
 		int evoIter = 500000; // Number of candidates to make -- Make Alg Param
 		bool deMode = true; // True = unique DE vector choices -- Make Alg Param
 		double varType;
@@ -581,8 +668,8 @@ namespace EMTG { namespace Solvers {
 		int flushStrat = 1; // Population diversity strategy -- Make Alg Param
 		int flushInd = 5; // Strat 1 = kill mod index ||| Strat 2 = Index past which fitnesses are nullified -- Make Alg Param
 		int flushKW = 2; // Strat 1 kill-band width -- Make Alg Param
-		int flushLim = 3000; // Stagnation history -- Make Alg Param
-		int flushGen = 100; // New randoms post-flush -- Make Alg Param
+		int flushLim = 2500; // Stagnation history -- Make Alg Param
+		int flushGen = 1000; // New randoms post-flush -- Make Alg Param
 		int flushC = 0; // Count of flushes occured -- Make Alg Param
 		int flushCLim = 5; // Limit of flushes -- Make Alg Param
 		//fitThresh = 0.001; // Fitness minimum change -- Make Alg Param
@@ -591,7 +678,6 @@ namespace EMTG { namespace Solvers {
 		//	hist[i] = EMTG::math::LARGE;
 		double flushWait = 0.15;
 		bool seeded = true; // Seed rand reset with best -- Make Alg Param 
-		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
 		vector<int> bn (3); // Random bin index holder
 		vector<int> num (3); // Random bin entry index holder
 		int writeFreq = 25000; // Writing frequency in case of crash -- Make Alg Param
@@ -660,7 +746,7 @@ namespace EMTG { namespace Solvers {
 				{
 					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
 					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
-					double perturb = s * Problem->options.MBH_max_step_size * r;
+					double perturb = s * varPer * r;
 					double temp = xTemp[j] + perturb;
 					if(temp > 1.0)
 					{

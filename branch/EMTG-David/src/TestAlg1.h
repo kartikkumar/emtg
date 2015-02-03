@@ -112,6 +112,7 @@ namespace EMTG { namespace Solvers {
 		double elitePer;
 		int recur;
 		int recurLim;
+		int optLim;
 		string mutStr;
 
 		void SubmitInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
@@ -119,7 +120,9 @@ namespace EMTG { namespace Solvers {
 		void LocalOpt(vector<double>& X,int b);
 		void LocOptInd_RandWalk(vector<double>& X,int b);
 		void LocOptInd_LinWalk(vector<double>& X);
-		void LocOptInd_SteepDecent(vector<double>& X, int b);
+		void LocOptInd_SteepDescent(vector<double>& X, int b);
+		void LocOptInd_ParetoDescent(vector<double>& X, int b);
+		void LocOptInd_HybridOpt(vector<double>& X, int b);
 		double NormOfDif(vector<double>& A,vector<double>& B);
 		vector<double> GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b);
 	};
