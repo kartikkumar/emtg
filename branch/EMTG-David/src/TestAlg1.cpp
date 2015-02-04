@@ -46,7 +46,7 @@ namespace EMTG { namespace Solvers {
 		nX = Problem->total_number_of_NLP_parameters;
 		nF = Problem->total_number_of_constraints;
 		NP = 100; // Bin Depth -- Make Alg Param
-		genC = 5000; // Percentage of total iterations allowed to serve as stagntion tolerance -- Make Alg Param
+		genC = 3000; // Percentage of total iterations allowed to serve as stagntion tolerance -- Make Alg Param
 		gC = 0; // stagnation generation counter for local optimization
 		gCb = 0; // stagnation generation counter for evolve
 		BestObjectiveValue = EMTG::math::LARGE;
@@ -69,11 +69,10 @@ namespace EMTG { namespace Solvers {
 		trashFits.resize(nF);
 		for (int i = 0; i < nF; i++)
 			trashFits[i] = EMTG::math::LARGE;
-
-		killDist = 10000000*Problem->options.FD_stepsize; // Distance within which insertion becomes replacement -- Make Alg Param
+		killDist = 50000000*Problem->options.FD_stepsize; // Distance within which insertion becomes replacement -- Make Alg Param
 		proxMode = true; // Whether or not to kill near duplicates -- Make Alg Param
 		proxKill = false; // Used to determine whether or not a deletion has taken place
-		elitePer = 0.1*NP; // Index above which ranked placement resets the stagnation counter -- Make Alg Param 
+		elitePer = 0.05*NP; // Index above which ranked placement resets the stagnation counter -- Make Alg Param 
 		mutStr = ""; // Used in cmd to notify when the best had undergone mutation
 
 		for (int i = 0; i < nF; i++)
@@ -90,7 +89,7 @@ namespace EMTG { namespace Solvers {
 
 		iter = 100; // Local optimization iterations -- Make Alg Param
 		recur = 0; // Local optimization recursion-depth counter 
-		recurLim = 1000; // Local optimization recursion-depth limit -- Make Alg Param
+		recurLim = 2000; // Local optimization recursion-depth limit -- Make Alg Param
 		optLim = 3;
 		conWeight = 100; // Weighting of constraints -- Make Alg Param
 		conLW = 10;
@@ -102,12 +101,13 @@ namespace EMTG { namespace Solvers {
 	{
 		mode = 0;// Rand flag
 		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
+		vector<double> xEph (nX);
 		for (int i = 0; i < gens; i++)
 		{
 			if(!sed)
 			{
 				for (int j = 0; j < nX; j++)
-					xTemp[j] = DoubleDistribution(RNG);
+					xEph[j] = DoubleDistribution(RNG);
 			}
 			else
 			{
@@ -121,7 +121,7 @@ namespace EMTG { namespace Solvers {
 						double temp = Bins[k][0][j] + perturb;
 						if(temp > 1.0)
 						{
-							if(temp < 2.0 && abs(xTemp[j]-1) < Problem->options.FD_stepsize)
+							if(temp < 2.0 && abs(xEph[j]-1) < Problem->options.FD_stepsize)
 							{
 								temp = 1.0;
 								//cout << "Bound Upper";
@@ -134,7 +134,7 @@ namespace EMTG { namespace Solvers {
 						}
 						else if(temp < 0.0)
 						{
-							if(temp > -1.0 && abs(xTemp[j]) < Problem->options.FD_stepsize)
+							if(temp > -1.0 && abs(xEph[j]) < Problem->options.FD_stepsize)
 							{
 								temp = 0.0;
 								//cout << "Bound Lower";
@@ -145,11 +145,11 @@ namespace EMTG { namespace Solvers {
 								//cout << "\nReset Lower";
 							}
 						}
-						xTemp[j] = temp;
+						xEph[j] = temp;
 					}
 				}
 			}
-			SubmitInd(xTemp, &objValTemp, &conValTemp);
+			SubmitInd(xEph, &objValTemp, &conValTemp);
 		}
 	}
 
@@ -158,7 +158,7 @@ namespace EMTG { namespace Solvers {
 	{
 		for (int i = 0; i < optLim; i++)
 		{
-			LocOptInd_HybridOpt(X,b);
+			LocOptInd_SteepDescent(X,b);
 		}
 	}
 
@@ -317,7 +317,7 @@ namespace EMTG { namespace Solvers {
 		for (int i = 0; i < nX; i++)
 			ptB[i] = Xb[i] + (bndPt[i]-Xb[i])*resphi;
 		recur = 0;
-		X = GoldenSearch(Xb,ptB,bndPt,Problem->options.FD_stepsize,dir,b);
+		X =  GoldenSearch(Xb,ptB,bndPt,Problem->options.FD_stepsize,dir,b);
 	}
 
 	void TestAlg1::LocOptInd_ParetoDescent(vector<double>& X,int b)
@@ -402,7 +402,7 @@ namespace EMTG { namespace Solvers {
 	}
 
 	// Recursive Golden Search Implementation
-	vector<double> TestAlg1::GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b)
+	std::vector<double> TestAlg1::GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b)
 	{
 		recur++;
 		vector<double> x (nX);
@@ -491,6 +491,7 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind)
 	{
 		proxKill = false;
+		double nDist = 5;
 		int offset = 0; // Used for both index of deletion and eraser flag
 		if(cap>0 && score[ind] < fit[cap-1][ind])
 			SortBin(bin,fit,X,score,cap-1,ind);
@@ -527,11 +528,6 @@ namespace EMTG { namespace Solvers {
 				it2+=cap;
 				it2 = fit.insert (it2,score);
 			}
-			if(offset > 0 && cap!=NP-1) // Kill below
-			{
-				bin.erase(bin.begin()+cap+offset);
-				fit.erase(fit.begin()+cap+offset);
-			}
 			string tStr;
 			switch (mode) // For tracking success
 			{
@@ -555,6 +551,11 @@ namespace EMTG { namespace Solvers {
 				gCb = -1;				
 			if(cap==0)
 				cout << "\nBin " << ind << " new best at Fit = " << score[ind] << " => " << objValTemp << " by " << tStr << mutStr << " with Dist = " << NormOfDif(Bins[ind][0],Bins[ind][1]);
+			if(offset > 0 && cap!=NP-1) // Kill below
+			{
+				bin.erase(bin.begin()+cap+offset);
+				fit.erase(fit.begin()+cap+offset);
+			}
 		}
 		if(cap==NP-1 && bin.size() > NP) // Only delete last if no one was killed
 		{
@@ -611,7 +612,7 @@ namespace EMTG { namespace Solvers {
 	}
 	
 	// Does bin-wise optimization and sorting
-	void TestAlg1::SubmitInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue)
+	void TestAlg1::SubmitInd(vector<double> X, double* ObjectiveFunctionValue, double* ConstraintNormValue)
 	{
 		for (int i = 0; i < nF; i++)
 		{
@@ -657,30 +658,33 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::Evolve()
 	{
 		cout << "\nEvolve Called\n";
+		proxKill = false;
 		double alpha = Problem->options.MBH_Pareto_alpha; // Needed for pareto
 		int evoIter = 500000; // Number of candidates to make -- Make Alg Param
 		bool deMode = true; // True = unique DE vector choices -- Make Alg Param
 		double varType;
 		double mutCap = 0.5; // DE/GA trade-off point -- Make Alg Param
 		double F_w = 0.85; // DE parameter -- Make Alg Param
-		double mutProb = 0.3; // Pareto mutation probability -- Make Alg Param
 		bool flush = true; // Population diversity action -- Make Alg Param
-		int flushStrat = 1; // Population diversity strategy -- Make Alg Param
-		int flushInd = 5; // Strat 1 = kill mod index ||| Strat 2 = Index past which fitnesses are nullified -- Make Alg Param
+		int flushStrat = 2; // Population diversity strategy -- Make Alg Param
+		int flushInd = 30; // Strat 1 = kill mod index ||| Strat 2 = Index past which fitnesses are nullified -- Make Alg Param
 		int flushKW = 2; // Strat 1 kill-band width -- Make Alg Param
-		int flushLim = 2500; // Stagnation history -- Make Alg Param
+		int flushLim = 1000; // Stagnation history -- Make Alg Param
 		int flushGen = 1000; // New randoms post-flush -- Make Alg Param
-		int flushC = 0; // Count of flushes occured -- Make Alg Param
+		int flushC = 0; // Count of flushes occured
 		int flushCLim = 5; // Limit of flushes -- Make Alg Param
 		//fitThresh = 0.001; // Fitness minimum change -- Make Alg Param
 		//hist.resize(flushLim); // Fit history
 		//for (int i = 0; i< hist.size(); i++)
 		//	hist[i] = EMTG::math::LARGE;
 		double flushWait = 0.15;
-		bool seeded = true; // Seed rand reset with best -- Make Alg Param 
+		bool seeded = false; // Seed rand reset with best -- Make Alg Param 
+		int mutType = 2; // Mutation type employed -- Make Alg Param
+		double mutProb = 0.01; // Pareto mutation probability -- Make Alg Param
 		vector<int> bn (3); // Random bin index holder
 		vector<int> num (3); // Random bin entry index holder
 		int writeFreq = 25000; // Writing frequency in case of crash -- Make Alg Param
+		vector<double> xTri (nX);
 		for (int i = 0; i < 3; i++)
 		{
 			bn[i] = -1;
@@ -718,7 +722,7 @@ namespace EMTG { namespace Solvers {
 						temp = -1.0*temp;
 					if(temp < -1.0)
 						temp = DoubleDistribution(RNG);
-					xTemp[j] = temp;
+					xTri[j] = temp;
 				}
 			}
 			else // GA recombination
@@ -735,59 +739,111 @@ namespace EMTG { namespace Solvers {
 					int b = binDist(RNG);
 					int c = capDist(RNG);
 					for (int k = f; k < e; k++)
-						xTemp[k] = Bins[b][c][k];
+						xTri[k] = Bins[b][c][k];
 				}
 			}
-			double mutUse = DoubleDistribution(RNG);
-			if(mutUse < mutProb) // Pareto mutation
+			bool muted = false;
+			switch (mutType)
 			{
-				mutStr = " with Mut";
-				for (int j = 0; j < nX; j++)
+			case 1:
 				{
-					double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
-					int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
-					double perturb = s * varPer * r;
-					double temp = xTemp[j] + perturb;
-					if(temp > 1.0)
+					double mutUse = DoubleDistribution(RNG);
+					if(mutUse < mutProb) // Pareto mutation
 					{
-						if(temp < 2.0 && abs(xTemp[j]-1) < Problem->options.FD_stepsize)
+						muted = true;
+						mutStr = " with Mut";
+						for (int j = 0; j < nX; j++)
 						{
-							temp = 1.0;
-							//cout << "Bound Upper";
-						}
-						else
-						{
-							temp = DoubleDistribution(RNG);
-							//cout << "\nReset Upper";
+							double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+							int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+							double perturb = s * varPer * r;
+							double temp = xTri[j] + perturb;
+							if(temp > 1.0)
+							{
+								if(temp < 2.0 && abs(xTri[j]-1) < Problem->options.FD_stepsize)
+								{
+									temp = 1.0;
+									//cout << "Bound Upper";
+								}
+								else
+								{
+									temp = DoubleDistribution(RNG);
+									//cout << "\nReset Upper";
+								}
+							}
+							else if(temp < 0.0)
+							{
+								if(temp > -1.0 && abs(xTri[j]) < Problem->options.FD_stepsize)
+								{
+									temp = 0.0;
+									//cout << "Bound Lower";
+								}
+								else
+								{
+									temp = DoubleDistribution(RNG);
+									//cout << "\nReset Lower";
+								}
+							}
+							xTri[j] = temp;
 						}
 					}
-					else if(temp < 0.0)
+					break;
+				}
+			case 2:
+				{
+					for (int j = 0; j < nX; j++)
 					{
-						if(temp > -1.0 && abs(xTemp[j]) < Problem->options.FD_stepsize)
+						double mutUse = DoubleDistribution(RNG);
+						if(mutUse < mutProb)
 						{
-							temp = 0.0;
-							//cout << "Bound Lower";
-						}
-						else
-						{
-							temp = DoubleDistribution(RNG);
-							//cout << "\nReset Lower";
+							muted = true;
+							double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
+							int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
+							double perturb = s * varPer * r;
+							double temp = xTri[j] + perturb;
+							if(temp > 1.0)
+							{
+								if(temp < 2.0 && abs(xTri[j]-1) < Problem->options.FD_stepsize)
+								{
+									temp = 1.0;
+									//cout << "Bound Upper";
+								}
+								else
+								{
+									temp = DoubleDistribution(RNG);
+									//cout << "\nReset Upper";
+								}
+							}
+							else if(temp < 0.0)
+							{
+								if(temp > -1.0 && abs(xTri[j]) < Problem->options.FD_stepsize)
+								{
+									temp = 0.0;
+									//cout << "Bound Lower";
+								}
+								else
+								{
+									temp = DoubleDistribution(RNG);
+									//cout << "\nReset Lower";
+								}
+							}
+							xTri[j] = temp;
 						}
 					}
-					xTemp[j] = temp;
+					break;
 				}
 			}
 			string mdStr = "_"; // Operation display string (mode string)
 			if(varType < mutCap)
 			{
-				if(mutUse < mutProb)
+				if(muted)
 					mdStr = ":";
 				else
 					mdStr = ".";
 			}
 			else
 			{
-				if(mutUse < mutProb)
+				if(muted)
 					mdStr = "+";
 				else
 					mdStr = "-";
@@ -798,7 +854,7 @@ namespace EMTG { namespace Solvers {
 				cout << "\n" << (tI/evoIter)*100 << "%\n";
 			}
 			cout << mdStr;
-			SubmitInd(xTemp, &objValTemp, &conValTemp);
+			SubmitInd(xTri, &objValTemp, &conValTemp);
 			if(proxKill)
 				cout << "x";
 			mutStr = "";
@@ -861,6 +917,7 @@ namespace EMTG { namespace Solvers {
 			}
 			i++;
 		}
+		RandInit(flushGen,true);
 		if (!(gCb < genC))
 			cout << "\nEvolution terminated due to stagnation.\n";
 		else

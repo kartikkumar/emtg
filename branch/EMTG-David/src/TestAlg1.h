@@ -115,7 +115,7 @@ namespace EMTG { namespace Solvers {
 		int optLim;
 		string mutStr;
 
-		void SubmitInd(vector<double>& X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
+		void SubmitInd(vector<double> X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
 		void LocalOpt(vector<double>& X,int b);
 		void LocOptInd_RandWalk(vector<double>& X,int b);
@@ -124,7 +124,7 @@ namespace EMTG { namespace Solvers {
 		void LocOptInd_ParetoDescent(vector<double>& X, int b);
 		void LocOptInd_HybridOpt(vector<double>& X, int b);
 		double NormOfDif(vector<double>& A,vector<double>& B);
-		vector<double> GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b);
+		std::vector<double> GoldenSearch(vector<double>& A, vector<double>& B, vector<double>& C, double tau, vector<double>& dir, int b);
 	};
 
 }}//close namespaces
