@@ -297,7 +297,6 @@ public:
 	int output_units; //0: km and km/s, 1: LU and LU/day
     bool output_dormant_journeys;
     double post_mission_wait_time; //in days
-	int create_GMAT_script; //0: no, 1: yes
 	bool generate_initial_guess_file;
 	int mission_type_for_initial_guess_file;
 	bool override_working_directory;
@@ -305,6 +304,11 @@ public:
     bool generate_forward_integrated_ephemeris;
     bool background_mode; //0: no, 1: yes
     bool unscale_match_point_constraints; //0: no, 1: yes
+
+    //GMAT output settings
+    bool create_GMAT_script; //0: no, 1: yes
+    int GMAT_optimizer; //0: VF13ad, 1: SNOPT, 2: fmincon
+    bool GMAT_plot_while_optimize; //0: no, 1: yes
 
 	//debug code
 	int run_inner_loop;

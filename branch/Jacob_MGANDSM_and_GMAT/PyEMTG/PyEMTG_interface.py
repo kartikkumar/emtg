@@ -703,7 +703,6 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabPhysics.txtintegrator_tolerance.Bind(wx.EVT_KILL_FOCUS, self.ChangeIntegratorTolerance)
 
         #output options
-        self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmboutput_units.Bind(wx.EVT_COMBOBOX, self.Changeoutput_units)
         self.optionsnotebook.tabOutput.chkoutput_dormant_journeys.Bind(wx.EVT_CHECKBOX, self.Changeoutput_dormant_journeys)
         self.optionsnotebook.tabOutput.txtpost_mission_wait_time.Bind(wx.EVT_KILL_FOCUS, self.Changepost_mission_wait_time)
@@ -715,6 +714,11 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.Bind(wx.EVT_CHECKBOX, self.Changegenerate_forward_integrated_ephemeris)
         self.optionsnotebook.tabOutput.chkbackground_mode.Bind(wx.EVT_CHECKBOX, self.Changebackground_mode)
         self.optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.Bind(wx.EVT_CHECKBOX, self.Changeunscale_matchpoint_constraints)
+
+        #GMAT output
+        self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
+        self.optionsnotebook.tabOutput.cmbGMAT_optimizer.Bind(wx.EVT_COMBOBOX, self.ChangeGMAT_optimizer)
+        self.optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Bind(wx.EVT_CHECKBOX, self.ChangeGMAT_plot_while_optimize)
         
         
     #event handlers for global mission options    
@@ -1816,10 +1820,17 @@ class PyEMTG_interface(wx.Frame):
     def ChangeIntegratorTolerance(self, e):
         self.missionoptions.integrator_tolerance = eval(self.optionsnotebook.tabPhysics.txtintegrator_tolerance.GetValue())
 
-    #handlers for output options
+    #handlers for GMAT output options
     def Changecreate_GMAT_script(self, e):
         self.missionoptions.create_GMAT_script = int(self.optionsnotebook.tabOutput.chkcreate_GMAT_script.GetValue())
 
+    def ChangeGMAT_optimizer(self, e):
+        self.missionoptions.GMAT_optimizer = int(self.optionsnotebook.tabOutput.cmbGMAT_optimizer.GetSelection())
+
+    def ChangeGMAT_plot_while_optimize(self, e):
+        self.missionoptions.GMAT_plot_while_optimize = int(self.optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.GetValue())
+
+    #handlers for output options
     def Changeoutput_units(self, e):
         self.missionoptions.output_units = int(self.optionsnotebook.tabOutput.cmboutput_units.GetSelection())
 

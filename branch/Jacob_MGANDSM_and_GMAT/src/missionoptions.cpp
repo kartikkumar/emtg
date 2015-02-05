@@ -91,22 +91,26 @@ namespace EMTG {
         this->enable_maximum_propellant_mass_constraint = false;
         this->maximum_propellant_mass = 1000.0;
         this->maximum_number_of_lambert_revolutions = 0;
-	this->outerloop_vary_departure_C3 = false;
-	this->outerloop_vary_arrival_C3 = false;
-	this->outerloop_restrict_flight_time_lower_bound = false;
-	this->outerloop_reevaluate_full_population = false;
-	this->outerloop_warm_population = "none";
-	this->outerloop_warm_archive = "none";
-	this->quiet_outerloop = true;
-	this->quiet_basinhopping = false;
-	this->MBH_two_step = false;
-	this->FD_stepsize = 1.5e-8;
-	this->FD_stepsize_coarse = 1.5e-3;
-	this->control_coordinate_system = 0;
-	this->initial_guess_control_coordinate_system = 0;
-	this->enable_maximum_propellant_mass_constraint = false;
-	this->maximum_propellant_mass = 1000.0;
-	this->maximum_number_of_lambert_revolutions = 0;
+	    this->outerloop_vary_departure_C3 = false;
+	    this->outerloop_vary_arrival_C3 = false;
+	    this->outerloop_restrict_flight_time_lower_bound = false;
+	    this->outerloop_reevaluate_full_population = false;
+	    this->outerloop_warm_population = "none";
+	    this->outerloop_warm_archive = "none";
+	    this->quiet_outerloop = true;
+	    this->quiet_basinhopping = false;
+	    this->MBH_two_step = false;
+	    this->FD_stepsize = 1.5e-8;
+	    this->FD_stepsize_coarse = 1.5e-3;
+	    this->control_coordinate_system = 0;
+	    this->initial_guess_control_coordinate_system = 0;
+	    this->enable_maximum_propellant_mass_constraint = false;
+	    this->maximum_propellant_mass = 1000.0;
+	    this->maximum_number_of_lambert_revolutions = 0;
+        this->final_mass_constraint = 0.0;
+        this->enforce_minimum_dry_mass = false;
+        this->enforce_fixed_final_mass = false;
+        this->enforce_fixed_dry_mass = false;
 
         this->spiral_model_type = 1;
         this->problem_type = 0;
@@ -130,7 +134,6 @@ namespace EMTG {
         this->post_mission_delta_v = 0.0;
         this->post_mission_Isp = 3000.0;
         this->propellant_margin = 0.0;
-        this->create_GMAT_script = 0;
         this->forced_flyby_coast = 0.0;
         this->forced_post_launch_coast = 0.0;
         this->power_margin = 0.0;
@@ -148,6 +151,11 @@ namespace EMTG {
         this->background_mode = true;
         this->output_dormant_journeys = false;
         this->unscale_match_point_constraints = false;
+
+        //GMAT output settings
+        this->create_GMAT_script = 0; //0: no, 1: yes
+        this->GMAT_optimizer = 0; //0: VF13ad, 1: SNOPT, 2: fmincon
+        this->GMAT_plot_while_optimize = 0; //0: no, 1: yes
     }
 
     missionoptions::~missionoptions() {}
@@ -1797,10 +1805,6 @@ namespace EMTG {
             this->post_mission_wait_time = value;
             return 0;
         }
-	    if (choice == "create_GMAT_script") {
-		    this->create_GMAT_script = (int) value;
-		    return 0;
-	    }
 	    if (choice == "generate_initial_guess_file")
 	    {
 		    this->generate_initial_guess_file = (bool)value;
@@ -1834,6 +1838,20 @@ namespace EMTG {
         if (choice == "unscale_match_point_constraints")
         {
             this->unscale_match_point_constraints = (bool)value;
+            return 0;
+        }
+
+        //GMAT output settings
+        if (choice == "create_GMAT_script") {
+            this->create_GMAT_script = (bool)value;
+            return 0;
+        }
+        if (choice == "GMAT_optimizer") {
+            this->GMAT_optimizer = (int)value;
+            return 0;
+        }
+        if (choice == "GMAT_plot_while_optimize") {
+            this->GMAT_plot_while_optimize = (bool)value;
             return 0;
         }
 
@@ -2820,8 +2838,6 @@ namespace EMTG {
             outputfile << "output_dormant_journeys " << this->output_dormant_journeys << endl;
             outputfile << "#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)" << endl;
             outputfile << "post_mission_wait_time " << this->post_mission_wait_time << endl;
-		    outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
-		    outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
 		    outputfile << "#Generate initial guess file?" << endl;
 		    outputfile << "#0: no" << endl;
 		    outputfile << "#1: yes" << endl;
@@ -2853,6 +2869,22 @@ namespace EMTG {
             outputfile << "#1: yes" << endl;
             outputfile << "unscale_match_point_constraints " << this->unscale_match_point_constraints << endl;
 		    outputfile << endl;
+
+            outputfile << "##GMAT output settings" << endl;
+            outputfile << "#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "create_GMAT_script " << this->create_GMAT_script << endl;
+            outputfile << "#Which optimizer to use for GMAT optimization" << endl;
+            outputfile << "#0: VF13ad" << endl;
+            outputfile << "#1: SNOPT" << endl;
+            outputfile << "#2: fmincon (requires that your GMAT be connected to MATLAB)" << endl;
+            outputfile << "GMAT_optimizer " << this->GMAT_optimizer << endl;
+            outputfile << "#Plot solver iterations?" << endl;
+            outputfile << "#0: no" << endl;
+            outputfile << "#1: yes" << endl;
+            outputfile << "GMAT_plot_while_optimize " << this->GMAT_plot_while_optimize << endl;
+            outputfile << endl;
 
 		    outputfile << "##debug code" << endl;
 		    outputfile << "##the purpose of this code is so that you can turn the inner-loop solver on and off, force a sequence of planets and/or phase types" << endl;

@@ -92,7 +92,7 @@ void gmatscripter::write_GMAT_script(){
 	this->write_GMAT_coordinatesystems();
 
 	// write out the solvers
-	this->write_GMAT_solvers();
+    this->write_GMAT_solvers();
 
 	// write out subscribers (i.e. plot views and reports)
 	this->write_GMAT_subscribers();
@@ -121,7 +121,7 @@ void gmatscripter::create_GMAT_file(){
 	//create a filename
 	string filename = this->ptr_gmatmission->options.working_directory + "//" + 
 					  this->ptr_gmatmission->options.mission_name + "_" + 
-					  this->ptr_gmatmission->options.description + "_GMAT_New.script";
+					  this->ptr_gmatmission->options.description + "_GMAT.script";
 	//open the ofstream object called GMATfile
 	this->GMATfile.open(filename.c_str(), ios::trunc);
 	//set floating point decimal precision
@@ -1733,28 +1733,46 @@ void gmatscripter::write_GMAT_solvers(){
 	GMATfile << "%-------------------------------------------------------------------------" << std::endl;
 	GMATfile << std::endl;
 
-	//fmincon or vf13ad
-	//default optimizer is VF13
-	GMATfile << "Create VF13ad NLPObject;" << std::endl;
-	GMATfile << "NLPObject.ShowProgress = true;" << std::endl;
-	GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
-	GMATfile << "NLPObject.ReportFile = 'VF13adNLPObject.data';" << std::endl;
-	GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
-	GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
-	GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
-	GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
-	GMATfile << std::endl;
+    switch (this->ptr_gmatmission->options.GMAT_optimizer)
+    {
+        //fmincon or vf13ad
+    case 0:
+        //default optimizer is VF13
+        GMATfile << "Create VF13ad NLPObject;" << std::endl;
+        GMATfile << "NLPObject.ShowProgress = true;" << std::endl;
+        GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
+        GMATfile << "NLPObject.ReportFile = 'VF13adNLPObject.data';" << std::endl;
+        GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
+        GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
+        GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
+        GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
+        GMATfile << std::endl;
+        break;
 
-	//uncomment for use with fmincon
-	//DEBUG: should have option for using VF13ad or Fmincon
-	GMATfile << "%Uncomment for use with fmincon" << std::endl;
-	GMATfile << "%Create FminconOptimizer NLPObject;" << std::endl;
-	GMATfile << "%NLPObject.DiffMaxChange = '0.1000';" << std::endl;
-	GMATfile << "%NLPObject.DiffMinChange = '1.0000e-08';" << std::endl;
-	GMATfile << "%NLPObject.MaxFunEvals = '1000';" << std::endl;
-	GMATfile << "%NLPObject.TolX = '1.0000e-06';" << std::endl;
-	GMATfile << "%NLPObject.TolFun = '1.0000e-06';" << std::endl;
-	GMATfile << "%NLPObject.TolCon = '1.0000e-06';" << std::endl;
+    case 1:
+        //SNOPT
+        GMATfile << "Create SNOPT NLPObject;" << std::endl;
+        GMATfile << "NLPObject.ShowProgress = true;" << std::endl;
+        GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
+        GMATfile << "NLPObject.ReportFile = 'SNOPTObject.data';" << std::endl;
+        GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
+        GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
+        //GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
+        //GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
+        GMATfile << std::endl;
+        break;
+
+    case 2:
+        //fmincon
+        GMATfile << "Create FminconOptimizer NLPObject;" << std::endl;
+        GMATfile << "NLPObject.DiffMaxChange = '0.1000';" << std::endl;
+        GMATfile << "NLPObject.DiffMinChange = '1.0000e-08';" << std::endl;
+        GMATfile << "NLPObject.MaxFunEvals = '1000';" << std::endl;
+        GMATfile << "NLPObject.TolX = '1.0000e-06';" << std::endl;
+        GMATfile << "NLPObject.TolFun = '1.0000e-06';" << std::endl;
+        GMATfile << "NLPObject.TolCon = '1.0000e-06';" << std::endl;
+        break;
+    }
 	GMATfile << std::endl;
 	GMATfile << std::endl;
 
@@ -1775,7 +1793,10 @@ void gmatscripter::write_GMAT_subscribers(){
 	GMATfile << "%Create subscriber for central body view" << std::endl;
 	GMATfile << "Create OrbitView " << GMATMission.missionbodies_unique[0].central_body_name << "View" << std::endl;
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.ShowPlot =		true" << std::endl;
-	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << std::endl;
+    if (this->ptr_gmatmission->options.GMAT_plot_while_optimize)
+	    GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 All" << std::endl;
+    else
+        GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.SolverIterations =	 None" << std::endl;
 	GMATfile << GMATMission.missionbodies_unique[0].central_body_name << "View.RelativeZOrder =	501" << std::endl;
 
 	//add which bodies and s/c to plot 

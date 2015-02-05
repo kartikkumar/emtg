@@ -205,7 +205,6 @@ class MissionOptions(object):
     #output format settings
     output_units = 0 #0: km and km/s, 1: LU and LU/day
     post_mission_wait_time = 0.0
-    create_GMAT_script = 0 #0: no, 1: yes
     generate_initial_guess_file = 0
     mission_type_for_initial_guess_file = 2
     override_working_directory = 0;
@@ -214,6 +213,11 @@ class MissionOptions(object):
     background_mode = 1 #0: no, 1: yes
     output_dormant_journeys = 0
     unscale_match_point_constraints = 0
+
+    #GMAT output settings
+    create_GMAT_script = 0 #0: no, 1: yes
+    GMAT_optimizer = 0 #0: VF13ad, 1: SNOPT, 2: fmincon
+    GMAT_plot_while_optimize = 0 #0: no, 1: yes
 
     #debug code
     check_derivatives = 0
@@ -807,8 +811,6 @@ class MissionOptions(object):
                         self.output_units = int(linecell[1])
                     elif choice == "post_mission_wait_time":
                         self.post_mission_wait_time = float(linecell[1])
-                    elif choice == "create_GMAT_script":
-                        self.create_GMAT_script = int(linecell[1])
                     elif choice == "generate_initial_guess_file":
                         self.generate_initial_guess_file = int(linecell[1])
                     elif choice == "mission_type_for_initial_guess_file":
@@ -825,6 +827,14 @@ class MissionOptions(object):
                         self.output_dormant_journeys = int(linecell[1])
                     elif choice == "unscale_match_point_constraints":
                         self.unscale_match_point_constraints = int(linecell[1])
+
+                    #GMAT output settings
+                    elif choice == "create_GMAT_script":
+                        self.create_GMAT_script = int(linecell[1])
+                    elif choice == "GMAT_optimizer":
+                        self.GMAT_optimizer = int(linecell[1])
+                    elif choice == "GMAT_plot_while_optimize":
+                        self.GMAT_plot_while_optimize = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1664,8 +1674,6 @@ class MissionOptions(object):
         outputfile.write("output_dormant_journeys " + str(self.output_dormant_journeys) + "\n")
         outputfile.write("#Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)\n")
         outputfile.write("post_mission_wait_time " + str(self.post_mission_wait_time) + "\n")
-        outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
-        outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
         outputfile.write("#Generate initial guess file?\n")
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
@@ -1696,6 +1704,22 @@ class MissionOptions(object):
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("unscale_match_point_constraints " + str(self.unscale_match_point_constraints) + "\n")
+        outputfile.write("\n")
+
+        outputfile.write("##GMAT output settings\n")
+        outputfile.write("#Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("create_GMAT_script " + str(self.create_GMAT_script) + "\n")
+        outputfile.write("#Which optimizer to use for GMAT optimization\n")
+        outputfile.write("#0: VF13ad\n")
+        outputfile.write("#1: SNOPT\n")
+        outputfile.write("#2: fmincon (requires that your GMAT be connected to MATLAB)\n")
+        outputfile.write("GMAT_optimizer " + str(self.GMAT_optimizer) + "\n")
+        outputfile.write("#Plot solver iterations?\n")
+        outputfile.write("#0: no\n")
+        outputfile.write("#1: yes\n")
+        outputfile.write("GMAT_plot_while_optimize " + str(self.GMAT_plot_while_optimize) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3548,7 +3572,6 @@ class MissionOptions(object):
 
 
     def update_output_options_panel(self, optionsnotebook):
-        optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmboutput_units.SetSelection(self.output_units)
         optionsnotebook.tabOutput.chkoutput_dormant_journeys.SetValue(self.output_dormant_journeys)
         optionsnotebook.tabOutput.txtpost_mission_wait_time.SetValue(str(self.post_mission_wait_time))
@@ -3559,6 +3582,10 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.chkgenerate_forward_integrated_ephemeris.SetValue(self.generate_forward_integrated_ephemeris)
         optionsnotebook.tabOutput.chkbackground_mode.SetValue(self.background_mode)
         optionsnotebook.tabOutput.chkunscale_matchpoint_constraints.SetValue(self.unscale_match_point_constraints)
+
+        optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
+        optionsnotebook.tabOutput.cmbGMAT_optimizer.SetSelection(self.GMAT_optimizer)
+        optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.SetValue(self.GMAT_plot_while_optimize)
 
         if (self.output_dormant_journeys):
             optionsnotebook.tabOutput.lblpost_mission_wait_time.Show(True)
@@ -3582,6 +3609,17 @@ class MissionOptions(object):
             optionsnotebook.tabOutput.lblforced_working_directory.Show(False)
             optionsnotebook.tabOutput.txtforced_working_directory.Show(False)
             optionsnotebook.tabOutput.btnforced_working_directory.Show(False)
+
+        if (self.create_GMAT_script):
+            optionsnotebook.tabOutput.lblGMAT_optimizer.Show(True)
+            optionsnotebook.tabOutput.cmbGMAT_optimizer.Show(True)
+            optionsnotebook.tabOutput.lblGMAT_plot_while_optimize.Show(True)
+            optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Show(True)
+        else:
+            optionsnotebook.tabOutput.lblGMAT_optimizer.Show(False)
+            optionsnotebook.tabOutput.cmbGMAT_optimizer.Show(False)
+            optionsnotebook.tabOutput.lblGMAT_plot_while_optimize.Show(False)
+            optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Show(False)
 
         if self.mission_type == 3:
             optionsnotebook.tabOutput.lblunscale_matchpoint_constraints.Show(True)
