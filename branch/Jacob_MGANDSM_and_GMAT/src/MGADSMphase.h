@@ -86,12 +86,6 @@ public:
 										const missionoptions& options,
                                         const Astrodynamics::universe& Universe);
 
-	//GMAT output methods
-	void output_GMAT_fueltank_and_thruster(int& j, int& p, vector<EMTG::Astrodynamics::body>& missionbodies, int& index_body_visited, std::ofstream& GMATfile);
-	void output_GMAT_burn_objects(int& j, int& p, std::ofstream& GMATfile);
-	void output_GMAT_create_interphase_control_variables(int& j, int& p, missionoptions& options, std::ofstream& GMATfile);
-	void output_GMAT_inter_phase_control_initial_guess(int& j, int& p, missionoptions& options, std::ofstream& GMATfile);
-
 	//burn information
 	//all phases have at least one burn
 	//phases beginning wih a departure have an additional burn

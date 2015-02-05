@@ -1150,17 +1150,17 @@ int mission::evaluate(  double* X,
 			G[dry_mass_constraint_G_indices[whichderiv]] = -(options.maximum_mass + FinalPhase->current_mass_increment) * expfun * (options.propellant_margin + 1.0) / options.final_mass_constraint;
 			++whichderiv;
 
-			//derivative with respect to v-infinity
-			if (!(options.LV_type == 0))
-			{
+				//derivative with respect to v-infinity
+				if (!(options.LV_type == 0))
+				{
                 G[this->dry_mass_constraint_G_indices[whichderiv]] = (options.journey_initial_impulse_bounds[0][1] - options.journey_initial_impulse_bounds[0][0]) * FirstPhase->dmdvinf * (FirstPhase->mission_initial_mass_multiplier * options.propellant_margin) / options.final_mass_constraint;
-				++whichderiv;
-			}
+					++whichderiv;
+				}
 
 
-			//derivative with respect to initial mass scale factor
-			if (options.allow_initial_mass_to_vary)
-			{
+				//derivative with respect to initial mass scale factor
+				if (options.allow_initial_mass_to_vary)
+				{
                 G[this->dry_mass_constraint_G_indices[whichderiv]] = (this->dry_mass_constraint_X_ranges[whichderiv] * FirstPhase->unscaled_phase_initial_mass * options.propellant_margin) / options.final_mass_constraint;
 				++whichderiv;
 			}

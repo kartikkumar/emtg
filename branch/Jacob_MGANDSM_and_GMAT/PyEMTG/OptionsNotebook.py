@@ -81,7 +81,7 @@ class GlobalOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblglobal_timebounded = wx.StaticText(self, -1, "Enable mission time bounds")
         self.chkglobal_timebounded = wx.CheckBox(self, -1)
 
-        self.lbltotal_flight_time_bounds = wx.StaticText(self, -1, "Global flight time bounds")
+        self.lbltotal_flight_time_bounds = wx.StaticText(self, -1, "Global flight time bounds (days)")
         self.txttotal_flight_time_bounds_lower = wx.TextCtrl(self, -1, "total_flight_time_bounds[0]")
         self.txttotal_flight_time_bounds_upper = wx.TextCtrl(self, -1, "total_flight_time_bounds[1]")
         GlobalTimebox = wx.BoxSizer(wx.HORIZONTAL)
@@ -469,7 +469,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbljourney_variable_mass_increment = wx.StaticText(self, -1, "Variable mass increment")
         self.chkjourney_variable_mass_increment = wx.CheckBox(self, -1)
 
-        self.lbljourney_wait_time_bounds = wx.StaticText(self, -1, "Wait time bounds")
+        self.lbljourney_wait_time_bounds = wx.StaticText(self, -1, "Wait time bounds (days)")
         self.txtjourney_wait_time_bounds_lower = wx.TextCtrl(self, -1, "journey_wait_time_bounds[0]")
         self.txtjourney_wait_time_bounds_upper = wx.TextCtrl(self, -1, "journey_wait_time_bounds[1]")
         wait_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -479,7 +479,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         journey_time_bounds_choices = ['unbounded','bounded flight time','bounded arrival date','bounded aggregate flight time']
         self.cmbjourney_timebounded = wx.ComboBox(self, -1, choices=journey_time_bounds_choices, style=wx.CB_READONLY)
 
-        self.lbljourney_flight_time_bounds = wx.StaticText(self, -1, "Journey flight time bounds")
+        self.lbljourney_flight_time_bounds = wx.StaticText(self, -1, "Journey flight time bounds (days)")
         self.txtjourney_flight_time_bounds_lower = wx.TextCtrl(self, -1, "journey_flight_time_bounds[0]")
         self.txtjourney_flight_time_bounds_upper = wx.TextCtrl(self, -1, "journey_flight_time_bounds[1]")
         flight_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -493,7 +493,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         arrival_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
         arrival_date_sizer.AddMany([self.txtjourney_arrival_date_bounds_lower, self.ArrivalDateLowerCalendar, self.txtjourney_arrival_date_bounds_upper, self.ArrivalDateUpperCalendar])
 
-        self.lbljourney_initial_impulse_bounds = wx.StaticText(self, -1, "Journey initial impulse bounds")
+        self.lbljourney_initial_impulse_bounds = wx.StaticText(self, -1, "Journey initial impulse bounds (km/s)")
         self.txtjourney_initial_impulse_bounds_lower = wx.TextCtrl(self, -1, "journey_initial_impulse_bounds[0]")
         self.txtjourney_initial_impulse_bounds_upper = wx.TextCtrl(self, -1, "journey_initial_impulse_bounds[1]")
         initial_impulse_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -529,7 +529,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbljourney_capture_spiral_final_radius = wx.StaticText(self, -1, "Orbital radius for end of capture spiral (km)")
         self.txtjourney_capture_spiral_final_radius = wx.TextCtrl(self, -1, "journey_capture_spiral_final_radius")
 
-        self.lbljourney_final_velocity = wx.StaticText(self, -1, "Journey final velocity vector")
+        self.lbljourney_final_velocity = wx.StaticText(self, -1, "Journey final velocity vector (km/s)")
         self.txtjourney_final_velocity0 = wx.TextCtrl(self, -1, "journey_final_velocity[0]")
         self.txtjourney_final_velocity1 = wx.TextCtrl(self, -1, "journey_final_velocity[1]")
         self.txtjourney_final_velocity2 = wx.TextCtrl(self, -1, "journey_final_velocity[2]")
@@ -538,7 +538,7 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.lbljourney_arrival_declination_constraint_flag = wx.StaticText(self, -1, "Apply arrival declination constraint?")
         self.chkjourney_arrival_declination_constraint_flag = wx.CheckBox(self, -1)
-        self.lbljourney_arrival_declination_bounds = wx.StaticText(self, -1, "Arrival Declination bounds")
+        self.lbljourney_arrival_declination_bounds = wx.StaticText(self, -1, "Arrival Declination bounds (degrees)")
         self.txtjourney_arrival_declination_bounds_lower = wx.TextCtrl(self, -1, "journey_arrival_declination_bounds[0]")
         self.txtjourney_arrival_declination_bounds_upper = wx.TextCtrl(self, -1, "journey_arrival_declination_bounds[1]")
         declination_bounds_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -606,12 +606,12 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lbldepartureelementsvalue = wx.StaticText(self, -1, "Value")
         self.lbldepartureelementslower = wx.StaticText(self, -1, "Lower bound")
         self.lbldepartureelementsupper = wx.StaticText(self, -1, "Upper bound")
-        self.lblSMA_departure = wx.StaticText(self, -1, "SMA")
+        self.lblSMA_departure = wx.StaticText(self, -1, "SMA (km)")
         self.lblECC_departure = wx.StaticText(self, -1, "ECC")
-        self.lblINC_departure = wx.StaticText(self, -1, "INC")
-        self.lblRAAN_departure = wx.StaticText(self, -1, "RAAN")
-        self.lblAOP_departure = wx.StaticText(self, -1, "AOP")
-        self.lblMA_departure = wx.StaticText(self, -1, "MA")
+        self.lblINC_departure = wx.StaticText(self, -1, "INC (degrees)")
+        self.lblRAAN_departure = wx.StaticText(self, -1, "RAAN (degrees)")
+        self.lblAOP_departure = wx.StaticText(self, -1, "AOP (degrees)")
+        self.lblMA_departure = wx.StaticText(self, -1, "MA (degrees)")
         self.chkSMA_departure = wx.CheckBox(self, -1)
         self.chkECC_departure = wx.CheckBox(self, -1)
         self.chkINC_departure = wx.CheckBox(self, -1)
@@ -667,12 +667,12 @@ class JourneyOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblarrivalelementsvalue = wx.StaticText(self, -1, "Value")
         self.lblarrivalelementslower = wx.StaticText(self, -1, "Lower bound")
         self.lblarrivalelementsupper = wx.StaticText(self, -1, "Upper bound")
-        self.lblSMA_arrival = wx.StaticText(self, -1, "SMA")
-        self.lblECC_arrival = wx.StaticText(self, -1, "ECC")
-        self.lblINC_arrival = wx.StaticText(self, -1, "INC")
-        self.lblRAAN_arrival = wx.StaticText(self, -1, "RAAN")
-        self.lblAOP_arrival = wx.StaticText(self, -1, "AOP")
-        self.lblMA_arrival = wx.StaticText(self, -1, "MA")
+        self.lblSMA_arrival = wx.StaticText(self, -1, "SMA (km)")
+        self.lblECC_arrival = wx.StaticText(self, -1, "ECC (degrees)")
+        self.lblINC_arrival = wx.StaticText(self, -1, "INC (degrees)")
+        self.lblRAAN_arrival = wx.StaticText(self, -1, "RAAN (degrees)")
+        self.lblAOP_arrival = wx.StaticText(self, -1, "AOP (degrees)")
+        self.lblMA_arrival = wx.StaticText(self, -1, "MA (degrees)")
         self.chkSMA_arrival = wx.CheckBox(self, -1)
         self.chkECC_arrival = wx.CheckBox(self, -1)
         self.chkINC_arrival = wx.CheckBox(self, -1)
@@ -764,7 +764,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblMBH_max_trials = wx.StaticText(self, -1, "Maximum number of innerloop trials")
         self.txtMBH_max_trials = wx.TextCtrl(self, -1, "MBH_max_trials")
         
-        self.lblMBH_max_run_time = wx.StaticText(self, -1, "Maximum run-time")
+        self.lblMBH_max_run_time = wx.StaticText(self, -1, "Maximum run-time (s)")
         self.txtMBH_max_run_time = wx.TextCtrl(self, -1, "MBH_max_run_time")
         
         self.lblMBH_max_step_size = wx.StaticText(self, -1, "MBH maximum perturbation size")
@@ -786,7 +786,7 @@ class SolverOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.lblsnopt_major_iterations = wx.StaticText(self, -1, "SNOPT major iterations limit")
         self.txtsnopt_major_iterations = wx.TextCtrl(self, -1, "snopt_major_iterations")
         
-        self.lblsnopt_max_run_time = wx.StaticText(self, -1, "SNOPT maximum run time")
+        self.lblsnopt_max_run_time = wx.StaticText(self, -1, "SNOPT maximum run time (s)")
         self.txtsnopt_max_run_time = wx.TextCtrl(self, -1, "snopt_max_run_time")
         
         self.lblderivative_type = wx.StaticText(self, -1, "Derivative calculation method")

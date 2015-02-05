@@ -15,6 +15,7 @@
 #include "mission.h"
 #include "outerloop_NSGAII.h"
 #include "outerloop_SGA.h"
+#include "GMATScripter.h"
 
 
 #include "universe.h"
@@ -370,8 +371,11 @@ int main(int argc, char* argv[])
 					//temporarily we can't output MGA or MGA-DSM missions
 					if (options.mission_type > 1 && options.create_GMAT_script)
 					{
-						TrialMission.output_GMAT_preamble();
-						TrialMission.output_GMAT_mission();
+						//beeson code
+						EMTG::gmatscripter gmat_script(&TrialMission);
+						gmat_script.write_GMAT_script();
+
+
 					}
 
 					if (options.generate_initial_guess_file)

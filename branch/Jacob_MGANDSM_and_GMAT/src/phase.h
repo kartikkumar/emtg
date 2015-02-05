@@ -69,6 +69,7 @@ namespace EMTG
 																	EMTG::Astrodynamics::body& TheBody);
 
 		math::Matrix<double> calculate_periapse_state_from_asymptote_and_parking_orbit(math::Matrix<double>& V_infinity,
+																					   std::vector<double> & v0,
 																					   double parking_orbit_incination,
 																					   double parking_orbit_altitude,
 																					   double &epoch,
@@ -245,48 +246,6 @@ namespace EMTG
                                                 const int& p,
                                                 EMTG::Astrodynamics::universe* Universe,
                                                 missionoptions* options);
-
-		//GMAT output methods
-		void output_GMAT_spacecraft(int& j, 
-									int& p,
-									vector<string>& SC_created,
-									int& index_SC, 
-									vector<EMTG::Astrodynamics::body>& missionbodies, 
-									int& index_body_visited, 
-									std::ofstream& GMATfile);
-
-		void output_GMAT_fueltank_and_thruster(	int& j,
-												int& p, 
-												vector<EMTG::Astrodynamics::body>& missionbodies,
-												int& index_body_visited, 
-												std::ofstream& GMATfile);
-
-		void output_GMAT_burn_objects(	int& j, 
-										int& p,
-										std::ofstream& GMATfile);
-
-		void output_GMAT_create_state_and_time_variables(	int& j,
-															int& p,
-															std::ofstream& GMATfile);
-
-		void output_GMAT_create_interphase_control_variables(	int& j,
-																int& p, 
-																missionoptions& options,
-																std::ofstream& GMATfile);
-
-		void output_GMAT_inter_phase_control_initial_guess(	int& j,
-															int& p,
-															missionoptions& options,
-															std::ofstream& GMATfile);
-
-		void output_GMAT_propagate_phase_forward_and_back(	int& j, 
-															int& p, 
-															vector<Astrodynamics::body>& missionbodies,
-															int& index_body_visited,
-															vector<string>& SC_created,
-															int& index_SC,
-															missionoptions& options,
-															std::ofstream& GMATfile);
 
 		//virtual method templates
         virtual int evaluate(const double* X,

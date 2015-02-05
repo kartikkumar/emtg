@@ -7,6 +7,7 @@
 #include "STM.h"
 #include "EMTG_math.h"
 
+#include <iostream>
 
 namespace Kepler
 {

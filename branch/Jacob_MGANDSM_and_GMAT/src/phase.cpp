@@ -344,6 +344,40 @@ namespace EMTG {
 					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
 				}
 			}
+			else if (options->journey_departure_type[j] == 2)//free direct departure
+			{
+				//journeys which start from a spiral have no initial impulse
+				this->C3_departure = 0;
+				this->RA_departure = 0;
+				this->DEC_departure = 0;
+
+				//Step 3.2 compute the outgoing velocity vector
+				this->V_infinity_out.assign_zeros();
+
+				
+				//*******************************************************
+				//Step 4: compute the state post-departure
+
+				for (int k = 0; k < 6; ++k)
+					this->state_at_beginning_of_phase[k] = boundary1_state[k];
+
+				double initialmass = j == 0 ? options->maximum_mass : current_state[6];
+
+				//add the starting mass increment
+				initialmass += this->journey_initial_mass_increment_scale_factor * options->journey_starting_mass_increment[j];
+
+				this->state_at_beginning_of_phase[6] = initialmass;
+				this->dmdvinf = 0.0;
+
+				if (j == 0 && options->allow_initial_mass_to_vary)
+				{
+					//if we have enabled varying the initial mass, then pass through a mass multiplier
+					this->mission_initial_mass_multiplier = X[*Xindex];
+					++(*Xindex);
+					this->unscaled_phase_initial_mass = this->state_at_beginning_of_phase[6];
+					this->state_at_beginning_of_phase[6] *= this->mission_initial_mass_multiplier;
+				}
+			}
 			else if (options->journey_departure_type[j] == 5)//for journeys starting with a spiral
 			{
 				//journeys which start from a spiral have no initial impulse
@@ -1519,8 +1553,139 @@ namespace EMTG {
 		return periapse_position_vector.vert_cat(periapse_velocity_vector);
 	}
 
-	math::Matrix<double> phase::calculate_periapse_state_from_asymptote_and_parking_orbit(math::Matrix<double>& V_infinity, double parking_orbit_incination, double parking_orbit_altitude, double &epoch, EMTG::Astrodynamics::universe* Universe, EMTG::Astrodynamics::body &TheBody)
-	{
+	math::Matrix<double> phase::calculate_periapse_state_from_asymptote_and_parking_orbit(math::Matrix<double>& V_infinity, std::vector<double> & v0, double parking_orbit_incination, double parking_orbit_altitude, double &epoch, EMTG::Astrodynamics::universe* Universe, EMTG::Astrodynamics::body &TheBody) {
+		
+		//  new implementation (2014_11_24) See Battin pp.536-543
+
+		double inc = parking_orbit_incination;								//  inclination
+		double rp = parking_orbit_altitude + TheBody.radius;				//  parking orbit periapsis
+		double rs = TheBody.radius;											//  surface radius
+		double vs = std::sqrt(TheBody.mu / rs);								//  surface velocity for circular orbit
+		double vinf_norm = V_infinity.norm();								//  the 2-norm of the vinf vector
+		double Psi = ((vinf_norm * vinf_norm) / (vs * vs)) * (rp / rs);		//  Psi ratio
+		double e = 1.0 + Psi;												//  eccentricity
+		double nu = asin(1.0 / (1.0 + Psi));								//  turn angle
+
+		//  unit vector in the direction of vinf
+		math::Matrix<double> ihat_inf = V_infinity.unitize();
+		//std::cout << "ihat_inf: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_inf(i) << ", "; }
+		//std::cout << ihat_inf.norm() << std::endl;
+
+		//  unit vector in the x-direction
+		double _ihat_x[] = { ihat_inf(0), ihat_inf(1), 0.0 };
+		math::Matrix<double> ihat_x(3, 1, _ihat_x);
+		for (size_t i = 0; i < 3; i++) { ihat_x(i) /= ihat_x.norm(); }
+		//std::cout << "ihat_x: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_x(i) << ", "; }
+		//std::cout << ihat_x.norm() << std::endl;
+
+		//  unit vector in the direction of the north pole of the body
+		double _ihat_z[] = { 0, 0, 1 };
+		math::Matrix<double> ihat_z(3, 1, _ihat_z);
+		//std::cout << "ihat_z: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_z(i) << ", "; }
+		//std::cout << ihat_z.norm() << std::endl;
+
+		//  unit vector in the y-direction
+		math::Matrix<double> ihat_y(3, 1);
+		ihat_y = ihat_z.cross(ihat_x);
+		//std::cout << "ihat_y: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_y(i) << ", "; }
+		//std::cout << ihat_y.norm() << std::endl;
+
+		//  calculate beta
+		double beta = acos(ihat_inf.dot(ihat_z));
+		//std::cout << "beta: " << beta << " (rad) , " << beta*180.0/math::PI << " (deg)" << std::endl;
+		//std::cout << "inc: " << inc << " (rad) , " << inc*180.0 / math::PI << " (deg)" << std::endl;
+		
+		//  calculate RAAN and argument of latitude
+		double Omega, omega;
+		if (beta + inc >= math::PIover2) {
+			//  RAAN
+			double Omega1, Omega2, Arg;
+			Arg = asin(cos(beta) * cos(inc) / sin(beta) / sin(inc));
+			Omega1 = math::PI + Arg;
+			Omega2 = math::TwoPI - Arg;
+			//std::cout << "Omega1: " << Omega1 << " (rad), " << Omega1*180.0 / math::PI << " (deg)" << std::endl;
+			//std::cout << "Omega2: " << Omega2 << " (rad), " << Omega2*180.0 / math::PI << " (deg)" << std::endl;
+
+			//  argument of latitude
+			double omega1, omega2, arg;
+			arg = acos(cos(beta) / sin(inc));
+			omega1 = arg - nu;
+			omega2 = -arg - nu;
+			//std::cout << "omega1: " << omega1 << " (rad), " << omega1*180.0 / math::PI << " (deg)" << std::endl;
+			//std::cout << "omega2: " << omega2 << " (rad), " << omega2*180.0 / math::PI << " (deg)" << std::endl;
+
+			//  choose which Omega, omega to use
+			Omega = Omega1;
+			omega = omega1;
+
+		}
+		else {
+			//  RAAN, argument of latitude
+			double arg;
+			Omega = 270.0 * math::PI / 180.0;
+			arg = asin(sin(nu) / sin(beta + inc));
+			omega = math::TwoPI - arg;
+			//std::cout << "Omega: " << Omega << " (rad), " << Omega*180.0 / math::PI << " (deg)" << std::endl;
+			//std::cout << "omega: " << omega << " (rad), " << omega*180.0 / math::PI << " (deg)" << std::endl;
+
+		}
+
+		//  Coordinate correction
+		double _x[] = { 1, 0, 0 };
+		math::Matrix<double> X(3, 1, _x);
+		double phi = acos(X.dot(ihat_x));
+		if (ihat_x(1) < 0.0) { phi += math::PI; }
+		Omega += phi;
+		//std::cout << "phi: " << phi << " (rad), " << phi*180.0 / math::PI << " (deg)" << std::endl;
+		//std::cout << "Omega: " << Omega << " (rad), " << Omega*180.0 / math::PI << " (deg)" << std::endl;
+
+		//  unit vector in the direction of the injection position (x,y,z) coordinates
+		double _ihat_r[3];
+		_ihat_r[0] = cos(Omega)*cos(omega) - sin(Omega)*sin(omega)*cos(inc);
+		_ihat_r[1] = sin(Omega)*cos(omega) + cos(Omega)*sin(omega)*cos(inc);
+		_ihat_r[2] = sin(omega)*sin(inc);
+		math::Matrix<double> ihat_r(3, 1, _ihat_r);
+		//std::cout << "ihat_r: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_r(i) << ", "; }
+		//std::cout << ihat_r.norm() << std::endl;
+
+		//  position in (km)
+		math::Matrix<double> r(3, 1);
+		r = ihat_r * rp;
+
+		//  unit vector in the direction of the tangential burn (x,y,z) coordinates
+		double _ihat_theta[3];
+		_ihat_theta[0] = -cos(Omega)*sin(omega) - sin(Omega)*cos(omega)*cos(inc);
+		_ihat_theta[1] = -sin(Omega)*sin(omega) + cos(Omega)*cos(omega)*cos(inc);
+		_ihat_theta[2] = cos(omega)*sin(inc);
+		math::Matrix<double> ihat_theta(3, 1, _ihat_theta);
+		//std::cout << "ihat_theta: " << std::endl;
+		//for (size_t i = 0; i < 3; i++) { std::cout << ihat_theta(i) << ", "; }
+		//std::cout << ihat_theta.norm() << std::endl; 
+		
+		//  calculate 'D'
+		double D = (1.0 + sin(nu)) / (1.0 - sin(nu));
+
+		//  calculate 'v1' (i.e. velocity after impulse)
+		math::Matrix<double> v1(3, 1);
+		v1 = ihat_inf * 0.5 * vinf_norm * (D + 1.0) + ihat_r * 0.5 *vinf_norm * (D - 1.0);
+
+		//  calculate 'v0'
+		for (size_t i = 0; i < 3; i++) { v0[i] = sqrt(TheBody.mu / rp) * ihat_theta(i); }
+
+
+		//  return the position and velocity vectors
+		return r.vert_cat(v1);
+
+
+
+		/*
+		//  Some stuff that isn't fully working......
+
 		//adapted from David Eagle
 		//http://www.cdeagle.com/interplanetary/hyper1_matlab.pdf
 		//http://www.cdeagle.com/interplanetary/hyper_ftn.pdf
@@ -1572,6 +1737,8 @@ namespace EMTG {
 		double TA2 = -acos( cos(Beta) / sin(INC) ) - Eta;
 
 		//there are two equal solutions for RAAN and TA, but we will only use the first one
+		//RAAN1 = RAAN2;
+		//TA1 = TA2;
 
 		//compute the unit vector in the direction of the spacecraft's position at the moment of injection
 		math::Matrix<double> Rhat(3,1);
@@ -1591,6 +1758,7 @@ namespace EMTG {
 		math::Matrix<double> V = Shat * (d + v_infinity / 2.0) + Rhat * (d - v_infinity / 2.0);
 
 		return R.vert_cat(V);
+		*/
 	}
 
 	double phase::compute_timestep_width_from_distribution(double step, missionoptions* options, double& scale_or_stdv)

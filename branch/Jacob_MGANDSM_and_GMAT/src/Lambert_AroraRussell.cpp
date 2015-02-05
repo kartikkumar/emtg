@@ -13,6 +13,7 @@
 #include <fstream>
 
 #include "Lambert_AroraRussell.h"
+#include "Kepler_Lagrange_Laguerre_Conway_Der.h"
 #include "EMTG_math.h"
 
 
@@ -74,7 +75,6 @@ namespace EMTG {
                 double d = theta <= math::PI ? 1.0 : -1.0;
                 double tau = d * sqrt(r1_n*r2_n*(1 + ctheta)) / (r1_n + r2_n); //lambert geometry parameter
                 double r_buff = 0.2; //user-defined parameter to determine when to skip k_bi root solve
-
                 //Step 1: generate appropriate initial guess
                 //declare some variables that will be used in the initial guess
 
@@ -136,6 +136,9 @@ namespace EMTG {
                     // precomputed values for for delE_bi0 for first 20 revs (deltaE_b point where tau crosses zero from Arora eqn 55)
                     double delE_bi0[20] = { 2.848574, 2.969742, 3.019580, 3.046927, 3.064234, 3.076182, 3.084929, 3.091610, 3.096880, 3.101145,
                         3.104666, 3.107623, 3.110142, 3.112312, 3.114203, 3.115864, 3.117335, 3.118646, 3.119824, 3.120886 };
+		double m_k = 2.0 - k*k;
+		double W_k = compute_W(k, m_k, Nrev);
+		error = TOF - compute_TOF(k, S, tau, W_k);
 
                     // calculate estimate for k_bi (k_biGuess)
                     double sgn_tau = tau >= 0 ? 1.0 : -1.0;

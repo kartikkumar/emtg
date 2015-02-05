@@ -32,6 +32,22 @@ namespace EMTG {
             for (int j = 0; j < this->number_of_journeys; ++j)
                 this->journey_distance_constraint_number_of_bodies.push_back(0);
         }
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
+	this->quiet_outerloop = 1;
+	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0; 
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
         this->construct_thruster_launch_vehicle_name_arrays();
     }
@@ -75,6 +91,22 @@ namespace EMTG {
         this->enable_maximum_propellant_mass_constraint = false;
         this->maximum_propellant_mass = 1000.0;
         this->maximum_number_of_lambert_revolutions = 0;
+	this->outerloop_vary_departure_C3 = false;
+	this->outerloop_vary_arrival_C3 = false;
+	this->outerloop_restrict_flight_time_lower_bound = false;
+	this->outerloop_reevaluate_full_population = false;
+	this->outerloop_warm_population = "none";
+	this->outerloop_warm_archive = "none";
+	this->quiet_outerloop = true;
+	this->quiet_basinhopping = false;
+	this->MBH_two_step = false;
+	this->FD_stepsize = 1.5e-8;
+	this->FD_stepsize_coarse = 1.5e-3;
+	this->control_coordinate_system = 0;
+	this->initial_guess_control_coordinate_system = 0;
+	this->enable_maximum_propellant_mass_constraint = false;
+	this->maximum_propellant_mass = 1000.0;
+	this->maximum_number_of_lambert_revolutions = 0;
 
         this->spiral_model_type = 1;
         this->problem_type = 0;
@@ -287,6 +319,16 @@ namespace EMTG {
 		    this->LambertSolver = (int)value;
 		    return 0;
 	    }
+	if (choice == "outerloop_reevaluate_full_population")
+	{
+		this->outerloop_reevaluate_full_population = (bool) value;
+		return 0;
+	}
+	if (choice == "quiet_outerloop")
+	{
+		this->quiet_outerloop = (bool) value;
+		return 0;
+	}
 
         //integrator settings
         if (choice == "integrator_tolerance")
@@ -469,6 +511,22 @@ namespace EMTG {
 		    this->FD_stepsize_coarse = value;
 		    return 0;
 	    }
+	if (choice == "MBH_zero_control_initial_guess") {
+		this->MBH_zero_control_initial_guess = (int) value;
+		return 0;
+	}
+	if (choice == "MBH_two_step") {
+		this->MBH_two_step = (bool) value;
+		return 0;
+	}
+	if (choice == "FD_stepsize") {
+		this->FD_stepsize = value;
+		return 0;
+	}
+	if (choice == "FD_stepsize_coarse") {
+		this->FD_stepsize_coarse = value;
+		return 0;
+	}
 				
 	    //low thrust solver parameters
 	    if (choice == "num_timesteps") 

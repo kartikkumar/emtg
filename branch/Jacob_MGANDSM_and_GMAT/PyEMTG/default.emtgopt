@@ -157,6 +157,10 @@ SPICE_leap_seconds_kernel naif0010.tls
 #SPICE_reference_frame_kernel
 SPICE_reference_frame_kernel pck00010.tpc
 
+##integrator options
+#integration tolerance
+integrator_tolerance 1e-08
+
 ##lambert solver options
 #Lambert solver choice
 #0: Arora-Russell
@@ -266,6 +270,8 @@ number_of_engines 1
 #1: maximum thrust
 #2: maximum Isp
 #3: maximum efficiency
+#4: maximum number of thrusters
+#4: minimum number of thrusters
 throttle_logic_mode 0
 #Throttle sharpness (higher means more precise, lower means smoother)
 throttle_sharpness 100.0
@@ -294,8 +300,20 @@ spacecraft_power_model_type 0
 EP_dry_mass 0.0
 #Allow initial mass to vary, up to maximum possible mass? (only relevant for MGALT and FBLT)
 allow_initial_mass_to_vary 0
-#Minimum dry mass
-minimum_dry_mass 0.0
+#Final mass constraint value
+final_mass_constraint 0.0
+#Enforce fixed final mass?
+#0: no
+#1: yes
+enforce_fixed_final_mass 0
+#Enforce minimum dry mass?
+#0: no
+#1: yes
+enforce_minimum_dry_mass 0
+#Enforce fixed dry mass?
+#0: no
+#1: yes
+enforce_fixed_dry_mass 0
 #Enable maximum propellant mass constraint?
 enable_maximum_propellant_mass_constraint 0
 #Maximum propellant mass (kg)
@@ -361,6 +379,7 @@ total_flight_time_bounds 0.0 302.0
 #11: maximum dry/wet ratio
 #12: maximum arrival kinetic energy
 #13: minimum BOL power
+#14: maximize log10(final mass)
 objective_type 2
 #bounds on the DLA, in degrees (typically set to declination of your launch site)
 DLA_bounds -90.0 90.0
@@ -431,7 +450,7 @@ journey_arrival_elements_vary_flag 0 0 0 0 0 0
 #Lower and upper bounds on journey arrival elements (two per element per journey, ignored if vary flag is off for that element)
 journey_arrival_elements_bounds 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 #journey central body
-#use SPICE names, as per http://www-int.stsci.edu/~sontag/spicedocs/req/naif_ids.html
+#Must match the name of a Universe file in the Universe folder
 journey_central_body Sun
 #initial VHP for journeys that begin with flybys, in km/s (three numbers per journey)
 journey_initial_velocity 0.0 0.0 0.0
@@ -452,6 +471,12 @@ journey_capture_spiral_final_radius 6678.0
 journey_maximum_DSM_magnitude_constraint_flag 0
 #Journey maximum DSM magnitude (km/s)
 journey_maximum_DSM_magnitude_constraint 2.0
+#Journey distance constraint
+#The first line lists the number of bodies for each journey
+#Successive lines list the bodies and distance bounds as [body ID, r_min(km), r_max(km)]
+#There is one line for each journey
+journey_distance_constraint 0
+
 
 ##Perturbation settings
 #Enable solar radiation pressure?
@@ -547,14 +572,18 @@ outerloop_point_groups_number_to_score 1
 ##output format settings
 #output units, 0: km and km/s, 1: LU and LU/day
 output_units 0
+#Output journey entries for wait times at intermediate and final target?
+#0: no
+#1: yes
+output_dormant_journeys 0
 #Post-mission wait time at the final target (if zero, no post-mission ephemeris will be printed)
 post_mission_wait_time 0.0
 #Output a GMAT script (not compatible with non-body boundary conditions or thruster/power models)
 create_GMAT_script 0
 #Generate initial guess file?
-generate_initial_guess_file 0
 #0: no
 #1: yes
+generate_initial_guess_file 0
 #Mission type for initial guess file (experimental!)
 #(this is a limited-capability feature and many options will not translate properly)
 #0: MGA
@@ -577,6 +606,10 @@ generate_forward_integrated_ephemeris 0
 #0: no
 #1: yes
 background_mode 1
+#Unscale match point constraints (use to get tighter feasibility)
+#0: no
+#1: yes
+unscale_match_point_constraints 0
 
 ##debug code
 ##the purpose of this code is so that you can turn the inner-loop solver on and off, force a sequence of planets and/or phase types
@@ -596,7 +629,11 @@ sequence 1
 #Check derivatives against finite differencing?
 check_derivatives 0
 #which inner loop solver to run?
-#0: none, evaluate trialX, 1: evaluate a batch of decision vectors, 2: run MBH, 3: run constrained DE, 4: run SNOPT using trialX as initial guess
+#0: none, evaluate trialX
+#1: evaluate a batch of decision vectors
+#2: run MBH
+#3: run constrained DE
+#4: run SNOPT using trialX as initial guess
 run_inner_loop 2
 #trial decision vector
 #trialX

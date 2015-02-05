@@ -61,10 +61,6 @@ public:
 	//return 0 for success, 1 for failure
 	virtual int parse_outer_loop(int* Xouter);
 
-	//GMAT output function(s)
-	virtual void output_GMAT_preamble();
-	virtual void output_GMAT_mission();
-
 	//function to create an initial guess for another mission type
 	virtual void create_initial_guess(const int& desired_mission_type, const bool& VSI);
 

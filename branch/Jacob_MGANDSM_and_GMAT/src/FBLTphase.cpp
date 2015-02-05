@@ -1312,6 +1312,8 @@ namespace EMTG
 	    //next, we need to include the decision variables and constraints for each burn
         this->calcbounds_LT_controls(prefix, first_X_entry_in_phase, Xupperbounds, Xlowerbounds, Fupperbounds, Flowerbounds, Xdescriptions, Fdescriptions, iAfun, jAvar, iGfun, jGvar, Adescriptions, Gdescriptions, j, p, Universe, options);
 	    
+
+
 	    //**************************************************************************
 	    //finally, we encode the match point continuity constraints and their Jacobian entries,
 	    //noting that every patch point constraint in the phase has a derivative with respect to every variable in the phase
@@ -2010,6 +2012,8 @@ namespace EMTG
                 this->dVarrival[2] = 0;
                 this->RA_arrival = 0.0;
                 this->DEC_arrival = 0.0;
+			this->RA_arrival = 0.0;
+			this->DEC_arrival = 0.0;
             }
             else
             {
