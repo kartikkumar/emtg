@@ -2533,8 +2533,8 @@ void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1" << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true" << std::endl;
-	GMATfile << spacecraft.Thruster.Name << ".C1 = .1" << std::endl;
-	GMATfile << spacecraft.Thruster.Name << ".K1 = 3000" << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".C1 = " << spacecraft.Thruster.C1 << std::endl;
+	GMATfile << spacecraft.Thruster.Name << ".K1 = " << spacecraft.Thruster.K1 << std::endl;
 	GMATfile << std::endl;
 
 }

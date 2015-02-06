@@ -57,6 +57,8 @@ struct gmat_tank {
 struct gmat_thruster {
 	string Name;
 	struct gmat_tank Tank;
+	double C1 = 0.1;
+	double K1 = 3000.0;
 };
 
 //a struct type for gmat finite burn
@@ -468,6 +470,7 @@ public:
 		this->set_names();
 		this->set_fuelmass_epoch_drymass();
 		this->get_my_bodies();
+		this->set_thruster();
 		this->set_iBurn();
 		this->get_flyby_data();
 		this->set_initialconditions();
@@ -584,6 +587,19 @@ public:
 		//set the spacecraft coordinate systems
 		spacecraft_forward.CoordinateSystem  = mybodies[0].name + "J2000Eq";
 		spacecraft_backward.CoordinateSystem = mybodies[1].name + "J2000Eq";
+	}
+
+	//  set the engine_type
+	void set_thruster() {
+
+		// fixed thrust/Isp
+		if (this->myjourney->mymission->emtgmission->options.engine_type == 0) {
+			spacecraft_forward.Thruster.C1 = this->myjourney->mymission->emtgmission->options.Thrust;
+			spacecraft_forward.Thruster.K1 = this->myjourney->mymission->emtgmission->options.IspLT;
+			spacecraft_backward.Thruster.C1 = spacecraft_forward.Thruster.C1;
+			spacecraft_backward.Thruster.K1 = spacecraft_forward.Thruster.K1;
+		}
+
 	}
 
 	//method
