@@ -1776,7 +1776,7 @@ namespace EMTG {
 	    if (choice == "run_inner_loop") {
 		    this->run_inner_loop = (int) value;
 
-		    if (this->run_inner_loop > 5 || this->run_inner_loop < 0)
+		    if (this->run_inner_loop > 6 || this->run_inner_loop < 0)
 		    {
 			    stringstream errorstream;
 			    errorstream << "Invalid inner-loop solver selection: " << run_inner_loop << ", acceptable values are (0-4)";

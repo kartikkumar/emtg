@@ -234,6 +234,22 @@ namespace EMTG {
 
 				break;
 			}
+		//case 6: //run TestAlg1v2
+		//	{
+		//		EMTG::Solvers::TestAlg1v2 solver(this);
+
+		//		options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
+		//		solver.Evolve();
+		//		/*double bestJ = EMTG::math::LARGE;
+		//		bestJ = solver.BestObjectiveValue;
+		//		this->unscale(solver.BestX.data());
+		//		this->Xopt = X;
+		//		this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+
+		//		this->output();*/
+
+		//		break;
+		//	}
 		}
 
 		return 0;

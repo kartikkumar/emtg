@@ -114,6 +114,8 @@ namespace EMTG { namespace Solvers {
 		int recurLim;
 		int optLim;
 		string mutStr;
+		double steepStep;
+		std::vector<double> ders;
 
 		void SubmitInd(vector<double> X, double* ObjectiveFunctionValue, double* ConstraintNormValue);
 		void SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind);
@@ -121,6 +123,7 @@ namespace EMTG { namespace Solvers {
 		void LocOptInd_RandWalk(vector<double>& X,int b);
 		void LocOptInd_LinWalk(vector<double>& X);
 		void LocOptInd_SteepDescent(vector<double>& X, int b);
+		void LocOptInd_SteepDescentv2(vector<double>& X, int b);
 		void LocOptInd_ParetoDescent(vector<double>& X, int b);
 		void LocOptInd_HybridOpt(vector<double>& X, int b);
 		double NormOfDif(vector<double>& A,vector<double>& B);

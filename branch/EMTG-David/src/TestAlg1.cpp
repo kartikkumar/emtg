@@ -46,7 +46,7 @@ namespace EMTG { namespace Solvers {
 		nX = Problem->total_number_of_NLP_parameters;
 		nF = Problem->total_number_of_constraints;
 		NP = 100; // Bin Depth -- Make Alg Param
-		genC = 3000; // Percentage of total iterations allowed to serve as stagntion tolerance -- Make Alg Param
+		genC = 2000; // Percentage of total iterations allowed to serve as stagntion tolerance -- Make Alg Param
 		gC = 0; // stagnation generation counter for local optimization
 		gCb = 0; // stagnation generation counter for evolve
 		BestObjectiveValue = EMTG::math::LARGE;
@@ -61,7 +61,7 @@ namespace EMTG { namespace Solvers {
 		RNG.seed(time(NULL));
 		Bins.resize(nF); // Collection of best trials in bins by constraint
 		Fits.resize(nF); // Fitness values corresponding to maintained population
-		varPer = Problem->options.FD_stepsize; // Used as small genome walk value in local optimization
+		varPer = Problem->options.MBH_max_step_size;
 		zeros.resize(nX); // vector of all zeros to allow the norm of vector difference method to also calculate norms
 		
 		for (int i = 0; i < nX; i++)
@@ -69,7 +69,7 @@ namespace EMTG { namespace Solvers {
 		trashFits.resize(nF);
 		for (int i = 0; i < nF; i++)
 			trashFits[i] = EMTG::math::LARGE;
-		killDist = 50000000*Problem->options.FD_stepsize; // Distance within which insertion becomes replacement -- Make Alg Param
+		killDist = 40000000*Problem->options.FD_stepsize; // Distance within which insertion becomes replacement -- Make Alg Param
 		proxMode = true; // Whether or not to kill near duplicates -- Make Alg Param
 		proxKill = false; // Used to determine whether or not a deletion has taken place
 		elitePer = 0.05*NP; // Index above which ranked placement resets the stagnation counter -- Make Alg Param 
@@ -87,12 +87,14 @@ namespace EMTG { namespace Solvers {
 			}
 		}
 
-		iter = 100; // Local optimization iterations -- Make Alg Param
+		iter = 1000; // Local optimization iterations -- Make Alg Param
 		recur = 0; // Local optimization recursion-depth counter 
-		recurLim = 2000; // Local optimization recursion-depth limit -- Make Alg Param
-		optLim = 3;
-		conWeight = 100; // Weighting of constraints -- Make Alg Param
-		conLW = 10;
+		recurLim = 20; // Local optimization recursion-depth limit -- Make Alg Param
+		optLim = 1;
+		conWeight = 50; // Weighting of constraints -- Make Alg Param
+		conLW = 5;
+		steepStep = 10^-5; // Max steep step -- Make Alg Param
+		ders.resize(nX);
 		RandInit(gens,false);
 	}
 
@@ -113,7 +115,7 @@ namespace EMTG { namespace Solvers {
 			{
 				for (int j = 0; j < nX; j++)
 				{
-					for (int k = 0; k < nF; k++)
+					for (int k = nF-1; k >= 0; k--)
 					{
 						double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
 						int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
@@ -121,29 +123,31 @@ namespace EMTG { namespace Solvers {
 						double temp = Bins[k][0][j] + perturb;
 						if(temp > 1.0)
 						{
-							if(temp < 2.0 && abs(xEph[j]-1) < Problem->options.FD_stepsize)
-							{
-								temp = 1.0;
-								//cout << "Bound Upper";
-							}
-							else
-							{
-								temp = DoubleDistribution(RNG);
-								//cout << "\nReset Upper";
-							}
+							//if(temp < 2.0 && abs(xEph[j]-1) < Problem->options.FD_stepsize)
+							//{
+							//	temp = 1.0;
+							//	//cout << "Bound Upper";
+							//}
+							//else
+							//{
+							//	temp = DoubleDistribution(RNG);
+							//	//cout << "\nReset Upper";
+							//}
+							temp = 1.0;
 						}
 						else if(temp < 0.0)
 						{
-							if(temp > -1.0 && abs(xEph[j]) < Problem->options.FD_stepsize)
-							{
-								temp = 0.0;
-								//cout << "Bound Lower";
-							}
-							else
-							{
-								temp = DoubleDistribution(RNG);
-								//cout << "\nReset Lower";
-							}
+							//if(temp > -1.0 && abs(xEph[j]) < Problem->options.FD_stepsize)
+							//{
+							//	temp = 0.0;
+							//	//cout << "Bound Lower";
+							//}
+							//else
+							//{
+							//	temp = DoubleDistribution(RNG);
+							//	//cout << "\nReset Lower";
+							//}
+							temp = 0.0;
 						}
 						xEph[j] = temp;
 					}
@@ -158,7 +162,7 @@ namespace EMTG { namespace Solvers {
 	{
 		for (int i = 0; i < optLim; i++)
 		{
-			LocOptInd_SteepDescent(X,b);
+			LocOptInd_SteepDescentv2(X,b);
 		}
 	}
 
@@ -203,6 +207,113 @@ namespace EMTG { namespace Solvers {
 			j++;
 			gC++;
 		}
+		X = Xb;
+	}
+
+	void TestAlg1::LocOptInd_SteepDescentv2(vector<double>& X,int b)
+	{
+		int safe = 0;
+		vector<double> Xb (nX);
+		for (int i = 0; i < nX; i++)
+			Xb[i] = X[i];
+		EvalInd(Xb, &objValTemp, &conValTemp);
+		double Sb = objValTemp + conWeight * conValTemp; // Score of best
+		if(b!=0)
+			Sb = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+		vector<double> X2 (nX);
+		vector<double> X3 (nX);
+		vector<double> dir (nX);
+		bool reset = false;
+		for (int i = 0; i < nX; i++)
+		{
+			vector<double> Xt (nX);
+			for (int j = 0; j < nX; j++)
+			{
+				if(j==i)
+				{
+					Xt[j] = Xb[j] + Problem->options.FD_stepsize;
+					if(Xt[i] > 1.0)
+						Xt[i] = 1.0;
+					if(Xt[i] < 0.0)
+						Xt[i] = 0.0;
+				}
+				else
+					Xt[j] = Xb[j];
+			}
+			EvalInd(Xt, &objValTemp, &conValTemp);
+			double St = objValTemp + conWeight * conValTemp; // Score of Xt
+			if(b!=0)
+				St = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+			ders[i] = (St-Sb)/Problem->options.FD_stepsize; // Simple derivative calculation
+		}
+		double derNorm = NormOfDif(ders,zeros);
+		while (derNorm > 10*Problem->options.FD_stepsize && safe < iter)
+		{
+			for (int i = 0; i < nX; i++)
+			{
+				dir[i] = ders[i]/derNorm;
+				X2[i] = Xb[i] - steepStep * dir[i];
+				if(X2[i] > 1.0)
+				{
+					X2[i] = 1.0;
+					//cout << "]";
+				}
+				if(X2[i] < 0.0)
+				{
+					X2[i] = 0.0;
+					//cout << "[";
+				}
+				double nTemp = NormOfDif(Xb,X2);
+				for (int j = 0; j < nX; j++)
+					dir[i] = (X2[i] - Xb[i])/nTemp;
+				X3[i] = Xb[i] + resphi*(X2[i]-Xb[i]);
+				if(X3[i] > 1.0)
+				{
+					X3[i] = 1.0;
+					cout << "\nSteep Bound Impossibility!\n";
+				}
+				if(X3[i] < 0.0)
+				{
+					X3[i] = 0.0;
+					cout << "\nSteep Bound Impossibility!\n";
+				}
+			}
+			Xb = GoldenSearch(Xb,X3,X2,Problem->options.FD_stepsize,dir,b);
+			EvalInd(Xb, &objValTemp, &conValTemp);
+			double Sb = objValTemp + conWeight * conValTemp; // Score of best
+			if(b!=0)
+				Sb = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+			reset = !(NormOfDif(Xb,X2) < Problem->options.FD_stepsize);
+			if(reset)
+			{
+				for (int i = 0; i < nX; i++)
+				{
+					vector<double> Xt (nX);
+					for (int j = 0; j < nX; j++)
+					{
+						if(j==i)
+						{
+							Xt[j] = Xb[j] + Problem->options.FD_stepsize;
+							if(Xt[i] > 1.0)
+								Xt[i] = 1.0;
+							if(Xt[i] < 0.0)
+								Xt[i] = 0.0;
+						}
+						else
+							Xt[j] = Xb[j];
+					}
+					EvalInd(Xt, &objValTemp, &conValTemp);
+					double St = objValTemp + conWeight * conValTemp; // Score of Xt
+					if(b!=0)
+						St = objValTemp + conWeight * ConstraintViolationVector[b-1] + conLW*conValTemp;
+					ders[i] = (St-Sb)/Problem->options.FD_stepsize; // Simple derivative calculation
+				}
+				derNorm = NormOfDif(ders,zeros);
+			}
+			safe++;
+		} 
+		if(!(safe < iter))
+			cout << "\nSteepDescentv2 LOOP STOP\n";
 		X = Xb;
 	}
 
@@ -397,7 +508,7 @@ namespace EMTG { namespace Solvers {
 
 	void TestAlg1::LocOptInd_HybridOpt(vector<double>& X,int b)
 	{
-		LocOptInd_SteepDescent(X,b);
+		LocOptInd_ParetoDescent(X,b);
 		LocOptInd_RandWalk(X,b);
 	}
 
@@ -491,7 +602,6 @@ namespace EMTG { namespace Solvers {
 	void TestAlg1::SortBin(vector<vector<double>>& bin,vector<vector<double>>& fit,vector<double>& X,vector<double>& score,int cap,int ind)
 	{
 		proxKill = false;
-		double nDist = 5;
 		int offset = 0; // Used for both index of deletion and eraser flag
 		if(cap>0 && score[ind] < fit[cap-1][ind])
 			SortBin(bin,fit,X,score,cap-1,ind);
@@ -637,11 +747,13 @@ namespace EMTG { namespace Solvers {
 				outputfile.close();
 			}
 			for (int j = 0; j < nF - 1; ++j)
-			{
 				score[j+1] = objValTemp + conWeight * ConstraintViolationVector[j] + conLW*conValTemp;
-			}
 			if(score[i] < Fits[i][NP-1][i])
+			{
 					SortBin(Bins[i],Fits[i],xTemp,score,NP-1,i);
+					if(proxKill)
+						cout << "x";
+			}
 		}
 	}
 
@@ -666,21 +778,21 @@ namespace EMTG { namespace Solvers {
 		double mutCap = 0.5; // DE/GA trade-off point -- Make Alg Param
 		double F_w = 0.85; // DE parameter -- Make Alg Param
 		bool flush = true; // Population diversity action -- Make Alg Param
-		int flushStrat = 2; // Population diversity strategy -- Make Alg Param
-		int flushInd = 30; // Strat 1 = kill mod index ||| Strat 2 = Index past which fitnesses are nullified -- Make Alg Param
-		int flushKW = 2; // Strat 1 kill-band width -- Make Alg Param
-		int flushLim = 1000; // Stagnation history -- Make Alg Param
+		int flushStrat = 1; // Population diversity strategy -- Make Alg Param
+		int flushInd = 5; // Strat 1 = kill mod index ||| Strat 2 = Index past which fitnesses are nullified -- Make Alg Param
+		int flushKW = 3; // Strat 1 kill-band width -- Make Alg Param
+		int flushLim = 500; // Stagnation history -- Make Alg Param
 		int flushGen = 1000; // New randoms post-flush -- Make Alg Param
 		int flushC = 0; // Count of flushes occured
-		int flushCLim = 5; // Limit of flushes -- Make Alg Param
+		int flushCLim = 3; // Limit of flushes -- Make Alg Param
 		//fitThresh = 0.001; // Fitness minimum change -- Make Alg Param
 		//hist.resize(flushLim); // Fit history
 		//for (int i = 0; i< hist.size(); i++)
 		//	hist[i] = EMTG::math::LARGE;
-		double flushWait = 0.15;
-		bool seeded = false; // Seed rand reset with best -- Make Alg Param 
+		double flushWait = 0.1;
+		bool seeded = true; // Seed rand reset with best -- Make Alg Param 
 		int mutType = 2; // Mutation type employed -- Make Alg Param
-		double mutProb = 0.01; // Pareto mutation probability -- Make Alg Param
+		double mutProb = 0.02; // Pareto mutation probability -- Make Alg Param
 		vector<int> bn (3); // Random bin index holder
 		vector<int> num (3); // Random bin entry index holder
 		int writeFreq = 25000; // Writing frequency in case of crash -- Make Alg Param
@@ -797,6 +909,7 @@ namespace EMTG { namespace Solvers {
 						if(mutUse < mutProb)
 						{
 							muted = true;
+							mutStr = " with Mut";
 							double r = ( (alpha - 1.0) / math::SMALL ) / pow((math::SMALL / (math::SMALL + DoubleDistribution(RNG))), -alpha);
 							int s = DoubleDistribution(RNG) > 0.5 ? 1 : -1;
 							double perturb = s * varPer * r;
@@ -855,15 +968,21 @@ namespace EMTG { namespace Solvers {
 			}
 			cout << mdStr;
 			SubmitInd(xTri, &objValTemp, &conValTemp);
-			if(proxKill)
-				cout << "x";
+			//if(proxKill)
+			//	cout << "x";
 			mutStr = "";
 			//hist[(i%flushLim)] = Fits[0][0][0];
 			gCb++;
 			// !(hist[(i%flushLim)] - hist[((i+1)%flushLim)] < -1*fitThresh) // old
 			if(flush && flushC < flushCLim && i > flushWait*evoIter && gCb > flushLim) // Flush procedure
 			{
+				if(flushC == 0)
+				{
+					flushLim = flushLim*2;
+					optLim = optLim*2;
+				}
 				int delC = 0; // Deletion counter
+				killDist = killDist/2;
 				cout << "\nFLUSH\n";
 				switch (flushStrat)
 				{
