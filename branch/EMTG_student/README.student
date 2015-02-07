@@ -21,7 +21,7 @@ Please perform the following steps before running EMTG:
 
 7. Acquire ephemeris kernel files from NAIF. This step is optional but will improve the accuracy of EMTG's modeling of the positions and velocities of the planets. This may be unnecessary for academic work. Go to http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/ and acquire "de430.bsp". Go to http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/satellites/ and aquire all .bsp files in that directory. There are quite a few of them and they are big.
 
-8. Open EMTG_student/PyEMTG/PyEMTG.options and set the two fields there to point to your EMTG_student executable and your /universe/ folder respectively
+8. Open EMTG_student/PyEMTG/PyEMTG.options and set the two fields there to point to your EMTG_student executable and your /universe/ folder respectively. Be careful not to delete the keywords!
 
 After completing these steps you should be able to run PyEMTG, create a new mission and run it using the default settings. The steps to do this are:
 1. Double click PyEMTG.py or run it from you Python(x,y) window. If you installed Python(x,y) correctly then double-clicking should work.
