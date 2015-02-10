@@ -56,6 +56,24 @@ namespace EMTG{ namespace Astrodynamics
 								double* dPdr,
 								double* dPdt);
 
+    void get_thruster_coefficients_from_library(EMTG::missionoptions* options,
+                                                double& minP,
+                                                double& maxP,
+                                                double& at,
+                                                double& bt,
+                                                double& ct,
+                                                double& dt,
+                                                double& et,
+                                                double& gt,
+                                                double& ht,
+                                                double& af,
+                                                double& bf,
+                                                double& cf,
+                                                double& df,
+                                                double& ef,
+                                                double& gf,
+                                                double& hf);
+
 	//******************************
 	//force model code
 	int force_model(EMTG::missionoptions * options,

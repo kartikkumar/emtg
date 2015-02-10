@@ -1459,9 +1459,11 @@ void gmatscripter::write_GMAT_hardware() {
 	for (int j = 0; j < GMATMission.myjourneys.size(); ++j) {
 		for (int p = 0; p < GMATMission.myjourneys[j].myphases.size(); ++p) {
 			//write out the forward spacecraft
+            this->create_GMAT_powersystem(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
 			this->create_GMAT_fueltank(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
 			this->create_GMAT_thruster(GMATMission.myjourneys[j].myphases[p].spacecraft_forward);
 			//write out the backward spacecraft
+            this->create_GMAT_powersystem(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 			this->create_GMAT_fueltank(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 			this->create_GMAT_thruster(GMATMission.myjourneys[j].myphases[p].spacecraft_backward);
 		}
@@ -1743,7 +1745,7 @@ void gmatscripter::write_GMAT_solvers(){
         GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
         GMATfile << "NLPObject.ReportFile = 'VF13adNLPObject.data';" << std::endl;
         GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
-        GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
+        GMATfile << "NLPObject.Tolerance = 1e-005;" << std::endl;
         GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
         GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
         GMATfile << std::endl;
@@ -1756,7 +1758,7 @@ void gmatscripter::write_GMAT_solvers(){
         GMATfile << "NLPObject.ReportStyle = Normal;" << std::endl;
         GMATfile << "NLPObject.ReportFile = 'SNOPTObject.data';" << std::endl;
         GMATfile << "NLPObject.MaximumIterations = 100;" << std::endl;
-        GMATfile << "NLPObject.Tolerance = 1e-004;" << std::endl;
+        GMATfile << "NLPObject.Tolerance = 1e-005;" << std::endl;
         //GMATfile << "NLPObject.UseCentralDifferences = false;" << std::endl;
         //GMATfile << "NLPObject.FeasibilityTolerance = 0.1;" << std::endl;
         GMATfile << std::endl;
@@ -2369,7 +2371,7 @@ void gmatscripter::write_GMAT_report(class gmatstep& agmatstep, bool isbeforeman
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection1 ";
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection2 ";
 		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection3 ";
-		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".C1" << std::endl;
+		GMATfile << agmatstep.myspacecraft->Name << "." << agmatstep.myspacecraft->Thruster.Name << ".ThrustDirection3" << std::endl;
 	}
 	// write the spacecraft states in the central body frame
 	GMATfile << "	Report 'Report_SpacecraftState' Report_Spacecraft_" << agmatstep.myphase->mybodies[body_index].name << "_States " << tempString;
@@ -2498,6 +2500,7 @@ void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 	GMATfile << spacecraft.Name << ".Epoch      = " << spacecraft.Epoch << std::endl;
 	GMATfile << spacecraft.Name << ".DryMass    = " << spacecraft.DryMass << std::endl;
 	GMATfile << spacecraft.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << std::endl;
+    GMATfile << spacecraft.Name << ".PowerSystem = " << spacecraft.PowerSystem.Name << std::endl;
 	GMATfile << spacecraft.Name << ".Tanks     = {" << spacecraft.Thruster.Tank.Name << "}" << std::endl;
 	GMATfile << spacecraft.Name << ".Thrusters = {" << spacecraft.Thruster.Name << "}" << std::endl;
 	//  initial conditions
@@ -2510,9 +2513,9 @@ void gmatscripter::create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft) {
 // method to write a GMAT FuelTank Resource
 void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 
-	GMATfile << "Create FuelTank " << spacecraft.Thruster.Tank.Name << std::endl;
+	GMATfile << "Create ElectricTank " << spacecraft.Thruster.Tank.Name << std::endl;
 	GMATfile << spacecraft.Thruster.Tank.Name << ".AllowNegativeFuelMass = true" << std::endl;
-	GMATfile << spacecraft.Thruster.Tank.Name << ".Volume = 10" << std::endl;
+	//GMATfile << spacecraft.Thruster.Tank.Name << ".Volume = 10" << std::endl;
 	GMATfile << spacecraft.Thruster.Tank.Name << ".FuelMass = " << spacecraft.Thruster.Tank.FuelMass << std::endl;
 	GMATfile << std::endl;
 	
@@ -2523,8 +2526,8 @@ void gmatscripter::create_GMAT_fueltank(struct gmat_spacecraft& spacecraft) {
 void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 
 	//GMATfile << "% Journey #" << j << ", Phase #" << p << ", Thruster Name: " << thrustername << std::endl;
-	GMATfile << "% note: with the exception of .CoordinateSystem and .Tank, all values are 'dummy values'" << std::endl;
-	GMATfile << "Create Thruster " << spacecraft.Thruster.Name << std::endl;
+	GMATfile << "% note: with the exception of .CoordinateSystem, .Tank, and thruster coefficients, all values are 'dummy values'" << std::endl;
+	GMATfile << "Create ElectricThruster " << spacecraft.Thruster.Name << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".CoordinateSystem = " << spacecraft.CoordinateSystem << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection1 = 1" << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".ThrustDirection2 = 0" << std::endl;
@@ -2533,10 +2536,57 @@ void gmatscripter::create_GMAT_thruster(struct gmat_spacecraft& spacecraft) {
 	GMATfile << spacecraft.Thruster.Name << ".Tank = " << spacecraft.Thruster.Tank.Name << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".ThrustScaleFactor = 1" << std::endl;
 	GMATfile << spacecraft.Thruster.Name << ".DecrementMass = true" << std::endl;
-	GMATfile << spacecraft.Thruster.Name << ".C1 = " << spacecraft.Thruster.C1 << std::endl;
-	GMATfile << spacecraft.Thruster.Name << ".K1 = " << spacecraft.Thruster.K1 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".GravitationalAccel = " << spacecraft.Thruster.GravitationalAccel << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustModel = " << spacecraft.Thruster.ThrustModel << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MaximumUsablePower = " << spacecraft.Thruster.MaximumUsablePower << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MinimumUsablePower = " << spacecraft.Thruster.MinimumUsablePower << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".Isp = " << spacecraft.Thruster.Isp << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ConstantThrust = " << spacecraft.Thruster.ConstantThrust << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustCoeff1 = " << spacecraft.Thruster.ThrustCoeff1 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustCoeff2 = " << spacecraft.Thruster.ThrustCoeff2 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustCoeff3 = " << spacecraft.Thruster.ThrustCoeff3 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustCoeff4 = " << spacecraft.Thruster.ThrustCoeff4 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".ThrustCoeff5 = " << spacecraft.Thruster.ThrustCoeff5 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MassFlowCoeff1 = " << spacecraft.Thruster.MassFlowCoeff1 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MassFlowCoeff2 = " << spacecraft.Thruster.MassFlowCoeff2 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MassFlowCoeff3 = " << spacecraft.Thruster.MassFlowCoeff3 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MassFlowCoeff4 = " << spacecraft.Thruster.MassFlowCoeff4 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".MassFlowCoeff5 = " << spacecraft.Thruster.MassFlowCoeff5 << std::endl;
+    GMATfile << spacecraft.Thruster.Name << ".FixedEfficiency = " << spacecraft.Thruster.FixedEfficiency << std::endl;
 	GMATfile << std::endl;
 
+}
+
+//method to write GMAT power system resource
+void gmatscripter::create_GMAT_powersystem(struct gmat_spacecraft& spacecraft)
+{
+    if (this->ptr_gmatmission->options.power_source_type == 0)
+        GMATfile << "Create SolarPowerSystem " << spacecraft.PowerSystem.Name << std::endl;
+    else
+        GMATfile << "Create NuclearPowerSystem " << spacecraft.PowerSystem.Name << std::endl;
+
+    GMATfile << spacecraft.PowerSystem.Name << ".EpochFormat = TAIModJulian" << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".InitialEpoch = " << (ptr_gmatmission->Xopt[0] / 86400.0) + TAIModJOffset << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".InitialMaxPower = " << spacecraft.PowerSystem.InitialMaxPower << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".AnnualDecayRate = " << spacecraft.PowerSystem.AnnualDecayRate << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".Margin = " << spacecraft.PowerSystem.Margin << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".BusCoeff1 = " << spacecraft.PowerSystem.BusCoeff1 << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".BusCoeff2 = " << spacecraft.PowerSystem.BusCoeff2 << std::endl;
+    GMATfile << spacecraft.PowerSystem.Name << ".BusCoeff3 = " << spacecraft.PowerSystem.BusCoeff3 << std::endl;
+    if (this->ptr_gmatmission->options.power_source_type == 0)
+    {
+        if (spacecraft.PowerSystem.ShadowModel == 0)
+            GMATfile << spacecraft.PowerSystem.Name << ".ShadowModel = None"<< std::endl;
+        else
+            GMATfile << spacecraft.PowerSystem.Name << ".ShadowModel = Dualcone" << std::endl;
+        GMATfile << spacecraft.PowerSystem.Name << ".SolarCoeff1 = " << spacecraft.PowerSystem.SolarCoeff1 << std::endl;
+        GMATfile << spacecraft.PowerSystem.Name << ".SolarCoeff2 = " << spacecraft.PowerSystem.SolarCoeff2 << std::endl;
+        GMATfile << spacecraft.PowerSystem.Name << ".SolarCoeff3 = " << spacecraft.PowerSystem.SolarCoeff3 << std::endl;
+        GMATfile << spacecraft.PowerSystem.Name << ".SolarCoeff4 = " << spacecraft.PowerSystem.SolarCoeff4 << std::endl;
+        GMATfile << spacecraft.PowerSystem.Name << ".SolarCoeff5 = " << spacecraft.PowerSystem.SolarCoeff5 << std::endl;
+    }
+
+    GMATfile << std::endl;
 }
 
 

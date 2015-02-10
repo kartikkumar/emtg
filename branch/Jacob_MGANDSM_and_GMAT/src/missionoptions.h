@@ -309,6 +309,7 @@ public:
     bool create_GMAT_script; //0: no, 1: yes
     int GMAT_optimizer; //0: VF13ad, 1: SNOPT, 2: fmincon
     bool GMAT_plot_while_optimize; //0: no, 1: yes
+    int shadow_mode; //0: none, 1: dualcone
 
 	//debug code
 	int run_inner_loop;

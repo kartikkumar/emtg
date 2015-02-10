@@ -28,6 +28,7 @@
 
 #include "mission.h"
 #include "missionoptions.h"
+#include "Astrodynamics.h"
 #include "EMTG_math.h"
 
 #include <fstream> //ofstream
@@ -48,17 +49,52 @@ namespace EMTG {
 
 
 //a struct type for gmat tank(s)
-struct gmat_tank {
+struct gmat_electric_tank {
 	string Name;
 	double FuelMass;
 };
 
 //a struct type for gmat thruster(s)
-struct gmat_thruster {
+struct gmat_electric_thruster {
 	string Name;
-	struct gmat_tank Tank;
-	double C1 = 0.1;
-	double K1 = 3000.0;
+	struct gmat_electric_tank Tank;
+    double DutyCycle = 0.90;
+    double ThrustScaleFactor = 1.0;
+    double GravitationalAccel = 9.80665;
+    string ThrustModel = "ThrustMassPolynomial";
+    double MaximumUsablePower = 7.4;
+    double MinimumUsablePower = 0.31;
+    double Isp = 3219.12314;
+    double ConstantThrust = 0.01243;
+    double ThrustCoeff1 = 1.92e-006;
+    double ThrustCoeff2 = 54.05382;
+    double ThrustCoeff3 = -14.41789;
+    double ThrustCoeff4 = 2.96519;
+    double ThrustCoeff5 = -0.19082;
+    double MassFlowCoeff1 = 2.13781;
+    double MassFlowCoeff2 = 0.03211;
+    double MassFlowCoeff3 = -0.09956;
+    double MassFlowCoeff4 = 0.05717;
+    double MassFlowCoeff5 = -0.004776;
+    double FixedEfficiency = 0.654321;
+};
+
+//a struct type for gmat power system(s)
+struct gmat_power_system {
+    string Name;
+    double InitialEpoch = 21547.00000039794;
+    double InitialMaxPower = 1.2124;
+    double AnnualDecayRate = 5.123;
+    double Margin = 4.998;
+    double BusCoeff1 = 0.32;
+    double BusCoeff2 = 0.0001;
+    double BusCoeff3 = 0.0001;
+    int ShadowModel = 0; //switch to enable different GMAT shadow models
+    double SolarCoeff1 = 1.33;
+    double SolarCoeff2 = -0.11;
+    double SolarCoeff3 = -0.12;
+    double SolarCoeff4 = 0.11;
+    double SolarCoeff5 = -0.02;
 };
 
 //a struct type for gmat finite burn
@@ -83,7 +119,7 @@ struct gmat_iburn {
 	double Element3 = 0.0;
 	bool DecrementMass = true;
 	double Isp;
-	double g = 9.81;
+    double g = 9.80665;
 	double c;
 	string TankName;
 };
@@ -96,7 +132,8 @@ struct gmat_spacecraft {
 	double Epoch;
 	double DryMass = 0.0;
 	string CoordinateSystem;
-	struct gmat_thruster Thruster;
+	struct gmat_electric_thruster Thruster;
+    struct gmat_power_system PowerSystem;
 	struct gmat_fburn fBurn;
 	struct gmat_iburn iBurn;
 	//Auxiliary Data
@@ -470,6 +507,7 @@ public:
 		this->set_names();
 		this->set_fuelmass_epoch_drymass();
 		this->get_my_bodies();
+        this->set_power_system();
 		this->set_thruster();
 		this->set_iBurn();
 		this->get_flyby_data();
@@ -506,6 +544,7 @@ public:
 	void set_names() {
 		//assign names to my members
 		spacecraft_forward.Name = "SpaceCraft_" + this->id + "_Forward";
+        spacecraft_forward.PowerSystem.Name = "PowerSystem_" + this->id + "_Forward";
 		spacecraft_forward.Thruster.Name = "Thruster_" + this->id + "_Forward";
 		spacecraft_forward.Thruster.Tank.Name = "FuelTank_" + this->id + "_Forward";
 		spacecraft_forward.fBurn.Name = "FiniteBurn_" + this->id + "_Forward";
@@ -514,6 +553,7 @@ public:
 		spacecraft_forward.isForward = true;
 
 		spacecraft_backward.Name = "SpaceCraft_" + this->id + "_Backward";
+        spacecraft_backward.PowerSystem.Name = "PowerSystem_" + this->id + "_Backward";
 		spacecraft_backward.Thruster.Name = "Thruster_" + this->id + "_Backward";
 		spacecraft_backward.Thruster.Tank.Name = "FuelTank_" + this->id + "_Backward";
 		spacecraft_backward.fBurn.Name = "FiniteBurn_" + this->id + "_Backward";
@@ -589,17 +629,137 @@ public:
 		spacecraft_backward.CoordinateSystem = mybodies[1].name + "J2000Eq";
 	}
 
+    //set the power system
+    void set_power_system() {
+        this->spacecraft_forward.PowerSystem.InitialMaxPower = this->myjourney->mymission->emtgmission->options.power_at_1_AU;
+        this->spacecraft_forward.PowerSystem.InitialEpoch = 21547.00000039794;
+        this->spacecraft_forward.PowerSystem.AnnualDecayRate = this->myjourney->mymission->emtgmission->options.power_decay_rate * 100.0;
+        this->spacecraft_forward.PowerSystem.Margin = this->myjourney->mymission->emtgmission->options.power_margin * 100.0;
+        this->spacecraft_forward.PowerSystem.BusCoeff1 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[0];
+        this->spacecraft_forward.PowerSystem.BusCoeff2 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[1];
+        this->spacecraft_forward.PowerSystem.BusCoeff3 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[2];
+        this->spacecraft_forward.PowerSystem.ShadowModel = 0; //switch to enable different GMAT shadow models
+        this->spacecraft_forward.PowerSystem.SolarCoeff1 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[0];
+        this->spacecraft_forward.PowerSystem.SolarCoeff2 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[1];
+        this->spacecraft_forward.PowerSystem.SolarCoeff3 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[2];
+        this->spacecraft_forward.PowerSystem.SolarCoeff4 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[3];
+        this->spacecraft_forward.PowerSystem.SolarCoeff5 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[4];
+        //copy the forward power system to the backward power system
+        this->spacecraft_backward.PowerSystem.InitialMaxPower = this->spacecraft_forward.PowerSystem.InitialMaxPower;
+        this->spacecraft_backward.PowerSystem.InitialEpoch = this->spacecraft_forward.PowerSystem.InitialEpoch;
+        this->spacecraft_backward.PowerSystem.AnnualDecayRate = this->spacecraft_forward.PowerSystem.AnnualDecayRate;
+        this->spacecraft_backward.PowerSystem.Margin = this->spacecraft_forward.PowerSystem.Margin;
+        this->spacecraft_backward.PowerSystem.BusCoeff1 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[0];
+        this->spacecraft_backward.PowerSystem.BusCoeff2 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[1];
+        this->spacecraft_backward.PowerSystem.BusCoeff3 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[2];
+        this->spacecraft_backward.PowerSystem.ShadowModel = this->spacecraft_forward.PowerSystem.ShadowModel;
+        this->spacecraft_backward.PowerSystem.SolarCoeff1 = this->spacecraft_forward.PowerSystem.SolarCoeff1;
+        this->spacecraft_backward.PowerSystem.SolarCoeff2 = this->spacecraft_forward.PowerSystem.SolarCoeff2;
+        this->spacecraft_backward.PowerSystem.SolarCoeff3 = this->spacecraft_forward.PowerSystem.SolarCoeff3;
+        this->spacecraft_backward.PowerSystem.SolarCoeff4 = this->spacecraft_forward.PowerSystem.SolarCoeff4;
+        this->spacecraft_backward.PowerSystem.SolarCoeff5 = this->spacecraft_forward.PowerSystem.SolarCoeff5;
+    }
+
 	//  set the engine_type
 	void set_thruster() {
-
 		// fixed thrust/Isp
-		if (this->myjourney->mymission->emtgmission->options.engine_type == 0) {
-			spacecraft_forward.Thruster.C1 = this->myjourney->mymission->emtgmission->options.Thrust;
-			spacecraft_forward.Thruster.K1 = this->myjourney->mymission->emtgmission->options.IspLT;
-			spacecraft_backward.Thruster.C1 = spacecraft_forward.Thruster.C1;
-			spacecraft_backward.Thruster.K1 = spacecraft_forward.Thruster.K1;
+		if (this->myjourney->mymission->emtgmission->options.engine_type == 0) 
+        {
+            spacecraft_forward.Thruster.ThrustModel = "ConstantThrustAndIsp";
+			spacecraft_forward.Thruster.ConstantThrust = this->myjourney->mymission->emtgmission->options.Thrust;
+			spacecraft_forward.Thruster.Isp= this->myjourney->mymission->emtgmission->options.IspLT;
+            spacecraft_backward.Thruster.ThrustModel = "ConstantThrustAndIsp";
+            spacecraft_backward.Thruster.ConstantThrust = this->myjourney->mymission->emtgmission->options.Thrust;
+            spacecraft_backward.Thruster.Isp = this->myjourney->mymission->emtgmission->options.IspLT;
 		}
-
+        //fixed Isp/efficiency
+        else if (this->myjourney->mymission->emtgmission->options.engine_type == 3)
+        {
+            spacecraft_forward.Thruster.ThrustModel = "FixedEfficiency";
+            spacecraft_forward.Thruster.FixedEfficiency = this->myjourney->mymission->emtgmission->options.user_defined_engine_efficiency;
+            spacecraft_forward.Thruster.Isp = this->myjourney->mymission->emtgmission->options.IspLT;
+            spacecraft_backward.Thruster.ThrustModel = "FixedEfficiency";
+            spacecraft_backward.Thruster.FixedEfficiency = this->myjourney->mymission->emtgmission->options.user_defined_engine_efficiency;
+            spacecraft_backward.Thruster.Isp = this->myjourney->mymission->emtgmission->options.IspLT;
+        }
+        //custom thruster coefficients
+        else if (this->myjourney->mymission->emtgmission->options.engine_type == 5) 
+        {
+            spacecraft_forward.Thruster.ThrustModel = "ThrustMassPolynomial";
+            spacecraft_forward.Thruster.MinimumUsablePower = this->myjourney->mymission->emtgmission->options.engine_input_power_bounds[0];
+            spacecraft_forward.Thruster.MaximumUsablePower = this->myjourney->mymission->emtgmission->options.engine_input_power_bounds[1];
+            spacecraft_forward.Thruster.ThrustCoeff1 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[0];
+            spacecraft_forward.Thruster.ThrustCoeff2 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[1];
+            spacecraft_forward.Thruster.ThrustCoeff3 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[2];
+            spacecraft_forward.Thruster.ThrustCoeff4 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[3];
+            spacecraft_forward.Thruster.ThrustCoeff5 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[4];
+            spacecraft_forward.Thruster.MassFlowCoeff1 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[0];
+            spacecraft_forward.Thruster.MassFlowCoeff2 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[1];
+            spacecraft_forward.Thruster.MassFlowCoeff3 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[2];
+            spacecraft_forward.Thruster.MassFlowCoeff4 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[3];
+            spacecraft_forward.Thruster.MassFlowCoeff5 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[4];
+            spacecraft_backward.Thruster.ThrustModel = "ThrustMassPolynomial";
+            spacecraft_backward.Thruster.MinimumUsablePower = this->myjourney->mymission->emtgmission->options.engine_input_power_bounds[0];
+            spacecraft_backward.Thruster.MaximumUsablePower = this->myjourney->mymission->emtgmission->options.engine_input_power_bounds[1];
+            spacecraft_backward.Thruster.ThrustCoeff1 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[0];
+            spacecraft_backward.Thruster.ThrustCoeff2 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[1];
+            spacecraft_backward.Thruster.ThrustCoeff3 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[2];
+            spacecraft_backward.Thruster.ThrustCoeff4 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[3];
+            spacecraft_backward.Thruster.ThrustCoeff5 = this->myjourney->mymission->emtgmission->options.engine_input_thrust_coefficients[4];
+            spacecraft_backward.Thruster.MassFlowCoeff1 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[0];
+            spacecraft_backward.Thruster.MassFlowCoeff2 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[1];
+            spacecraft_backward.Thruster.MassFlowCoeff3 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[2];
+            spacecraft_backward.Thruster.MassFlowCoeff4 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[3];
+            spacecraft_backward.Thruster.MassFlowCoeff5 = this->myjourney->mymission->emtgmission->options.engine_input_mass_flow_rate_coefficients[4];
+        }
+        //thruster coefficients from library
+        else if (this->myjourney->mymission->emtgmission->options.engine_type > 5) 
+        {
+            double at, bt, ct, dt, et, ht, gt, af, bf, cf, df, ef, hf, gf, minP, maxP;
+            EMTG::Astrodynamics::get_thruster_coefficients_from_library(&(this->myjourney->mymission->emtgmission->options),
+                                                                        minP,
+                                                                        maxP,
+                                                                        at,
+                                                                        bt,
+                                                                        ct,
+                                                                        dt,
+                                                                        et,
+                                                                        gt,
+                                                                        ht,
+                                                                        af,
+                                                                        bf,
+                                                                        cf,
+                                                                        df,
+                                                                        ef,
+                                                                        gf,
+                                                                        hf);
+            spacecraft_forward.Thruster.ThrustModel = "ThrustMassPolynomial";
+            spacecraft_forward.Thruster.MinimumUsablePower = minP;
+            spacecraft_forward.Thruster.MaximumUsablePower = maxP;
+            spacecraft_forward.Thruster.ThrustCoeff1 = at;
+            spacecraft_forward.Thruster.ThrustCoeff2 = bt;
+            spacecraft_forward.Thruster.ThrustCoeff3 = ct;
+            spacecraft_forward.Thruster.ThrustCoeff4 = dt;
+            spacecraft_forward.Thruster.ThrustCoeff5 = et;
+            spacecraft_forward.Thruster.MassFlowCoeff1 = at;
+            spacecraft_forward.Thruster.MassFlowCoeff2 = bt;
+            spacecraft_forward.Thruster.MassFlowCoeff3 = ct;
+            spacecraft_forward.Thruster.MassFlowCoeff4 = dt;
+            spacecraft_forward.Thruster.MassFlowCoeff5 = et;
+            spacecraft_forward.Thruster.ThrustModel = "ThrustMassPolynomial";
+            spacecraft_forward.Thruster.MinimumUsablePower = minP;
+            spacecraft_forward.Thruster.MaximumUsablePower = maxP;
+            spacecraft_forward.Thruster.ThrustCoeff1 = at;
+            spacecraft_forward.Thruster.ThrustCoeff2 = bt;
+            spacecraft_forward.Thruster.ThrustCoeff3 = ct;
+            spacecraft_forward.Thruster.ThrustCoeff4 = dt;
+            spacecraft_forward.Thruster.ThrustCoeff5 = et;
+            spacecraft_forward.Thruster.MassFlowCoeff1 = at;
+            spacecraft_forward.Thruster.MassFlowCoeff2 = bt;
+            spacecraft_forward.Thruster.MassFlowCoeff3 = ct;
+            spacecraft_forward.Thruster.MassFlowCoeff4 = dt;
+            spacecraft_forward.Thruster.MassFlowCoeff5 = et;
+        }
 	}
 
 	//method
@@ -849,7 +1009,7 @@ public:
 		this->setCalculate(myspacecraft->Thruster.Name + ".ThrustDirection2", "( ThrustVector_" + this->id + "_Direction2 * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
 		this->setCalculate(myspacecraft->Thruster.Name + ".ThrustDirection3", "( ThrustVector_" + this->id + "_Direction3 * 2 - 1 ) / ThrustUnitVectorMagnitude_" + this->id);
 		//use the 'Equation' command (i.e. "calculate") in GMAT to assign the thrust level
-		this->setCalculate(myspacecraft->Thruster.Name + ".C1", "( ThrusterMaxThrust * ThrustUnitVectorMagnitude_" + this->id + " )");
+		//this->setCalculate(myspacecraft->Thruster.Name + ".C1", "( ThrusterMaxThrust * ThrustUnitVectorMagnitude_" + this->id + " )");
 	}
 
 	//method
@@ -1178,6 +1338,7 @@ public:
 	virtual void write_GMAT_optimization();
 	//write calls
 	virtual void create_GMAT_spacecraft(struct gmat_spacecraft& spacecraft);
+    virtual void create_GMAT_powersystem(struct gmat_spacecraft& spacecraft);
 	virtual void create_GMAT_fueltank(struct gmat_spacecraft& spacecraft);
 	virtual void create_GMAT_thruster(struct gmat_spacecraft& spacecraft);
 	virtual void create_GMAT_forcemodel(struct gmat_forcemodel& forcemodel);
