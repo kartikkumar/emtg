@@ -638,7 +638,7 @@ public:
         this->spacecraft_forward.PowerSystem.BusCoeff1 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[0];
         this->spacecraft_forward.PowerSystem.BusCoeff2 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[1];
         this->spacecraft_forward.PowerSystem.BusCoeff3 = this->myjourney->mymission->emtgmission->options.spacecraft_power_coefficients[2];
-        this->spacecraft_forward.PowerSystem.ShadowModel = 0; //switch to enable different GMAT shadow models
+		this->spacecraft_forward.PowerSystem.ShadowModel = this->myjourney->mymission->emtgmission->options.GMAT_shadow_mode;
         this->spacecraft_forward.PowerSystem.SolarCoeff1 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[0];
         this->spacecraft_forward.PowerSystem.SolarCoeff2 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[1];
         this->spacecraft_forward.PowerSystem.SolarCoeff3 = this->myjourney->mymission->emtgmission->options.solar_power_gamma[2];

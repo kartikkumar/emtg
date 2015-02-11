@@ -156,6 +156,7 @@ namespace EMTG {
         this->create_GMAT_script = 0; //0: no, 1: yes
         this->GMAT_optimizer = 0; //0: VF13ad, 1: SNOPT, 2: fmincon
         this->GMAT_plot_while_optimize = 0; //0: no, 1: yes
+		this->GMAT_shadow_mode = 0;
     }
 
     missionoptions::~missionoptions() {}
@@ -1854,6 +1855,10 @@ namespace EMTG {
             this->GMAT_plot_while_optimize = (bool)value;
             return 0;
         }
+		if (choice == "GMAT_shadow_mode") {
+			this->GMAT_shadow_mode = (int)value;
+			return 0;
+		}
 
 	    //debug code
 	    if (choice == "check_derivatives") {
@@ -2884,6 +2889,10 @@ namespace EMTG {
             outputfile << "#0: no" << endl;
             outputfile << "#1: yes" << endl;
             outputfile << "GMAT_plot_while_optimize " << this->GMAT_plot_while_optimize << endl;
+			outputfile << "#GMAT shadow mode" << endl;
+			outputfile << "#0: no shadows" << endl;
+			outputfile << "#1: dual cone" << endl;
+			outputfile << "GMAT_shadow_mode " << this->GMAT_shadow_mode << endl;
             outputfile << endl;
 
 		    outputfile << "##debug code" << endl;

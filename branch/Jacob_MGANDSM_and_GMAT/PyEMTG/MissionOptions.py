@@ -218,6 +218,7 @@ class MissionOptions(object):
     create_GMAT_script = 0 #0: no, 1: yes
     GMAT_optimizer = 0 #0: VF13ad, 1: SNOPT, 2: fmincon
     GMAT_plot_while_optimize = 0 #0: no, 1: yes
+    GMAT_shadow_mode = 0
 
     #debug code
     check_derivatives = 0
@@ -835,6 +836,8 @@ class MissionOptions(object):
                         self.GMAT_optimizer = int(linecell[1])
                     elif choice == "GMAT_plot_while_optimize":
                         self.GMAT_plot_while_optimize = int(linecell[1])
+                    elif choice == "GMAT_shadow_mode":
+                        self.GMAT_shadow_mode = int(linecell[1])
                                 
                     #trialX, sequence input, etc
                     elif choice == "check_derivatives":
@@ -1720,6 +1723,10 @@ class MissionOptions(object):
         outputfile.write("#0: no\n")
         outputfile.write("#1: yes\n")
         outputfile.write("GMAT_plot_while_optimize " + str(self.GMAT_plot_while_optimize) + "\n")
+        outputfile.write("#GMAT shadow mode\n")
+        outputfile.write("#0: no shadows\n")
+        outputfile.write("#1: dual cone\n")
+        outputfile.write("GMAT_shadow_mode " + str(self.GMAT_shadow_mode) + "\n")
         outputfile.write("\n")
 
         outputfile.write("##debug code\n")	
@@ -3586,6 +3593,7 @@ class MissionOptions(object):
         optionsnotebook.tabOutput.chkcreate_GMAT_script.SetValue(self.create_GMAT_script)
         optionsnotebook.tabOutput.cmbGMAT_optimizer.SetSelection(self.GMAT_optimizer)
         optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.SetValue(self.GMAT_plot_while_optimize)
+        optionsnotebook.tabOutput.cmbGMAT_shadow_mode.SetSelection(self.GMAT_shadow_mode)
 
         if (self.output_dormant_journeys):
             optionsnotebook.tabOutput.lblpost_mission_wait_time.Show(True)
@@ -3615,11 +3623,15 @@ class MissionOptions(object):
             optionsnotebook.tabOutput.cmbGMAT_optimizer.Show(True)
             optionsnotebook.tabOutput.lblGMAT_plot_while_optimize.Show(True)
             optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Show(True)
+            optionsnotebook.tabOutput.lblGMAT_shadow_mode.Show(True)
+            optionsnotebook.tabOutput.cmbGMAT_shadow_mode.Show(True)
         else:
             optionsnotebook.tabOutput.lblGMAT_optimizer.Show(False)
             optionsnotebook.tabOutput.cmbGMAT_optimizer.Show(False)
             optionsnotebook.tabOutput.lblGMAT_plot_while_optimize.Show(False)
             optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Show(False)
+            optionsnotebook.tabOutput.lblGMAT_shadow_mode.Show(False)
+            optionsnotebook.tabOutput.cmbGMAT_shadow_mode.Show(False)
 
         if self.mission_type == 3:
             optionsnotebook.tabOutput.lblunscale_matchpoint_constraints.Show(True)

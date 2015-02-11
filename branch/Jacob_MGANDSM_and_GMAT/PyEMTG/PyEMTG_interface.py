@@ -719,6 +719,7 @@ class PyEMTG_interface(wx.Frame):
         self.optionsnotebook.tabOutput.chkcreate_GMAT_script.Bind(wx.EVT_CHECKBOX, self.Changecreate_GMAT_script)
         self.optionsnotebook.tabOutput.cmbGMAT_optimizer.Bind(wx.EVT_COMBOBOX, self.ChangeGMAT_optimizer)
         self.optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.Bind(wx.EVT_CHECKBOX, self.ChangeGMAT_plot_while_optimize)
+        self.optionsnotebook.tabOutput.cmbGMAT_shadow_mode.Bind(wx.EVT_COMBOBOX, self.ChangeGMAT_shadow_mode)
         
         
     #event handlers for global mission options    
@@ -1829,6 +1830,9 @@ class PyEMTG_interface(wx.Frame):
 
     def ChangeGMAT_plot_while_optimize(self, e):
         self.missionoptions.GMAT_plot_while_optimize = int(self.optionsnotebook.tabOutput.chkGMAT_plot_while_optimize.GetValue())
+
+    def ChangeGMAT_shadow_mode(self, e):
+        self.missionoptions.GMAT_shadow_mode = int(self.optionsnotebook.tabOutput.cmbGMAT_shadow_mode.GetSelection())
 
     #handlers for output options
     def Changeoutput_units(self, e):

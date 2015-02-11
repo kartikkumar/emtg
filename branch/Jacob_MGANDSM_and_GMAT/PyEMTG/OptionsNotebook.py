@@ -1093,14 +1093,22 @@ class OutputOptionsPanel(wx.lib.scrolledpanel.ScrolledPanel):
                                 self.lblbackground_mode, self.chkbackground_mode,
                                 self.lblunscale_matchpoint_constraints, self.chkunscale_matchpoint_constraints])
 
-        self.GMATbox = wx.FlexGridSizer(2,2,5,5)
+        self.GMATbox = wx.FlexGridSizer(3,2,5,5)
+
         self.lblGMAT_optimizer = wx.StaticText(self, -1, "GMAT optimizer")
         GMAToptimizer_choices = ['0: VF13ad', '1: SNOPT', '2: fmincon (requires MATLAB)']
         self.cmbGMAT_optimizer = wx.ComboBox(self, -1, choices=GMAToptimizer_choices, style=wx.CB_READONLY)
+
         self.lblGMAT_plot_while_optimize = wx.StaticText(self, -1, "Plot GMAT intermediate steps?")
         self.chkGMAT_plot_while_optimize = wx.CheckBox(self, -1)
+
+        self.lblGMAT_shadow_mode = wx.StaticText(self, -1, "GMAT shadow mode")
+        GMATshadowchoices = ["0: none", "1: dual cone"]
+        self.cmbGMAT_shadow_mode = wx.ComboBox(self, -1, choices=GMATshadowchoices, style=wx.CB_READONLY)
+
         self.GMATbox.AddMany([self.lblGMAT_optimizer, self.cmbGMAT_optimizer,
-                              self.lblGMAT_plot_while_optimize, self.chkGMAT_plot_while_optimize])
+                              self.lblGMAT_plot_while_optimize, self.chkGMAT_plot_while_optimize,
+                              self.lblGMAT_shadow_mode, self.cmbGMAT_shadow_mode])
         
         self.presentbox = wx.FlexGridSizer(1,2,5,5)
         self.presentbox.AddMany([self.mainbox, self.GMATbox])
