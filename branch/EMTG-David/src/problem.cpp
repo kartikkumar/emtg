@@ -10,7 +10,8 @@
 #include "mission.h"
 #include "monotonic_basin_hopping.h"
 #include "AdaptiveConstrainedDiffEvolve.h"
-#include "testAlg1.h"
+#include "TestAlg1.h"
+#include "NBH.h"
 #include "EMTG_math.h"
 
 
@@ -234,22 +235,48 @@ namespace EMTG {
 
 				break;
 			}
-		//case 6: //run TestAlg1v2
-		//	{
-		//		EMTG::Solvers::TestAlg1v2 solver(this);
+		case 6: //run NBH
+			{
+				EMTG::Solvers::NBH solver(this);
 
-		//		options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
-		//		solver.Evolve();
-		//		/*double bestJ = EMTG::math::LARGE;
-		//		bestJ = solver.BestObjectiveValue;
-		//		this->unscale(solver.BestX.data());
-		//		this->Xopt = X;
-		//		this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+				if (options.seed_MBH)
+				{
+					//first convert the local copy of trialX from days to seconds
+					for (size_t entry = 0; entry < this->Xdescriptions.size(); ++entry)
+					{
+						if (this->Xdescriptions[entry].find("epoch") < 1024 || this->Xdescriptions[entry].find("time") < 1024)
+						{
+							this->options.current_trialX[entry] *= 86400.0;
+						}
+					}
+					solver.seed(options.current_trialX);
+				}
 
-		//		this->output();*/
+				this->number_of_solutions = solver.run();
+			
+				options.outputfile = options.working_directory + "//" + options.mission_name + "_" + options.description + ".emtg";
 
-		//		break;
-		//	}
+				if (this->number_of_solutions == 0 || solver.fbest > 1.0e+10)
+				{
+					Xopt = Xlowerbounds;
+					options.outputfile = options.working_directory + "//FAILURE_" + options.mission_name + "_" + options.description + ".emtg";
+				}
+				
+				try
+				{
+					this->evaluate(this->Xopt.data(), this->F.data(), this->G.data(), 0, this->iGfun, this->jGvar);
+				}
+				catch (int e)
+				{
+					if (e == 13)
+						cout << "EMTG::Integrator failure" << endl;
+					std::cout << "Failure to evaluate " << this->options.description << std::endl;
+					F[0] = EMTG::math::LARGE;
+					this->number_of_solutions = 0;
+				}
+
+				break;
+			}
 		}
 
 		return 0;
