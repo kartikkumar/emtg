@@ -197,12 +197,15 @@ namespace EMTG { namespace Solvers {
 		Problem = Problem_input;
 
 		Mission = (mission*)(Problem);
-		NP = 100;
 		nX = Problem->total_number_of_NLP_parameters;
+		NP = nX*5;
 		Bin.resize(NP);
 		Fit.resize(NP);
 		for (int i = 0; i < NP; i++)
+		{
 			Bin[i].resize(nX);
+			Fit[i] = EMTG::math::LARGE;
+		}
 		for (int j = 0; j < Problem->options.number_of_journeys; j++)
 		{
 			for (int p = 0; p < Problem->options.number_of_phases[j]; p++)
@@ -210,10 +213,10 @@ namespace EMTG { namespace Solvers {
 		}
 
 		gen = 0;
-		genSw = 500;
-		proxMode = true;
-		killDist = 40000000*Problem->options.FD_stepsize;
-		switched = false;
+		genSw = NP*3;
+		proxMode = true; // Param
+		killDist = 30000000*Problem->options.FD_stepsize;
+		switched = false; // State
 
 
 		//size the storage vectors
@@ -383,7 +386,7 @@ namespace EMTG { namespace Solvers {
 			if(!switched)
 			{
 				switched = true;
-				cout << "\nSwitched Hop Mode\n";
+				cout << "\nSwitched Hop Mode -- cap = " << Bin.size() << "\n\n;";
 			}
 			capDist = boost::uniform_int<>(0, NP-1);
 			double hopType = 0.5;
@@ -594,8 +597,6 @@ namespace EMTG { namespace Solvers {
             else if (Xtrial_scaled[k] < 0.0)
                 Xtrial_scaled[k] = 0.0;
         }
-
-
 		return 0;
 	}
 
@@ -879,7 +880,7 @@ namespace EMTG { namespace Solvers {
 			if ((inform <= 2 && inform >= 0)|| feasibility < Problem->options.snopt_feasibility_tolerance)
 			{
 				//Step 3.1: if the trial point is feasible, add it to the archive. Also disable the feasible point finder
-                //this->feasible_point_finder_active = false; // Changed by Me
+                this->feasible_point_finder_active = false; // Changed by Me
 				Problem->unscale(Xtrial_scaled.data());
 				archive.push_back(Problem->X);
 				archive_scores.push_back(F[0]);
@@ -980,7 +981,13 @@ namespace EMTG { namespace Solvers {
 			}
 
 			if(F[0] < Fit[NP-1])
+			{
 				SortBin(Xtrial_scaled,F[0],NP-1);
+				string col = "";
+				if(proxKill)
+					col = " with collision";
+				cout << "Placed in Bin" << col << "\n";
+			}
 
 			if (number_of_failures_since_last_improvement >= Problem->options.MBH_max_not_improve)
 				new_point = true;
